@@ -8,13 +8,13 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
-    set(CMAKE_MODULE_PATH 
-        ${CMAKE_MODULE_PATH} 
+    set(CMAKE_MODULE_PATH
+        ${CMAKE_MODULE_PATH}
         ${CMAKE_CURRENT_LIST_DIR}/cmake/modules
     )
 
-    set(CMAKE_PREFIX_PATH 
-        ${CMAKE_PREFIX_PATH} 
+    set(CMAKE_PREFIX_PATH
+        ${CMAKE_PREFIX_PATH}
         ${ASCEND_CANN_PACKAGE_PATH}
     )
 
@@ -32,7 +32,7 @@ if (BUILD_OPEN_PROJECT)
     if(NOT ${alog_FOUND})
         add_definitions(-DALOG_NOT_FOUND)
     endif()
-    
+
     add_library(op_host_aclnn SHARED EXCLUDE_FROM_ALL)
     target_link_libraries(op_host_aclnn PRIVATE
             ${_op_host_aclnn_link}
@@ -59,9 +59,9 @@ if (BUILD_OPEN_PROJECT)
 
     # op api
     add_library(cust_opapi SHARED)
-    # When compiling a specified operator, there is an operator without aclnn src.	
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
-            COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp	
+    # When compiling a specified operator, there is an operator without aclnn src.
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
+            COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
     )
     target_sources(cust_opapi PRIVATE
             ${CMAKE_CURRENT_BINARY_DIR}/cust_opapi_stub.cpp
@@ -448,7 +448,7 @@ if (BUILD_OPEN_PROJECT)
             ${generate_proto_srcs}
     )
     add_dependencies(cust_proto ops_transformer_proto_headers)
-    
+
     if (NOT ENABLE_BUILT_IN)
         install(FILES ${generate_proto_headers}
                 DESTINATION packages/vendors/${VENDOR_NAME}_transformer/op_proto/inc OPTIONAL
@@ -512,7 +512,7 @@ else()
             SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif ()
-target_sources(cust_opapi PRIVATE 
+target_sources(cust_opapi PRIVATE
     $<$<TARGET_EXISTS:${OPHOST_NAME}_opapi_obj>:$<TARGET_OBJECTS:${OPHOST_NAME}_opapi_obj>>)
 target_link_libraries(
     cust_opapi
@@ -530,7 +530,7 @@ target_link_libraries(
 )
 
 target_link_libraries(
-    cust_proto 
+    cust_proto
     PUBLIC ${OPHOST_NAME}_infer_obj
     PRIVATE $<$<TARGET_EXISTS:opsbase>:opsbase>
 )
@@ -658,6 +658,10 @@ foreach (_op_name ${OP_LIST})
 endforeach ()
 
 install(DIRECTORY ${OPS_ADV_UTILS_KERNEL_INC}/
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common
+)
+
+install(DIRECTORY ${OPS_ADV_DIR}/gmm/common/groupedmatmul_act
         DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common
 )
 

@@ -299,6 +299,11 @@ install(DIRECTORY ${OPS_ADV_ACT}/
         DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common/act
 )
 
+install(DIRECTORY ${OPS_GROUPEDMATMUL_ACT}/
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/common/groupedmatmul_act
+)
+
+
 if (BUILD_OPS_RTY_KERNEL)
     get_target_property(base_aclnn_srcs op_host_aclnn SOURCES)
     get_target_property(base_aclnn_inner_srcs op_host_aclnnInner SOURCES)

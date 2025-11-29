@@ -17,9 +17,8 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #ifndef __GROUPED_MATMUL_ADD_NO_QUANT_KERNEL_ACT
 #define __GROUPED_MATMUL_ADD_NO_QUANT_KERNEL_ACT
 
-#include "include/matmul/kernel/kernel_grouped_matmul_add.h"
-#include "include/matmul/block/block_grouped_matmul_builder.h"
-#include "include/matmul/block/block_scheduler_grouped_matmul_aswt.h"
+#include "groupedmatmul_act/matmul/kernel/kernel_grouped_matmul_add.h"
+#include "groupedmatmul_act/matmul/block/block_scheduler_grouped_matmul_aswt.h"
 #include "../grouped_matmul_add.h"
 #include "grouped_matmul_add_tiling_data.h"
 

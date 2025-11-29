@@ -16,9 +16,8 @@
 #ifndef NON_QUANT_GROUPED_MATMUL_BASIC_KERNEL_ACT
 #define NON_QUANT_GROUPED_MATMUL_BASIC_KERNEL_ACT
 
-#include "include/matmul/kernel/kernel_grouped_matmul.h"
-#include "include/matmul/block/block_grouped_matmul_builder.h"
-#include "include/matmul/block/block_scheduler_grouped_matmul_aswt.h"
+#include "groupedmatmul_act/matmul/kernel/kernel_grouped_matmul.h"
+#include "groupedmatmul_act/matmul/block/block_scheduler_grouped_matmul_aswt.h"
 #include "../grouped_matmul_tiling_data_apt.h"
 #include "../../grouped_matmul_utils.h"
 

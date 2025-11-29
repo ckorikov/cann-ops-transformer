@@ -49,6 +49,7 @@ get_filename_component(OPS_ADV_DIR                  "${CMAKE_CURRENT_SOURCE_DIR}
 get_filename_component(OPS_ADV_CMAKE_DIR            "${OPS_ADV_DIR}/cmake"                  REALPATH)
 get_filename_component(OPS_ADV_UTILS_KERNEL_INC     "${OPS_ADV_DIR}/common/include/kernel"   REALPATH)
 get_filename_component(OPS_ADV_ACT                  "${OPS_ADV_DIR}/common/act"          REALPATH)
+get_filename_component(OPS_GROUPEDMATMUL_ACT        "${OPS_ADV_DIR}/gmm/common/groupedmatmul_act"   REALPATH)
 
 
 
@@ -132,7 +133,7 @@ if (BUILD_OPEN_PROJECT)
         if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
             set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE STRING "Choose the build type: Release/Debug" FORCE)
         endif()
-    endif()  
+    endif()
     get_property(GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     if (GENERATOR_IS_MULTI_CONFIG)
         if (NOT CMAKE_CONFIGURATION_TYPES)
