@@ -80,6 +80,20 @@ ge::graphStatus WeightQuantTilingTransferHelper::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
+WeightQuantMatmulTPLParam WeightQuantTilingTransferHelper::GetWeightQuantMatmulTPLParam()
+{
+    Mc2KernelTemplateType templateType = matmulInfoPtr_->bFormat == ge::FORMAT_FRACTAL_NZ ?
+                                          Mc2KernelTemplateType::WEIGHT_NZ :
+                                          Mc2KernelTemplateType::CUSTOM_ANTIQUANT;
+    WeightQuantMatmulTPLParam param;
+    param.subAlgorithmCustom = static_cast<uint64_t>(templateType);
+    param.hasAntiquantOffset = matmulInfoPtr_->hasAntiQuantOffset;
+    param.antiquantType = static_cast<uint64_t>(matmulInfoPtr_->antiQuantType);
+    param.transA = 0;   // v220 do not support transA
+    param.transB = matmulInfoPtr_->transB;
+    return param;
+}
+
 bool WeightQuantMatmulAllReduceTiling::IsCapable()
 {
     if (isA16W8_ || isA16W4_) {
@@ -114,10 +128,34 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling::DoOpTiling()
 }
 uint64_t WeightQuantMatmulAllReduceTiling::GetTilingKey() const
 {
-    uint64_t tilingKey = context_->GetTilingKey();
+    uint64_t tilingKey = 0;
     if (isKZero_) {
-        tilingKey = WEIGHT_QUANT_EMPTY_TENSOR_KEY;
+        tilingKey = GET_TPL_TILING_KEY(
+            static_cast<uint64_t>(ASCEND_910B),
+            static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL),
+            isKZero_,
+            MATMUL_ALLREDUCE_INT8_COMM_F,
+            0UL,    // ENABLE_L2_CACHE
+            0UL,    // SHARE_MM
+            SET_NOT_USE_FM_MM_TPL_TILING,
+            SET_NOT_USE_QUANT_MM_TPL_TILING,
+            SET_NOT_USE_WEIGHT_QUANT_MM_TPL_TILING);
     }
+    tilingKey = GET_TPL_TILING_KEY(
+        static_cast<uint64_t>(ASCEND_910B),
+        static_cast<uint64_t>(MATMUL_ALLREDUCE_MM_TYPE_WEIGHT_QUANT_MATMUL),
+        MATMUL_ALLREDUCE_EMPTY_INPUT_F,
+        MATMUL_ALLREDUCE_INT8_COMM_F,
+        0UL,    // ENABLE_L2_CACHE
+        0UL,    // SHARE_MM
+        SET_NOT_USE_FM_MM_TPL_TILING,
+        SET_NOT_USE_QUANT_MM_TPL_TILING,
+        weightQuantMatmulTPLParam_.subAlgorithmCustom,
+        weightQuantMatmulTPLParam_.hasAntiquantOffset,
+        weightQuantMatmulTPLParam_.antiquantType,
+        weightQuantMatmulTPLParam_.transA,
+        weightQuantMatmulTPLParam_.transB,
+        static_cast<uint64_t>(FORMAT_B_ND));
     OP_LOGI(opName_, " tilingKey %lu", tilingKey);
     return tilingKey;
 }
@@ -155,15 +193,20 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling::DoWeightQuantTiling()
     args_.mValue = tileMValue_;
     WeightQuantTilingTransferHelper mmTile(*this, weightQuantMatmulAllReduceTilingData_.tilematmulTiling);
     if (args_.enableSplitK) {
-        return mmTile.DoTiling();
+        auto res = mmTile.DoTiling();
+        weightQuantMatmulTPLParam_ = mmTile.GetWeightQuantMatmulTPLParam();
+        return res;
     } else {
         GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
         if (MutableRCSTilingData().get_tailCnt() == 0) {
+            weightQuantMatmulTPLParam_ = mmTile.GetWeightQuantMatmulTPLParam();
             return ge::GRAPH_SUCCESS;
         }
         args_.mValue = tailMValue_;
         WeightQuantTilingTransferHelper mmTail(*this, weightQuantMatmulAllReduceTilingData_.tailmatmulTiling);
-        return mmTail.DoTiling();
+        auto res = mmTail.DoTiling();
+        weightQuantMatmulTPLParam_ = mmTail.GetWeightQuantMatmulTPLParam();
+        return res;
     }
 }
 
@@ -280,12 +323,14 @@ ge::graphStatus WeightQuantMatmulAllReduceTiling::CheckInput()
 
     return CheckAxisSize();
 }
+
 WeightQuantMatmulAllReduceTiling::WeightQuantMatmulAllReduceTiling(gert::TilingContext* context)
     : MatmulAllReduceTilingBase(context),
       weightQuantMatmulAllReduceTilingData_(weightQuantMatmulAllReduceTilingDataSelf_)
 {
     weightQuantMatmulAllReduceTilingData_.SetDataPtr(context_->GetRawTilingData()->GetData());
 }
+
 WeightQuantMatmulAllReduceTiling::WeightQuantMatmulAllReduceTiling(
     gert::TilingContext* context, MMRCtxInfo* mmrCtxInfo, WeightQuantMatmulAllReduceTilingData* out)
     : MatmulAllReduceTilingBase(context, mmrCtxInfo), weightQuantMatmulAllReduceTilingData_(*out)
