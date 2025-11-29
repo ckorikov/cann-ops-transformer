@@ -25,9 +25,8 @@
 #include <unistd.h>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "aclnn/opdev/fp16_t.h"
-#include "../../moe_distribute_dispatch_v2/op_api/aclnn_moe_distribute_dispatch_v2.h"
-#include "../op_api/aclnn_moe_distribute_combine_v2.h"
+#include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
+#include "aclnnop/aclnn_moe_distribute_combine_v2.h"
 using namespace std;
 
 template <typename Func>
