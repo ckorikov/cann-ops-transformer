@@ -33,6 +33,16 @@ attention:
       # - fused_infer_attention_score
       # - prompt_flash_attention
 
+  nsa_compress_attention_infer:
+    module: True
+    src:
+      - attention/nsa_compress_attention_infer
+    exclude:
+      - attention/nsa_compress_attention_infer/docs
+      - attention/nsa_compress_attention_infer/README.md
+    options:
+      - nsa_compress_attention_infer
+
   nsa_compress_with_cache:
     module: True
     src:
