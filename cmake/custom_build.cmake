@@ -667,50 +667,32 @@ install(DIRECTORY ${OPS_ADV_DIR}/common/act
 
 foreach (op_dir ${OP_DIR_LIST})
     get_filename_component(_op_name "${op_dir}" NAME)
-    file(GLOB COMMON_KERNEL_FILES
-        ${op_dir}/op_kernel/*.cpp
-        ${op_dir}/op_kernel/*.h
-    )
-    install(FILES ${COMMON_KERNEL_FILES}
+    set(CURRENT_KERNEL_DIR "${op_dir}/op_kernel")
+    file(GLOB KERNEL_SUB_DIRS RELATIVE "${CURRENT_KERNEL_DIR}" "${CURRENT_KERNEL_DIR}/*")
+    filter_copy_files(SELECTED_FILES SELECTED_DIRS)
+    install(FILES ${SELECTED_FILES}
         DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
         OPTIONAL
     )
-    foreach (op_depend_dir ${${_op_name}_depends})
-        get_filename_component(_op_depened_name "${op_depend_dir}" NAME)
+    install(DIRECTORY ${SELECTED_DIRS}
+        DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}
+        OPTIONAL
+    )
 
-        file(GLOB DEPEND_COMMON_KERNEL_FILES
-            ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.cpp
-            ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/*.h
+    foreach (op_depend_dir ${${_op_name}_depends})
+        set(CURRENT_KERNEL_DIR "${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel")
+        file(GLOB KERNEL_SUB_DIRS RELATIVE "${CURRENT_KERNEL_DIR}" "${CURRENT_KERNEL_DIR}/*")
+        get_filename_component(_op_depened_name "${op_depend_dir}" NAME)
+        filter_copy_files(SELECTED_DEPEND_FILES SELECTED_DEPEND_DIRS)
+        install(FILES ${SELECTED_DEPEND_FILES}
+                DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_depened_name}
+                OPTIONAL
         )
-        install(FILES ${DEPEND_COMMON_KERNEL_FILES}
+        install(DIRECTORY ${SELECTED_DEPEND_DIRS}
                 DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_depened_name}
                 OPTIONAL
         )
     endforeach ()
-    foreach(ARCH ${ARCH_DIRECTORY})
-        file(GLOB ARCH_KERNEL_FILES
-            ${op_dir}/op_kernel/${ARCH}/*.cpp
-            ${op_dir}/op_kernel/${ARCH}/*.h
-        )
-        install(FILES ${ARCH_KERNEL_FILES}
-            DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_name}/${ARCH}
-            OPTIONAL
-        )
-
-        foreach (op_depend_dir ${${_op_name}_depends})
-            get_filename_component(_op_depened_name "${op_depend_dir}" NAME)
-
-            file(GLOB DEPEND_ARCH_KERNEL_FILES
-                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/${ARCH}/*.cpp
-                ${OPS_TRANSFORMER_DIR}/${op_depend_dir}/op_kernel/${ARCH}/*.h
-            )
-
-            install(FILES ${DEPEND_ARCH_KERNEL_FILES}
-                    DESTINATION ${IMPL_INSTALL_DIR}/ascendc/${_op_depened_name}/${ARCH}
-                    OPTIONAL
-            )
-        endforeach ()
-    endforeach()
 endforeach ()
 
 # ------------------------------------------------ generate compile cmd ------------------------------------------------

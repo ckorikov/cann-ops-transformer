@@ -52,6 +52,28 @@ set(A5_OPS_BLACK_LIST
     "moe_token_permute_with_routing_map;"
 ) # A5算子黑名单
 
+function(filter_copy_files SELECTED_FILES SELECTED_DIRS)
+    set(_selected_files "")
+    set(_selected_dirs "")
+    foreach(item ${KERNEL_SUB_DIRS})
+        set(path "${CURRENT_KERNEL_DIR}/${item}")
+        if(IS_DIRECTORY "${path}")
+            if(item MATCHES "^arch")
+                list(FIND ARCH_DIRECTORY "${item}" idx)
+                if(idx EQUAL -1)
+                    continue()
+                endif()
+            endif()
+            list(APPEND _selected_dirs "${path}")
+        else()
+            list(APPEND _selected_files "${path}")
+        endif()
+    endforeach()
+
+    set(${SELECTED_FILES} "${_selected_files}" PARENT_SCOPE)
+    set(${SELECTED_DIRS} "${_selected_dirs}" PARENT_SCOPE)
+endfunction()
+
 function(add_target_source)
     cmake_parse_arguments(ADD "" "BASE_TARGET;SRC_DIR" "TARGET_NAME" ${ARGN})
 
