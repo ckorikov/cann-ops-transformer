@@ -174,7 +174,7 @@ aclnnStatus aclnnMlaPrologV3WeightNz(
   | queryRopeOut               | 输出      | 公式中Query位置编码的输出tensor（对应$q^R$），Device侧的aclTensor。  | - 不支持空Tensor | BFLOAT16       | ND         | 3维：(T,N,Dr)、4维：(B,S,N,Dr)     |-   |
   | dequantScaleQNopeOutOptional  | 输出           | 公式中Query输出的量化参数，Device侧的aclTensor。  | - 不支持空Tensor     | FLOAT      | ND   | 3维：(T,N,1)   |-   |
   | queryNormOptional     | 输出      | 公式中tokenX做rmsNorm后的输出tensor（对应$c^Q$），Device侧的aclTensor。  | - 不支持空Tensor | BFLOAT16、INT8  | ND | - 2维：(T,Hcq)    |-   |
-  | dequantScaleQNormOptional     | 输出      | query_norm的输出tensor的量化参数，Device侧的aclTensor。  | - 不支持空Tensor | FLOAT  | ND | - 1维：（T）    |-   |
+  | dequantScaleQNormOptional     | 输出      | query_norm的输出tensor的量化参数，Device侧的aclTensor。  | - 不支持空Tensor | FLOAT  | ND | - 2维：（T,1）    |-   |
   | workspaceSize              | 输出      | 返回需在Device侧申请的workspace大小。  | - 仅用于输出结果，无需输入配置 - 数据类型为uint64_t* | -              | -          | -                                  |-   |
   | executor                   | 输出      | 返回op执行器，包含算子计算流程。        | - 仅用于输出结果，无需输入配置 - 数据类型为aclOpExecutor**    | -              | -          | -                                  |-   |
 
@@ -240,6 +240,9 @@ aclnnStatus aclnnMlaPrologV3WeightNz(
     -   B、S、T、Skv值允许一个或多个取0，即Shape与B、S、T、Skv值相关的入参允许传入空Tensor，其余入参不支持传入空Tensor。
         - 如果B、S、T取值为0，则queryOut、queryRopeOut输出空Tensor，kvCacheRef、krCacheRef不做更新。
         - 如果Skv取值为0，则queryOut、queryRopeOut、dequantScaleQNopeOutOptional正常计算，kvCacheRef、krCacheRef不做更新，即输出空Tensor。
+- 特殊约束
+  - per-tile量化模式下，ckvkrRepoMode和quantScaleRepoMode必须同时为1。
+  - 当ckvkrRepoMode值为1时，krCache必须为空Tensor（即shape的乘积为0）。
 - aclnnMlaPrologV3WeightNz接口支持场景：
   <table style="table-layout: auto;" border="1">
     <tr>

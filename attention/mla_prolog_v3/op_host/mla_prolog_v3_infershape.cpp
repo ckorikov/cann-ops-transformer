@@ -32,15 +32,19 @@ ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapePara
     // set output shape
     auto attrs = context->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
-    auto *weightQuantMode = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
-    auto *kvQuantMode = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
+
+    // Get attribute pointers and dereference once
+    const int *weightQuantModePtr = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
+    const int weightQuantMode = (weightQuantModePtr == nullptr) ? 0 : *weightQuantModePtr;
+    const int *kvQuantModePtr = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
+    const int kvQuantMode = (kvQuantModePtr == nullptr) ? 0 : *kvQuantModePtr;
 
     // dequantScaleQNope: (B*S, N ,1) | (T, N, 1). (1) if not enabled
     auto dequantScaleQNopeShape = context->GetOutputShape(DEQUANT_SCALE_Q_NOPE_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context, dequantScaleQNopeShape);
 
-    if ((*weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && *kvQuantMode == KV_QUANT_MODE_PER_TENSOR) ||
-        (*weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT && *kvQuantMode == KV_QUANT_MODE_PER_TENSOR)) {
+    if ((weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR) ||
+        (weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR)) {
         dequantScaleQNopeShape->SetDimNum(DIM_NUM_3);                   // (B*S, N, 1) | (T, N, 1)
         dequantScaleQNopeShape->SetDim(DIM_INDEX_0, shapeParam.isBsMerge ? shapeParam.T : shapeParam.B * shapeParam.S);
         dequantScaleQNopeShape->SetDim(DIM_INDEX_1, shapeParam.N);
@@ -56,7 +60,7 @@ ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapePara
     gert::Shape *dequantScaleQNormShape = context->GetOutputShape(DEQUANT_SCALE_Q_NORM_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context, dequantScaleQNormShape);
 
-    auto queryNormFlagPtr = attrs->GetAttrPointer<bool>(ATTR_QUERY_NORM_FLAG_INDEX);
+    const bool *queryNormFlagPtr = attrs->GetAttrPointer<bool>(ATTR_QUERY_NORM_FLAG_INDEX);
     const bool queryNormFlag = (queryNormFlagPtr == nullptr) ? 0 : *queryNormFlagPtr;
 
     if (queryNormFlag) {
@@ -76,13 +80,13 @@ ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapePara
         auto weightUqQrDesc = context->GetInputDesc(WEIGHT_UQ_QR_INDEX);
         OP_CHECK_NULL_WITH_CONTEXT(context, weightUqQrDesc);
 
-        if (weightUqQrDesc->GetDataType() == ge::DT_INT8) {
+        if (weightQuantMode == WEIGHT_QUANT_MODE_NO_QUANT) {
+            dequantScaleQNormShape->SetDimNum(DIM_NUM_1);
+            dequantScaleQNormShape->SetDim(DIM_INDEX_0, DIM_NUM_1);
+        } else {
             dequantScaleQNormShape->SetDimNum(DIM_NUM_2);
             dequantScaleQNormShape->SetDim(DIM_INDEX_0, shapeParam.T);
             dequantScaleQNormShape->SetDim(DIM_INDEX_1, DIM_NUM_1);
-        } else {
-            dequantScaleQNormShape->SetDimNum(DIM_NUM_1);
-            dequantScaleQNormShape->SetDim(DIM_INDEX_0, DIM_NUM_1);
         }
     } else {
         queryNormShape->SetDimNum(DIM_NUM_1);
@@ -113,16 +117,22 @@ ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext *context)
 
     auto attrs = context->GetAttrs();
     OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
-    auto *weightQuantMode = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
+
+    // Get attribute pointers and dereference once
+    const int *weightQuantModePtr = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
+    const int weightQuantMode = (weightQuantModePtr == nullptr) ? 0 : *weightQuantModePtr;
+    const int *kvQuantModePtr = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
+    const int kvQuantMode = (kvQuantModePtr == nullptr) ? 0 : *kvQuantModePtr;
+
     // mxfp8 quant
-    if (*weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT) {
+    if (weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT) {
         bool isMxfp8FullQuant = (context->GetRequiredInputDataType(TOKEN_X_INDEX) == ge::DT_FLOAT8_E4M3FN &&
             context->GetOptionalInputDataType(QUANT_SCALE_CKV_INDEX) != ge::DT_UNDEFINED);
 
         context->SetOutputDataType(QUERY_INDEX, (isMxfp8FullQuant) ? context->GetRequiredInputDataType(WEIGHT_DKV_KR_INDEX) : context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
         context->SetOutputDataType(QUERY_ROPE_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
         context->SetOutputDataType(KV_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KV_CACHE_INDEX_V3));
-        context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));   
+        context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));
         context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
         context->SetOutputDataType(QUERY_NORM_INDEX, context->GetRequiredInputDataType(WEIGHT_UQ_QR_INDEX));
         context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
@@ -133,18 +143,16 @@ ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext *context)
         context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));
 
         // full quant
-        auto weightQuantModePtr = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
-        const int weightQuantMode = (weightQuantModePtr == nullptr) ? 0 : *weightQuantModePtr;
-        auto kvQuantModePtr = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
-        const int kvQuantMode = (kvQuantModePtr == nullptr) ? 0 : *kvQuantModePtr;
-
         bool isQuantQuery = (weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR);
 
         context->SetOutputDataType(QUERY_INDEX, isQuantQuery ? ge::DT_INT8 : ge::DT_BF16);
         context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
 
-        context->SetOutputDataType(QUERY_NORM_INDEX, (
-            context->GetInputDataType(WEIGHT_UQ_QR_INDEX) == ge::DT_INT8) ? ge::DT_INT8 : ge::DT_BF16);
+        if (weightQuantMode == WEIGHT_QUANT_MODE_NO_QUANT) {
+            context->SetOutputDataType(QUERY_NORM_INDEX, ge::DT_BF16);
+        } else {
+            context->SetOutputDataType(QUERY_NORM_INDEX, ge::DT_INT8);
+        }
         context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
     }
 
