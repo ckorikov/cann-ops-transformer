@@ -29,6 +29,7 @@ const int64_t N_SPLIT_RATIO = 128;
 constexpr size_t GMMSQ_INDEX_ATTR_QUANT_DTYPE = 3UL;
 constexpr size_t GMMSQ_INDEX_ATTR_QUANT_MODE = 2UL;
 constexpr size_t QUANT_MODE_TYPE = 2;
+constexpr int64_t DYNAMIC_GRAPH_FIRST_INFERSHAPE_DIM_VALUE = -1;
 
 static ge::graphStatus InferShape4GroupedMatmulSwigluQuantV2(gert::InferShapeContext *context)
 {
@@ -47,7 +48,13 @@ static ge::graphStatus InferShape4GroupedMatmulSwigluQuantV2(gert::InferShapeCon
         const bool transposeWeight = (transposeWeightPtr != nullptr ? *transposeWeightPtr : false);
         nDimIndex = transposeWeight ? weightScaleShape->GetDimNum() - OUT_DIM_LEN :
                                         weightScaleShape->GetDimNum() - DIM_LEN;
-        int64_t n = static_cast<int64_t>(Ops::Base::CeilDiv(weightScaleShape->GetDim(nDimIndex), N_SPLIT_RATIO));
+        int64_t dimValue = static_cast<int64_t>(weightScaleShape->GetDim(nDimIndex));
+        int64_t n = 0;
+        if (dimValue == DYNAMIC_GRAPH_FIRST_INFERSHAPE_DIM_VALUE) {
+            n = dimValue;
+        } else {
+            n = static_cast<int64_t>(Ops::Base::CeilDiv(weightScaleShape->GetDim(nDimIndex), N_SPLIT_RATIO));
+        }
         outScaleShape->SetDimNum(OUT_DIM_LEN);
         outScaleShape->SetDim(0, m);
         outScaleShape->SetDim(1, n);
@@ -57,7 +64,13 @@ static ge::graphStatus InferShape4GroupedMatmulSwigluQuantV2(gert::InferShapeCon
         outScaleShape->SetDim(0, m);
     }
 
-    int64_t n = static_cast<int64_t>(weightScaleShape->GetDim(nDimIndex) / SPLIT_RATIO);
+    int64_t dimValue = static_cast<int64_t>(weightScaleShape->GetDim(nDimIndex));
+    int64_t n = 0;
+    if (dimValue == DYNAMIC_GRAPH_FIRST_INFERSHAPE_DIM_VALUE) {
+        n = dimValue;
+    } else {
+        n = static_cast<int64_t>(weightScaleShape->GetDim(nDimIndex) / SPLIT_RATIO);
+    }
     auto outShape = context->GetOutputShape(0);
     OP_CHECK_NULL_WITH_CONTEXT(context, outShape);
     outShape->SetDimNum(DIM_LEN);
