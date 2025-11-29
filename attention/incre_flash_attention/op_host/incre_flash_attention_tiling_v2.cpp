@@ -1006,7 +1006,7 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
     return ge::GRAPH_FAILED;
   }
   SetfaRunFlag();   // 判断是否走伪量化新模板
-  if (!isPFAFlag_ && faRunFlagAntiq_) {
+  if (!isPFAFlag_) {
     preToken_ = SPARSE_MODE_INT_MAX;
     nextToken_ = SPARSE_MODE_INT_MAX;
     if (inputLayout_ != IfaLayout::TND) {
@@ -1022,7 +1022,6 @@ ge::graphStatus IFATilingV2::ProcessOptionalTensors() {
 
 void IFATilingV2::SetfaRunFlag() {
   if (antiQuantFlag_) {
-    faRunFlagAntiq_ = true;
     if(sOfQuery_ == NUM1 && !enableAlibiPse_) {
       faRunGS_ = true;
       isGqa_ = 1;
@@ -1031,26 +1030,23 @@ void IFATilingV2::SetfaRunFlag() {
       isGqa_ = 0;
     }
   } else {
-    faRunFlagAntiq_ = false;
     faRunGS_ = false;
   }
-  if (faRunFlagAntiq_) {
-    if (!isPFAFlag_) {
-      faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
-      if (attenMaskFlag_) {
-        faRunAttenMaskShapeType_ = 1; // 1 is shape type
-        attenMaskQSize_ = 1;
-      } else {
-        faRunAttenMaskShapeType_ = 0;
-        attenMaskQSize_ = 0;
-      }
+  if (!isPFAFlag_) {
+    faRunSparseType_ = static_cast<uint8_t>(IfaSparseEnum::IFA_ALL);
+    if (attenMaskFlag_) {
+      faRunAttenMaskShapeType_ = 1; // 1 is shape type
+      attenMaskQSize_ = 1;
     } else {
-      SetPFASparseType(sOfQuery_);
-      if (attenMaskFlag_) {
-        faRunAttenMaskShapeType_ = attenMaskBatch_ > 1 ? 1 : 2; // 2 is shape type
-      } else {
-        faRunAttenMaskShapeType_ = 0;
-      }
+      faRunAttenMaskShapeType_ = 0;
+      attenMaskQSize_ = 0;
+    }
+  } else {
+    SetPFASparseType(sOfQuery_);
+    if (attenMaskFlag_) {
+      faRunAttenMaskShapeType_ = attenMaskBatch_ > 1 ? 1 : 2; // 2 is shape type
+    } else {
+      faRunAttenMaskShapeType_ = 0;
     }
   }
 }
@@ -2474,53 +2470,14 @@ bool IFATilingV2::IsFlashDecodefaRun() const {
 }
 
 ge::graphStatus IFATilingV2::Split() {
-  if (faRunFlagAntiq_) {
-    CalcInnerSize(seqSize_);
-    FlashAttentionCubeSplitBNSeq();
-    if (!isPFAFlag_) {
-      if (IsFlashDecodefaRun()) {
-        splitKVFlag_ = true;
-        return SplitBNSfaRun();
-      }
+  CalcInnerSize(seqSize_);
+  FlashAttentionCubeSplitBNSeq();
+  if (!isPFAFlag_) {
+    if (IsFlashDecodefaRun()) {
+      splitKVFlag_ = true;
+      return SplitBNSfaRun();
     }
-    return ge::GRAPH_SUCCESS;
-  } else {
-    if (!isPFAFlag_) {
-      if (IsFlashDecode()) {
-        splitKVFlag_ = true;
-        return SplitBNS();
-      }
-    }
-    CalcInnerSize(seqSize_);
-    if (isPFAFlag_) {
-      return PromptFlashAttentionSplitBNSeq();
-    }
-    return SplitBN();
   }
-}
-
-ge::graphStatus IFATilingV2::SplitBN() {
-  uint32_t bn = batchSize_ * numKvHeads_;
-
-  for (uint32_t i = 0; i < MAX_CORE_NUM_REGBASE; i++) {
-    startIdxEachCore_[i] = bn;
-  }
-
-  if (actualLenDims_ == NUM1 || bn <= coreNum_ || (actualLenDims_ == 0 && kvListSeqLens_.size() == NUM1)) {
-    return SplitBN_V0();
-  }
-
-  std::vector<int64_t> validArray;
-  if (actualLenDims_ > 0) {
-    const int64_t* actualLenData = context_->actualSeqLengths.tensor->GetData<int64_t>();
-    validArray = InitSparseValidArray(actualLenData);
-  } else {
-    validArray = InitSparseValidArray(&kvListSeqLens_[0]);
-  }
-
-  SetSparseStartIdx(validArray, bn, coreNum_, startIdxEachCore_, CeilDivision(bn, coreNum_));
-
-  usedCoreNum_ = coreNum_;
   return ge::GRAPH_SUCCESS;
 }
 
@@ -2688,7 +2645,7 @@ void IFATilingV2::GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualS
   if (inputLayout_ == IfaLayout::TND) {
     actualSeqLengths = bIdx == 0 ? context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[0] :
       context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx] - context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx - 1];
-    if (faRunFlagAntiq_ && faRunGS_) {
+    if (faRunGS_) {
       actualSeqLengths *= nNumOfQInOneGroup_;
     }
     actualSeqLengthsKV = context_->actualSeqLengths.tensor->GetData<int64_t>()[bIdx];
@@ -2710,7 +2667,7 @@ void IFATilingV2::GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualS
         context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx];
     } else {
       actualSeqLengths = sOfQuery_;
-      if (faRunFlagAntiq_ && faRunGS_) {
+      if (faRunGS_) {
         actualSeqLengths = sOfQuery_ * nNumOfQInOneGroup_;
       }
     }
@@ -2807,49 +2764,6 @@ int64_t IFATilingV2::GetActualInnerBlockNums(int64_t sInnerIndexStart, int64_t s
   return sInnerBlockNums;
 }
 
-void IFATilingV2::ComputeSplitBNSeq(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
-  double coreWightTarget) {
-  int64_t curWight = 0;
-  uint32_t curCore = 0;
-  for (uint32_t bIdx = 0; bIdx < batchSize_; bIdx++) {
-    int64_t actualSeqLengths = 0;
-    int64_t actualSeqLengthsKV = 0;
-    GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, bIdx);
-
-    int64_t preTokensLeftUp = 0;
-    int64_t nextTokensLeftUp = 0;
-    GetPreNextTokensLeftUp(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
-    FixParamWithRowInvalid(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
-
-    int64_t outerBlockNums = sOuterLoopTimes[bIdx];
-    int64_t innerBlockNums = sInnerLoopTimes[bIdx];
-    for (uint32_t headNum = 0; headNum < numHeads_; headNum++) {
-      int64_t preTokensLeftUpTmp = preTokensLeftUp;
-      int64_t nextTokensLeftUpTmp = nextTokensLeftUp;
-      for (uint32_t sOuterIndex = 0; sOuterIndex < outerBlockNums; sOuterIndex++) {
-        int64_t dif = static_cast<int64_t>(coreWightTarget * double(curCore + 1)) - curWight;
-        int64_t sInnerIndexStart = -(preTokensLeftUpTmp > 0 ? (preTokensLeftUpTmp + static_cast<int64_t>(sInnerSize_) - 1) /
-          static_cast<int64_t>(sInnerSize_) : preTokensLeftUpTmp / static_cast<int64_t>(sInnerSize_));
-        int64_t sInnerIndexEnd = nextTokensLeftUpTmp > 0 ? (nextTokensLeftUpTmp + static_cast<int64_t>(sInnerSize_) - 1) /
-          static_cast<int64_t>(sInnerSize_) : nextTokensLeftUpTmp / static_cast<int64_t>(sInnerSize_);
-        // The number of innerBlock blocks in each outBlock row represents the calculation amount of each outBlock row.
-        int64_t actualInnerBlockNums = GetActualInnerBlockNums(sInnerIndexStart, sInnerIndexEnd, innerBlockNums);
-        if (actualInnerBlockNums - dif > dif) {
-          curCore += NUM1;
-          startIdxEachCore_[curCore] = bIdx * numHeads_ + headNum;
-          coreSposStart_[curCore] = sOuterIndex;
-        }
-        curWight += actualInnerBlockNums;
-        preTokensLeftUpTmp -= sOuterSize_;
-        nextTokensLeftUpTmp += sOuterSize_;
-      }
-    }
-  }
-  usedCoreNum_ = curCore + 1;
-  startIdxEachCore_[usedCoreNum_] = batchSize_ * numHeads_;
-  coreSposStart_[usedCoreNum_] = 0;
-}
-
 void IFATilingV2::ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes,
   std::vector<int64_t> sInnerLoopTimes, double coreWightTarget, uint32_t& curCore, const size_t tilingElementArrayLen) {
   int64_t SplitNumHeads = numHeads_;
@@ -2902,35 +2816,6 @@ void IFATilingV2::ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes,
 
   faRunTilingAdapter.multiCoreParamsRegbase.set_bnStartIdx(bnStartIdx.data());
   faRunTilingAdapter.multiCoreParamsRegbase.set_sparseStartIdx(gS1StartIdx.data());
-}
-
-ge::graphStatus IFATilingV2::PromptFlashAttentionSplitBNSeq() {
-  int64_t totalBlockNumsOneHead = 0; // The calculation amount of all sequences for a single head
-  std::vector<int64_t> sOuterLoopTimes(batchSize_, 0U);
-  std::vector<int64_t> sInnerLoopTimes(batchSize_, 0U);
-  for (uint32_t bIdx = 0; bIdx < batchSize_; bIdx++) {
-    int64_t actualSeqLengths = 0;
-    int64_t actualSeqLengthsKV = 0;
-    GetActualSeqLength(actualSeqLengths, actualSeqLengthsKV, bIdx);
-
-    int64_t preTokensLeftUp = 0;
-    int64_t nextTokensLeftUp = 0;
-    GetPreNextTokensLeftUp(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
-    FixParamWithRowInvalid(actualSeqLengths, actualSeqLengthsKV, preTokensLeftUp, nextTokensLeftUp);
-
-    sOuterLoopTimes[bIdx] = (actualSeqLengths + static_cast<int64_t>(sOuterSize_) - 1) / static_cast<int64_t>(sOuterSize_);
-    sInnerLoopTimes[bIdx] = (actualSeqLengthsKV + static_cast<int64_t>(sInnerSize_) - 1) / static_cast<int64_t>(sInnerSize_);
-
-    totalBlockNumsOneHead += GetCalcBlockNumsOneHead(sOuterLoopTimes[bIdx], sInnerLoopTimes[bIdx], preTokensLeftUp, nextTokensLeftUp);
-  }
-
-  // Amount of computation per core
-  double coreWightTarget = (double(totalBlockNumsOneHead * numHeads_) / double(coreNum_));
-  if (needInit_) {
-    PromptFlashAttentionInitOutputSplit();
-  }
-  ComputeSplitBNSeq(sOuterLoopTimes, sInnerLoopTimes, coreWightTarget);
-  return ge::GRAPH_SUCCESS;
 }
 
 void IFATilingV2::FlashAttentionCubeSplitBNSeq()   //这里我们只用Cube视角分核
@@ -3005,29 +2890,6 @@ ge::graphStatus IFATilingV2::SplitBN_V0() {
   return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus IFATilingV2::SplitBNS() {
-  formerCoreNum_ = 0;
-  blockSplitBn2Range_ = NUM1;
-  tailSplitedBatchRange_ = NUM1;
-  uint32_t x;
-  uint32_t bn = batchSize_ * numKvHeads_;
-  kvSplitPart_ = coreNum_ / bn;
-
-  x = NUM256;
-
-  while(((maxActualseq_ / kvSplitPart_) < x) && (kvSplitPart_ > 1)) { // 512, 经验值
-    kvSplitPart_--;
-  }
-
-  usedCoreNum_ = bn * kvSplitPart_;
-  uint32_t computeSeqSize = (seqSize_ + (kvSplitPart_ - 1)) / kvSplitPart_;
-  if (antiquantParamsInPageAttentionFlag_) { // PA管理伪量化参数时，dstOffset必须32B对齐
-    computeSeqSize = AlignUp(static_cast<uint64_t>(computeSeqSize), BYTE_BLOCK / sizeof(float));
-  }
-  CalcInnerSize(computeSeqSize);
-  return ge::GRAPH_SUCCESS;
-}
-
 ge::graphStatus IFATilingV2::SplitBNSfaRun() {
   uint64_t bng = batchSize_ * numKvHeads_ * (nNumOfQInOneGroup_ + sOuterSize_ - 1) / sOuterSize_;
   uint64_t headDimAlign = AlignUp(headDim_, BYTE_BLOCK);
@@ -3071,24 +2933,7 @@ ge::graphStatus IFATilingV2::CalcInnerSize(uint32_t seqSize) {
    *                          因此，cube发小块，期望vector尽量被cube的mte2掩盖。sInnerSize=1024
    */
   if (socVersion_ == IfaSocVersion::SOC_ASCEND_910_95 || socVersion_ == IfaSocVersion::SOC_ASCEND_910_55) {
-    if (!faRunFlagAntiq_) {
-      sInnerSize_ = NUM256; 
-      sOuterSize_ = NUM16;
-      if (headDim_ <= NUM64) {
-        sInnerSize_ = NUM512;
-        if (pseShiftFlag_ || sparseMode_ == SPARSE_MODE_BAND) {
-          sOuterSize_ = NUM8;
-        }
-      } else if (headDim_ <= NUM128) {
-        sInnerSize_ = NUM256;
-      } else if (headDim_ <= NUM256) {
-        sInnerSize_ = NUM128;
-      } else {
-        sInnerSize_ = NUM64;
-      }
-    } else {
-      SetfaRunBaseSize();
-    }
+    SetfaRunBaseSize();
   } else {
     sInnerSize_ = MAX_SPLIT_SIZE;  // 8192
     if (antiQuantFlag_ && nNumOfQInOneGroup_ > 1) {
@@ -3755,28 +3600,6 @@ ge::graphStatus IFATilingV2::CalcBlockDim() const {
   auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
   auto aicNum = aicNum_;
   auto aivNum = aivNum_;
-  if (!splitKVFlag_ && !isPFAFlag_) {
-      if (perfMode_ == IfaPerfMode::C1_V1) { // 2:bn数不超过vector core一半时，CV开启CV 1:1
-          if (socVersion_ == IfaSocVersion::SOC_ASCEND_910_95) {
-              aicNum = usedCoreNum_;
-              aivNum = NUM2 * aicNum; // 910D上CV1:1,暂时保持vector数是core数两倍
-          } else if (socVersion_ == IfaSocVersion::SOC_ASCEND_910_55) {
-              aicNum = usedCoreNum_;
-              aivNum = aicNum;
-          } else {
-              aivNum = usedCoreNum_; // CV 1:1时,GetTaskRation()的结果为1,所以aivNum与aicNum相等
-              aicNum = aivNum;
-          }
-      } else {
-          aivNum = AlignUp(usedCoreNum_, NUM2); // aivNum必须为偶数达成CV 1:2
-          aicNum = (aivNum + NUM1) / NUM2;          // cube核的数量为vector核的数量按2向上对齐
-      }
-  }
-  if (faRunFlagAntiq_)
-  {
-    aicNum = aicNum_;
-    aivNum = aivNum_;
-  }
   context_->blockDim = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum);  // 暂时与当前代码一致
   OP_LOGD(context_->opName, "IFA block dim:%u aivNum:%u aicNum:%u.", context_->blockDim, aivNum, aicNum);
   return ge::GRAPH_SUCCESS;
@@ -3939,9 +3762,6 @@ void IFATilingV2::SetAttenMaskCompressMode()
 }
 
 void IFATilingV2::IFATilingDataconvert() {
-  if (!faRunFlagAntiq_) {
-      return;
-  }
   SetLayoutTypefaRun();
   auto &inputParams = faRunTilingAdapter.inputParamsRegbase;
   inputParams.set_bSize(batchSize_);
@@ -4041,13 +3861,8 @@ ge::graphStatus IFATilingV2::IncreFlashAttentionSetTilingData(gert::TilingContex
   OP_CHECK_IF(context.GetRawTilingData() == nullptr,
              OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "RawTilingData got from ge context is null."),
              return GRAPH_FAILED);
-  if (faRunFlagAntiq_) {
-    faRunTilingAdapter.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-    context.GetRawTilingData()->SetDataSize(faRunTilingAdapter.GetDataSize());
-  } else {
-    tilingData.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
-    context.GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
-  }
+  faRunTilingAdapter.SaveToBuffer(context.GetRawTilingData()->GetData(), context.GetRawTilingData()->GetCapacity());
+  context.GetRawTilingData()->SetDataSize(faRunTilingAdapter.GetDataSize());
   return ge::GRAPH_SUCCESS;
 }
 

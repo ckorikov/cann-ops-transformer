@@ -156,7 +156,6 @@ class IFATilingV2 {
 
   ge::graphStatus Split();
   ge::graphStatus CalcInnerSize(uint32_t seqSize);
-  ge::graphStatus SplitBN();
 
   std::vector<int64_t> InitSparseValidArray(const int64_t* actualLens) const;
   bool BalanceLoad(const std::vector<int64_t>& sparseValidArray, int64_t totalSize, int64_t validAivNum,
@@ -178,18 +177,14 @@ class IFATilingV2 {
                             int64_t sInner, int64_t sOuter, int64_t token) const;
   int64_t GetCalcBlockNumsOneHead(int64_t outerBlockNums, int64_t innerBlockNums, int64_t preTokensLeftUp, int64_t nextTokensLeftUp) const;
   int64_t GetActualInnerBlockNums(int64_t sInnerIndexStart, int64_t sInnerIndexEnd, int64_t innerBlockNums) const;
-  void ComputeSplitBNSeq(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
-    double coreWightTarget);
   void ComputeSplitNBSeqfaRun(std::vector<int64_t> sOuterLoopTimes, std::vector<int64_t> sInnerLoopTimes,
     double coreWightTarget, uint32_t& curCore, const size_t tilingElementArrayLen);
   void SetMultiCoreParamsRegbase(int64_t totalSize, int64_t actualUsedCoreNum);
   void SetLayoutTypefaRun();
   void SetAttenMaskCompressMode();
   void IFATilingDataconvert();
-  ge::graphStatus PromptFlashAttentionSplitBNSeq();
   void FlashAttentionCubeSplitBNSeq();
   ge::graphStatus SplitBN_V0();
-  ge::graphStatus SplitBNS();
   ge::graphStatus SplitBNSfaRun();
   ge::graphStatus CheckActualSeqLens();
   int64_t GetMaxSeqLength(const gert::Tensor* actualSeqLength);
@@ -354,7 +349,6 @@ class IFATilingV2 {
   bool softmaxLseFlag_ = false;
 
   //伪量化新模板新增
-  bool faRunFlagAntiq_ = false;
   bool faRunGS_ = false;    //指示是否合轴
   int8_t isGqa_ = 0;
   uint8_t faRunAttenMaskShapeType_ = 0;
