@@ -59,8 +59,7 @@ class IFATilingV2 {
   ~IFATilingV2() = default;
 
   ge::graphStatus DoTiling(gert::TilingContext& context);
-  ge::graphStatus RunBigKernelTiling(IncreFlashAttentionContext& context, IncreFlashAttentionTilingDataV2& tilingData,
-                                     bool isWorkspace = false);
+  ge::graphStatus RunBigKernelTiling(IncreFlashAttentionContext& context, IncreFlashAttentionTilingDataV2& tilingData);
   ge::graphStatus IncreFlashAttentionSetTilingData(gert::TilingContext& context,
                                                    IncreFlashAttentionTilingDataV2& tilingData);
   static ge::graphStatus ConvertContext(gert::TilingContext& context, IncreFlashAttentionContext& ifaContext);
@@ -92,6 +91,7 @@ class IFATilingV2 {
   void SetIFASparseType();
   void SetPFASparseType(uint32_t qS);
   void SetfaRunBaseSize();
+  void GetMaxWorkspaceFlag();
   ge::graphStatus InitInOutMode();
   ge::graphStatus KvShapePostProcess();
   ge::graphStatus CheckKvCache();
@@ -343,7 +343,7 @@ class IFATilingV2 {
   uint32_t coreSposStart_[MAX_CORE_NUM_REGBASE] = {};
   IncreFlashAttentionContext* context_ = nullptr;
   IncreFlashAttentionTilingData* tilingData_ = nullptr;
-  bool isWorkspace_ = false;
+  bool isMaxWorkspace_ = false;
   
   uint32_t formerCoreNum_ = 0;
   uint32_t blockSplitBn2Range_ = 0;

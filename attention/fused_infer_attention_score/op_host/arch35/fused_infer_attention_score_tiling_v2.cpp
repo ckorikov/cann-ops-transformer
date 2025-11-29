@@ -29,6 +29,7 @@ using namespace ge;
 using namespace AscendC;
 namespace optiling {
 // Inputs Index
+constexpr uint32_t QUERY_DIM_0 = 0;
 constexpr uint32_t QUERY_DIM_2 = 2;
 constexpr uint32_t QUERY_DIM_3 = 3;
 constexpr uint32_t QUERY_DIM_4 = 4;
@@ -325,14 +326,13 @@ ge::graphStatus ConvertQuantOptionalInputs(const gert::TilingContext* context, C
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams) {
+static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams, bool isMaxWorkspace) {
     constexpr uint32_t FROM_FUSED_FLAG = 71;
 
     contextKeyParams.opName = context->GetNodeName();
 
     contextKeyParams.isKvContinuous = 1;
     contextKeyParams.emptyTensor = 0;
-    contextKeyParams.fromTilingSink = 0;
     contextKeyParams.fromFused = FROM_FUSED_FLAG;
     contextKeyParams.maxKVs = 0;
     contextKeyParams.pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
@@ -418,19 +418,19 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
         if (layoutStr != "TND") {
             batchOfQ = contextKeyParams.queryInputShape->GetStorageShape().GetDim(0);
         } else {
-#ifndef ASCEND_OPTILING_UT
-            const gert::Tensor* actSeqLenData = contextKeyParams.actualSequenceLengthQ;
-            int64_t actSeqLenDims = (actSeqLenData != nullptr) ? actSeqLenData->GetShapeSize() : 0;
-            OP_CHECK_IF(((actSeqLenData == nullptr) || (actSeqLenDims == 0) || (actSeqLenData->GetData<int64_t>() == nullptr)),
+            if (!isMaxWorkspace) {
+                const gert::Tensor* actSeqLenData = contextKeyParams.actualSequenceLengthQ;
+                int64_t actSeqLenDims = (actSeqLenData != nullptr) ? actSeqLenData->GetShapeSize() : 0;
+                OP_CHECK_IF(((actSeqLenData == nullptr) || (actSeqLenDims == 0) || (actSeqLenData->GetData<int64_t>() == nullptr)),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is TND, actualSequenceLengthQ is required"),
                 return ge::GRAPH_FAILED);
-            const gert::Tensor* actSeqLenDataKV = contextKeyParams.actualSequenceLengthKV;
-            int64_t actSeqLenKVDims = (actSeqLenDataKV != nullptr) ? actSeqLenDataKV->GetShapeSize() : 0;
-            OP_CHECK_IF(((actSeqLenDataKV == nullptr) || (actSeqLenKVDims == 0) || (actSeqLenDataKV->GetData<int64_t>() == nullptr)),
+                const gert::Tensor* actSeqLenDataKV = contextKeyParams.actualSequenceLengthKV;
+                int64_t actSeqLenKVDims = (actSeqLenDataKV != nullptr) ? actSeqLenDataKV->GetShapeSize() : 0;
+                OP_CHECK_IF(((actSeqLenDataKV == nullptr) || (actSeqLenKVDims == 0) || (actSeqLenDataKV->GetData<int64_t>() == nullptr)),
                 OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "When layout is TND, actualSequenceLengthKV is required"),
                 return ge::GRAPH_FAILED);
-            batchOfQ = actSeqLenDims;
-#endif
+                batchOfQ = actSeqLenDims;
+            }
         }
     }
     // Obtain the actual number of K input elements and determine whether they belong to the tensorlist scene
@@ -476,7 +476,7 @@ static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, C
 }
 
 static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
-                                                 IncreFlashAttentionContext& ifaContext) {
+                                                 IncreFlashAttentionContext& ifaContext, bool isMaxWorkspace) {
   if (context.GetNodeName() == nullptr) {
     OP_LOGE("FusedInferAttentionScore", "opName got from TilingContext is nullptr");
     return ge::GRAPH_FAILED;
@@ -552,16 +552,28 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   ifaContext.valueAntiquantMode = attrs->GetAttrPointer<int64_t>(VALUE_ANTIQUANT_MODE_INDEX);
   ifaContext.pseType = attrs->GetAttrPointer<int64_t>(PSE_TYPE_INDEX);
 
-  auto batchOfQuery = ifaContext.query.shape->GetStorageShape().GetDim(0);
-  auto batchOfKey = ifaContext.key.shape->GetStorageShape().GetDim(0);
+  // Tiling下沉场景拿不到actualSeqLengths的个数，所以qk的batch数默认设置为1来规避后续校验
+  auto batchOfQuery = 1;
+  auto batchOfKey = 1;
   std::string layoutStr(ifaContext.layOut);
-  if (layoutStr == "TND") {
-    OP_CHECK_IF((ifaContext.actualSeqLengthsQ.tensor == nullptr || ifaContext.actualSeqLengths.tensor == nullptr),
-                OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "TND actualSeqLengths or actualSeqLengthsKv is null."),
-                return ge::GRAPH_FAILED);
-    batchOfQuery = ifaContext.actualSeqLengthsQ.tensor->GetSize();
-    batchOfKey = ifaContext.actualSeqLengths.tensor->GetSize();
+  if (layoutStr != "TND") {
+    batchOfQuery = ifaContext.query.shape->GetStorageShape().GetDim(0);
+    batchOfKey = ifaContext.key.shape->GetStorageShape().GetDim(0);
+  } else {
+    if (isMaxWorkspace) {
+      if (ifaContext.blockTable.tensor != nullptr) {
+        batchOfQuery = ifaContext.blockTable.tensor->GetStorageShape().GetDim(0);
+        batchOfKey = ifaContext.blockTable.tensor->GetStorageShape().GetDim(0);
+      }
+    } else {
+      OP_CHECK_IF((ifaContext.actualSeqLengthsQ.tensor == nullptr || ifaContext.actualSeqLengths.tensor == nullptr),
+                  OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "TND actualSeqLengths or actualSeqLengthsKv is null."),
+                  return ge::GRAPH_FAILED);
+      batchOfQuery = ifaContext.actualSeqLengthsQ.tensor->GetSize();
+      batchOfKey = ifaContext.actualSeqLengths.tensor->GetSize();
+    }
   }
+
   if (batchOfQuery != batchOfKey) {
     ifaContext.kCache.resize(batchOfQuery);
     ifaContext.vCache.resize(batchOfQuery);
@@ -583,11 +595,22 @@ static ge::graphStatus ConvertContextToParamsIFA(gert::TilingContext& context,
   return ge::GRAPH_SUCCESS;
 }
 
+static bool GetMaxWorkspaceFlag(gert::TilingContext& context) {
+    if ((context.GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX) && !context.GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX)->GetData<int64_t>()) || 
+        (context.GetOptionalInputTensor(ACTUAL_SEQ_KV_INDEX) && !context.GetOptionalInputTensor(ACTUAL_SEQ_KV_INDEX)->GetData<int64_t>())) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
     if (context == nullptr) {
         OP_LOGE("FusedInferAttentionScore", "tiling context is nullptr!");
         return ge::GRAPH_FAILED;
     }
+    
+    bool isMaxWorkspace = GetMaxWorkspaceFlag(*context);
 
     auto tempQ = context->GetInputShape(QUERY_INDEX);
     auto tempV = context->GetDynamicInputShape(VALUE_INDEX, 0);
@@ -639,18 +662,21 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
     if (inputLayoutStr == "BNSD" || inputLayoutStr == "BNSD_BSND") {
         s = tempQ->GetStorageShape().GetDim(QUERY_DIM_2);
     } else if (inputLayoutStr == "TND") {
-#ifndef ASCEND_OPTILING_UT
-        const gert::Tensor* actualSeqLength = context->GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX);
-        int64_t actSeqLenDims = (actualSeqLength != nullptr) ? actualSeqLength->GetShapeSize() : 0;
-        OP_CHECK_IF(((actualSeqLength == nullptr) || (actSeqLenDims == 0) || (actualSeqLength->GetData<int64_t>() == nullptr)), // 适配路径6 tiling下沉时需要修改actualSeqLength拦截
+        if (isMaxWorkspace) {
+            t = tempQ->GetStorageShape().GetDim(QUERY_DIM_0);
+            s = tempQ->GetStorageShape().GetDim(QUERY_DIM_0);
+        } else {
+            const gert::Tensor* actualSeqLength = context->GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX);
+            int64_t actSeqLenDims = (actualSeqLength != nullptr) ? actualSeqLength->GetShapeSize() : 0;
+            OP_CHECK_IF(((actualSeqLength == nullptr) || (actSeqLenDims == 0) || (actualSeqLength->GetData<int64_t>() == nullptr)),
                 OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "When layout is TND, actualSequenceLengthQ is required!"),
                 return ge::GRAPH_FAILED);
-        s = actualSeqLength->GetData<int64_t>()[0];
-        for (int i = 1; i < actualSeqLength->GetShapeSize(); ++i) {
-            s = std::max(s, actualSeqLength->GetData<int64_t>()[i] - actualSeqLength->GetData<int64_t>()[i - 1]);
+            s = actualSeqLength->GetData<int64_t>()[0];
+            for (int i = 1; i < actualSeqLength->GetShapeSize(); ++i) {
+                s = std::max(s, actualSeqLength->GetData<int64_t>()[i] - actualSeqLength->GetData<int64_t>()[i - 1]);
+            }
+            t = actualSeqLength->GetData<int64_t>()[actualSeqLength->GetShapeSize() - 1];
         }
-        t = actualSeqLength->GetData<int64_t>()[actualSeqLength->GetShapeSize() - 1];
-#endif
     } else {
         s = tempQ->GetStorageShape().GetDim(1);
     }
@@ -779,7 +805,7 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
         // IFA tiling path
         IncreFlashAttentionTilingDataV2 ifaTilingData;
         IncreFlashAttentionContext ifaContext {};
-        auto ret = ConvertContextToParamsIFA(*context, ifaContext);
+        auto ret = ConvertContextToParamsIFA(*context, ifaContext, isMaxWorkspace);
         if (ret != ge::GRAPH_SUCCESS) {
           OP_LOGE(context->GetNodeName(), "Error occored while convert tilingContext to ifa context!");
           return ret;
@@ -823,7 +849,7 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
         }
 
         contextParamsForPFATiling.compileInfoPtr = &tempCompileInfoPtr;
-        auto ret = ConvertContextToParamsPFA(context, contextParamsForPFATiling);
+        auto ret = ConvertContextToParamsPFA(context, contextParamsForPFATiling, isMaxWorkspace);
         if (ret != ge::GRAPH_SUCCESS) {
           OP_LOGE(context->GetNodeName(), "Error occored while convert tilingContext to PFA context!");
           return ret;
@@ -881,7 +907,7 @@ ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext* context) {
         uint32_t blockDimToBeSet = 0;
 
         using v2::PromptFlashAttentionTilingV2;
-        PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
+        PromptFlashAttentionTilingV2 flashTilingV2(platformInfoPtr);
         ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, pfaTilingData);
         tilingKey += BENCHMARK_TILING_KEY;
         context->SetTilingKey(tilingKey);

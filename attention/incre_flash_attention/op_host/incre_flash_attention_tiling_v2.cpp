@@ -384,32 +384,39 @@ ge::graphStatus IFATilingV2::ProcessBaseTensors() {
     headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM3);
   } else if (layout == "TND") {
     inputLayout_ = IfaLayout::TND;
-    if (CheckActualSeqLens() != ge::GRAPH_SUCCESS) {
-      return ge::GRAPH_FAILED;
-    }
     nOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM1);
-    sOfQuery_ = GetMaxSeqLength(context_->actualSeqLengthsQ.tensor);
     headDim_ = context_->query.shape->GetStorageShape().GetDim(NUM2);
     headDimK_ = context_->key.shape->GetStorageShape().GetDim(NUM2);
     headDimV_ = context_->value.shape->GetStorageShape().GetDim(NUM2);
     headDimOut_ = context_->attenOut.shape->GetStorageShape().GetDim(NUM2);
-    batchSize_ = actualLenQDims_;
     if (!pageAttentionFlag_) {
       batchContinuousFlag_ = true;
     }
-    int64_t tOfQuery = static_cast<int64_t>(context_->query.shape->GetStorageShape().GetDim(NUM0));
-    int64_t tOfkv = static_cast<int64_t>(context_->key.shape->GetStorageShape().GetDim(NUM0));
-    int64_t actualSeqLastSizeOfQuery = context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[batchSize_ - 1U];
-    int64_t actualSeqLastSize = context_->actualSeqLengths.tensor->GetData<int64_t>()[batchSize_ - 1U];
-    if (tOfQuery != actualSeqLastSizeOfQuery) {  
-      OP_LOGE(context_->opName,
-          "When layout is TND, T of query[%ld] should be equal to the query's actual sequence lengths[%ld].", tOfQuery, actualSeqLastSizeOfQuery);
-      return ge::GRAPH_FAILED;
-    }
-    if (!pageAttentionFlag_ && tOfkv != actualSeqLastSize) {
-      OP_LOGE(context_->opName,
-          "When layout is TND, T of kv[%ld] should be equal to the kv's actual sequence lengths[%ld].", tOfkv, actualSeqLastSize);
-      return ge::GRAPH_FAILED;
+    if (isMaxWorkspace_) {
+      // sOfQuery_后续会影响基本块大小，这里设置为T维度值保证基本块大小为最大值
+      sOfQuery_ = context_->query.shape->GetStorageShape().GetDim(NUM0);
+      actualLenQDims_ = 1;
+      batchSize_ = actualLenQDims_;
+    } else {
+      if (CheckActualSeqLens() != ge::GRAPH_SUCCESS) {
+        return ge::GRAPH_FAILED;
+      }
+      sOfQuery_ = GetMaxSeqLength(context_->actualSeqLengthsQ.tensor);
+      batchSize_ = actualLenQDims_;
+      int64_t tOfQuery = static_cast<int64_t>(context_->query.shape->GetStorageShape().GetDim(NUM0));
+      int64_t tOfkv = static_cast<int64_t>(context_->key.shape->GetStorageShape().GetDim(NUM0));
+      int64_t actualSeqLastSizeOfQuery = context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[batchSize_ - 1U];
+      int64_t actualSeqLastSize = context_->actualSeqLengths.tensor->GetData<int64_t>()[batchSize_ - 1U];
+      if (tOfQuery != actualSeqLastSizeOfQuery) {  
+        OP_LOGE(context_->opName,
+            "When layout is TND, T of query[%ld] should be equal to the query's actual sequence lengths[%ld].", tOfQuery, actualSeqLastSizeOfQuery);
+        return ge::GRAPH_FAILED;
+      }
+      if (!pageAttentionFlag_ && tOfkv != actualSeqLastSize) {
+        OP_LOGE(context_->opName,
+            "When layout is TND, T of kv[%ld] should be equal to the kv's actual sequence lengths[%ld].", tOfkv, actualSeqLastSize);
+        return ge::GRAPH_FAILED;
+      }
     }
   } else {
     OP_LOGE(context_->opName, "Only support inputLayout(BSH, BNSD, BSND, BNSD_BSND, TND), actually is %s.", layout.c_str());
@@ -574,8 +581,13 @@ ge::graphStatus IFATilingV2::CheckKVShape() const {
   auto batchOfQuery = context_->query.shape->GetStorageShape().GetDim(NUM0);
   auto batchOfKey = context_->key.shape->GetStorageShape().GetDim(NUM0);
   if (inputLayout_ == IfaLayout::TND) {
-    batchOfQuery = context_->actualSeqLengthsQ.tensor->GetShapeSize();
-    batchOfKey = context_->actualSeqLengths.tensor->GetShapeSize();
+    if (isMaxWorkspace_) {
+      batchOfQuery = 1;
+      batchOfKey = 1;
+    } else {
+      batchOfQuery = context_->actualSeqLengthsQ.tensor->GetShapeSize();
+      batchOfKey = context_->actualSeqLengths.tensor->GetShapeSize();
+    }
   }
   /* kv continuous */
   if (batchOfQuery == batchOfKey) {
@@ -823,7 +835,11 @@ ge::graphStatus IFATilingV2::KvShapePostProcess() {
     if (inputLayout_ == IfaLayout::BSH_BSND) {
       seqSize = keyShape->GetStorageShape().GetDim(NUM1);
     } else if (inputLayout_ == IfaLayout::TND) {
-      seqSize = GetMaxSeqLength(context_->actualSeqLengths.tensor);
+      if (isMaxWorkspace_) {
+        seqSize = context_->query.shape->GetStorageShape().GetDim(NUM0);
+      } else {
+        seqSize = GetMaxSeqLength(context_->actualSeqLengths.tensor);
+      }
     } else {
       seqSize = keyShape->GetStorageShape().GetDim(NUM2);  // 2, dim of S
     }
@@ -1225,6 +1241,10 @@ ge::graphStatus IFATilingV2::ProcessAttenMaskSparsePFA() {
     attenMaskFlag_ =false;
   }
 
+  if (isMaxWorkspace_) {
+    return ge::GRAPH_SUCCESS;
+  }
+
   if (!CheckSparseMode(isDefaultSparseMode, enableMask)) {
     return ge::GRAPH_FAILED;
   }
@@ -1536,13 +1556,13 @@ ge::graphStatus IFATilingV2::CheckActualSeqLens()
 }
 
 ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
+  if (isMaxWorkspace_) {
+    actualSeqLenFlag_ = true;
+    maxActualseq_ = sMax_;
+    actualLenDims_ = 1;
+    return ge::GRAPH_SUCCESS;
+  }
   if (inputLayout_ == IfaLayout::TND) {
-    if (isWorkspace_) {
-      actualSeqLenFlag_ = true;
-      maxActualseq_ = sMax_;
-      return ge::GRAPH_SUCCESS;
-    }
-
     actualSeqLenFlag_ = true;
     actualSeqLenQFlag_ = true;
     maxActualseq_ = sMax_;
@@ -1573,9 +1593,8 @@ ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
   if (context_->actualSeqLengths.tensor == nullptr) {
     maxActualseq_ = sMax_;
 
-    // pa场景必须带actual_seq_lens；第1次tiling调用时(isWorkspace为true) actualSeqLengthsKv会被强制置None，需要跳过校验
-    OP_LOGD(context_->opName, "IsWorkspace:%d", isWorkspace_);
-    OP_CHECK_IF(pageAttentionFlag_ && (!isWorkspace_),
+    // pa场景必须带actual_seq_lens；第1次tiling调用时(isMaxWorkspace为true) actualSeqLengthsKv会被强制置None，需要跳过校验
+    OP_CHECK_IF(pageAttentionFlag_ && (!isMaxWorkspace_),
                OP_LOGE(context_->opName, "When page attention scene, actualSeqLengthsKv must exist."),
                return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
@@ -1627,7 +1646,7 @@ ge::graphStatus IFATilingV2::ProcessActualSeqLen() {
     }
   } else {
     // pa场景必须带actual_seq_lens
-    if (pageAttentionFlag_ && (!isWorkspace_)) {
+    if (pageAttentionFlag_ && (!isMaxWorkspace_)) {
       OP_LOGE(context_->opName, "When page attention scene, data of actualSeqLengthsKv can not be null.");
       return ge::GRAPH_FAILED;
     }
@@ -2168,7 +2187,7 @@ ge::graphStatus IFATilingV2::ProcessAntiQuant() {
     return ge::GRAPH_FAILED;
   }
  
-  if (!antiQuantFlag_) {
+  if (!antiQuantFlag_ || isMaxWorkspace_) {
     return ge::GRAPH_SUCCESS;
   }
   kvAntiParamSplitFlag_ = false;
@@ -2248,6 +2267,10 @@ ge::graphStatus IFATilingV2::ProcessAntiQuant() {
 
 ge::graphStatus IFATilingV2::ProcessBlockTable() {
   if (!pageAttentionFlag_) {
+    return ge::GRAPH_SUCCESS;
+  }
+  if (isMaxWorkspace_) {
+    totalBlockNum_ = context_->kCache[0]->GetStorageShape().GetDim(NUM0);
     return ge::GRAPH_SUCCESS;
   }
 
@@ -2614,6 +2637,11 @@ void IFATilingV2::PromptFlashAttentionInitOutputSplit() {
 }
 
 void IFATilingV2::GetActualSeqLength(int64_t &actualSeqLengths, int64_t &actualSeqLengthsKV, uint32_t bIdx) {
+  if (isMaxWorkspace_) {
+    actualSeqLengths = sOfQuery_;
+    actualSeqLengthsKV = seqSize_;
+    return;
+  }
   if (inputLayout_ == IfaLayout::TND) {
     actualSeqLengths = bIdx == 0 ? context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[0] :
       context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx] - context_->actualSeqLengthsQ.tensor->GetData<int64_t>()[bIdx - 1];
@@ -3119,15 +3147,8 @@ ge::graphStatus IFATilingV2::CalcWorkSpace() {
   uint32_t vec1ResElemSize = 2; // 2:fp16/bf16
   uint32_t bmm2ResElemSize = 4; // 4:fp32
   uint32_t vec2ResElemSize = 4; // 4:fp32
-  uint32_t qPreProcResElemSize = 0; // 普通场景不涉及Q预处理
+  uint32_t qPreProcResElemSize = NUM1; // 当前tiling仅涉及伪量化场景
   uint32_t mmPACallBackDataSize = NUM64; // 64: matmul回调信息需要7个uint32值，dcci cacheline需要64B对齐
-  if (antiQuantFlag_) {
-    mmResElemSize = 4; // 4:int32
-    vec1ResElemSize = 2; // 2:fp16/bf16
-    bmm2ResElemSize = 4; // 4:int32
-    vec2ResElemSize = 4; // 4:float
-    qPreProcResElemSize = NUM1; // int
-  }
   workspaceSize_ = libapiSize_;
   if (perfMode_ != IfaPerfMode::BMM_ALL_BY_VEC) {
     workspaceSize_ += mmResUbSize_ * coreNum_ * mmResElemSize;
@@ -3814,12 +3835,20 @@ ge::graphStatus IFATilingV2::ConvertContext(gert::TilingContext& context,
   return ge::GRAPH_SUCCESS;
 }
 
+void IFATilingV2::GetMaxWorkspaceFlag() {
+  if ((context_->actualSeqLengthsQ.tensor && !context_->actualSeqLengthsQ.tensor->GetData<int64_t>()) || (context_->actualSeqLengths.tensor && !context_->actualSeqLengths.tensor->GetData<int64_t>())) {
+    isMaxWorkspace_ = true;
+  } else {
+    isMaxWorkspace_ = false;
+  }
+}
+
 ge::graphStatus IFATilingV2::RunBigKernelTiling(IncreFlashAttentionContext& context,
-                                              IncreFlashAttentionTilingDataV2& tilingData,
-                                              bool isWorkspace) {
+                                              IncreFlashAttentionTilingDataV2& tilingData) {
   this->context_ = &context;
   this->tilingData_ = &tilingData.tilingBase;
-  this->isWorkspace_ = isWorkspace;
+
+  GetMaxWorkspaceFlag();
 
   if ((GetNpuInfo() != ge::GRAPH_SUCCESS) || (PreProcess() != ge::GRAPH_SUCCESS) ||
       (EmptyTensorProcess() != ge::GRAPH_SUCCESS) || (Split() != ge::GRAPH_SUCCESS) ||

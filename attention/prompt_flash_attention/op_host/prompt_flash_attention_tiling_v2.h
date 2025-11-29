@@ -29,12 +29,15 @@ public:
     PromptFlashAttentionTilingV2(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
         uint64_t& tilingKey, uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
+    
     ge::graphStatus PromptFlashAttentionSetTilingData(gert::TilingContext* context,
         PromptFlashAttentionTilingData& tilingData);
     bool CheckNonEmptyShapeExceptions(const ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* shape,
         const std::string &sName) const;
-#ifndef ASCEND_OPTILING_UT
+
 protected:
+    void InitializeMaxWorkspace(PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo,
+        std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV);
     void PromptFlashAttentionInitOutputSplit(int64_t totalSize, PromptFlashAttentionTilingData &tilingData);
     bool CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams);
     void SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey, uint32_t& blockDimToBeSet,
@@ -168,8 +171,7 @@ protected:
     ge::graphStatus CheckRopeInvalid(const ContextParamsForPFATiling& contextKeyParams) const;
     ge::graphStatus CheckSingleAttribute(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, 
         PFAShapeInfo& keyShapeInfo, PFAShapeInfo& valueShapeInfo, PFAShapeInfo& queryRopeShapeInfo, PromptFlashAttentionTilingData& tilingData);
-    ge::graphStatus CheckCrossoverAttribute(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo, 
-        std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV,
+    ge::graphStatus CheckCrossoverAttribute(ContextParamsForPFATiling& contextKeyParams, PFAShapeInfo& queryShapeInfo,
         PromptFlashAttentionTilingData& tilingData);
     ge::graphStatus AdjustTilingData(ContextParamsForPFATiling& contextKeyParams,
         PromptFlashAttentionTilingData& tilingData, const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo);
@@ -186,6 +188,7 @@ protected:
     bool CheckAlibiPseShiftTypeAndShape(ContextParamsForPFATiling& contextKeyParams, uint32_t n);
     ge::graphStatus SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams);
     bool CheckAlibiPseCrossover(ContextParamsForPFATiling& contextKeyParams);
+    void GetMaxWorkspaceFlag(ContextParamsForPFATiling& contextKeyParams);
 protected:
     ContextParamsForPFATiling* contextKeyParamsPtr = nullptr;
     int64_t ubSizeRemain = 1;
@@ -270,15 +273,14 @@ protected:
     uint32_t sOuterFactorTiling = 0;
     uint32_t softmaxSInnerFactorTiling = 0;
     uint32_t softmaxSOuterFactorTiling = 0;
-    size_t defaultSysWorkspaceSize = 0;
     matmul_tiling::PlatformInfo ascendPlatformInfo;
 
+    bool isMaxWorkspace = false;
     bool faRunFlag_ = true;
     uint8_t attenMaskShapeType = 0; // 0: (B,N2,G,S1,S2), 1: (B,1,1,S1,S2), 2: (1,1,1,S1,S2)
     uint8_t sparseType = 0;
     int64_t pseType = 0;
     FlashAttentionScoreSimplifiedTilingData faTilingAdapter;
-#endif
 };
 } // namespace v2
 } // namespace optiling

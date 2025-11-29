@@ -226,7 +226,7 @@ void PromptFlashAttentionTilingV2::SetEmptyTensor(ContextParamsForPFATiling& con
     blockDimToBeSet = ascendcPlatform.CalcTschBlockDim(coreNum, aicNum, coreNum);
 
     size_t* workspace = contextKeyParams.workspaceSize;
-    const size_t sysWorkspaceSize = 16 * 1024 * 1024; // minimum size required by workspace
+    const size_t sysWorkspaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
     workspace[0] = sysWorkspaceSize;
 }
 
@@ -342,8 +342,13 @@ bool PromptFlashAttentionTilingV2::SetShape(ContextParamsForPFATiling& contextKe
         d = shape->GetStorageShape().GetDim(3); // 3 for D dim
         h = n * d;
     } else if ((inputLayout == InputLayout::TND)) {
-        b = static_cast<int64_t>(contextKeyParams.actualSequenceLengthQ->GetShapeSize());
-        s = (inputName == "query") ? GetMaxSeq(contextKeyParams.actualSequenceLengthQ) : GetMaxSeq(contextKeyParams.actualSequenceLengthKV);
+        if (isMaxWorkspace) {
+            b = 1;
+            s = shape->GetStorageShape().GetDim(0);
+        } else {
+            b = static_cast<int64_t>(contextKeyParams.actualSequenceLengthQ->GetShapeSize());
+            s = (inputName == "query") ? GetMaxSeq(contextKeyParams.actualSequenceLengthQ) : GetMaxSeq(contextKeyParams.actualSequenceLengthKV);
+        }
         t = shape->GetStorageShape().GetDim(0);
         n = shape->GetStorageShape().GetDim(1);
         d = shape->GetStorageShape().GetDim(2); // 2 for D dim
@@ -1279,7 +1284,7 @@ void PromptFlashAttentionTilingV2::SetSparseModeData(ContextParamsForPFATiling& 
 
 bool PromptFlashAttentionTilingV2::CheckMaskShapeCrossSparse(ContextParamsForPFATiling& contextKeyParams,
     const int32_t* sparseMode, uint32_t sQ, const uint32_t sK, const uint32_t batchSize) {
-    if ((contextKeyParams.fromTilingSink != 0) || (!enableMask)) {
+    if (isMaxWorkspace || !enableMask) {
         return true;
     }
     if (enableIFA || enableIFAMLA || enablePFAMerge) {
@@ -1431,12 +1436,12 @@ bool PromptFlashAttentionTilingV2::CheckQueryAndKey(ContextParamsForPFATiling& c
     }
 
     // check b and s for not PA
-    OP_CHECK_IF((contextKeyParams.fromTilingSink == 0) && (queryShapeInfo.b != keyShapeInfo.b) &&
+    OP_CHECK_IF(!isMaxWorkspace && (queryShapeInfo.b != keyShapeInfo.b) &&
         (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
         "query batch must be equal to key/value batch, query batch = %u , key/value batch = %u.",
         queryShapeInfo.b, keyShapeInfo.b), return false);
     // check d size
-    OP_CHECK_IF((contextKeyParams.fromTilingSink == 0) && (queryShapeInfo.d != keyShapeInfo.d) &&
+    OP_CHECK_IF(!isMaxWorkspace && (queryShapeInfo.d != keyShapeInfo.d) &&
         (!enableTensorList) && (!enablePA), OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
         "query d size must be equal to key d size, query d = %u , key d = %u.",
         queryShapeInfo.d, keyShapeInfo.d), return false);
@@ -1579,7 +1584,7 @@ bool PromptFlashAttentionTilingV2::CheckPrefix(ContextParamsForPFATiling& contex
         return false);
 
     // check actSharedPrefix
-    if ((contextKeyParams.fromTilingSink == 0U) && (contextKeyParams.actualSharedPrefixLen != nullptr) &&
+    if (!isMaxWorkspace && (contextKeyParams.actualSharedPrefixLen != nullptr) &&
         (contextKeyParams.actualSharedPrefixLen->GetStorageShape().GetShapeSize() > 0) &&
         !CheckActSharedPrefix(contextKeyParams, prefixShapeInfo.s, keyShapeInfo.s)) {
         tilingData.promptAttentionBaseParams.set_isActualSharedPrefixLenNull(0);
@@ -1740,7 +1745,7 @@ bool PromptFlashAttentionTilingV2::CheckPATypeAndShape(ContextParamsForPFATiling
     OP_CHECK_IF(enableTensorList,
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "not support tensorlist when blockTable is not null"),
         return false);
-    OP_CHECK_IF((!enableActSeqLenKV) && (contextKeyParams.fromTilingSink == 0),
+    OP_CHECK_IF((!enableActSeqLenKV) && !isMaxWorkspace,
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName,
             "actual seq length kv can't be null when blockTable is not null"),
         return false);
@@ -1782,7 +1787,7 @@ bool PromptFlashAttentionTilingV2::CheckPATypeAndShape(ContextParamsForPFATiling
             *blockSize, ifaBlockSizeBase, ifaBlockSizeBase, BLOCK_SIZE_MAX),
         return false);
 
-    if (contextKeyParams.fromTilingSink != 0) {
+    if (isMaxWorkspace) {
         S2 = blockTableDim2 * (*blockSize);
         return true;
     }
@@ -2303,8 +2308,8 @@ void PromptFlashAttentionTilingV2::SetTilingDataAttribute(ContextParamsForPFATil
     tilingData.promptAttentionBaseParams.set_nextTokens(sparseNextTokens);
     tilingData.promptAttentionBaseParams.set_sparseMode(static_cast<uint32_t>(sparseModeVal));
 
-    bool isActualSeqLengthsNull = contextKeyParams.fromTilingSink == 0 ? !enableActSeqLen : true;
-    bool isActualSeqLengthsKVNull = contextKeyParams.fromTilingSink == 0 ? !enableActSeqLenKV : true;
+    bool isActualSeqLengthsNull = isMaxWorkspace ? true : !enableActSeqLen;
+    bool isActualSeqLengthsKVNull = isMaxWorkspace ? true : !enableActSeqLenKV;
     tilingData.promptAttentionBaseParams.set_isActualSeqLengthsNull(static_cast<uint32_t>(isActualSeqLengthsNull));
     tilingData.promptAttentionBaseParams.set_isActualSeqLengthsKVNull(static_cast<uint32_t>(isActualSeqLengthsKVNull));
     tilingData.promptAttentionBaseParams.set_actualSeqLengthsSize(actSeqLenDims);
@@ -3250,11 +3255,9 @@ bool PromptFlashAttentionTilingV2::TilingGetTilingKeyAttentionAscendC(uint64_t& 
 };
 
 size_t PromptFlashAttentionTilingV2::GetPFAWorkSpaceSize(PromptFlashAttentionTilingData& tilingData) {
-    size_t sysWorkspaceSize = 0;
+    size_t sysWorkspaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
     size_t curWorkspaceSize = 0;
-    const uint64_t defaultSysWorkspaceSize910B = 16U * 1024U * 1024U;
     uint64_t maxSpmSize = tilingData.promptAttentionTensorSizeRect.get_spmTmpSize();
-    sysWorkspaceSize = defaultSysWorkspaceSize910B; // sys workspace size default value
     int64_t mm1ResSize = tilingData.promptAttentionSingleCoreParams.get_singleProcessSOuterSize() *
         tilingData.promptAttentionSingleCoreParams.get_singleProcessSInnerSize();
     int64_t mm2ResSize = tilingData.promptAttentionSingleCoreParams.get_singleProcessSOuterSize() *
@@ -3263,11 +3266,6 @@ size_t PromptFlashAttentionTilingV2::GetPFAWorkSpaceSize(PromptFlashAttentionTil
     // 2:use 2mm ub
     if (!faRunFlag_) {
         curWorkspaceSize = sysWorkspaceSize + coreNum * softmaxDataTypeSize * (maxSpmSize + mm1ResSize * MM2_UB_NUM + mm2ResSize * MM2_UB_NUM);
-        if (enableKVAntiquant) {
-            int32_t KvAntiquantSize = tilingData.promptAttentionSingleCoreParams.get_singleProcessSInnerSize() *
-                tilingData.promptAttentionBaseParams.get_alignedHeadSize();
-            curWorkspaceSize += static_cast<uint64_t>(coreNum) * dataTypeSize * KvAntiquantSize * 2; // 2 ensure key value alignment
-        }
     } else {
         uint32_t kvSplitPart = faTilingAdapter.inputParamsRegbase.get_kvSplitPart();
         auto batchSize = tilingData.promptAttentionBaseParams.get_batchSize();
@@ -3391,7 +3389,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::SetAttributeInfo(ContextParamsForP
 
     // Pse
     const gert::StorageShape* pseShiftShape = contextKeyParams.pseShiftShape;
-    enablePseShift = (contextKeyParams.fromTilingSink == 0) && (contextKeyParams.pseShift != nullptr) &&
+    enablePseShift = (contextKeyParams.pseShift != nullptr) &&
         (pseShiftShape != nullptr) && (pseShiftShape->GetStorageShape().GetShapeSize() > 0);
 
     if (contextKeyParams.pseType != nullptr) {
@@ -3547,7 +3545,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
         OP_LOGE(contextKeyParams.opName, "Check query and key consistency failed!");
         return ge::GRAPH_FAILED;
     }
-    if (enableIFAMLA && (!CheckIFAMLA(contextKeyParams, queryShapeInfo))) {
+    if (!isMaxWorkspace && enableIFAMLA && (!CheckIFAMLA(contextKeyParams, queryShapeInfo))) {
         return ge::GRAPH_FAILED;
     }
     // print shape info
@@ -3575,7 +3573,7 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckSingleAttribute(ContextParams
     }
 
     // actSeqLen check
-    if ((contextKeyParams.fromTilingSink == static_cast<uint32_t>(0)) &&
+    if (!isMaxWorkspace &&
         !CheckActSeqLen(contextKeyParams, queryShapeInfo, keyShapeInfo)){
         OP_LOGE(contextKeyParams.opName, "Check actual sequence length failed!");
         return ge::GRAPH_FAILED;
@@ -3652,8 +3650,7 @@ bool PromptFlashAttentionTilingV2::CheckAlibiPseCrossover(ContextParamsForPFATil
 }
 
 ge::graphStatus PromptFlashAttentionTilingV2::CheckCrossoverAttribute(ContextParamsForPFATiling& contextKeyParams,
-    PFAShapeInfo& queryShapeInfo, std::vector<int64_t>& actualSeqLengths,
-    std::vector<int64_t>& actualSeqLengthsKV, PromptFlashAttentionTilingData& tilingData) {
+    PFAShapeInfo& queryShapeInfo, PromptFlashAttentionTilingData& tilingData) {
     // PA and prefix,antiquant,actseqlenKV features crossover
     if (!CheckPACrossover(contextKeyParams, queryShapeInfo)) {
         return ge::GRAPH_FAILED;
@@ -3670,11 +3667,6 @@ ge::graphStatus PromptFlashAttentionTilingV2::CheckCrossoverAttribute(ContextPar
     }
 
     if (!CheckAlibiPseCrossover(contextKeyParams)) {
-        return ge::GRAPH_FAILED;
-    }
-
-    if ((contextKeyParams.fromTilingSink == 0) && !CheckMultiFeatureCrossover(contextKeyParams, queryShapeInfo,
-        actualSeqLengths, actualSeqLengthsKV, tilingData)) {
         return ge::GRAPH_FAILED;
     }
 
@@ -3969,12 +3961,33 @@ ge::graphStatus PromptFlashAttentionTilingV2::PromptFlashAttentionSetTilingData(
         tilingData.SaveToBuffer(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity());
         context->GetRawTilingData()->SetDataSize(tilingData.GetDataSize());
     }
-
     return ge::GRAPH_SUCCESS;
 }
+
+void PromptFlashAttentionTilingV2::GetMaxWorkspaceFlag(ContextParamsForPFATiling& contextKeyParams) {
+  if ((contextKeyParams.actualSequenceLengthQ && !contextKeyParams.actualSequenceLengthQ->GetData<int64_t>()) || 
+    (contextKeyParams.actualSequenceLengthKV && !contextKeyParams.actualSequenceLengthKV->GetData<int64_t>())) {
+    isMaxWorkspace = true;
+  } else {
+    isMaxWorkspace = false;
+  }
+}
+
+void PromptFlashAttentionTilingV2::InitializeMaxWorkspace(PFAShapeInfo& queryShapeInfo,
+    PFAShapeInfo& keyShapeInfo, std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV) {
+    uint32_t lenDims = queryShapeInfo.b;
+    for (uint32_t i = LOOP_BEGIN_NUM; i < lenDims; i++) {
+        actualSeqLengths[i] = queryShapeInfo.s;
+        actualSeqLengthsKV[i] = keyShapeInfo.s;
+    }
+    maxActualseqKV = queryShapeInfo.s;
+}
+
 ge::graphStatus PromptFlashAttentionTilingV2::RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
     uint64_t& tilingKey, uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData) {
 #ifndef ASCEND_OPTILING_UT
+    GetMaxWorkspaceFlag(contextKeyParams);
+
     // set memory parameters
     if (SetPlatMemoryInfo(contextKeyParams) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
@@ -4024,9 +4037,17 @@ ge::graphStatus PromptFlashAttentionTilingV2::RunBigKernelTilingWithParams(Conte
     std::vector<int64_t> actualSeqLengthsKV(queryShapeInfo.b);
 
     // Check crossover attribute
-    if (CheckCrossoverAttribute(contextKeyParams, queryShapeInfo, actualSeqLengths, actualSeqLengthsKV,
-        tilingData) != ge::GRAPH_SUCCESS){
+    if (CheckCrossoverAttribute(contextKeyParams, queryShapeInfo, tilingData) != ge::GRAPH_SUCCESS){
         return ge::GRAPH_FAILED;
+    }
+
+    if (isMaxWorkspace) {
+        InitializeMaxWorkspace(queryShapeInfo, keyShapeInfo, actualSeqLengths, actualSeqLengthsKV);
+    } else {
+        if (!CheckMultiFeatureCrossover(contextKeyParams, queryShapeInfo,
+            actualSeqLengths, actualSeqLengthsKV, tilingData)) {
+            return ge::GRAPH_FAILED;
+        }
     }
 
     // print shape info

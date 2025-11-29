@@ -3578,7 +3578,7 @@ ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext *context, I
             uint64_t tilingKey = 7U;
             uint32_t blockDimToBeSet;
             using v2::PromptFlashAttentionTilingV2;
-            PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
+            PromptFlashAttentionTilingV2 flashTilingV2(platformInfoPtr);
             PromptFlashAttentionTilingData tilingData;
             ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
             tilingKey += PFA_BENCHMARK_TILING_KEY;

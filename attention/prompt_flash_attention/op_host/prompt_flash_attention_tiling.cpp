@@ -6515,6 +6515,7 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
         OP_LOGE("PromptFlashAttention", "tiling context GetRawTilingData is nullptr!");
         return ge::GRAPH_FAILED;
     }
+    auto platformInfoPtr = context->GetPlatformInfo();
 
     PromptFlashAttentionTilingData tilingData;
     OP_CHECK_IF(memset_s(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity(),
@@ -6530,7 +6531,7 @@ PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* con
     if ((contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_95) ||
         (contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
         using v2::PromptFlashAttentionTilingV2;
-        PromptFlashAttentionTilingV2 flashTilingV2(nullptr);
+        PromptFlashAttentionTilingV2 flashTilingV2(platformInfoPtr);
         ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
         tilingKey += BENCHMARK_TILING_KEY;
         context->SetTilingKey(tilingKey);
