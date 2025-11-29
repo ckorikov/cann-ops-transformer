@@ -16,13 +16,15 @@
 #define MATMUL_POLICY_DISPATCH_POLICY_H
 
 #include "../../utils/integral_constant.h"
+#include "../../utils/arch.h"
 
 namespace Act {
 namespace Gemm {
 /* block schedule policies */
-struct KernelMultiBlock {};        // Multi-block pipelined data transfer
-struct KernelMmadPerBaseK {};      // Perform matrix multiplication with baseK granularity
-struct KernelMmadWithScale {};     // Multi-block with scale
+struct KernelMultiBlock {};            // Multi-block pipelined data transfer
+struct KernelMmadPerBaseK {};          // Perform matrix multiplication with baseK granularity
+struct KernelMmadWithScale {};         // Multi-block with scale
+struct KernelMixWithWeightPrologue {}; // Mix with weight prologue
 
 /**
  * @struct GMMPerTile
@@ -232,6 +234,12 @@ struct MatmulL0COutputWithLayout {
     using ScheduleType = KernelMultiBlock;
     using SingleShape = SingleCoreShape;
     constexpr static bool enableInputDataLenCheck = false;
+};
+
+// Antiquant in ub with single communication single computation
+struct UbAntiquantWithScSc {
+    using ScheduleType = KernelMixWithWeightPrologue;
+    using ArchTag = Act::Gemm::Arch::Ascend910_95;
 };
 } // namespace Gemm
 } // namespace Act

@@ -17,6 +17,8 @@
 #define UTILS_COMMON_UTILS_H
 
 #include "integral_constant.h"
+#include "kernel_operator.h"
+#include "lib/matmul_intf.h"
 namespace Act {
 namespace Gemm {
 constexpr int64_t MATRIX_INNER_DIM_LIMIT_SIZE = 65536LL;
@@ -130,6 +132,23 @@ __aicore__ inline constexpr static bool IsQuantSenario()
     return false;
 }
 
+template <class T>
+struct is_static : AscendC::Std::bool_constant<std::is_empty<T>::value> {};
+
+template <class T>
+constexpr bool is_static_v = is_static<AscendC::Std::remove_cvref_t<T>>::value;
+
+template <typename Stride>
+struct is_2d_nz_c0_32_impl : AscendC::Std::false_type {};
+
+template <typename T0, typename T1, typename U0, typename U1>
+struct is_2d_nz_c0_32_impl<AscendC::Std::tuple<AscendC::Std::tuple<T0, T1>, AscendC::Std::tuple<U0, U1>>>
+    : AscendC::Std::bool_constant<AscendC::Std::is_same_v<T0, Act::Gemm::_32> &&
+                                  AscendC::Std::is_same_v<T1, Act::Gemm::_512> &&
+                                  AscendC::Std::is_same_v<U0, Act::Gemm::_1> && !is_static_v<U1>> {};
+
+template <class Stride>
+struct is_2d_nz_c0_32 : is_2d_nz_c0_32_impl<typename AscendC::Std::remove_cvref_t<Stride>> {};
 } // namespace Gemm
 } // namespace Act
 #endif

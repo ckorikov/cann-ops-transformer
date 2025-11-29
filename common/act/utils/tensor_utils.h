@@ -135,6 +135,40 @@ __aicore__ inline __gm__ T* GetTensorAddr(uint64_t index, GM_ADDR tensorPtr)
     AscendC::ListTensorDesc listTensorDesc(reinterpret_cast<__gm__ void*>(tensorPtr));
     return listTensorDesc.GetDataPtr<T>(index);
 }
+
+template <class T, AscendC::TPosition Pos, class Layout, class Coord, class Shape>
+__aicore__ inline constexpr auto GetTile(AscendC::GlobalTensor<AscendC::TensorTrait<T, Pos, Layout>> const &tensor,
+                                         Coord const &coord, Shape const &shape)
+{
+    auto layout = tensor.GetTensorTrait().GetLayout();
+    auto offset = layout(coord);
+    typename AscendC::Std::remove_cvref_t<decltype(tensor)> newTensor;
+#if defined(__CCE_AICORE__) && __CCE_AICORE__>=310
+    if constexpr (AscendC::IsSameTypeV<T, fp4x2_e2m1_t> || AscendC::IsSameTypeV<T, fp4x2_e1m2_t>) {
+        newTensor.address_ = (__gm__ T *)((__gm__ uint8_t *)tensor.address_ + (offset >> 1));
+    } else {
+        newTensor.address_ = (__gm__ T *)((__gm__ uint8_t *)tensor.address_ + offset * sizeof(T));
+    }
+#else
+    newTensor.address_ = (__gm__ T *)((__gm__ uint8_t *)tensor.address_ + offset * sizeof(T));
+#endif
+    newTensor.SetTensorTrait(
+        AscendC::MakeTensorTrait<T, Pos>(AscendC::MakeLayout(shape, tensor.GetTensorTrait().GetLayout().GetStride())));
+    return newTensor;
+}
+
+template <class T, class Layout, AscendC::TPosition Pos = AscendC::TPosition::GM>
+__aicore__ inline constexpr auto MakeTensor(__gm__ T *addr, Layout const &layout)
+{
+    using TensorTraitType = AscendC::TensorTrait<T, Pos, Layout>;
+    using TensorType =
+        AscendC::Std::conditional_t<Pos == AscendC::TPosition::GM, AscendC::GlobalTensor<TensorTraitType>,
+                                    AscendC::LocalTensor<TensorTraitType>>;
+    TensorType tensor;
+    tensor.address_ = addr;
+    tensor.SetTensorTrait(AscendC::MakeTensorTrait<T, Pos>(layout));
+    return tensor;
+}
 } // namespace Gemm
 } // namespace Act
 #endif
