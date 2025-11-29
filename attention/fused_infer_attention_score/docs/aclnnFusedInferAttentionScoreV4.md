@@ -923,7 +923,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
                 <td>key、value</td>
                 <td>
                 支持key、value dtype为FLOAT16/BFLOAT16/INT8。
-                PagedAttention场景下，当query的inputLayout为BNSD、TND时，kv cache排布支持BnBsH（blocknum, blocksize, H）和BnNBsD（blocknum, KV_N, blocksize, D）两种格式，当query的inputLayout为BSH、BSND时，kv cache排布仅支持BnBsH一种格式。</td>
+                PagedAttention场景下，支持的KV Cache layout有BnBsH（BlockNum，BlockSize，H）、BnNBsD（BlockNum，N，BlockSize，D）、NZ（BlockNum，N，D/16，BlockSize，16），支持Q的layout（BSH/BSND、BNSD、TND、NTD）交叉。</td>
                 <td>PagedAttention场景下，kv cache排布为BnNBsD时性能通常优于kv cache排布为BnBsH时的性能，建议优先选择BnNBsD格式。<br>blocknum不能小于根据actualSeqLengthsKv和blockSize计算的每个batch的block数量之和。且key和value的shape需保证一致。<br>PagedAttention场景下，当输入kv cache排布格式为BnBsH（blocknum, blocksize, H），且 KV_N * D 超过65535时，受硬件指令约束，会被拦截报错。可通过使能GQA（减小 KV_N）或调整kv cache排布格式为BnNBsD（blocknum, KV_N, blocksize, D）解决。</td>
             </tr>
             <tr>
@@ -1337,7 +1337,6 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         </table>
 
 - <a id="TND"></a>TND、TND_NTD、NTD_TND场景下query，key，value输入的综合限制：
-    - sparseMode支持0, 3, 4
     - actualSeqLengths和actualSeqLengthsKv必须传入
 
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
@@ -1363,14 +1362,16 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>支持TND、TND_NTD;</td>
         </tr>
         <tr>
-        </tr>
-        <tr>
             <td>numHeads</td>
             <td>支持1、2、4、8、16、32、64、128</td>
         </tr>
         <tr>
             <td>numKeyValueHeads</td>
             <td>1</td>
+        </tr>
+        <tr>
+            <td>sparseMode</td>
+            <td>支持0, 3, 4</td>
         </tr>
         <tr>
             <td rowspan="2">PagedAttention</td>
@@ -1387,16 +1388,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>queryRopeOptional和keyRopeOptional的d为64</td>
         </tr>
         <tr>
-            <td colspan="3">不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
-        </tr>
-        <tr>
-            <td colspan="3">NTD_TND场景，不支持开启SoftMaxLse。</td>
+            <td colspan="3">不支持SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
         </tr>
         <tr>
             <td rowspan="7">当query的d不等于512时</td>
-            <td rowspan="2">通用场景</td>
+            <td rowspan="3">通用场景</td>
             <td>inputLayout</td>
-            <td>支持TND、NTD_TND</td>
+            <td>支持TND、NTD、NTD_TND</td>
         </tr>
         <tr>
             <td>query，key，value</td>
@@ -1410,7 +1408,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>PagedAttention</td>
             <td>blockSize</td>
-            <td>仅支持128,512或1024</td>
+            <td>仅支持16对齐且小于等于1024</td>
         </tr>
         <tr>
             <td>MLA（当queryRope和keyRope不为空时）</td>
@@ -1420,7 +1418,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>GQA/MHA/MQA场景（当queryRope和keyRope为空时）</td>
             <td>Q_D、K_D、V_D</td>
-            <td>TND场景，要求Q_D、K_D、V_D等于128，或者Q_D、K_D等于192，V_D等于128/192；<br>NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。<br>GQA和PA场景不支持V_D等于192。</td>
+            <td>TND场景，要求Q_D、K_D、V_D等于128，或者Q_D、K_D等于192，V_D等于128/192；<br>NTD场景，不支持V_D等于192；<br>NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。<br>GQA和PA场景不支持V_D等于192。</td>
         </tr>
         <tr>
             <td colspan="3">不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。</td>
@@ -1551,10 +1549,13 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td colspan="4">不支持左padding、tensorlist、pse、prefix、伪量化、后量化</td>
         </tr>
         <tr>
+            <td colspan="4">BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND_NTD场景，不支持开启SoftMaxLse</td>
+        </tr>
+        <tr>
             <td rowspan="5">query d=128</td>
             <td>非量化</td>
             <td>inputLayout</td>
-            <td>TND、NTD_TND</td>
+            <td>BSH、BSND、TND、BNSD、NTD、BSH_BNSD、BSND_BNSD、BNSD_BSND、NTD_TND</td>
             <td>-</td>
         </tr>
         <tr>
@@ -1572,7 +1573,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td colspan="4">其他约束同TND、NTD_TND场景</td>
         </tr>
         <tr>
-            <td colspan="4">不支持左padding、tensorlist、pse、PagedAttention、prefix、伪量化、全量化、后量化</td>
+            <td colspan="4">不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化</td>
         </tr>
         </tbody>
     </table>
