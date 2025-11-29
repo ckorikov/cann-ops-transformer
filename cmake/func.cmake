@@ -13,11 +13,6 @@ set(A5_OPS_BLACK_LIST
     "mla_prolog_v2;"
     "mla_prolog_v3;"
 
-    "grouped_matmul;"
-    "grouped_matmul_add;"
-    "grouped_matmul_swiglu_quant_v2;"
-    "quant_grouped_matmul_inplace_add;"
-
     "all_gather_matmul;"
     "all_gather_matmul_v2;"
     "allto_all_all_gather_batch_mat_mul;"
@@ -104,12 +99,12 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
         "${CMAKE_CURRENT_SOURCE_DIR}/experimental/posembedding/**/op_host/CMakeLists.txt"
         )
     else()
-        file(GLOB OP_HOST_CMAKE_FILES 
+        file(GLOB OP_HOST_CMAKE_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/op_host/CMakeLists.txt"
         "${CMAKE_CURRENT_SOURCE_DIR}/gmm/**/CMakeLists.txt"
         )
         if(BUILD_OPEN_PROJECT AND (NOT BUILD_OPS_RTY_KERNEL))
-            file(GLOB CANNDEV_OPS_HOST_CMAKE_FILES 
+            file(GLOB CANNDEV_OPS_HOST_CMAKE_FILES
                 "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
@@ -132,7 +127,7 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
             list(FIND A5_OPS_BLACK_LIST "${OP_NAME}" INDEX)
             if(NOT INDEX EQUAL -1)
                 continue()
-            endif()            
+            endif()
         endif()
 
         if (NOT BUILD_OPEN_PROJECT)
@@ -156,7 +151,7 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
             else()
                 set(UTEST_FRAMEWORK_NEW TRUE CACHE BOOL "UTEST_FRAMEWORK_NEW" FORCE)
             endif()
-        endif()  
+        endif()
 
         list(APPEND _OP_LIST ${OP_NAME})
         list(APPEND _OP_DIR_LIST ${OP_DIR})
@@ -348,7 +343,7 @@ function(add_opc_config)
     if(NOT ADD_OPS_COMPILE_OPTION_V2)
         return()
     endif()
-    
+
     set(_OPC_CONFIG)
 
     if(NOT OP_COMPILE_CONFIG)
@@ -356,7 +351,7 @@ function(add_opc_config)
     else()
         string(REPLACE "," ";" OP_COMPILE_CONFIG_LIST "${OP_COMPILE_CONFIG}")
         list(APPEND _OPC_CONFIG "-DNOT_DYNAMIC_COMPILE")
-        
+
         foreach(_option ${OP_COMPILE_CONFIG_LIST})
             if("${_option}" STREQUAL "ccec_g")
                 list(APPEND _OPC_CONFIG "-g")
