@@ -164,7 +164,7 @@ __aicore__ inline void LoadDataL0K3DPro(const LocalTensor<T> &l0Tensor, const Lo
     }
     loadData3DV2.channelSize = kSize;
     loadData3DV2.extConfig = ((uint64_t)0 << EXTCONFIG_SHIFT_0) | ((uint64_t)0 << EXTCONFIG_SHIFT_1) |
-                             ((uint64_t)mSize << EXTCONFIG_SHIFT_MSIZE) | (uint64_t)kSize;
+                                ((uint64_t)mSize << EXTCONFIG_SHIFT_MSIZE) | (uint64_t)kSize;
 
     LoadData<T>(l0Tensor, srcTensor, loadData3DV2);
 }
