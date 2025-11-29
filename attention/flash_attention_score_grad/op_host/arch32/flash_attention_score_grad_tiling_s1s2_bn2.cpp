@@ -155,7 +155,6 @@ bool FlashAttentionScoreGradTilingDeterministic::IsCapable()
 {
     auto sinkShape = context_->GetOptionalInputShape(SINK_IN);
     if (sinkShape != nullptr && sinkShape->GetStorageShape().GetDimNum() == 1 ) {
-        std::cout<<"zad::bn2 有sink 进不去"<<std::endl;
         return false;
     }
     const char *tndSoftmaxIn = context_->GetAttrs()->GetAttrNum() > static_cast<size_t>(TND_SOFTMAX_IN) ? context_->GetAttrs()->GetAttrPointer<char>(TND_SOFTMAX_IN) : "";
