@@ -46,6 +46,6 @@
     <file_info copy_type="delivery" src_path=""
         dst_path="built-in/op_impl/ai_core/tbe/op_api/include"
         install_path="opp/$(TARGET_ENV)/include" install_type="all">
-        <file value="aclnnop" install_mod="555"/>
+        <file value="aclnnop" install_mod="555" install_softlink="$(TARGET_ENV)/include/aclnnop"/>
     </file_info>
 </block>
