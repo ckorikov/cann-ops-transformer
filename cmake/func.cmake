@@ -13,6 +13,8 @@ set(A5_OPS_BLACK_LIST
     "mla_prolog_v2;"
     "mla_prolog_v3;"
 
+    "grouped_matmul_finalize_routing;"
+
     "all_gather_matmul;"
     "all_gather_matmul_v2;"
     "allto_all_all_gather_batch_mat_mul;"
