@@ -232,8 +232,8 @@ aclnnStatus AclnnGroupedMatmulWeightQuant91095Checker::CheckDimValue(size_t idx)
 {
     // 校验x, weight, y的各轴匹配
     size_t xDimNum = (*gmmParams_.x)[idx]->GetViewShape().GetDimNum();
-    // 2: 验证到倒数第二维，x和y除最后一维其他必须相等
-    for (size_t dimIdx = 0; dimIdx < xDimNum - 2; dimIdx++) {
+    // 验证到倒数第二维，x和y除最后一维其他必须相等
+    for (size_t dimIdx = 0; dimIdx < xDimNum - 1; dimIdx++) {
         size_t xDimValue = (*gmmParams_.x)[idx]->GetViewShape().GetDim(dimIdx);
         size_t yDimValue = (*gmmParams_.y)[idx]->GetViewShape().GetDim(dimIdx);
         CHECK_COND(xDimValue == yDimValue, ACLNN_ERR_PARAM_INVALID,
