@@ -857,7 +857,7 @@ ge::graphStatus FiaInfoParser::GetSystemPrefix()
         systemPrefixMaxLen_ = keyPrefixShape_->GetS();
         systemPrefixFlag_ = true;
         systemPrefixLen_ = systemPrefixMaxLen_;
-        if (opParamInfo_.actualSharedPrefixLen.tensor != nullptr) {
+        if (opParamInfo_.actualSharedPrefixLen.tensor != nullptr && opParamInfo_.actualSharedPrefixLen.tensor->GetStorageShape().GetShapeSize() != 0)  {
             gert::Shape prefixShape{1};
             if (prefixShape != opParamInfo_.actualSharedPrefixLen.tensor->GetStorageShape()) {
                 OP_LOGE(opName_, "System prefix is enabled but actualSharedPrefixLen shape is not {1}");

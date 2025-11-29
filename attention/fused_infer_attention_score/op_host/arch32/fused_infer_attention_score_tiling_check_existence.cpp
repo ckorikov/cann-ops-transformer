@@ -326,7 +326,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaNoquant() const
         {KV_PADDING_SIZE_NAME, opParamInfo_.kvPaddingSize.tensor},
         {KEY_SHARED_PREFIX_NAME, opParamInfo_.keySharedPrefix.tensor},
         {VALUE_SHARED_PREFIX_NAME, opParamInfo_.valueSharedPrefix.tensor},
-        {ACTUAL_SHARED_PREFIX_LEN_NAME, opParamInfo_.actualSharedPrefixLen.tensor},
     };
 
     std::map<std::string, std::pair<const int64_t *, int64_t>> attrDefaultValueMap = {
@@ -339,6 +338,11 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaNoquant() const
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
+    // torch_npu==2.1, 当actualSharedPrefixLen不传的时候, pta会把actualSharedPrefixLen传入一个shape为0的tensor
+    OP_CHECK_IF(opParamInfo_.actualSharedPrefixLen.tensor != nullptr && opParamInfo_.actualSharedPrefixLen.tensor->GetStorageShape().GetShapeSize() != 0,
+        OP_LOGE(opName_, "In %s, %s situation, actualSharedPrefixLen should be null",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str()),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -374,7 +378,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaAntiquant() const
         {KV_PADDING_SIZE_NAME, opParamInfo_.kvPaddingSize.tensor},
         {KEY_SHARED_PREFIX_NAME, opParamInfo_.keySharedPrefix.tensor},
         {VALUE_SHARED_PREFIX_NAME, opParamInfo_.valueSharedPrefix.tensor},
-        {ACTUAL_SHARED_PREFIX_LEN_NAME, opParamInfo_.actualSharedPrefixLen.tensor},
     };
 
     std::map<std::string, std::pair<const int64_t *, int64_t>> attrDefaultValueMap = {
@@ -385,6 +388,10 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaAntiquant() const
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
+    OP_CHECK_IF(opParamInfo_.actualSharedPrefixLen.tensor != nullptr && opParamInfo_.actualSharedPrefixLen.tensor->GetStorageShape().GetShapeSize() != 0,
+        OP_LOGE(opName_, "In %s, %s situation, actualSharedPrefixLen should be null",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str()),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -420,7 +427,6 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaFullquant() const
         {KV_PADDING_SIZE_NAME, opParamInfo_.kvPaddingSize.tensor},
         {KEY_SHARED_PREFIX_NAME, opParamInfo_.keySharedPrefix.tensor},
         {VALUE_SHARED_PREFIX_NAME, opParamInfo_.valueSharedPrefix.tensor},
-        {ACTUAL_SHARED_PREFIX_LEN_NAME, opParamInfo_.actualSharedPrefixLen.tensor},
     };
 
     std::map<std::string, std::pair<const int64_t *, int64_t>> attrDefaultValueMap = {
@@ -430,6 +436,10 @@ ge::graphStatus FiaTilingCheck::CheckParaExistenceMlaFullquant() const
         CheckAttrValueByMap(attrDefaultValueMap) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
+    OP_CHECK_IF(opParamInfo_.actualSharedPrefixLen.tensor != nullptr && opParamInfo_.actualSharedPrefixLen.tensor->GetStorageShape().GetShapeSize() != 0,
+        OP_LOGE(opName_, "In %s, %s situation, actualSharedPrefixLen should be null",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str()),
+        return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
 
