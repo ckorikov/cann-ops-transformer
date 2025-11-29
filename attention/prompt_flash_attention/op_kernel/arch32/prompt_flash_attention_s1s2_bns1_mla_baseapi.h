@@ -1757,7 +1757,7 @@ MlaS1s2Bn2gs1SameABBaseApi<TILING_TYPE, implMode, layOutType, hasAtten, INPUT_T,
     int64_t softmaxTempOffset = s1oIdx * extraInfo.vec2S1BaseSize * 8;
     if (this->softmaxReduceSize == 1) {
         LocalTensor<T> softmaxTemp = this->commonTBuf.template Get<T>();
-        Brcb(softmaxTemp, expUb, (extraInfo.s1RealSize + 7) / 8, {1, 8});
+        Brcb(softmaxTemp, expUb, (extraInfo.s1RealSize * extraInfo.gBaseSize + 7) / 8, {1, 8});
         PipeBarrier<PIPE_V>();
         for (int i = 0; i < loop; ++i) {
             Mul(bmm2ResUb[i * repeatMaxSize], softmaxTemp[softmaxTempOffset], bmm2ResUb[i * repeatMaxSize],
