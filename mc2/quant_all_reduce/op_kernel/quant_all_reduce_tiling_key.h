@@ -21,7 +21,7 @@
 
 // 模板参数
 ASCENDC_TPL_ARGS_DECL(QuantAllReduce,
-    ASCENDC_TPL_UINT_DECL(quantAllReduceTemplateId, ASCENDC_TPL_8_BW, ASCENDC_TPL_UI_LIST, MTE_COMM),  // LIST模式，穷举
+    ASCENDC_TPL_UINT_DECL(quantAllReduceCommMode, ASCENDC_TPL_8_BW, ASCENDC_TPL_UI_LIST, MTE_COMM),  // LIST模式，穷举
 );
 
 // 模板参数组合

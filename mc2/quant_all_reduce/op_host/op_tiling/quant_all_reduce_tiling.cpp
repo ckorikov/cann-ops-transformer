@@ -53,10 +53,10 @@ static void SetHcommCfg(const gert::TilingContext *context, QuantAllReduceTiling
     OP_LOGD(nodeName, "group is %s in quant_all_reduce.", runInfo.group.c_str());
     AscendC::Mc2CcTilingConfig mc2CcTilingConfig(runInfo.group, OP_TYPE_ALL_TO_ALL,
                                                  "AlltoAll=level0:fullmesh;level1:pairwise");
+    // MTE方式必须适配，且要在getTiling之前
+    mc2CcTilingConfig.SetCommEngine(AIV_TYPE);
     mc2CcTilingConfig.GetTiling(tilingData->mc2InitTiling);
     mc2CcTilingConfig.GetTiling(tilingData->mc2CcTiling);
-    // MTE方式必要适配
-    mc2CcTilingConfig.SetCommEngine(AIV_TYPE);
 }
 
 /**
