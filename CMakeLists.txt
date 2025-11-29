@@ -11,6 +11,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(cann_ops-transformer)
 
+
 option(BUILD_OPEN_PROJECT         "Build open ascend ops project."  ON)
 option(BUILD_OPS_RTY_KERNEL       "Build return yellow kernel."     OFF)
 option(ENABLE_CCACHE              "Enable ccache capability"        ON)
