@@ -33,16 +33,27 @@ constexpr size_t MX_OUTPUT_DIM = 2UL;
 constexpr size_t MX_OUTPUT_SCALE_DIM = 3UL;
 constexpr int64_t SWIGLU_SPLIT_FACTOR = 2L;
 constexpr int64_t SWIGLU_SPLIT_SIZE = 64L;
+constexpr int64_t MXFP4_K_CONSTRAINT = 2L;
+constexpr int64_t SWIGLU_N_CONSTRAINT = 2L;
+constexpr int64_t MXFP4_N_CONSTRAINT = 4L;
 
 const std::initializer_list<DataType> X_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E4M3FN,
                                                               DataType::DT_FLOAT8_E5M2};
+const std::initializer_list<DataType> X_DTYPE_SUPPORT_LIST_MXFP4 = {DataType::DT_FLOAT4_E1M2,
+                                                                    DataType::DT_FLOAT4_E2M1};                                                                
 const std::initializer_list<DataType> WEIGHT_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E4M3FN,
                                                                    DataType::DT_FLOAT8_E5M2};
+const std::initializer_list<DataType> WEIGHT_DTYPE_SUPPORT_LIST_MXFP4 = {DataType::DT_FLOAT4_E1M2,
+                                                                         DataType::DT_FLOAT4_E2M1};
 const std::initializer_list<DataType> WEIGHT_SCALE_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E8M0};
 const std::initializer_list<DataType> X_SCALE_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E8M0};
 const std::initializer_list<DataType> GROUP_LIST_DTYPE_SUPPORT_LIST = {DataType::DT_INT64};
 const std::initializer_list<DataType> QUANTOUT_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E4M3FN,
                                                                      DataType::DT_FLOAT8_E5M2};
+const std::initializer_list<DataType> QUANTOUT_DTYPE_SUPPORT_LIST_MXFP4 = {DataType::DT_FLOAT8_E4M3FN,
+                                                                           DataType::DT_FLOAT8_E5M2,
+                                                                           DataType::DT_FLOAT4_E1M2,
+                                                                           DataType::DT_FLOAT4_E2M1};
 const std::initializer_list<DataType> QUANTSCALEOUT_DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT8_E8M0};
 class GroupedMatmulSwigluQuantBaseHandler : public GroupedMatmulSwigluQuantHandler {
 protected:
@@ -170,8 +181,8 @@ protected:
 
     bool CheckFp8DtypeValid()
     {
-        size_t wLength = gmmDsqParams_.weight->Size();
-        for (size_t i = 0; i < wLength; i++) {
+        size_t weightLength = gmmDsqParams_.weight->Size();
+        for (size_t i = 0; i < weightLength; i++) {
             const aclTensor* weightScale = (*gmmDsqParams_.weightScale)[i];
             const aclTensor* weight = (*gmmDsqParams_.weight)[i];      
             OP_CHECK_DTYPE_NOT_SUPPORT(weight, WEIGHT_DTYPE_SUPPORT_LIST, return false);
@@ -187,9 +198,55 @@ protected:
 
     bool CheckFp4DtypeValid()
     {
+        size_t weightLength = gmmDsqParams_.weight->Size();
+        for (size_t i = 0; i < weightLength; i++) {
+            const aclTensor* weightScale = (*gmmDsqParams_.weightScale)[i];
+            const aclTensor* weight = (*gmmDsqParams_.weight)[i];      
+            OP_CHECK_DTYPE_NOT_SUPPORT(weight, WEIGHT_DTYPE_SUPPORT_LIST_MXFP4, return false);
+            OP_CHECK_DTYPE_NOT_SUPPORT(weightScale, WEIGHT_SCALE_DTYPE_SUPPORT_LIST, return false);
+        }
+        OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.x, X_DTYPE_SUPPORT_LIST_MXFP4, return false);
+        OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.xScale, X_SCALE_DTYPE_SUPPORT_LIST, return false);
+        OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.groupList, GROUP_LIST_DTYPE_SUPPORT_LIST, return false);
+        OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.output, QUANTOUT_DTYPE_SUPPORT_LIST_MXFP4, return false);
+        OP_CHECK_DTYPE_NOT_SUPPORT(gmmDsqParams_.outputScale, QUANTSCALEOUT_DTYPE_SUPPORT_LIST, return false);
         return true;
     }
-    
+
+    bool checkMxfp4InputShape()
+    {   
+        int64_t kValue = gmmDsqParams_.x->GetViewShape().GetDim(1);
+        int64_t nValue = ((*gmmDsqParams_.weightScale)[0])->GetViewShape().GetDim(1);
+        //mxfp4场景不支持k=2
+        CHECK_COND(
+            kValue != MXFP4_K_CONSTRAINT, ACLNN_ERR_PARAM_INVALID,
+            "When the dtypes of x and weight inputs are fp4 , the K value should  be greater than 2, but actual \
+value is %lu",
+                     kValue);
+        //1：检查K是否为偶数
+        int64_t kModValue = kValue % MXFP4_K_CONSTRAINT;
+        //2：检查N是否为偶数
+        int64_t nModValue = nValue % MXFP4_N_CONSTRAINT;
+        CHECK_COND(kModValue == 0, ACLNN_ERR_PARAM_INVALID,
+                    "When the dtypes of x and weight inputs are fp4 , the K value should be even, but actual \
+value is %lu",
+                     kValue);
+        
+        DataType outputDtype = gmmDsqParams_.output->GetDataType();
+        if ((outputDtype == DataType::DT_FLOAT4_E1M2 || outputDtype == DataType::DT_FLOAT4_E2M1)) {
+            if ( !(nValue >= MXFP4_N_CONSTRAINT && nModValue == 0)) {
+                OP_LOGE(
+                    ACLNN_ERR_PARAM_INVALID, 
+                    "When the output dtype is DT_FLOAT4_E1M2 or DT_FLOAT4_E2M1, the N value should be even and greater or equal to 4, but actual  \
+value is %lu",
+                    nValue);
+                return false;
+                }
+        }
+
+        return true;
+    }
+
     bool CheckInputOutDims() override
     {
         auto xDimNumber = gmmDsqParams_.x->GetViewShape().GetDimNum();
@@ -259,6 +316,13 @@ protected:
             OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weightScale, weightScaleExpectShape, return false);
             OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(weight, weightExpectShape, return false);
         }
+
+        //进行swiglu操作需满足n为偶数
+        if (n % SWIGLU_N_CONSTRAINT != 0) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID,
+                    "Swiglu operation requires n to be even , but n actual value is %lu", n);
+            return false;
+        }
         
         // groupList的长度应等于weight的专家数
         int64_t groupListLen = gmmDsqParams_.groupList->GetViewShape().GetDim(0);
@@ -266,6 +330,13 @@ protected:
             OP_LOGE(ACLNN_ERR_PARAM_INVALID,
                     "Length of 'groupList' should be equal to the number of experts in weight");
             return false;
+        }
+
+        DataType xDtype = gmmDsqParams_.x->GetDataType();
+        DataType weightDtype = ((*gmmDsqParams_.weight)[0])->GetDataType();  
+        if ((xDtype == DataType::DT_FLOAT4_E2M1 || xDtype == DataType::DT_FLOAT4_E1M2) &&
+                   (weightDtype == DataType::DT_FLOAT4_E2M1 || weightDtype == DataType::DT_FLOAT4_E1M2)) {
+            return checkMxfp4InputShape();
         }
         return true;
     }
