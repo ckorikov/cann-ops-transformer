@@ -34,7 +34,7 @@ struct Copy<Arch::Ascend910_95, CopyOutSplitMWithParams, void, OutputType, Input
             AscendC::Std::enable_if_t<
                 AscendC::PhyPosIsUB(OutputType::pos)                                                    // output to UB
                 && (OutputType::format == CubeFormat::ND || OutputType::format == CubeFormat::ND_ALIGN) // ND
-                && !AscendC::Impl::Detail::IsQuantSenario<typename OutputType::T, typename InputType::T>() // no quant
+                && !Act::Gemm::IsQuantSenario<typename OutputType::T, typename InputType::T>() // no quant
                 >> {
 public:
     using DstT = typename OutputType::T;
@@ -113,7 +113,7 @@ struct Copy<Arch::Ascend910_95, CopyOutSplitMWithParams, void, OutputType, Input
             AscendC::Std::enable_if_t<
                 AscendC::PhyPosIsUB(OutputType::pos)    // output to UB
                 && OutputType::format == CubeFormat::NZ // NZ
-                && !AscendC::Impl::Detail::IsQuantSenario<typename OutputType::T, typename InputType::T>() // no quant
+                && !Act::Gemm::IsQuantSenario<typename OutputType::T, typename InputType::T>() // no quant
                 >> {
 public:
     using DstT = typename OutputType::T;
@@ -184,7 +184,7 @@ struct Copy<Arch::Ascend910_95, CopyOutSplitMWithParams, void, OutputType, Input
             AscendC::Std::enable_if_t<
                 AscendC::PhyPosIsUB(OutputType::pos)                                                    // output to UB
                 && (OutputType::format == CubeFormat::ND || OutputType::format == CubeFormat::ND_ALIGN) // ND
-                && AscendC::Impl::Detail::IsQuantSenario<typename OutputType::T, typename InputType::T>() // quant
+                && Act::Gemm::IsQuantSenario<typename OutputType::T, typename InputType::T>() // quant
                 >> {
 public:
     using DstT = typename OutputType::T;

@@ -104,6 +104,32 @@ __aicore__ inline uint32_t GetAicAivTaskRation()
     return 1U;
 #endif
 }
+
+template <typename CType, typename AType>
+__aicore__ inline constexpr static bool IsQuantSenario()
+{
+    using L0cT = typename AscendC::GetMmDstType<AType>::Type;
+#if defined(__DAV_C310__) || defined(__DAV_310R6__)
+    if constexpr (!AscendC::IsTypeOneOfV<AType, int8_t, hifloat8_t, fp8_e4m3fn_t, fp8_e5m2_t, fp4x2_e2m1_t, fp4x2_e1m2_t> &&
+                  AscendC::IsTypeOneOfV<CType, half, bfloat16_t>) {
+        return false;
+    }
+    if constexpr (AscendC::IsTypeOneOfV<AType, hifloat8_t, fp8_e4m3fn_t, fp8_e5m2_t, fp4x2_e2m1_t, fp4x2_e1m2_t> &&
+                  AscendC::IsTypeOneOfV<CType, hifloat8_t, fp8_e4m3fn_t, fp8_e5m2_t, half, bfloat16_t, float, fp4x2_e2m1_t, fp4x2_e1m2_t>) {
+        return true;
+    }
+    if constexpr (AscendC::IsSameTypeV<L0cT, int32_t> && AscendC::IsSameTypeV<CType, bfloat16_t>) {
+        return true;
+    }
+#endif
+    if constexpr (AscendC::IsSameTypeV<L0cT, int32_t> && AscendC::IsTypeOneOfV<CType, half, int8_t, uint8_t>) {
+        return true;
+    } else if constexpr (AscendC::IsSameTypeV<L0cT, float> && AscendC::IsTypeOneOfV<CType, int8_t, uint8_t>) {
+        return true;
+    }
+    return false;
+}
+
 } // namespace Gemm
 } // namespace Act
 #endif

@@ -56,6 +56,7 @@ constexpr uint8_t SYNC_AIC_AIV_MODE = 4;
 constexpr uint16_t FLAG_ID_MAX = 16;
 constexpr uint16_t AIC_SYNC_AIV_FLAG = 4;
 constexpr uint16_t AIV_SYNC_AIC_FLAG = 6;
+constexpr uint64_t SWIGLU_N_HALF = 2;
 } // namespace
 
 template <class ProblemShape_, class BlockMmadBuilder_, class BlockEpilogue_, class BlockScheduler_,
@@ -94,6 +95,7 @@ public:
     using BlockEpilogueArguments = typename BlockEpilogue::Arguments;
     using BlockMmadParams = typename BlockMmadBuilder::Params;
     using BlockEpilogueParams = typename BlockEpilogue::Params;
+    using DataTypeOut = typename BlockEpilogue::DataTypeOut;
     using AType = typename BlockMmadBuilder::AType;
     using BType = typename BlockMmadBuilder::BType;
     using CType = typename BlockMmadBuilder::CType;
@@ -218,20 +220,26 @@ public:
         uint64_t m = Get<M_VALUE>(problemShape_);
         uint64_t n = Get<N_VALUE>(problemShape_);
         uint64_t k = Get<K_VALUE>(problemShape_);
-        // aBaseOffset += m * k
-        Get<IDX_A_OFFSET>(baseOffset_) += m * k;
-        // bBaseOffset += n * k
-        Get<IDX_B_OFFSET>(baseOffset_) += n * k;
-        // MXFP8
+        if (AscendC::IsSameTypeV<AType, fp4x2_e2m1_t> || AscendC::IsSameTypeV<AType, fp4x2_e1m2_t>) {
+            Get<IDX_A_OFFSET>(baseOffset_) += (m * k) >> 1;
+            Get<IDX_B_OFFSET>(baseOffset_) += (n * k) >> 1;
+        } else {
+            Get<IDX_A_OFFSET>(baseOffset_) += m * k;
+            Get<IDX_B_OFFSET>(baseOffset_) += n * k;
+        }
         // only splitM
         auto scaleK = CeilDiv(k, MXFP_DIVISOR_SIZE) * MXFP_MULTI_BASE_SIZE;
         // scaleAAxisBaseOffset (m, ceil(k,64), 2)
         Get<IDX_X1SCALE_OFFSET>(baseOffset_) += m * scaleK;
         // scaleBAxisBaseOffset (g, n, ceil(k,64), 2) or (g, ceil(k,64), n, 2)
         Get<IDX_X2SCALE_OFFSET>(baseOffset_) += n * scaleK;
-        // yBaseOffset += m * n / 2
-        Get<IDX_C_OFFSET>(baseOffset_) += m * n / 2; // 2: glu, n-> n/2
-        Get<IDX_C_SCALE_OFFSET>(baseOffset_) += m * CeilDiv(n / 2 , MXFP_DIVISOR_SIZE) * MXFP_MULTI_BASE_SIZE;
+        if (AscendC::IsSameTypeV<DataTypeOut, fp4x2_e2m1_t> || AscendC::IsSameTypeV<DataTypeOut, fp4x2_e1m2_t>) {
+            Get<IDX_C_OFFSET>(baseOffset_) += (m * n / SWIGLU_N_HALF) >> 1;
+        } else {
+            Get<IDX_C_OFFSET>(baseOffset_) += m * n / SWIGLU_N_HALF;
+        }
+        Get<IDX_C_SCALE_OFFSET>(baseOffset_) +=
+            m * CeilDiv(n / SWIGLU_N_HALF, MXFP_DIVISOR_SIZE) * MXFP_MULTI_BASE_SIZE;
     }
 
     __aicore__ inline bool UpdateGroupParams(const Params& params, uint32_t groupIdx)

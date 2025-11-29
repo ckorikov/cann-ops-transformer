@@ -37,6 +37,10 @@ bool GroupedMatmulSwigluQuantDavidV2Tiling::AnalyzeAttrs()
     if (attrs != nullptr) {
         const int64_t *groupListTypePtr = attrs->GetAttrPointer<int64_t>(ATTR_INDEX_GROUP_LIST_TYPE); // 通路保证非负数
         inputParams_.groupListType = groupListTypePtr != nullptr ? *groupListTypePtr : inputParams_.groupListType;
+        OP_CHECK_IF(!(inputParams_.groupListType == 0 || inputParams_.groupListType == 1),
+                    OP_LOGE(context_->GetNodeName(), "GroupListType must be 0 or 1, but actual value is %d.",
+                            inputParams_.groupListType),
+                    return false);
     }
     OP_CHECK_IF(attrs == nullptr, OP_LOGE(context_->GetNodeName(), "attrs is nullptr."), return false);
     const bool *transposeWeightPtr = attrs->GetAttrPointer<bool>(ATTR_INDEX_TRANS_W);
@@ -58,27 +62,59 @@ bool GroupedMatmulSwigluQuantDavidV2Tiling::AnalyzeDtype()
     auto pertokenScaleDesc = context_->GetOptionalInputDesc(PER_TOKEN_SCALE_INDEX);
     inputParams_.perTokenScaleDtype =
         pertokenScaleDesc != nullptr ? pertokenScaleDesc->GetDataType() : inputParams_.perTokenScaleDtype;
+    auto outDesc = context_->GetOutputDesc(Y_DATA_INDEX);
+    OP_CHECK_IF(outDesc == nullptr, OP_LOGE(context_->GetNodeName(), "OutDesc is nullptr."), return false);
+    inputParams_.outDataDtype = outDesc->GetDataType();
+    auto outScaleDesc = context_->GetOutputDesc(Y_SCALE_INDEX);
+    OP_CHECK_IF(outScaleDesc == nullptr, OP_LOGE(context_->GetNodeName(), "OutScaleDesc is nullptr."), return false);
+    inputParams_.outScaleDtype = outScaleDesc->GetDataType();
     return CheckDtype();
+}
+
+bool GroupedMatmulSwigluQuantDavidV2Tiling::IsFp4(ge::DataType dtype) {
+    return dtype == ge::DT_FLOAT4_E1M2 || dtype == ge::DT_FLOAT4_E2M1;
+}
+
+bool GroupedMatmulSwigluQuantDavidV2Tiling::IsFp8(ge::DataType dtype) {
+    return dtype == ge::DT_FLOAT8_E4M3FN || dtype == ge::DT_FLOAT8_E5M2;
+}
+
+bool GroupedMatmulSwigluQuantDavidV2Tiling::IsFp4Input() {
+    return IsFp4(inputParams_.aDtype) && IsFp4(inputParams_.bDtype);
+}
+
+bool GroupedMatmulSwigluQuantDavidV2Tiling::IsFp8Input() {
+    return IsFp8(inputParams_.aDtype) && IsFp8(inputParams_.bDtype);
 }
 
 bool GroupedMatmulSwigluQuantDavidV2Tiling::CheckDtype()
 {
-    if ((inputParams_.aDtype == ge::DT_FLOAT8_E4M3FN || inputParams_.aDtype == ge::DT_FLOAT8_E5M2) &&
-            (inputParams_.bDtype == ge::DT_FLOAT8_E4M3FN || inputParams_.bDtype == ge::DT_FLOAT8_E5M2)) {
-        OP_CHECK_IF(inputParams_.scaleDtype != ge::DT_FLOAT8_E8M0 || inputParams_.perTokenScaleDtype != ge::DT_FLOAT8_E8M0,
-                   OP_LOGE(
-                       inputParams_.opName,
-                                            "With DT_FLOAT8_E4M3FN/DT_FLOAT8_E5M2 inputs, \
-            the expected dtype of xscale and weightscale should be DT_FLOAT8_E8M0, but actual dtype is %s, %s.",
-                       ge::TypeUtils::DataTypeToSerialString(inputParams_.scaleDtype).c_str(),
-                       ge::TypeUtils::DataTypeToSerialString(inputParams_.perTokenScaleDtype).c_str()),
-                   return false);
-    } else {
-        OP_LOGE(inputParams_.opName, "Quant case with x dtype %s and weight dtype %s is not supported.",
-                  ge::TypeUtils::DataTypeToSerialString(inputParams_.aDtype).c_str(),
-                  ge::TypeUtils::DataTypeToSerialString(inputParams_.bDtype).c_str());
-        return false;
-    }
+    OP_CHECK_IF(!(IsFp4Input() || IsFp8Input()),
+                OP_LOGE(inputParams_.opName,
+                        "Only FLOAT8 or FLOAT4 inputs are supported, but x dtype is %s, weight dtype is %s.",
+                        ge::TypeUtils::DataTypeToSerialString(inputParams_.aDtype).c_str(),
+                        ge::TypeUtils::DataTypeToSerialString(inputParams_.bDtype).c_str()),
+                return false);
+    OP_CHECK_IF(
+        inputParams_.scaleDtype != ge::DT_FLOAT8_E8M0 || inputParams_.perTokenScaleDtype != ge::DT_FLOAT8_E8M0,
+        OP_LOGE(inputParams_.opName, "Xscale and weightScale dtype must be DT_FLOAT8_E8M0, but actual dtype is %s, %s.",
+                ge::TypeUtils::DataTypeToSerialString(inputParams_.scaleDtype).c_str(),
+                ge::TypeUtils::DataTypeToSerialString(inputParams_.perTokenScaleDtype).c_str()),
+        return false);
+    OP_CHECK_IF(!(IsFp4(inputParams_.outDataDtype) || IsFp8(inputParams_.outDataDtype)),
+                OP_LOGE(inputParams_.opName, "Only FLOAT8 or FLOAT4 output are supported, but out dtype is %s.",
+                        ge::TypeUtils::DataTypeToSerialString(inputParams_.outDataDtype).c_str()),
+                return false);
+    OP_CHECK_IF(inputParams_.outScaleDtype != ge::DT_FLOAT8_E8M0,
+                OP_LOGE(inputParams_.opName, "OutScale dtype must be DT_FLOAT8_E8M0, but actual dtype is %s.",
+                        ge::TypeUtils::DataTypeToSerialString(inputParams_.outScaleDtype).c_str()),
+                return false);
+
+    OP_CHECK_IF(
+        IsFp8Input() && !IsFp8(inputParams_.outDataDtype),
+        OP_LOGE(inputParams_.opName, "When inputs are FLOAT8, outData dtype must be FLOAT8, but out dtype is %s.",
+                ge::TypeUtils::DataTypeToSerialString(inputParams_.outDataDtype).c_str()),
+        return false);
     return true;
 }
 
@@ -97,25 +133,40 @@ bool GroupedMatmulSwigluQuantDavidV2Tiling::AnalyzeInputs()
     auto xStorageShape = context_->GetInputShape(X_INDEX);
     OP_CHECK_IF(xStorageShape == nullptr, OP_LOGE(context_->GetNodeName(), "xStorageShape is nullptr."), return false);
     const gert::Shape &xShape = xStorageShape->GetOriginShape();
-    auto wStorageShape = context_->GetInputShape(WEIGHT_INDEX);
+    auto wStorageShape = context_->GetDynamicInputShape(WEIGHT_INDEX, 0);
     OP_CHECK_IF(wStorageShape == nullptr, OP_LOGE(context_->GetNodeName(), "wStorageShape is nullptr."), return false);
     const gert::Shape &wShape = wStorageShape->GetOriginShape();
-    auto scaleStorageShape = context_->GetInputShape(SCALE_INDEX);
+    auto scaleStorageShape = context_->GetDynamicInputShape(SCALE_INDEX, 0);
     OP_CHECK_IF(scaleStorageShape == nullptr,
                 OP_LOGE(context_->GetNodeName(), "scaleStorageShape is nullptr."), return false);
     const gert::Shape &wScaleShape = scaleStorageShape->GetOriginShape();
     auto scaleDimNum = wScaleShape.GetDimNum();
-    OP_CHECK_IF(scaleDimNum < 1,
-               OP_LOGE(inputParams_.opName,
-                                         "The dimension of xscale should be positive integer, actual is %zu",
-                                         scaleDimNum),
-               return false);
-    auto x1ScaleStorageShape = context_->GetOptionalInputShape(PER_TOKEN_SCALE_INDEX);
+    OP_CHECK_IF(
+        scaleDimNum != MX_WEIGHT_SCALE_DIM,
+        OP_LOGE(inputParams_.opName, "The dimension of weight_scale should be equal to 4, actual is %zu", scaleDimNum),
+        return false);
+    auto x1ScaleStorageShape = context_->GetInputShape(PER_TOKEN_SCALE_INDEX);
     OP_CHECK_IF(x1ScaleStorageShape == nullptr,
                 OP_LOGE(context_->GetNodeName(), "XScaleStorageShape is nullptr."), return false);
+    const gert::Shape &xScaleShape = x1ScaleStorageShape->GetOriginShape();
+    auto xScaleDimNum = xScaleShape.GetDimNum();
+    OP_CHECK_IF(
+        xScaleDimNum != MX_X_SCALE_DIM,
+        OP_LOGE(inputParams_.opName, "The dimension of x_scale should be equal to 3, actual is %zu", xScaleDimNum),
+        return false);
     OP_CHECK_IF(!SetGroupNum(GROUPLIST_INDEX), OP_LOGE(inputParams_.opName, "SetGroupNum failed."),
                return false);
     OP_CHECK_IF(!SetMKN(xShape, wShape), OP_LOGE(inputParams_.opName, "SetMKN failed."), return false);
+    auto aInnerSize = inputParams_.transA ? inputParams_.mSize : inputParams_.kSize;
+    auto bInnerSize = inputParams_.transB ? inputParams_.kSize : inputParams_.nSize;
+    OP_CHECK_IF(
+        IsFp4Input() && (aInnerSize % B4_DATACOPY_MIN_NUM != 0 || bInnerSize % B4_DATACOPY_MIN_NUM != 0),
+        OP_LOGE(inputParams_.opName, "When inputs are FLOAT4，x and weight inner axis element number shoud be even."),
+        return false);
+    OP_CHECK_IF(inputParams_.nSize % GmmConstant::BASIC_BLOCK_SIZE_128 != 0,
+                OP_LOGE(inputParams_.opName, "Weight n axis element number shoud be an integer multiple of 128."),
+                return false);
+
     OP_CHECK_IF(!SetQuantModeForGMMSwigluQuant(),
                OP_LOGE(inputParams_.opName, "SetQuantModeForGMMSwigluQuant failed."), return false);
     return true;
@@ -143,6 +194,7 @@ ge::graphStatus GroupedMatmulSwigluQuantDavidV2Tiling::DoLibApiTiling()
     OP_CHECK_IF(CalL1Tiling() != ge::GRAPH_SUCCESS,
                OP_LOGE(context_->GetNodeName(), "CalL1Tiling failed"), return ge::GRAPH_FAILED);
     auto baseM_modified = std::min(basicTiling_.baseM, static_cast<uint64_t>(128));
+    baseM_modified = GroupedMatmul::CeilAlign(baseM_modified, GmmConstant::CUBE_BLOCK);
     tilingData_.mmTilingData.set_M(inputParams_.mSize);
     tilingData_.mmTilingData.set_N(inputParams_.nSize);
     tilingData_.mmTilingData.set_Ka(inputParams_.kSize);

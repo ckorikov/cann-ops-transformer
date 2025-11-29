@@ -108,6 +108,39 @@ __aicore__ inline constexpr bool IsI8I8I32()
 }
 
 /**
+ * @brief Check if the matrix type is F4
+ * @param [in] MatmulType: matrix type
+ * @return Return true if the matrix type is F4, otherwise false
+ */
+template <class MatmulType>
+__aicore__ inline constexpr bool IsF4()
+{
+#if defined(__DAV_C310__)
+    return AscendC::IsSameTypeV<typename MatmulType::T, fp4x2_e2m1_t> ||
+           AscendC::IsSameTypeV<typename MatmulType::T, fp4x2_e1m2_t>;
+#else
+    return false;
+#endif
+}
+
+/**
+ * @brief Check if matrix A and B are Fp4 and matrix C is F32
+ * @param [in] AType: type of matrix A
+ * @param [in] BType: type of matrix B
+ * @param [in] CType: type of matrix C
+ * @return Return true if matrix A and B are Fp4 and matrix C is F32, otherwise false
+ */
+template <class AType, class BType, class CType>
+__aicore__ inline constexpr bool IsFp4Fp4F32()
+{
+#if defined(__DAV_C310__)
+    return IsF4<AType>() && IsF4<BType>() && AscendC::IsSameTypeV<typename CType::T, float>;
+#else
+    return false;
+#endif
+}
+
+/**
  * @brief Check if the matrix type is F8
  * @param [in] MatmulType: matrix type
  * @return Return true if the matrix type is F8, otherwise false

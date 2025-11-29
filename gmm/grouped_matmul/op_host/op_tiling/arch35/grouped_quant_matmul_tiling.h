@@ -106,6 +106,9 @@ struct GQmmInputInfo {
     ge::DataType biasDtype = ge::DT_INT32;
     ge::DataType scaleDtype = ge::DT_UINT64;
     ge::DataType perTokenScaleDtype = ge::DT_FLOAT;
+    ge::DataType outDataDtype = ge::DT_FLOAT16;
+    ge::DataType outScaleDtype = ge::DT_FLOAT;
+
     ge::Format aFormat = ge::FORMAT_ND;
     ge::Format bFormat = ge::FORMAT_ND;
     ge::Format cFormat = ge::FORMAT_ND;

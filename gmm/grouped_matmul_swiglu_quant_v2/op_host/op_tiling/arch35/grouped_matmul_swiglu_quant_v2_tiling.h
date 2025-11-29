@@ -58,6 +58,11 @@ private:
     bool SetQuantModeForGMMSwigluQuant();
     bool CheckShapeForMxQuant(const gert::Shape &x1ScaleShape, const gert::Shape &x2ScaleShape);
     bool CheckDtype();
+
+    bool IsFp4(ge::DataType dtype);
+    bool IsFp8(ge::DataType dtype);
+    bool IsFp4Input();
+    bool IsFp8Input();
     GMMSwigluQuantTilingDataParams tilingData_;
 };
 } // namespace optiling
