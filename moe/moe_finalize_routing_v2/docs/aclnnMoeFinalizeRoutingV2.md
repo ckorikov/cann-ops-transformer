@@ -56,15 +56,15 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
 
 -   **参数说明：**
 
-    <table style="undefined;table-layout: fixed; width: 1550px"><colgroup>
-    <col style="width: 187px">
+    <table style="undefined;table-layout: fixed; width: 1522px"><colgroup>
+    <col style="width: 170px">
+    <col style="width: 120px">
+    <col style="width: 315px">
+    <col style="width: 231px">
+    <col style="width: 210px">
     <col style="width: 121px">
-    <col style="width: 287px">
-    <col style="width: 387px">
-    <col style="width: 187px">
-    <col style="width: 187px">
-    <col style="width: 187px">
-    <col style="width: 146px">
+    <col style="width: 210px">
+    <col style="width: 145px">
     </colgroup>
     <thead>
     <tr>
@@ -245,17 +245,39 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
 
 -   **参数说明：**
 
-    <table>
-            <thead>
-                <tr><th>参数名</th><th>输入/输出</th><th>描述</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>workspace</td><td>输入</td><td>在Device侧申请的workspace内存地址。</td></tr>
-                <tr><td>workspaceSize</td><td>输入</td><td>在Device侧申请的workspace大小，由第一段接口aclnnInplaceAddGetWorkspaceSize获取。</td></tr>
-                <tr><td>executor</td><td>输入</td><td> op执行器，包含了算子计算流程。 </td></tr>
-                <tr><td>stream</td><td>输入</td><td> 指定执行任务的Stream。 </td></tr>
-            </tbody>
-        </table>
+    <table style="undefined;table-layout: fixed; width: 1179px"> <colgroup>
+    <col style="width: 169px">
+    <col style="width: 130px">
+    <col style="width: 880px">
+    <thead>
+    <tr>
+        <th>参数名</th>
+        <th>输入/输出</th>
+        <th>描述</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+        <td>workspace</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+        <td>workspaceSize</td>
+        <td>输入</td>
+        <td>在Device侧申请的workspace大小，由第一段接口<code>aclnnMoeFinalizeRoutingV2GetWorkspaceSize</code>获取。</td>
+    </tr>
+    <tr>
+        <td>executor</td>
+        <td>输入</td>
+        <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+        <td>stream</td>
+        <td>输入</td>
+        <td>指定执行任务的Stream。</td>
+    </tr>
+    </tbody>
+    </table>
 
 - **返回值**
   
@@ -264,11 +286,11 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
 ## 约束说明
 1. 确定性计算：默认确定性实现。
 
-2. NUM\_ROWS：表示行数；
-K：表示从总的专家E中选出K个专家；
-H：表示hidden size，即每个token序列长度，为列数；
-E：表示expert num，即专家数，E需要大于等于K；
-C：表示expert capacity，即专家处理token数量的能力阈值。
+2. NUM\_ROWS：表示行数；  
+K：表示从总的专家E中选出K个专家；  
+H：表示hidden size，即每个token序列长度，为列数；  
+E：表示expert num，即专家数，E需要大于等于K；  
+C：表示expert capacity，即专家处理token数量的能力阈值。  
 
 3. expandedRowIdx：当dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM_ROWS * K-1]；当dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
 
