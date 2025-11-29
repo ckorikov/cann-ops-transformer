@@ -60,6 +60,15 @@ std::string ConvertContainerToString(const C &container, Func func = ElemToStrin
     return ss.str();
 }
 
+std::string GetShapeStr(const gert::Shape &aShape)
+{
+    std::string shapeStr = "[";
+    for (size_t i = 0; i < aShape.GetDimNum(); ++i) {
+        shapeStr += std::to_string(aShape.GetDim(i)) + (i + 1 < aShape.GetDimNum() ? ", " : "");
+    }
+    return shapeStr + "]";
+}
+
 template <typename T>
 inline auto CeilDiv(T a, T b) -> T
 {
@@ -428,9 +437,6 @@ void MlaPrologTilingCheck::FillPartialKVPertileQuantParamInfo()
     expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[KV_CACHE_OUT_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[K_NOPE_CLIP_ALPHA_NAME].dtype = ge::DT_FLOAT;
-
-    expectedParamInfo_.erase(KR_CACHE_NAME);
-    expectedParamInfo_.erase(KR_CACHE_OUT_NAME);
 }
 
 void MlaPrologTilingCheck::FillFullQuantParamInfo()
@@ -479,9 +485,6 @@ void MlaPrologTilingCheck::FillFullKVPertileQuantParamInfo()
     expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[KV_CACHE_OUT_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[K_NOPE_CLIP_ALPHA_NAME].dtype = ge::DT_FLOAT;
-
-    expectedParamInfo_.erase(KR_CACHE_NAME);
-    expectedParamInfo_.erase(KR_CACHE_OUT_NAME);
 }
 
 void MlaPrologTilingCheck::FillMxfp8FullQuantParamInfo()
@@ -552,11 +555,32 @@ void MlaPrologTilingCheck::GenActualParamInfo()
     actualParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, context_.dequantScaleQNope);
     actualParamInfo_.emplace(QUERY_NORM_NAME, context_.queryNorm);
     actualParamInfo_.emplace(DEQUANT_SCALE_Q_NORM_NAME, context_.dequantScaleQNorm);
-    if (scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
-        scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE) {
+    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0 &&
+        *(context_.ckvkrRepoMode) == static_cast<int>(CKVKR_REPO_MODE::COMBINE)) {
         actualParamInfo_.erase(KR_CACHE_NAME);
         actualParamInfo_.erase(KR_CACHE_OUT_NAME);
     }
+}
+
+ge::graphStatus MlaPrologTilingCheck::CheckCkvkrRepoMode()
+{
+    ge::graphStatus isCorrect {ge::GRAPH_SUCCESS};
+    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0) {
+        return isCorrect;
+    }
+    if (*(context_.ckvkrRepoMode) == static_cast<int>(CKVKR_REPO_MODE::COMBINE)) {
+        if(context_.krCache.shape->GetStorageShape().GetShapeSize() != 0) {
+            isCorrect = ge::GRAPH_FAILED;
+            OP_LOGE(context_.opName, "krCache %s is not an empty tensor",
+                GetShapeStr(context_.krCache.shape->GetStorageShape()).c_str());
+        }
+        if(context_.krCacheOut.shape->GetStorageShape().GetShapeSize() != 0) {
+            isCorrect = ge::GRAPH_FAILED;
+            OP_LOGE(context_.opName, "krCacheOut %s is not an empty tensor",
+                GetShapeStr(context_.krCacheOut.shape->GetStorageShape()).c_str());
+        }    
+    }
+    return isCorrect;
 }
 
 ge::graphStatus MlaPrologTilingCheck::CheckParamByScenario()
@@ -805,7 +829,7 @@ bool MlaPrologTilingCheck::CheckKrCache() const
 {
     return scenarioInfo_.quantMode_ == QUANT_MODE::PARTIAL_QUANT_KV_QUANT_PER_TILE ||
            scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE ||
-           IsSingleParamValid(context_.krCache, KR_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
+           IsSingleParamValid(context_.krCache, KR_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {1, 3, 4});
 }
 
 bool MlaPrologTilingCheck::CheckActSeqLen() const

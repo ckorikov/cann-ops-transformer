@@ -571,6 +571,7 @@ ge::graphStatus MlaPrologTiling::RunBigKernelTiling(MlaPrologContext &context, M
         std::bind(&MlaPrologTiling::SetScenarioInfo, this),
         std::bind(&MlaPrologTilingCheck::CheckScenarParam, &tilingCheck_),
         std::bind(&MlaPrologTilingCheck::CheckDims, &tilingCheck_),
+        std::bind(&MlaPrologTilingCheck::CheckCkvkrRepoMode, &tilingCheck_),
         std::bind(&MlaPrologTilingCheck::CheckParamByScenario, &tilingCheck_),
         std::bind(&MlaPrologTiling::SetAttrInfo, this),
         std::bind(&MlaPrologTiling::ProcessBaseInputs, this),

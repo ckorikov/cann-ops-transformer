@@ -131,6 +131,7 @@ public:
     ge::graphStatus CheckCacheMode() const;
     ge::graphStatus CheckDims() const;
     ge::graphStatus CheckParamByScenario();
+    ge::graphStatus CheckCkvkrRepoMode();
     ge::graphStatus CheckScenarParam();
     ge::graphStatus CheckAttrs() const;
 
