@@ -257,11 +257,11 @@ ge::graphStatus LIInfoParser::GetAndCheckOptionalInput()
 {
     if (kLayout_ == DataLayout::BnBsND) {
         OP_CHECK_IF(opParamInfo_.blockTable.tensor == nullptr,
-                   OP_LOGE(opName_, "key layout only supported PA_BSND, input block_table must not be null"),
+                   OP_LOGE(opName_, "when layout_key is PA_BSND, input block_table must not be null"),
                    return ge::GRAPH_FAILED);
         OP_CHECK_IF(
             opParamInfo_.actualSeqLengths.tensor == nullptr,
-            OP_LOGE(opName_, "key layout only supported PA_BSND, input actual_seq_lengths_key must not be null"),
+            OP_LOGE(opName_, "when layout_key is PA_BSND, input actual_seq_lengths_key must not be null"),
             return ge::GRAPH_FAILED);
         OP_CHECK_IF(opParamInfo_.blockTable.desc->GetDataType() != ge::DT_INT32,
                    OP_LOGE(opName_, "input block_table data type only support int32"), return ge::GRAPH_FAILED);
