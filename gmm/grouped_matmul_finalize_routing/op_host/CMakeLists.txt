@@ -9,6 +9,7 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
+    set(grouped_matmul_finalize_routing_depends gmm/grouped_matmul CACHE INTERNAL "Dependencies for grouped_matmul_finalize_routing.")
     target_sources(op_host_aclnnExc PRIVATE
         grouped_matmul_finalize_routing_def.cpp
     )
