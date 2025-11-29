@@ -135,7 +135,7 @@
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>
@@ -214,7 +214,7 @@ struct Args {
     HcclComm hcclComm;
     aclrtStream stream;
     aclrtContext context;
-  };
+};
 
 int LaunchOneThreadAllGatherMm(Args &args)
 {
@@ -285,7 +285,7 @@ int LaunchOneThreadAllGatherMm(Args &args)
     ret = CreateAclTensor(outHostData, outShape, &outDeviceAddr, aclDataType::ACL_FLOAT16, &out);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(gatherOutHostData, gatherOutShape, &gatherOutDeviceAddr,
-                          aclDataType::ACL_FLOAT8_E4M3FN, &gatherOut);
+                        aclDataType::ACL_FLOAT8_E4M3FN, &gatherOut);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
 
     // 调用第一阶段接口
