@@ -14,6 +14,12 @@ set(A5_OPS_BLACK_LIST
     "mla_prolog_v3;"
 
     "grouped_matmul_finalize_routing;"
+    "grouped_matmul;"
+    "grouped_matmul_add;"
+    "grouped_matmul_swiglu_quant;"
+    "grouped_matmul_swiglu_quant_v2;"
+    "quant_grouped_matmul_dequant;"
+    "quant_grouped_matmul_inplace_add;"
 
     "all_gather_matmul;"
     "all_gather_matmul_v2;"
