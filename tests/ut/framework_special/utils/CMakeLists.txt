@@ -38,7 +38,6 @@ target_link_libraries(${_Target}
             ascendalog
             ascendcl
             nnopbase
-            ascend_hal
             dl
             tikicpulib::${OPS_ADV_UTEST_OPS_TEST_ASCEND_PRODUCT_TYPE}
         PRIVATE
