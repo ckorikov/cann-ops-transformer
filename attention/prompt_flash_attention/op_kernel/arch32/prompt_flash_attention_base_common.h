@@ -126,7 +126,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_512>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::BlockReduceSum<float, false>(
@@ -136,7 +136,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_512>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::BlockReduceSum<float, false>(
@@ -146,7 +146,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_512>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -167,7 +167,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         SetVecMask(ROW_OP_SPEC_MASK_32);
@@ -178,7 +178,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            4
+            STRIDE_4
         );
         AscendC::PipeBarrier<PIPE_V>();
         SetBlockReduceMask<float>(ROW_OP_SPEC_MASK_4);
@@ -189,7 +189,7 @@ struct Rowsum<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -222,7 +222,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                 0,
                 1,
                 1,
-                8
+                STRIDE_8
             );
             AscendC::PipeBarrier<PIPE_V>();
             for (uint64_t rowsum_idx = 1; rowsum_idx < (uint64_t)numElems / FLOAT_VECTOR_SIZE; ++rowsum_idx) {
@@ -243,7 +243,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -253,7 +253,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                     tmpUb[REDUCE_UB_SIZE],
                     (uint64_t)0,
                     1,
-                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -280,7 +280,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
             } else {
@@ -291,7 +291,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -301,7 +301,7 @@ struct Rowsum<float, RowCalcTile::TAIL_TILE>{
                     tmpUb[REDUCE_UB_SIZE],
                     (uint64_t)0,
                     1,
-                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                 );
                 AscendC::PipeBarrier<PIPE_V>();
             }
@@ -325,7 +325,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_512> {
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::BlockReduceMax<float, false>(
@@ -335,7 +335,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_512> {
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::BlockReduceMax<float, false>(
@@ -345,7 +345,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_512> {
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -366,7 +366,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         SetVecMask(ROW_OP_SPEC_MASK_32);
@@ -377,7 +377,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            4
+            STRIDE_4
         );
         AscendC::PipeBarrier<PIPE_V>();
         SetBlockReduceMask<float>(ROW_OP_SPEC_MASK_4);
@@ -388,7 +388,7 @@ struct Rowmax<float, RowCalcTile::SPEC_TILE_256>{
             0,
             1,
             1,
-            8
+            STRIDE_8
         );
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -421,7 +421,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                 0,
                 1,
                 1,
-                8
+                STRIDE_8
             );
             AscendC::PipeBarrier<PIPE_V>();
             for (uint64_t rowmax_idx = 1; rowmax_idx < (uint64_t)numElems / FLOAT_VECTOR_SIZE; ++rowmax_idx) {
@@ -442,7 +442,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -452,7 +452,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                     tmpUb[REDUCE_UB_SIZE],
                     (uint64_t)0,
                     1,
-                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -479,7 +479,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
             } else {
@@ -490,7 +490,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                     0,
                     1,
                     1,
-                    8
+                    STRIDE_8
                 );
                 AscendC::PipeBarrier<PIPE_V>();
                 SetVecMask(numRowsRound);
@@ -500,7 +500,7 @@ struct Rowmax<float, RowCalcTile::TAIL_TILE>{
                     tmpUb[REDUCE_UB_SIZE],
                     (uint64_t)0,
                     1,
-                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                 );
                 AscendC::PipeBarrier<PIPE_V>();
             }
@@ -546,7 +546,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
             tor,
             (uint64_t)0,
             (m * nStride + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-            AscendC::UnaryRepeatParams(1, 1, 8, 8)
+            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
         );
         AscendC::PipeBarrier<PIPE_V>();
         if (nReal == TILE_512) {
@@ -589,7 +589,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 globalRowmaxUb,
                 (uint64_t)0,
                 1,
-                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
             );
             AscendC::PipeBarrier<PIPE_V>();
             // *** dm = gm - hm
@@ -599,7 +599,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 hatRowmaxUb,
                 (uint64_t)0,
                 1,
-                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
             );
             AscendC::PipeBarrier<PIPE_V>();
             // *** dm = exp(dm)
@@ -608,7 +608,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 diffRowmaxUb,
                 (uint64_t)0,
                 1,
-                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
             );
         }
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -625,7 +625,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
             tmpUb.template ReinterpretCast<uint32_t>(),
             hatRowmaxUb.template ReinterpretCast<uint32_t>(),
             roundM / FLOAT_BLOCK_SIZE,
-            AscendC::BrcbRepeatParams(1, 8)
+            AscendC::BrcbRepeatParams(1, STRIDE_8)
         );
         AscendC::PipeBarrier<PIPE_V>();
         // *** ls = ls - hm_block
@@ -659,7 +659,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
             sUb,
             (uint64_t)0,
             (m * nStride + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-            AscendC::UnaryRepeatParams(1, 1, 8, 8)
+            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
         );
         AscendC::PipeBarrier<PIPE_V>();
         // *** ll = rowsum(ls32)
@@ -694,7 +694,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 AscendC::RoundMode::CAST_RINT,
                 (uint64_t)0,
                 (m * nStride + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8));
         } else {
             AscendC::Cast<P_DTYPE, float, false>(
                 pUb,
@@ -702,7 +702,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 AscendC::RoundMode::CAST_NONE,
                 (uint64_t)0,
                 (m * nStride + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8));
         }
         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>((pingpongFlag));
         AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>((pingpongFlag));
@@ -729,7 +729,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 globalRowsumUb,
                 (uint64_t)0,
                 1,
-                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
             );
             AscendC::PipeBarrier<PIPE_V>();
             // *** gl = ll + gl
@@ -739,7 +739,7 @@ struct OnlineSoftmaxStage1<float, float, P_DTYPE, MASK_DTYPE, MaskType::MASK_TYP
                 localRowsumUb,
                 (uint64_t)0,
                 1,
-                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
             );
             AscendC::PipeBarrier<PIPE_V>();
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);

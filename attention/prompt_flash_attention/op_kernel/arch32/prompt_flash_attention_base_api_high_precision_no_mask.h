@@ -27,7 +27,7 @@ constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_FOUR_NO_MASK = 4;
 constexpr uint32_t PINGPONG_FLAG_M_MTE1_OFFSET_SIX_NO_MASK = 6;
 constexpr uint32_t L0B_LOAD_TOTAL_SIZE_128_NO_MASK = 128;
 
-constexpr size_t LEN_BURST_TOTAL_BYTES_32_NO_MASK = 32; 
+constexpr size_t LEN_BURST_TOTAL_BYTES_32_NO_MASK = 32;
 
 template <typename TILING_TYPE, typename S_DT, typename QKV_DT, typename O_DT, typename P_DT, typename M_DT, typename E_DT, MaskType M = MaskType::MASK_TYPE_NONE, ScaleType S = ScaleType::SCALE_TOR, typename...Args>
 struct PFAHighPrecisionBaseType {
@@ -361,7 +361,7 @@ public:
                         AscendC::Fixpipe<float, float, AscendC::CFG_ROW_MAJOR>(sGmTensor[(uint64_t)GetBlockIdx() * TMP_SIZE + nIdx % vectMod * TMP_SIZE / vectMod + splitIdx * ppNScalar], l0cBufTensor[pingpongFlag * L0AB_HALF_BUF_SIZE], intriParams);
                         AscendC::SetFlag<AscendC::HardEvent::FIX_M>(pingpongFlag);
                     }
-                    AscendC::CrossCoreSetFlag<2, PIPE_FIX>(QK_READY);
+                    AscendC::CrossCoreSetFlag<2, PIPE_FIX>(QK_READY); // 2 is the Sync mode
                     kvPingpongFlag = 1 - kvPingpongFlag;
                     kvPingpongOffset = kvPingpongFlag * KV_DB_SIZE;
                 }
@@ -417,7 +417,7 @@ public:
                         AscendC::DataCopy(l1pBufAddrTensor[l1Offset],
                                         pGmTensor[((uint64_t)GetBlockIdx() * TMP_SIZE +
                                                     (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod) *
-                                                    2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],
+                                                    2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],  // 2 is the Byte Convert Factor
                                         AscendC::DataCopyParams(1,                                              // nBurst
                                                                 CeilDiv<BLOCK_SIZE_COPY>(1 * RoundUp<uint64_t>(svRoundN, BlockSize<QKV_DT>())), // lenBurst
                                                                 0,                                              // srcGap
@@ -427,7 +427,7 @@ public:
                                 AscendC::DataCopy(l1pBufAddrTensor[l1Offset],
                                                 pGmTensor[((uint64_t)GetBlockIdx() * TMP_SIZE +
                                                             (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod) *
-                                                            2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],
+                                                            2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],  // 2 is the Byte Convert Factor
                                                 AscendC::Nd2NzParams(1,           // ndNum
                                                                         qkM, // nValue
                                                                         __k, // dValue
@@ -441,7 +441,7 @@ public:
                                     AscendC::DataCopy(l1pBufAddrTensor[l1Offset],
                                                     pGmTensor[((uint64_t)GetBlockIdx() * TMP_SIZE +
                                                                 (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod) *
-                                                                2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],
+                                                                2 / sizeof(QKV_DT) + l1KSplitIdx * nSlice],  // 2 is the Byte Convert Factor
                                                     AscendC::Nd2NzParams(1,           // ndNum
                                                                             1,           // nValue
                                                                             __k, // dValue
@@ -476,7 +476,7 @@ public:
                                     l0bBufTensor[l0Offset + l0bLoadIdx * roundK * BLOCK_SIZE],
                                     l1vBufAddrTensor[kvPingpongOffset + l0bLoadIdx * CUBE_MATRIX_SIZE +
                                                         l1KSplitIdx * nSlice * BLOCK_SIZE +
-                                                        l0KSplitIdx * 128 * BLOCK_SIZE],
+                                                        l0KSplitIdx * 128 * BLOCK_SIZE],  // 128 is the Block num
                                     AscendC::LoadData2dParams(0,
                                                                 roundK / BLOCK_SIZE,
                                                                 svRoundN / BLOCK_SIZE,
@@ -519,7 +519,7 @@ public:
                     intriParams.quantPre = QuantMode_t::NoQuant;
                     AscendC::Fixpipe<float, float, AscendC::CFG_ROW_MAJOR>(oTmpGmTensor[(uint64_t)GetBlockIdx() * TMP_SIZE + (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod], l0cBufTensor[l0cOffset], intriParams);
                     AscendC::SetFlag<AscendC::HardEvent::FIX_M>(l0cPingpongFlag);
-                    AscendC::CrossCoreSetFlag<2, PIPE_FIX>(UPDATE_READY);
+                    AscendC::CrossCoreSetFlag<2, PIPE_FIX>(UPDATE_READY); // 2 is the Sync mode
                     kvPingpongFlag = 1 - kvPingpongFlag;
                     kvPingpongOffset = kvPingpongFlag * KV_DB_SIZE;
                 }
@@ -738,11 +738,11 @@ public:
                             lmUbufTensor[rowOffset],
                             hmUbufTensor[rowOffset],
                             gmUbufTensor[rowOffset],
-                            dmUbufTensor[((nIdx / sBlockStack) % 6) * UB_FLOAT_LINE_SIZE + rowOffset],
+                            dmUbufTensor[((nIdx / sBlockStack) % 6) * UB_FLOAT_LINE_SIZE + rowOffset], // 6 is the Block Stack Num
                             lsUbufTensor[sUbOffset],
                             llUbufTensor[rowOffset],
                             glUbufTensor[rowOffset],
-                            lpUbufTensor[sUbOffset * 2],
+                            lpUbufTensor[sUbOffset * 2],  // 2 is the offset factor
                             tvUbufTensor,
                             sGmTensor[spGmOffset],
                             pGmTensor[spGmOffset],
@@ -751,7 +751,7 @@ public:
                         );
                         pingpongFlag = 1 - pingpongFlag;
                     }
-                    AscendC::CrossCoreSetFlag<2, PIPE_MTE3>(SOFTMAX_READY);
+                    AscendC::CrossCoreSetFlag<2, PIPE_MTE3>(SOFTMAX_READY); // 2 is the Sync Mode
                 }
                 if (nIdx >= launchDelay) {
                     AscendC::WaitEvent(UPDATE_READY); // 4
@@ -763,7 +763,7 @@ public:
                         AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
                         AscendC::DataCopy(loUbufTensor,
                                             oTmpGmTensor[(uint64_t)GetBlockIdx() * TMP_SIZE + (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod +
-                                                            (uint64_t)subBlockIdx * qkM / 2 * roundK],
+                                                            (uint64_t)subBlockIdx * qkM / 2 * roundK], // 2 is the CV_RATIO
                                             AscendC::DataCopyParams(
                                                 1,
                                                 subM * roundK / FLOAT_BLOCK_SIZE,
@@ -774,9 +774,9 @@ public:
                         // *** dm_block = expand_to_block(dm), 存放于 tv
                         AscendC::Brcb(
                             tvUbufTensor.ReinterpretCast<uint32_t>(),
-                            dmUbufTensor[((nIdx - launchDelay) / sBlockStack % 6) * UB_FLOAT_LINE_SIZE].ReinterpretCast<uint32_t>(),
+                            dmUbufTensor[((nIdx - launchDelay) / sBlockStack % 6) * UB_FLOAT_LINE_SIZE].ReinterpretCast<uint32_t>(),  // 6 is the Block Stack Num
                             roundSubM / FLOAT_BLOCK_SIZE,
-                            AscendC::BrcbRepeatParams(1, 8)
+                            AscendC::BrcbRepeatParams(1, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         // *** go = go * dm_block
@@ -811,7 +811,7 @@ public:
                             loUbufTensor,
                             (uint64_t)0,
                             (subM * roundK + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                            AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                            AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
 			            AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
@@ -819,7 +819,7 @@ public:
 			            AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID2);
                         AscendC::DataCopy(goUbufTensor,
                                             oTmpGmTensor[(uint64_t)GetBlockIdx() * TMP_SIZE + (nIdx - launchDelay) % vectMod * TMP_SIZE / vectMod +
-                                                            (uint64_t)subBlockIdx * qkM / 2 * roundK],
+                                                            (uint64_t)subBlockIdx * qkM / 2 * roundK], // 2 is the CV_RATIO
                                             AscendC::DataCopyParams(
                                                 1,
                                                 subM * roundK / FLOAT_BLOCK_SIZE,
@@ -835,7 +835,7 @@ public:
                             tvUbufTensor.ReinterpretCast<uint32_t>(),
                             glUbufTensor.ReinterpretCast<uint32_t>(),
                             roundSubM / FLOAT_BLOCK_SIZE,
-                            AscendC::BrcbRepeatParams(1, 8)
+                            AscendC::BrcbRepeatParams(1, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         // *** go = go / gl_block
@@ -869,7 +869,7 @@ public:
                                 AscendC::RoundMode::CAST_RINT,
                                 (uint64_t)0,
                                 (subM * roundK + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)); // 4 is the RepStrid
                         } else {
                             AscendC::Cast<O_DTYPE, float, false>(
                                 goUbufTensor.ReinterpretCast<O_DTYPE>(),
@@ -877,7 +877,7 @@ public:
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 (subM * roundK + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)); // 4 is the RepStrid
                         }
                         AscendC::PipeBarrier<PIPE_V>();
                         // ********************* move O to GM ************************

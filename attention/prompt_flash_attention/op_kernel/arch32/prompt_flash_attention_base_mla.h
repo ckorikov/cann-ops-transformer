@@ -797,7 +797,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             tor,
                             (uint64_t)0,
                             (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                            AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         if (isClamp == 1){
@@ -808,7 +808,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 clampMin,
                                 (uint64_t)0,
                                 (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
 
@@ -819,7 +819,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 clampMax,
                                 (uint64_t)0,
                                 (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         }
@@ -833,7 +833,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     maskUbufTensor[offset],
                                     (uint64_t)0,
                                     (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                                 );
                                 AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((pingpongFlag + 2));
                              } else if (ppNScalar == FLOAT_VECTOR_SIZE && sBlockStack == 2 && nIdx == nEnd - 2) {
@@ -844,7 +844,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     maskUbufTensor,
                                     (uint64_t)0,
                                     subM,
-                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, 8)
+                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, STRIDE_8)
                                 );
                             } else if (nIdx == nEnd - 1) {
                                 __set_mask(qkN);
@@ -854,7 +854,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     maskUbufTensor,
                                     (uint64_t)0,
                                     subM,
-                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, 8)
+                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, STRIDE_8)
                                 );
                             }
                             AscendC::PipeBarrier<PIPE_V>();
@@ -881,7 +881,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 1,
                                 1,
-                                8
+                                STRIDE_8
                             );
                             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                         } else {
@@ -913,7 +913,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<half>()[ROWMAX_TEMP_BUF_OFFSET],
                                 (uint64_t)0,
                                 (subM * BLOCK_SIZE + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             AscendC::PipeBarrier<PIPE_V>();
@@ -925,7 +925,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 1,
                                 1,
-                                8
+                                STRIDE_8
                             );
                             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                         }
@@ -948,7 +948,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 gmUbufTensor,
                                 (uint64_t)0,
                                 subMD128,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm = gm - hm
@@ -958,7 +958,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 hmUbufTensor,
                                 (uint64_t)0,
                                 subMD128,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8 ,8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         }
@@ -976,7 +976,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             tvUbufTensor.ReinterpretCast<uint16_t>(),
                             hmUbufTensor.ReinterpretCast<uint16_t>(),
                             roundSubM / FLOAT_BLOCK_SIZE,
-                            AscendC::BrcbRepeatParams(1, 8)
+                            AscendC::BrcbRepeatParams(1, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         // *** ls = ls - hm_block
@@ -1010,7 +1010,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             AscendC::RoundMode::CAST_NONE,
                             (uint64_t)0,
                             (subM * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                            AscendC::UnaryRepeatParams(1, 1, 8, 4)
+                            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_4)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         // *** ls = exp(ls)
@@ -1019,7 +1019,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             ls32UbufTensor,
                             (uint64_t)0,
                             (subM * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                            AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         // *** lp = castfp32to16(ls)
@@ -1029,7 +1029,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             AscendC::RoundMode::CAST_NONE,
                             (uint64_t)0,
                             (subM * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                            AscendC::UnaryRepeatParams(1, 1, 4, 8)
+                            AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID0));
@@ -1100,7 +1100,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 4)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_4)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm = exp(dm)
@@ -1109,7 +1109,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm_block = expand_to_block(dm), 存放于 tv
@@ -1117,7 +1117,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint32_t>()[VECTOR_SIZE],
                                 tvUbufTensor.ReinterpretCast<uint32_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gl = dm * gl
@@ -1127,7 +1127,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 glUbufTensor,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gl = ll + gl
@@ -1137,7 +1137,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 llUbufTensor[(nIdx / sBlockStack) % 4 * UB_FLOAT_LINE_SIZE],
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         }
@@ -1191,7 +1191,7 @@ __aicore__ inline void unpad_flashattention_mla(
                             tor,
                             (uint64_t)0,
                             (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                            AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                            AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                         );
                         AscendC::PipeBarrier<PIPE_V>();
                         if (maskType != 0) {
@@ -1203,7 +1203,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     maskUbufTensor,
                                     (uint64_t)0,
                                     (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                    AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                    AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                                 );
                                 AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID2));
                             } else if (nIdx == nEnd - 2) {
@@ -1214,7 +1214,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     maskUbufTensor,
                                     (uint64_t)0,
                                     subM,
-                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, 8)
+                                    AscendC::BinaryRepeatParams(1, 1, 1, qkRoundN / BLOCK_SIZE, qkRoundN / BLOCK_SIZE, STRIDE_8)
                                 );
                                 AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                             }
@@ -1228,7 +1228,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 clampMin,
                                 (uint64_t)0,
                                 (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // get max(clampMin，ls_ubuf)
@@ -1238,7 +1238,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 clampMax,
                                 (uint64_t)0,
                                 (subM * qkRoundN + VECTOR_SIZE - 1) / VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         }
@@ -1258,7 +1258,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 lsUbufTensor[VECTOR_SIZE],
                                 (uint64_t)0,
                                 subM,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, qkRoundN / BLOCK_SIZE)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, qkRoundN / BLOCK_SIZE)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -1269,7 +1269,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 2,
                                 1,
-                                8
+                                STRIDE_8
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             __set_vcg_mask_mla(VECTOR_SIZE / BLOCK_SIZE);
@@ -1280,7 +1280,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 1,
                                 1,
-                                8
+                                STRIDE_8
                             );
                             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
                         } else {
@@ -1291,7 +1291,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 1,
                                 1,
-                                8
+                                STRIDE_8
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             AscendC::BlockReduceMax<half, false>(
@@ -1301,7 +1301,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 0,
                                 1,
                                 1,
-                                8
+                                STRIDE_8
                             );
                         }
                         AscendC::PipeBarrier<PIPE_V>();
@@ -1318,7 +1318,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint16_t>(),
                                 lmUbufTensor.ReinterpretCast<uint16_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         } else {
@@ -1329,7 +1329,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 gmUbufTensor,
                                 (uint64_t)0,
                                 1,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** hm_block = expand_to_block(hm), 存放于 tv
@@ -1337,7 +1337,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint16_t>(),
                                 hmUbufTensor.ReinterpretCast<uint16_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             // *** dm = gm - hm
                             AscendC::Sub<half, false>(
@@ -1346,7 +1346,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 hmUbufTensor,
                                 (uint64_t)0,
                                 1,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gm = hm
@@ -1393,7 +1393,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 (mSplit * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 4)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_4)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** ls = exp(ls)
@@ -1402,7 +1402,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 ls32UbufTensor,
                                 (uint64_t)0,
                                 (mSplit * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** lp = castfp32to16(ls)
@@ -1412,7 +1412,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 (mSplit * qkRoundN + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 4, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             AscendC::SetFlag<AscendC::HardEvent::V_MTE3>((EVENT_ID0));
@@ -1480,7 +1480,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 4)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_4)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm = exp(dm)
@@ -1489,7 +1489,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm_block = expand_to_block(dm), 存放于 tv
@@ -1497,7 +1497,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint32_t>()[VECTOR_SIZE],
                                 tvUbufTensor.ReinterpretCast<uint32_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gl = dm * gl
@@ -1507,7 +1507,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 glUbufTensor,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gl = ll + gl
@@ -1517,7 +1517,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 llUbufTensor[(nIdx / sBlockStack) % launchDelay * UB_FLOAT_LINE_SIZE],
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                         }
@@ -1578,7 +1578,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 4)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_4)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm = exp(dm)
@@ -1587,7 +1587,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor,
                                 (uint64_t)0,
                                 subMD64,
-                                AscendC::UnaryRepeatParams(1, 1, 8, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** dm_block = expand_to_block(dm), 存放于 tv
@@ -1595,7 +1595,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint32_t>()[VECTOR_SIZE],
                                 tvUbufTensor.ReinterpretCast<uint32_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>((EVENT_ID3));
@@ -1631,7 +1631,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 loUbufTensor,
                                 (uint64_t)0,
                                 (subM * qkRoundK + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8)
+                                AscendC::BinaryRepeatParams(1, 1, 1, STRIDE_8, STRIDE_8, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             AscendC::SetFlag<AscendC::HardEvent::V_MTE2>((EVENT_ID4));
@@ -1646,7 +1646,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                     AscendC::RoundMode::CAST_NONE,
                                     (uint64_t)0,
                                     subMD64,
-                                    AscendC::UnaryRepeatParams(1, 1, 4, 8)
+                                    AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)
                                 );
                             }
                             AscendC::PipeBarrier<PIPE_V>();
@@ -1657,7 +1657,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 AscendC::RoundMode::CAST_NONE,
                                 (uint64_t)0,
                                 (subM * qkRoundK + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                                AscendC::UnaryRepeatParams(1, 1, 4, 8)
+                                AscendC::UnaryRepeatParams(1, 1, STRIDE_4, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** gl_block = expand_to_block(gl), 存放于 tv
@@ -1665,7 +1665,7 @@ __aicore__ inline void unpad_flashattention_mla(
                                 tvUbufTensor.ReinterpretCast<uint16_t>(),
                                 glUbufTensor.ReinterpretCast<uint16_t>(),
                                 roundSubM / FLOAT_BLOCK_SIZE,
-                                AscendC::BrcbRepeatParams(1, 8)
+                                AscendC::BrcbRepeatParams(1, STRIDE_8)
                             );
                             AscendC::PipeBarrier<PIPE_V>();
                             // *** go = go / gl_block

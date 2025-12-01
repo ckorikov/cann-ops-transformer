@@ -303,11 +303,11 @@ __aicore__ inline int64_t ComputeOffsetForPrefixRectangle(const int64_t &delta, 
 {
     // attenMask S1 is same to S2
     if (delta <= 0) {
-        return attenMaskS2Size * attenMaskS2Size + attenMaskS2Size / 2;
+        return attenMaskS2Size * attenMaskS2Size + attenMaskS2Size / 2;  // 2 is the attenMaskS2Size factor to calculate the Offset
     } else if (delta >= s2BaseSize) {
         return attenMaskS2Size * attenMaskS2Size;
     } else {
-        return attenMaskS2Size * attenMaskS2Size + attenMaskS2Size / 2 - delta;
+        return attenMaskS2Size * attenMaskS2Size + attenMaskS2Size / 2 - delta;  // 2 is the attenMaskS2Size factor to calculate the Offset
     }
 }
 

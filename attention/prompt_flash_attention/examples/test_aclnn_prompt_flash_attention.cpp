@@ -168,7 +168,7 @@ int ExecutePromptFlashAttention(TensorResources& resources, aclrtStream stream,
     constexpr const char LAYER_OUT_STR[] = "BNSD";
     constexpr size_t LAYER_OUT_LEN = sizeof(LAYER_OUT_STR);  
     char layerOut[LAYER_OUT_LEN];
-    memcpy(layerOut, LAYER_OUT_STR, LAYER_OUT_LEN);
+    memcpy_s(layerOut, LAYER_OUT_LEN, LAYER_OUT_STR, LAYER_OUT_LEN);
 
     aclOpExecutor* executor;
     int ret = aclnnPromptFlashAttentionV3GetWorkspaceSize(
