@@ -19,7 +19,7 @@
   - m轴分组：$k_i$、$n_i$各组相同，$m_i$可以不相同。
   - k轴分组：$m_i$、$n_i$各组相同，$k_i$可以不相同。
 
-- 计算公式：
+- 基础计算公式如下（详细公式请参见[计算公式](#计算公式)）：
 
   $$
   y_i=x_i\times weight_i + bias_i
@@ -27,7 +27,7 @@
 
 - 版本演进：
 
-  |版本变化      | Atlas A2 训练系列产品<br />Atlas 800I A2 推理产品<br />A200I A2 Box 异构组件 |昇腾910_95 AI处理器|Atlas 推理系列产品 |
+  |版本变化      | Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件<br>Atlas A3 训练系列产品/Atlas A3 推理系列产品 |昇腾910_95 AI处理器|Atlas 推理系列产品 |
   |---------|---------|----------------|----------------|
   |V4 -> V5|  增加可选参数tuningConfigOptional，调优参数。数组中第一个值表示各个专家处理的token数的预期值，算子tiling时会按照该预期值进行最优tiling。   |  /  | / |
   |V1 -> V4|     支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />量化、伪量化场景，支持weight转置，支持weight为单tensor。<br />x、weight、y都为单tensor非量化场景，支持x，weight输入都为float32类型。<br />支持静态量化（pertensor+perchannel）（量化方式请参见[量化介绍](../../../docs/zh/context/量化介绍.md)，下同）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持动态量化（pertoken+perchannel）BFLOAT16和FLOAT16输出，带激活及不带激活场景。<br />支持伪量化weight是INT4的输入，不带激活场景，支持perchannel和pergroup两种模式。     |支持不同分组轴，由groupType表示。<br />非量化场景，支持x，weight转置（转置指若shape为[M,K]时，则stride为[1, M],数据排布为[K,M]的场景）。<br />支持伪量化weight是INT8/INT4的输入，仅支持perchannel模式。<br />支持静态量化（1.pertensor-perchannel；2.pertensor-pertensor）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持动态量化（1.pertoken-perchannel；2.pertoken-pertensor；3.pertensor-pertensor；4.mx量化；5.pergroup-perblock）BFLOAT16，FLOAT16和FLOAT32输出，带bias，不带激活场景。<br />支持伪量化weight是FLOAT8_E5M2、FLOAT8_E4M3FN、HIFLOAT8的输入，不带激活场景，仅支持perchannel模式。| / |
@@ -430,7 +430,7 @@ aclnnStatus aclnnGroupedMatmulV5(
   - <term>昇腾910_95 AI处理器</term>：
 
     详见[昇腾910_95 AI处理器](#昇腾910_95AI处理器)
-
+<a id="计算公式"></a>
 - 计算公式
   <a id="非量化场景"></a>
 
