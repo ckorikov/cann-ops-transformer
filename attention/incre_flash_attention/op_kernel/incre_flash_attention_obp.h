@@ -12,15 +12,16 @@
  * \file incre_flash_attention_obp.h
  * \brief
  */
- 
 #include "./arch32/incre_flash_attention_tilingkey.h"
-#include "./arch32/incre_flash_attention_allvec_new.h"
+#include "./incre_flash_attention_allvec_new.h"
+#if (__CCE_AICORE__ == 200)
 #include "./arch20/incre_flash_attention_cube_310P_kvquant.h"
+#endif
 #if (__CCE_AICORE__ > 200)
 #include "./arch32/incre_flash_attention_split_Bbn2s2_Us2.h"
 #include "./arch32/incre_flash_attention_preload.h"
 #include "./arch32/incre_flash_attention_preload_dd.h"
-#include "./arch20/paged_attention_antiquantkv.h"
+#include "./arch32/paged_attention_antiquantkv.h"
 
 #ifdef FIA_ENABLE_MLA
 // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
