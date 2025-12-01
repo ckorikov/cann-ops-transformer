@@ -204,4 +204,5 @@ def main(repository_path):
                     op_name: ai_core_configs
                 }
                 result.append(op_dict)
+    result.sort(key=lambda x: next(iter(x)))
     return result
