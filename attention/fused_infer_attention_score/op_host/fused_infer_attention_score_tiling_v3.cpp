@@ -244,7 +244,7 @@ bool IsEmptyTensor(gert::TilingContext *context)
 
     uint32_t valueBIdx = 0;
     while ((context->GetDynamicInputShape(VALUE_INDEX, valueBIdx)) != nullptr) {
-        const gert::StorageShape * valueShape =
+        const gert::StorageShape *valueShape =
             const_cast<gert::StorageShape *>(context->GetDynamicInputShape(VALUE_INDEX, valueBIdx));
         if (valueShape->GetStorageShape().GetShapeSize() == 0) {
             return true;
