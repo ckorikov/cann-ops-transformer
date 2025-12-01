@@ -26,7 +26,13 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "exe_graph/runtime/tiling_context.h"
 #include "register/op_def_registry.h"
-#include "incre_flash_attention_tiling_impl.h"
+#include "../../common/op_kernel/arch35/flash_attention_score_tiling_regbase.h"
+#include "../op_kernel/arch35/incre_flash_attention_tiling_regbase.h"
+#include "../../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_template_tiling_key_enum.h"
+#include "../../common/op_host/fia_tiling_base.h"
+#include "incre_flash_attention_tiling_context.h"
+#include "incre_flash_attention_tiling_struct.h"
+#include "incre_flash_attention_tiling_base.h"
 
 namespace optiling {
 
@@ -53,11 +59,14 @@ constexpr uint32_t MASKDIM_B1SS = 4;
 constexpr uint32_t SPARSE_OPTIMIZE_ATTENTION_SIZE = 2048;
 constexpr int64_t SLOPE_N_DIM_NUM = 1L;
 
-class IFATilingV2 {
+class IFATilingV2 : public FiaTilingBase{
  public:
-  IFATilingV2() = default;
-  ~IFATilingV2() = default;
-
+  IFATilingV2(gert::TilingContext *context) : FiaTilingBase(context) {}
+  ~IFATilingV2() override = default;
+  void InitTilingInfo(TilingInfo *tilingInfo) override {}
+  bool IsCapable() override {return true;}
+  ge::graphStatus DoOpTiling() override;
+  ge::graphStatus DoSubOpTiling(IncreFlashAttentionContext& ifaContext);
   ge::graphStatus DoTiling(gert::TilingContext& context);
   ge::graphStatus RunBigKernelTiling(IncreFlashAttentionContext& context, IncreFlashAttentionTilingDataV2& tilingData);
   ge::graphStatus IncreFlashAttentionSetTilingData(gert::TilingContext& context,
@@ -68,7 +77,32 @@ class IFATilingV2 {
     return passToOldTiling_;
   }
 
- private:
+protected:
+  void UpdateTilingKeyLayoutType();
+  void UpdateTilingKeyConfig();
+  void UpdateTilingKeyPseMode();
+  void UpdateTilingKeyQuantMode();
+  void UpdateTilingKeyAttenMask();
+  void UpdateTilingKeyHasRope();
+  void UpdateTilingKeyIsPa();
+  void UpdateTilingKeyIsFd();
+  void UpdateTilingKeyEmptyTensor();
+  void UpdateTilingKeyPFAMask();
+  void UpdateTilingKeyPFAMatMulType();
+public:
+  uint8_t inOutLayoutType;
+  uint16_t config;
+  uint8_t pseMode;
+  uint8_t quantMode;
+  bool hasAttenMask;
+  bool hasRope;
+  bool isPa;
+  bool isFd;
+  bool emptyTensor;
+  uint8_t PFAMask;
+  uint8_t pFAMatMulType;
+
+private:
   ge::graphStatus GetNpuInfo();
   ge::graphStatus PreProcess();
   ge::graphStatus ProcessBaseTensors();
@@ -211,7 +245,7 @@ class IFATilingV2 {
   void FillTilingOutputParams() const;
   bool FillTilingBmm() const;  // may fail
 
- private:
+private:
   bool passToOldTiling_ = false;
   bool isPFAFlag_ = false;
   bool needInit_ = false;
@@ -316,6 +350,7 @@ class IFATilingV2 {
   // flash config
   uint32_t sInnerLoopTimes_ = 0;
   uint32_t sInnerSize_ = 0;  // flash attention
+  uint32_t sInnerSize2_ = 0;
   uint32_t sOuterSize_ = 0;
   uint32_t sInnerSizeTail_ = 0;
   uint32_t sInnerSizeAlign_ = 0;
@@ -336,7 +371,7 @@ class IFATilingV2 {
 
   uint32_t startIdxEachCore_[MAX_CORE_NUM_REGBASE] = {};
   uint32_t coreSposStart_[MAX_CORE_NUM_REGBASE] = {};
-  IncreFlashAttentionContext* context_ = nullptr;
+  IncreFlashAttentionContext* ifaContext_ = nullptr;
   IncreFlashAttentionTilingData* tilingData_ = nullptr;
   bool isMaxWorkspace_ = false;
   

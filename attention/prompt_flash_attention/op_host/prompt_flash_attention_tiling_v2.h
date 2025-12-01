@@ -14,33 +14,92 @@
  */
 #ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_V2_H_
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_PROMPTFLASHATTENTION_V2_H_
+#include <string>
+#include <unordered_map>
 #include "tiling_base/data_copy_transpose_tiling_def.h"
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "register/tilingdata_base.h"
-#include "./prompt_flash_attention_tiling.h"
+#include "tiling/tiling_api.h"
+#include "register/op_def_registry.h"
+#include "../../common/op_host/fia_tiling_templates_registry.h"
+#include "prompt_flash_attention_tiling_context.h"
+#include "prompt_flash_attention_tiling_struct.h"
+#include "prompt_flash_attention_tiling_const.h"
+#include "../../common/op_kernel/arch35/flash_attention_score_tiling_regbase.h"
+#include "../op_kernel/arch35/prompt_flash_attention_tiling_regbase.h"
+#include "../../common/op_host/fia_tiling_base.h"
 
 namespace optiling {
 namespace v2 {
+struct PFAShapeInfo {
+    uint32_t b = 0;
+    uint32_t n = 0;
+    uint32_t s = 0;
+    uint32_t d = 0;
+    uint32_t h = 0;
+    uint32_t t = 0;
+};
+static const std::unordered_map<ge::DataType, std::string> g_strDataTypePfa = {
+    {ge::DT_FLOAT, "DT_FLOAT"},
+    {ge::DT_FLOAT16, "DT_FLOAT16"},
+    {ge::DT_INT8, "DT_INT8"},
+    {ge::DT_INT16, "DT_INT16"},
+    {ge::DT_UINT16, "DT_UINT16"},
+    {ge::DT_UINT8, "DT_UINT8"},
+    {ge::DT_INT32, "DT_INT32"},
+    {ge::DT_INT64, "DT_INT64"},
+    {ge::DT_UINT32, "DT_UINT32"},
+    {ge::DT_UINT64, "DT_UINT64"},
+    {ge::DT_BOOL, "DT_BOOL"},
+    {ge::DT_DOUBLE, "DT_DOUBLE"},
+    {ge::DT_STRING, "DT_STRING"},
+    {ge::DT_DUAL_SUB_INT8, "DT_DUAL_SUB_INT8"},
+    {ge::DT_DUAL_SUB_UINT8, "DT_DUAL_SUB_UINT8V"},
+    {ge::DT_COMPLEX64, "DT_COMPLEX64"},
+    {ge::DT_COMPLEX128, "DT_COMPLEX128"},
+    {ge::DT_QINT8, "DT_QINT8"},
+    {ge::DT_QINT16, "DT_QINT16"},
+    {ge::DT_QINT32, "DT_QINT32"},
+    {ge::DT_QUINT8, "DT_QUINT8"},
+    {ge::DT_QUINT16, "DT_QUINT16"},
+    {ge::DT_RESOURCE, "DT_RESOURCE"},
+    {ge::DT_STRING_REF, "DT_STRING_REF"},
+    {ge::DT_DUAL, "DT_DUAL"},
+    {ge::DT_VARIANT, "DT_VARIANT"},
+    {ge::DT_BF16, "DT_BF16"},
+    {ge::DT_HIFLOAT8, "DT_HIFLOAT8"},
+    {ge::DT_FLOAT8_E5M2, "DT_FLOAT8_E5M2"},
+    {ge::DT_FLOAT8_E4M3FN, "DT_FLOAT8_E4M3FN"},
+    {ge::DT_UNDEFINED, "DT_UNDEFINED"},
+};
 
-std::string GetPfaDataTypeStr(ge::DataType type);
-class PromptFlashAttentionTilingV2 {
+static std::string GetPfaDataTypeStr(ge::DataType type) {
+    ge::DataType findDype = (g_strDataTypePfa.find(type) == g_strDataTypePfa.end()) ? ge::DT_UNDEFINED : type;
+    return g_strDataTypePfa.at(findDype);
+}
+
+class PromptFlashAttentionTilingV2 : public FiaTilingBase{
 public:
-    platform_ascendc::PlatformAscendC ascendcPlatform;
-    PromptFlashAttentionTilingV2(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
+    explicit PromptFlashAttentionTilingV2(gert::TilingContext *context) : FiaTilingBase(context) {}
+    ~PromptFlashAttentionTilingV2() override = default;
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
-        uint64_t& tilingKey, uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
-    
+        uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
     ge::graphStatus PromptFlashAttentionSetTilingData(gert::TilingContext* context,
         PromptFlashAttentionTilingData& tilingData);
     bool CheckNonEmptyShapeExceptions(const ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* shape,
         const std::string &sName) const;
-
+    ge::graphStatus DoSubOpTiling(PromptFlashAttentionTilingData& tilingData, ContextParamsForPFATiling& contextParamsForPFATiling);
+    ge::graphStatus ConvertContextToPFAParams(ContextParamsForPFATiling& contextKeyParams);
+    void SetTilingKey();
 protected:
     void InitializeMaxWorkspace(PFAShapeInfo& queryShapeInfo, PFAShapeInfo& keyShapeInfo,
         std::vector<int64_t>& actualSeqLengths, std::vector<int64_t>& actualSeqLengthsKV);
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {return true;}
+    ge::graphStatus DoOpTiling() override;
     void PromptFlashAttentionInitOutputSplit(int64_t totalSize, PromptFlashAttentionTilingData &tilingData);
-    bool CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams);
-    void SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey, uint32_t& blockDimToBeSet,
+    bool CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams);    
+    void SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint32_t& blockDimToBeSet,
         PromptFlashAttentionTilingData& tilingData);
     bool CheckIODataType(ContextParamsForPFATiling& contextKeyParams);
     bool SetInputLayout(const char* layout);
@@ -162,7 +221,7 @@ protected:
     void UpdateTilingKeySOuterConst(PromptFlashAttentionTilingData &tilingData, uint64_t& tilingKey);
     void PromptFlashAttentionInitSoftmaxLseOutputSplit(int64_t totalSize, PromptFlashAttentionTilingData &tilingData);
     void UpdateTilingKeyFlag(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey);
-    bool TilingGetTilingKeyAttentionAscendC(uint64_t& tilingKey, ContextParamsForPFATiling& contextKeyParams,
+    bool TilingGetTilingKeyAttentionAscendC(ContextParamsForPFATiling& contextKeyParams,
         PromptFlashAttentionTilingData &tilingData);
     size_t GetPFAWorkSpaceSize(PromptFlashAttentionTilingData& tilingData);
     ge::graphStatus SetPlatMemoryInfo(ContextParamsForPFATiling& contextKeyParams);
@@ -177,7 +236,7 @@ protected:
         PromptFlashAttentionTilingData& tilingData, const PFAShapeInfo& queryShapeInfo, const PFAShapeInfo& valueShapeInfo);
     ge::graphStatus ComputeTilingData(ContextParamsForPFATiling& contextKeyParams, std::vector<int64_t>& actualSeqLengths,
         std::vector<int64_t>& actualSeqLengthsKV, PromptFlashAttentionTilingData& tilingData);
-    ge::graphStatus ComputeTilingKey(uint64_t& tilingKey, ContextParamsForPFATiling& contextKeyParams,
+    ge::graphStatus ComputeTilingKey(ContextParamsForPFATiling& contextKeyParams,
         uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
     void SetAttenMaskCompressMode();
     void SetLayoutType();
@@ -189,6 +248,32 @@ protected:
     ge::graphStatus SetQKVStartIdx(ContextParamsForPFATiling& contextKeyParams);
     bool CheckAlibiPseCrossover(ContextParamsForPFATiling& contextKeyParams);
     void GetMaxWorkspaceFlag(ContextParamsForPFATiling& contextKeyParams);
+
+    void UpdateTilingKeyLayoutType();
+    void UpdateTilingKeyConfig(PromptFlashAttentionTilingData& tilingData);
+    void UpdateTilingKeyPseMode();
+    void UpdateTilingKeyQuantMode(ge::DataType inputDataType);
+    void UpdateTilingKeyAttenMask(ge::DataType inputDataType);
+    void UpdateTilingKeyHasRope(ge::DataType inputDataType);
+    void UpdateTilingKeyIsPa(ge::DataType inputDataType);
+    void UpdateTilingKeyIsFd(ge::DataType inputDataType);
+    void UpdateTilingKeyEmptyTensor();
+    void UpdateTilingKeyPFAMask(PromptFlashAttentionTilingData& tilingData, ge::DataType inputDataType);
+    void UpdateTilingKeyPFAMatMulType(PromptFlashAttentionTilingData& tilingData, ge::DataType inputDataType);
+
+public:
+    uint8_t inOutLayoutType = 0;
+    uint16_t config = 0;
+    uint8_t pseMode = 0;
+    uint8_t quantMode = 0;
+    bool hasAttenMask = false;
+    bool hasRope = false;
+    bool isPa = false;
+    bool isFd = false;
+    bool emptyTensor = false;
+    uint8_t PFAMask = 0;
+    uint8_t pFAMatMulType = 0;
+  
 protected:
     ContextParamsForPFATiling* contextKeyParamsPtr = nullptr;
     int64_t ubSizeRemain = 1;

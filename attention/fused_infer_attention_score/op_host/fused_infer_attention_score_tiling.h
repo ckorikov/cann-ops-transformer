@@ -15,12 +15,9 @@
 
 #ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_H_
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_H_
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_impl.h"
 #include "register/tilingdata_base.h"
 #include "fused_infer_attention_score_tiling_compile_info.h"
 #include "fused_infer_attention_score_tiling_index.h"
-#include "arch35/fused_infer_attention_score_tiling_v2.h"
 
 #ifdef ASCENDC_OP_TEST
 #define FIA_EXTERN_C extern "C"
@@ -192,6 +189,19 @@ BEGIN_TILING_DATA_DEF(FusedInferAttentionAntiqParams)
 TILING_DATA_FIELD_DEF(uint32_t, antiqSeqSize)
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(FusedInferAttentionAntiqParamsOp, FusedInferAttentionAntiqParams)
+
+ge::graphStatus TilingFusedInferAttentionScore(gert::TilingContext *context);
+
+class FusedInferAttentionScoreTiling : public FiaTilingBase {
+public:
+    explicit FusedInferAttentionScoreTiling(gert::TilingContext *context) : FiaTilingBase(context) {}
+    ~FusedInferAttentionScoreTiling() override = default;
+
+protected:
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {}
+    ge::graphStatus DoOpTiling() override;
+};
 
 extern "C" {
 ge::graphStatus DeviceDoOpTilingIncreFlashAttention(gert::TilingContext *context);

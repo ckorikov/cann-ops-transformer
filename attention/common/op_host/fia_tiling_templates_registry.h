@@ -109,7 +109,6 @@ public:
             return ge::GRAPH_FAILED;
         }
         auto tilingTemplateRegistryMap = GetTilingTemplates(op_type, soc_version);
-        OP_LOGI(context, "op_type: %s", op_type);
         for (auto it = tilingTemplateRegistryMap.begin(); it != tilingTemplateRegistryMap.end(); ++it) {
             auto tilingTemplate = it->second(context);
             if (tilingTemplate != nullptr) {

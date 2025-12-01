@@ -19,12 +19,13 @@
 #include "kernel_operator_list_tensor_intf.h"
 #include "prompt_flash_attention_comm.h"
 #include "prompt_flash_attention_sparse.h"
+#include "../prompt_flash_attention_tiling_regbase.h"
 
 using namespace matmul;
 
 template<typename PFAT>
 __aicore__ inline void InitConstParam(ConstParam &constParam, 
-    const PromptFlashAttentionTilingData* tilingData)
+    const optiling::PromptFlashAttentionTilingData* tilingData)
 {
     constParam.tmpBlockIdx = GetBlockIdx();
     constParam.subBlockIdx = constParam.tmpBlockIdx % 2; // 2: One blockDim has 2 vectorCore
@@ -120,7 +121,7 @@ __aicore__ inline void InitConstParam(ConstParam &constParam,
 
 template<typename PFAT>
 __aicore__ inline void ComputeParamCore(RunParam& runParam, ConstParam& constParam,
-    const PromptFlashAttentionTilingData* tilingData, uint32_t coreIdx)
+    const optiling::PromptFlashAttentionTilingData* tilingData, uint32_t coreIdx)
 {
     constParam.sNum = tilingData->promptAttentionBaseParams.dimNumOfseq;
     uint32_t splitCoreIdx = coreIdx;

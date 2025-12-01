@@ -35,7 +35,33 @@ using namespace AscendC;
 using namespace matmul_tiling;
 namespace optiling {
 namespace arch38 {
+constexpr uint32_t NUM_0 = 0;
 
+constexpr uint32_t QUERY_INDEX = 0;
+constexpr uint32_t KEY_INDEX = 1;
+constexpr uint32_t VALUE_INDEX = 2;
+constexpr uint32_t QUERY_ROPE_INDEX = 3;
+constexpr uint32_t KEY_ROPE_INDEX = 4;
+constexpr uint32_t ATTENTION_OUT_INDEX = 0;
+constexpr uint32_t PSE_SHIFT_INDEX = 3;
+constexpr uint32_t ATTEN_MASK_INDEX = 4;
+constexpr uint32_t ACTUAL_SEQ_Q_INDEX = 5;
+constexpr uint32_t ACTUAL_SEQ_KV_INDEX = 6;
+constexpr uint32_t DEQ_SCALE1_INDEX = 7;
+constexpr uint32_t QUANT_SCALE1_INDEX = 8;
+constexpr uint32_t DEQ_SCALE2_INDEX = 9;
+constexpr uint32_t QUANT_SCALE2_INDEX = 10;
+constexpr uint32_t QUANT_OFFSET2_INDEX = 11;
+constexpr uint32_t ANTIQUANT_SCALE_INDEX = 12;
+constexpr uint32_t ANTIQUANT_OFFSET_INDEX = 13;
+
+
+constexpr uint32_t ATTR_N_INDEX = 0;
+constexpr uint32_t ATTR_SCALE_INDEX = 1;
+constexpr uint32_t ATTR_PRE_TOKEN_INDEX = 2;
+constexpr uint32_t ATTR_NEXT_TOKEN_INDEX = 3;
+constexpr uint32_t ATTR_INPUT_LAYOUT_INDEX = 4;
+constexpr uint32_t ATTR_NUM_KV_HEADS_INDEX = 5;
 constexpr uint32_t INPUT_QKV_SHAPE_MIN_DIMS = 3;
 constexpr uint32_t INPUT_QKV_SHAPE_MAX_DIMS = 4;
 #ifndef ASCEND_OPTILING_UT
@@ -89,7 +115,9 @@ constexpr uint32_t MLA_VD_SIZE = 128; // typical scene for PFA MLA, can be delet
 
 static const int64_t GM_ALIGN = 512;
 static const int64_t SLOPE_N_DIM_NUM = 1L;
-
+uint64_t BENCHMARK_TILING_KEY = 1000000000000000000;
+constexpr uint32_t ATTR_SPARSE_MODE = 6;
+constexpr uint32_t ATTR_INNER_PRECISE = 7;
 constexpr int64_t PSE_TYPE_2_TILING_V2 = 2;
 constexpr int64_t PSE_TYPE_3_TILING_V2 = 3;
 constexpr uint32_t QUERY_SHAPE_DIM_D_128_TILING_V2 = 128;
@@ -3885,6 +3913,81 @@ void PromptFlashAttentionTilingArch38::PFATilingDataconvert(PromptFlashAttention
     inputParams.set_antiquantParaSeqSize(1);
 }
 
+ge::graphStatus PromptFlashAttentionTilingArch38::ConvertContextToPFAParams(ContextParamsForPFATiling& contextKeyParams)
+{
+    contextKeyParams.opName = context_->GetNodeName();
+    bool inputOutputIsNullPtr = (context_->GetInputDesc(QUERY_INDEX) == nullptr) || (context_->GetInputDesc(KEY_INDEX) == nullptr) ||
+        (context_->GetInputDesc(VALUE_INDEX) == nullptr) || (context_->GetOutputDesc(ATTENTION_OUT_INDEX) == nullptr) ||
+        (context_->GetInputShape(QUERY_INDEX) == nullptr) || (context_->GetInputShape(KEY_INDEX) == nullptr) ||
+        (context_->GetInputShape(VALUE_INDEX) == nullptr) || (context_->GetOutputShape(ATTENTION_OUT_INDEX) == nullptr);
+    OP_CHECK_IF(inputOutputIsNullPtr,
+        OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "q, k, v or attenOut is nullptr!"),
+        return ge::GRAPH_FAILED);
+
+    contextKeyParams.isKvContinuous = 1U;
+    contextKeyParams.emptyTensor = 0U;
+    contextKeyParams.fromTilingSink = 0U;
+    contextKeyParams.pseShift = context_->GetOptionalInputTensor(PSE_SHIFT_INDEX);
+    contextKeyParams.attentionMask = context_->GetOptionalInputTensor(ATTEN_MASK_INDEX);
+    contextKeyParams.actualSequenceLengthQ = context_->GetOptionalInputTensor(ACTUAL_SEQ_Q_INDEX);
+    contextKeyParams.actualSequenceLengthKV = context_->GetOptionalInputTensor(ACTUAL_SEQ_KV_INDEX);
+    contextKeyParams.antiquantScale = context_->GetOptionalInputTensor(ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.antiquantOffset = context_->GetOptionalInputTensor(ANTIQUANT_OFFSET_INDEX);
+    contextKeyParams.inputDataType = context_->GetInputDesc(QUERY_INDEX)->GetDataType();
+    contextKeyParams.kDataType = context_->GetInputDesc(KEY_INDEX)->GetDataType();
+    contextKeyParams.vDataType = context_->GetInputDesc(VALUE_INDEX)->GetDataType();
+    contextKeyParams.blockTable = nullptr;
+    contextKeyParams.keySharedPrefix = (nullptr);
+    contextKeyParams.valueSharedPrefix = (nullptr);
+    contextKeyParams.actualSharedPrefixLen = (nullptr);
+    contextKeyParams.pseShiftDataType = (contextKeyParams.pseShift != nullptr) ?
+    context_->GetOptionalInputDesc(PSE_SHIFT_INDEX)->GetDataType() : contextKeyParams.inputDataType;
+    contextKeyParams.maskDataType = (contextKeyParams.attentionMask != nullptr) ?
+    context_->GetOptionalInputDesc(ATTEN_MASK_INDEX)->GetDataType() : contextKeyParams.inputDataType;
+    contextKeyParams.outputDataType = context_->GetOutputDesc(ATTENTION_OUT_INDEX)->GetDataType();
+    contextKeyParams.queryInputShape = context_->GetInputShape(QUERY_INDEX);
+    contextKeyParams.keyInputShape = context_->GetInputShape(KEY_INDEX);
+    contextKeyParams.valueInputShape = context_->GetInputShape(VALUE_INDEX);
+    contextKeyParams.pseShiftShape = context_->GetOptionalInputShape(PSE_SHIFT_INDEX);
+    contextKeyParams.attentionMaskShape = context_->GetOptionalInputShape(ATTEN_MASK_INDEX);
+    contextKeyParams.deqScale1Shape = context_->GetOptionalInputShape(DEQ_SCALE1_INDEX);
+    contextKeyParams.scale1Shape = context_->GetOptionalInputShape(QUANT_SCALE1_INDEX);
+    contextKeyParams.deqScale2Shape = context_->GetOptionalInputShape(DEQ_SCALE2_INDEX);
+    contextKeyParams.scale2Shape = context_->GetOptionalInputShape(QUANT_SCALE2_INDEX);
+    contextKeyParams.offset2Shape = context_->GetOptionalInputShape(QUANT_OFFSET2_INDEX);
+    contextKeyParams.antiquantScaleShape = context_->GetOptionalInputShape(ANTIQUANT_SCALE_INDEX);
+    contextKeyParams.antiquantOffsetShape = context_->GetOptionalInputShape(ANTIQUANT_OFFSET_INDEX);
+    contextKeyParams.outputShape = context_->GetOutputShape(0);
+    auto attrs = context_->GetAttrs();
+    contextKeyParams.innerPrecisePtr = attrs->GetAttrPointer<int64_t>(ATTR_INNER_PRECISE);
+    contextKeyParams.headsNumber = attrs->GetAttrPointer<int32_t>(ATTR_N_INDEX);
+    contextKeyParams.sparseMode = attrs->GetAttrPointer<int32_t>(ATTR_SPARSE_MODE);
+    contextKeyParams.preToken = attrs->GetAttrPointer<int64_t>(ATTR_PRE_TOKEN_INDEX);
+    contextKeyParams.nextToken = attrs->GetAttrPointer<int64_t>(ATTR_NEXT_TOKEN_INDEX);
+    contextKeyParams.scaleValue = attrs->GetAttrPointer<float>(ATTR_SCALE_INDEX);
+    contextKeyParams.layout = attrs->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX);
+    contextKeyParams.numKeyValueHeads = attrs->GetAttrPointer<int32_t>(ATTR_NUM_KV_HEADS_INDEX);
+    contextKeyParams.workspaceSize = context_->GetWorkspaceSizes(1);
+    contextKeyParams.compileInfoPtr = reinterpret_cast<const PromptFlashAttentionCompileInfo *>(context_->GetCompileInfo());
+    contextKeyParams.isBSNDOut = (string(contextKeyParams.layout) == "BNSD_BSND") ? 1U : 0U;
+    contextKeyParams.fromFused = NUM_0;
+
+    contextKeyParams.deqScaleType = (context_->GetOptionalInputDesc(DEQ_SCALE1_INDEX) != nullptr) ?
+    context_->GetOptionalInputDesc(DEQ_SCALE1_INDEX)->GetDataType() : contextKeyParams.inputDataType;
+    contextKeyParams.deqScale2Type = (context_->GetOptionalInputDesc(DEQ_SCALE2_INDEX) != nullptr) ?
+    context_->GetOptionalInputDesc(DEQ_SCALE2_INDEX)->GetDataType() : contextKeyParams.inputDataType;
+
+    contextKeyParams.quantScale2Type = (context_->GetOptionalInputDesc(QUANT_SCALE2_INDEX) != nullptr) ?
+        context_->GetOptionalInputDesc(QUANT_SCALE2_INDEX)->GetDataType() : ge::DT_FLOAT;
+    contextKeyParams.quantOffset2Type = (context_->GetOptionalInputDesc(QUANT_OFFSET2_INDEX) != nullptr) ?
+        context_->GetOptionalInputDesc(QUANT_OFFSET2_INDEX)->GetDataType() : ge::DT_FLOAT;
+
+    OP_CHECK_IF(contextKeyParams.workspaceSize == nullptr,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "workSpaceSize got from ge is nullptr"),
+        return ge::GRAPH_FAILED);
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus PromptFlashAttentionTilingArch38::PromptFlashAttentionSetTilingData(gert::TilingContext* context,
     PromptFlashAttentionTilingData& tilingData) {
     if (faRunFlag_) {
@@ -3993,5 +4096,20 @@ ge::graphStatus PromptFlashAttentionTilingArch38::RunBigKernelTilingWithParams(C
 #endif
     return ge::GRAPH_SUCCESS;
 }
+ge::graphStatus PromptFlashAttentionTilingArch38::DoOpTiling() {
+    PromptFlashAttentionTilingData tilingData;
+    ContextParamsForPFATiling contextParamsForPFATiling;
+    uint64_t tilingKey = 7;
+    uint32_t blockDimToBeSet;
+    auto ret = ConvertContextToPFAParams(contextParamsForPFATiling);
+    ret = RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
+    tilingKey += BENCHMARK_TILING_KEY;
+    context_->SetTilingKey(tilingKey);
+    context_->SetBlockDim(blockDimToBeSet);
+    PromptFlashAttentionSetTilingData(context_, tilingData);
+    return ret;
+}
+REGISTER_TILING_TEMPLATE_FIA(PromptFlashAttention, PromptFlashAttentionTilingArch38, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::MC62CM12A}), 91);
+REGISTER_TILING_TEMPLATE_FIA(IncreFlashAttention, PromptFlashAttentionTilingArch38, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::MC62CM12A}), 92);
 } // namespace arch38
 } // namespace optiling

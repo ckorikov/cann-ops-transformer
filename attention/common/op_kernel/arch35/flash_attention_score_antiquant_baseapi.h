@@ -52,6 +52,7 @@ enum class AntiquantTypeEnum : uint8_t {
 #include "kernel_operator.h"
 #include "../../../common/op_kernel/arch35/attenmask.h"
 #include "pse.h"
+#include "flash_attention_score_tiling_regbase.h"
 
 using namespace AscendC;
 using namespace AscendC::Impl::Detail;
@@ -1228,7 +1229,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     Buffer<BufferType::L1> outBufAntiKey = this->kvAntiquantRes.Get();
     GlobalTensor<KV_T> tempKeyGm = this->keyGm;
     GetKvByTensorList(runInfo, this->keyGm, tempKeyGm);
-    if(isBeforeHalf) {
+    if (isBeforeHalf) {
         taskParam.copyTotalS = GetRealDealSize(runInfo.s2RealSize);  // 2 is Vecnum 
     } else {
         taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vecnum 
@@ -1279,7 +1280,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
     Buffer<BufferType::L1> outBufAntiValue = this->kvAntiquantRes.Get();
     GlobalTensor<KV_T> tempValueGm = this->valueGm;
     GetKvByTensorList(runInfo, this->valueGm, tempValueGm);
-    if(isBeforeHalf) {
+    if (isBeforeHalf) {
         taskParam.copyTotalS = GetRealDealSize(runInfo.s2RealSize);  // 2 is Vec num
     } else {
         taskParam.copyTotalS = runInfo.s2RealSize - (GetRealDealSize(runInfo.s2RealSize));  // 2 is Vec num
@@ -2062,7 +2063,7 @@ __aicore__ inline void FlashAttentionScoreAntiquantKernel<CHILD_SPEC_TEMPLATE_AR
         return;
     }
     uint64_t attenOutOffset;
-    if constexpr(layout == LayOutTypeEnum::LAYOUT_TND) {
+    if constexpr (layout == LayOutTypeEnum::LAYOUT_TND) {
         attenOutOffset = (bIdx == 0) ? 0 : this->actualSeqQlenAddr[bIdx - 1] * constInfo.n2GDv;
         attenOutOffset += n2Idx * constInfo.gDv;
     } else {

@@ -18,23 +18,24 @@
 #include "kernel_tiling/kernel_tiling.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
+#include "prompt_flash_attention_tiling_regbase.h"
 
 template<typename T>
 class PromptFlashAttentionZeroOutPut {
 public:
     __aicore__ inline PromptFlashAttentionZeroOutPut() {};
     __aicore__ inline void Init(__gm__ uint8_t*  attentionOut,
-                                const PromptFlashAttentionTilingData* __restrict tiling);
+                                const optiling::PromptFlashAttentionTilingData* __restrict tiling);
     __aicore__ inline void Process();
 
 protected:
-    const PromptFlashAttentionTilingData* __restrict tilingData;
+    const optiling::PromptFlashAttentionTilingData* __restrict tilingData;
     GlobalTensor<T> attentionOutGm;
 };
 
 template<typename T>
 __aicore__ inline void PromptFlashAttentionZeroOutPut<T>::Init(__gm__ uint8_t*  attentionOut,
-                                                               const PromptFlashAttentionTilingData* __restrict tiling) {
+                                                               const optiling::PromptFlashAttentionTilingData* __restrict tiling) {
     attentionOutGm.SetGlobalBuffer((__gm__ T*)attentionOut);
     tilingData = tiling;
 }

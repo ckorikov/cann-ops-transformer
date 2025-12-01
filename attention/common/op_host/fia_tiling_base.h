@@ -66,6 +66,7 @@ public:
     }
 
 protected:
+    gert::TilingContext *context_ = nullptr;
     virtual void InitTilingInfo(TilingInfo *tilingInfo) = 0;
     virtual bool IsCapable() = 0;
     virtual ge::graphStatus DoOpTiling() = 0;
@@ -171,7 +172,6 @@ protected:
     }
 
 private:
-    gert::TilingContext *context_ = nullptr;
     std::unique_ptr<platform_ascendc::PlatformAscendC> ascendcPlatform_{nullptr};
 };
 

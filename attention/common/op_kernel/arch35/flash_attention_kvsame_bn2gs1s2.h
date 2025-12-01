@@ -36,6 +36,8 @@
 #include "./infer_flash_attention_kvcache.h"
 #include "./infer_flash_attention_sparse.h"
 #include "kernel_operator_list_tensor_intf.h"
+#include "util_regbase.h"
+#include "flash_attention_score_tiling_regbase.h"
 
 using namespace AscendC;
 using namespace optiling;
@@ -447,7 +449,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
     ListTensorDesc valueListTensorDescInit((__gm__ void*)value);
     currentKey = (__gm__ uint8_t*)keyListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
     currentValue = (__gm__ uint8_t*)valueListTensorDescInit.GetDataPtr<__gm__ uint8_t>(0);
-    if (this->tilingData->inputParamsRegbase.isKvContinuous == 1){
+    if (this->tilingData->inputParamsRegbase.isKvContinuous == 1) {
         this->keyGm.SetGlobalBuffer((__gm__ INPUT_T *)currentKey);
         this->valueGm.SetGlobalBuffer((__gm__ INPUT_T *)currentValue);
     } else {
@@ -473,10 +475,10 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         this->attenMaskGmInt.SetGlobalBuffer((__gm__ uint8_t *)attenMask);
     }
 
-    if (this->tilingData->inputParamsRegbase.isActualSeqLengthsNull != 1){
+    if (this->tilingData->inputParamsRegbase.isActualSeqLengthsNull != 1) {
         actualSeqQlenAddr = (__gm__ int64_t *)actualSeqLengths;
     }
-    if (this->tilingData->inputParamsRegbase.isActualSeqLengthsKVNull != 1){
+    if (this->tilingData->inputParamsRegbase.isActualSeqLengthsKVNull != 1) {
         actualSeqKvlenAddr = (__gm__ int64_t *)actualSeqLengthsKv;
     }
     if constexpr (hasRope) {
@@ -595,7 +597,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         l0cBufferManager.Init(pipe, 262144);
 
         // s1=64, s2=128分核方案，mm1和mm2结果全部在ub上
-        if constexpr(s1BaseSize == 64 && s2BaseSize == 128){
+        if constexpr(s1BaseSize == 64 && s2BaseSize == 128) {
             // 保存p结果的L1内存必须放在第一个L1 policy上，保证和vec申请的地址相同
             mm12Bmm2AL1Buffers.Init(l1BufferManager, mm12RightSize); // L1P与L1K_rope复用
             mm1AL1Buffers.Init(l1BufferManager, (uint32_t)dTemplateType * s1BaseSize * 2);
@@ -610,7 +612,7 @@ __aicore__ inline void FlashAttentionKvsameBN2GS1S2<CHILD_SPEC_TEMPLATE_ARGS>::I
         }
     }
     if ASCEND_IS_AIV {
-        if constexpr(s1BaseSize == 64 && s2BaseSize == 128){
+        if constexpr(s1BaseSize == 64 && s2BaseSize == 128) {
             //申请保存P结果的L1内存
             l1BufferManager.Init(pipe, 524288);
             mm12Bmm2AL1Buffers.Init(l1BufferManager, mm12RightSize);

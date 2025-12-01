@@ -30,6 +30,7 @@
 #include "prompt_flash_attention_tiling_const.h"
 #include "prompt_flash_attention_tiling_context.h"
 #include "prompt_flash_attention_tiling_struct.h"
+#include "../../common/op_host/fia_tiling_templates_registry.h"
 
 namespace optiling {
 
@@ -536,9 +537,10 @@ public:
     size_t bufferExpNum; // unit: input dtype, shape: [S1, 1], inner axis align 32B.
 };
 
-class PromptFlashAttentionTiling {
-public:
-    PromptFlashAttentionTiling(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
+class PromptFlashAttentionTiling : public FiaTilingBase {
+public:    
+    explicit PromptFlashAttentionTiling(gert::TilingContext *context) : ascendcPlatform(nullptr), FiaTilingBase(context) {}
+    ~PromptFlashAttentionTiling() override = default;
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
                                                 uint64_t& tilingKey, uint32_t& blockDimToBeSet,
                                                 PromptFlashAttentionTilingData& tilingData);
@@ -550,6 +552,9 @@ public:
     bool CheckBaseApiNonEmptyShapeExceptions(ContextParamsForPFATiling& contextKeyParams, const gert::StorageShape* shape,
                                       const std::string &sName);
 protected:
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {return true;}
+    ge::graphStatus DoOpTiling() override;
     ge::graphStatus ConvertContextToPFAParams(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams);
     ge::graphStatus TilingGetTilingKeyAttentionAscendC(uint64_t& tilingKey, ContextParamsForPFATiling& contextKeyParams,
                                                        bool useNewTiling, PromptFlashAttentionTilingData& tilingData);
@@ -745,6 +750,7 @@ protected:
 
 protected:
     ContextParamsForPFATiling* contextKeyParamsPtr = nullptr;
+    platform_ascendc::PlatformAscendC ascendcPlatform;
     int64_t ubSizeRemain = 1;
     bool isSOuterNoTail = true;
     bool isSInnerNoTail = true;
@@ -788,8 +794,7 @@ protected:
     platform_ascendc::SocVersion curShortSocName;
     uint32_t dataTypeSize_ = 4;
     uint32_t layoutType = 0;
-    uint32_t PAlayoutType = 0;
-    platform_ascendc::PlatformAscendC ascendcPlatform;
+    uint32_t PAlayoutType = 0;    
     TilingMod tilingMod = TilingMod::CVSAME;
     SplitCoreMode splitCoreMode = SplitCoreMode::SPLIT_NBS_VECTOR;
     uint32_t splitD = 0;

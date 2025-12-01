@@ -33,9 +33,7 @@
 #include "tiling_base/data_copy_transpose_tiling.h"
 #include "log/log.h"
 #include "err/ops_err.h"
-#include "./prompt_flash_attention_tiling_arch38.h"
-#include "./prompt_flash_attention_tiling_v2.h"
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
+#include "prompt_flash_attention_tiling.h"
 #include "register/tilingdata_base.h"
 
 using namespace ge;
@@ -352,7 +350,7 @@ std::string GetPfaDataTypeStr(ge::DataType type) {
 }
 } // namespace arch38
 
-static ge::graphStatus ConvertContextToPFAParams(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams)
+ge::graphStatus PromptFlashAttentionTiling::ConvertContextToPFAParams(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams)
 {
     contextKeyParams.opName = context->GetNodeName();
     bool inputOutputIsNullPtr = (context->GetInputDesc(QUERY_INDEX) == nullptr) || (context->GetInputDesc(KEY_INDEX) == nullptr) ||
@@ -841,7 +839,7 @@ void PromptFlashAttentionTiling::PromptFlashAttentionSplitNSNew(
                 int64_t curWightPlus;
                 if (nextTokensPerBatch == 0) {
                     curWightPlus = k + 1;
-                }else {
+                } else {
                     curWightPlus = sInnerLoopTimes[j];
                 }
                 if ((curWightPlus - dif) > dif) {
@@ -1026,7 +1024,7 @@ bool PromptFlashAttentionTiling::EnableMTE2BmmPipe(PromptFlashAttentionTilingDat
     }
     uint32_t baseK = 32U;
     uint32_t head_size = tilingData.promptAttentionBaseParams.get_headSize();
-    if(head_size%baseK != 0U) {
+    if (head_size%baseK != 0U) {
         return true;
     }
 
@@ -2970,7 +2968,10 @@ ge::graphStatus PromptFlashAttentionTiling::AtbSplitBlock(ContextParamsForPFATil
 {
     PromptAttentionBaseApiBaseParams* baseParams = &baseApiTilingData.promptAttentionBaseApiBaseParams;
     int32_t headNum = *contextKeyParams.headsNumber;
-
+    auto platformInfoPtr = context_->GetPlatformInfo();
+    OP_CHECK_IF(platformInfoPtr == nullptr,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "platformInfoPtr is null"), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
     uint32_t nzRealCoreNum = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum);
     if (nzRealCoreNum == 0U) {
         return ge::GRAPH_FAILED;
@@ -3841,7 +3842,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     }
 
     int32_t outputDataTypeSize = FLOAT32SIZE;
-    if(CheckIOType(contextKeyParams, tilingData, outputDataTypeSize) != ge::GRAPH_SUCCESS) {
+    if (CheckIOType(contextKeyParams, tilingData, outputDataTypeSize) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
@@ -3864,11 +3865,11 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     std::vector<int64_t> actualSeqLengthsKV;
 
     if (CheckBaseAPISupportScenarios(contextKeyParams) == ge::GRAPH_SUCCESS) {
-        if(CheckBaseApiRequiredInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
+        if (CheckBaseApiRequiredInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
         SetBaseApiTilingData(contextKeyParams, actualSeqLengths, actualSeqLengthsKV);
-        if(CheckBaseApiOptionalInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
+        if (CheckBaseApiOptionalInput(contextKeyParams) != ge::GRAPH_SUCCESS) {
             return ge::GRAPH_FAILED;
         }
         SetBaseApiSeqTilingData(contextKeyParams, actualSeqLengths, actualSeqLengthsKV);
@@ -3958,7 +3959,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     }
 
     uint32_t maskElemSize = dataTypeSize;
-    if(CheckMaskType(contextKeyParams, tilingData, maskElemSize) != ge::GRAPH_SUCCESS) {
+    if (CheckMaskType(contextKeyParams, tilingData, maskElemSize) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
@@ -4057,7 +4058,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     }
 
     // Internal log printing, no need to print here, same below.
-    if(CheckShape(contextKeyParams, queryShape, keyShape, valueShape, outShape, pseShiftShape, attenMaskShape) != ge::GRAPH_SUCCESS) {
+    if (CheckShape(contextKeyParams, queryShape, keyShape, valueShape, outShape, pseShiftShape, attenMaskShape) != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
 
@@ -4625,7 +4626,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                 "the query's actual sequence lengths = %ld", *preTokens, actualSeqLengths[i]),
                 return ge::GRAPH_FAILED);
 
-            if(isBandMode && actualSeqLengths[i] > actualSeqLengthsKV[i] + (int64_t)actualSharedPrefixLen + preTokensPerbatch) {
+            if (isBandMode && actualSeqLengths[i] > actualSeqLengthsKV[i] + (int64_t)actualSharedPrefixLen + preTokensPerbatch) {
                 actualSeqLengths[i] = actualSeqLengthsKV[i] + (int64_t)actualSharedPrefixLen + preTokensPerbatch;
             }
 
@@ -4786,7 +4787,7 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     uint32_t softmaxSOuterFactor;
 
     // Add TND Template there
-    if(InputLayoutIsTNDLike()) {
+    if (InputLayoutIsTNDLike()) {
         // sparseMode Check
         OP_CHECK_IF((sparseModeVal != SPARSE_MODE_NO_MASK && sparseModeVal != SPARSE_MODE_RIGHT_DOWN &&
             sparseModeVal != SPARSE_MODE_BAND),
@@ -5238,19 +5239,19 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
                 g_strDataTypePfa.at(ValidPfaDataType(contextKeyParams.valueAntiquantOffsetType)).c_str()),
             return ge::GRAPH_FAILED);
 
-        if((contextKeyParams.KeyAntiquantOffsetShape != nullptr) && (contextKeyParams.valueAntiquantOffsetShape != nullptr)) {
+        if ((contextKeyParams.KeyAntiquantOffsetShape != nullptr) && (contextKeyParams.valueAntiquantOffsetShape != nullptr)) {
             tilingData.promptAttentionBaseParams.set_hasKeyAntiquantOffset(1);
         } else {
             tilingData.promptAttentionBaseParams.set_hasKeyAntiquantOffset(0);
         }
 
-        if(contextKeyParams.keyAntiquantMode != nullptr) {
+        if (contextKeyParams.keyAntiquantMode != nullptr) {
             tilingData.promptAttentionBaseParams.set_keyAntiquantMode(keyAntiquantModeMsd);
         } else {
             tilingData.promptAttentionBaseParams.set_keyAntiquantMode(0);
         }
 
-        if(contextKeyParams.valueAntiquantMode != nullptr) {
+        if (contextKeyParams.valueAntiquantMode != nullptr) {
             tilingData.promptAttentionBaseParams.set_valueAntiquantMode(valueAntiquantModeMsd);
         } else {
             tilingData.promptAttentionBaseParams.set_valueAntiquantMode(0);
@@ -5278,7 +5279,6 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
     OP_CHECK_IF(tilingRet != ge::GRAPH_SUCCESS,
         OPS_REPORT_VECTOR_INNER_ERR(contextKeyParams.opName, "Get apiTiling fail"),
         return tilingRet);
-
     blockDimToBeSet = ascendcPlatform.CalcTschBlockDim(aivNum, aicNum, aivNum);
 
     size_t* workspaces = contextKeyParams.workspaceSize;
@@ -5317,7 +5317,7 @@ ge::graphStatus PromptFlashAttentionTiling::CheckIOType(ContextParamsForPFATilin
     if (contextKeyParams.hasKeyAntiquantScale || contextKeyParams.hasValueAntiquantScale) {
         enableMsd = true;
         tilingData.promptAttentionBaseParams.set_isMsd(1);
-    } else{
+    } else {
         enableMsd = false;
         tilingData.promptAttentionBaseParams.set_isMsd(0);
         OP_CHECK_IF(inputType == ge::DT_BF16 && contextKeyParams.kDataType == ge::DT_INT8,
@@ -6114,7 +6114,7 @@ ge::graphStatus PromptFlashAttentionTiling::PromptFlashAttentionCVDiffSetTensorS
     }
 
     tensorSize.set_attenMaskUbSize(softmaxSOuterFactor * sInnerFactor);
-    if(enableMsd) {
+    if (enableMsd) {
         if (tilingData.promptAttentionBaseParams.get_headSize() > MSD_BIG_D) {
             tensorSize.set_mmResUbSize(COMPUTELINE_FOR_BIG_D * sInnerFactor * 2); // 2:double buffer
         } else {
@@ -6506,56 +6506,44 @@ ge::graphStatus PromptFlashAttentionTiling::AdjustCVTilingCVDiff(int64_t ubSize,
     return ge::GRAPH_SUCCESS;
 }
 
-PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* context) {
+ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* context) {
+    OP_LOGI("---PromptFlashAttentionEntryInfo", "TilingPromptFlashAttentionFunctionEntry!---");
     if (context == nullptr) {
+            OP_LOGE("PromptFlashAttention", "tiling context is nullptr!");
+            return ge::GRAPH_FAILED;
+    }
+    auto resultCode = FiaTilingRegistry::GetInstance().DoTilingImpl(context, nullptr);
+    return resultCode;
+}
+
+PFA_EXTERN_C ge::graphStatus PromptFlashAttentionTiling::DoOpTiling() {
+    if (context_ == nullptr) {
         OP_LOGE("PromptFlashAttention", "tiling context is nullptr!");
         return ge::GRAPH_FAILED;
     }
-    if (context->GetRawTilingData() == nullptr) {
+    if (context_->GetRawTilingData() == nullptr) {
         OP_LOGE("PromptFlashAttention", "tiling context GetRawTilingData is nullptr!");
         return ge::GRAPH_FAILED;
     }
-    auto platformInfoPtr = context->GetPlatformInfo();
+    auto platformInfoPtr = context_->GetPlatformInfo();
 
     PromptFlashAttentionTilingData tilingData;
-    OP_CHECK_IF(memset_s(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity(),
-        0, context->GetRawTilingData()->GetCapacity()) != EOK,
-        OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to memset tiling data"),
+    OP_CHECK_IF(memset_s(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity(),
+        0, context_->GetRawTilingData()->GetCapacity()) != EOK,
+        OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "fail to memset tiling data"),
         return ge::GRAPH_FAILED);
     ContextParamsForPFATiling contextParamsForPFATiling;
     uint64_t tilingKey = 7;  // 7: default tiling key
     uint32_t blockDimToBeSet;
-    auto ret = ConvertContextToPFAParams(context, contextParamsForPFATiling);
-    OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
+    auto ret = ConvertContextToPFAParams(context_, contextParamsForPFATiling);
+    OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "fail to convert to PFAParams"),
         return ge::GRAPH_FAILED);
-    if ((contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_95) ||
-        (contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
-        using v2::PromptFlashAttentionTilingV2;
-        PromptFlashAttentionTilingV2 flashTilingV2(platformInfoPtr);
-        ret = flashTilingV2.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
+        ret = RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
         tilingKey += BENCHMARK_TILING_KEY;
-        context->SetTilingKey(tilingKey);
-        context->SetBlockDim(blockDimToBeSet);
-        flashTilingV2.PromptFlashAttentionSetTilingData(context, tilingData);
+        context_->SetTilingKey(tilingKey);
+        context_->SetBlockDim(blockDimToBeSet);
+        PromptFlashAttentionSetTilingData(context_, tilingData);
         return ret;
-    } else if (contextParamsForPFATiling.compileInfoPtr->socShortName == platform_ascendc::SocVersion::MC62CM12A) {
-        using arch38::PromptFlashAttentionTilingArch38;
-        PromptFlashAttentionTilingArch38 flashTilingArch38(nullptr);
-        ret = flashTilingArch38.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
-        tilingKey += BENCHMARK_TILING_KEY;
-        context->SetTilingKey(tilingKey);
-        context->SetBlockDim(blockDimToBeSet);
-        flashTilingArch38.PromptFlashAttentionSetTilingData(context, tilingData);
-        return ret;
-    } else {
-        PromptFlashAttentionTiling flashTiling(nullptr);
-
-        ret = flashTiling.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
-        tilingKey += BENCHMARK_TILING_KEY;
-        context->SetTilingKey(tilingKey);
-        context->SetBlockDim(blockDimToBeSet);
-        flashTiling.PromptFlashAttentionSetTilingData(context, tilingData);
-        return ret;
-    }
 }
+REGISTER_TILING_TEMPLATE_FIA(PromptFlashAttention, PromptFlashAttentionTiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 91);
 }

@@ -19,7 +19,6 @@
 #include "ifa_flag_data.h"
 #include "ifa_cube_in_buffer.h"
 #include "ifa_copy_cube_in.h"
-#include "lib/../../impl/adv_api/detail/matmul/policy/matmul_policy.h"
 
 namespace AscendC {
 namespace Impl {

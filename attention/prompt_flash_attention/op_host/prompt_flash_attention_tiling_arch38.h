@@ -23,10 +23,12 @@ namespace optiling {
 namespace arch38 {
 
 std::string GetPfaDataTypeStr(ge::DataType type);
-class PromptFlashAttentionTilingArch38 {
+class PromptFlashAttentionTilingArch38 : public FiaTilingBase{
 public:
     platform_ascendc::PlatformAscendC ascendcPlatform;
-    PromptFlashAttentionTilingArch38(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
+    // PromptFlashAttentionTilingArch38(fe::PlatFormInfos* platFormInfo): ascendcPlatform(platFormInfo) {}
+    explicit PromptFlashAttentionTilingArch38(gert::TilingContext *context) : FiaTilingBase(context), ascendcPlatform(nullptr) {}
+    ~PromptFlashAttentionTilingArch38() override = default;
     ge::graphStatus RunBigKernelTilingWithParams(ContextParamsForPFATiling& contextKeyParams,
         uint64_t& tilingKey, uint32_t& blockDimToBeSet, PromptFlashAttentionTilingData& tilingData);
     ge::graphStatus PromptFlashAttentionSetTilingData(gert::TilingContext* context,
@@ -35,6 +37,10 @@ public:
         const std::string &sName) const;
 #ifndef ASCEND_OPTILING_UT
 protected:
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {return true;}
+    ge::graphStatus DoOpTiling() override;
+    ge::graphStatus ConvertContextToPFAParams(ContextParamsForPFATiling& contextKeyParams);
     void PromptFlashAttentionInitOutputSplit(int64_t totalSize, PromptFlashAttentionTilingData &tilingData);
     bool CheckEmptyTensor(ContextParamsForPFATiling& contextKeyParams);
     void SetEmptyTensor(ContextParamsForPFATiling& contextKeyParams, uint64_t& tilingKey, uint32_t& blockDimToBeSet,

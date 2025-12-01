@@ -30,6 +30,7 @@
 #include "../service/vec1_processor.h"
 #include "../service/vec2_processor.h"
 #include "../service/antiquant_preprocessor_q.h"
+#include "../incre_flash_attention_tiling_regbase.h"
 
 using namespace matmul;
 using AscendC::CacheMode;
@@ -81,12 +82,12 @@ class IncreFlashAttentionAntiqSplitBbn2s2Us2
 {
 public:
     __aicore__ inline IncreFlashAttentionAntiqSplitBbn2s2Us2(
-        const IncreFlashAttentionTilingData& __restrict tilingData);
+        const optiling::IncreFlashAttentionTilingData& __restrict tilingData);
     __aicore__ inline void Init(__gm__ uint8_t* query, __gm__ uint8_t* key, __gm__ uint8_t* value, __gm__ uint8_t* pseShift,
                                 __gm__ uint8_t* attenMask, __gm__ uint8_t* actualSeqLengthsQ, __gm__ uint8_t* actualSeqLengths,
                                 __gm__ uint8_t* blockTable, __gm__ uint8_t* queryPaddingSize, __gm__ uint8_t* kvPaddingSize,
                                 __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
-                                const IncreFlashAttentionTilingData* __restrict tiling, TPipe* tPipe);
+                                const optiling::IncreFlashAttentionTilingData* __restrict tiling, TPipe* tPipe);
     __aicore__ inline void InitQuant(__gm__ uint8_t* deqScale1, __gm__ uint8_t* quantScale1, __gm__ uint8_t* deqScale2,
                                      __gm__ uint8_t* quantScale2, __gm__ uint8_t* quantOffset2,
                                      __gm__ uint8_t* antiquantScale, __gm__ uint8_t* antiquantOffset,
@@ -184,7 +185,7 @@ public:
     Vec2Processor<IFAT> vec2Processor;
 
 protected:
-    const IncreFlashAttentionTilingData* __restrict tilingData;
+    const optiling::IncreFlashAttentionTilingData* __restrict tilingData;
     TPipe* pipe;
 
     __gm__ uint8_t* keyPtr;
@@ -436,7 +437,7 @@ protected:
 
 template <typename IFAT>
 __aicore__ inline IncreFlashAttentionAntiqSplitBbn2s2Us2<IFAT>::IncreFlashAttentionAntiqSplitBbn2s2Us2(
-    const IncreFlashAttentionTilingData& __restrict tilingData)
+    const optiling::IncreFlashAttentionTilingData& __restrict tilingData)
     : singleProcessSInnerSize(tilingData.increFlashAttentionSingleCoreParams.singleProcessSInnerSize),
       usedCoreNum(tilingData.increFlashAttentionSingleCoreParams.usedCoreNum),
       formerCoreNum(tilingData.increFlashAttentionSingleCoreParams.formerCoreNum),
@@ -494,7 +495,7 @@ __aicore__ inline void IncreFlashAttentionAntiqSplitBbn2s2Us2<IFAT>::Init(
     __gm__ uint8_t* attenMask, __gm__ uint8_t* actualSeqLengthsQ, __gm__ uint8_t* actualSeqLengths,
     __gm__ uint8_t* blockTable, __gm__ uint8_t* queryPaddingSize, __gm__ uint8_t* kvPaddingSize,
     __gm__ uint8_t* attentionOut, __gm__ uint8_t* softmaxLse, __gm__ uint8_t* workspace,
-    const IncreFlashAttentionTilingData* __restrict tiling, TPipe* tPipe)
+    const optiling::IncreFlashAttentionTilingData* __restrict tiling, TPipe* tPipe)
 {
     tmpBlockIdx = GetBlockIdx();
     subBlockIdx = tmpBlockIdx % 2;

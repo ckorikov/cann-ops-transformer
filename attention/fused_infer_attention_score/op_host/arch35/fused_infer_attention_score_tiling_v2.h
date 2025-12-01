@@ -15,13 +15,23 @@
 
 #ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_
-#include "../../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
-#include "../../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "register/tilingdata_base.h"
+#include "../../../common/op_host/fia_tiling_base.h"
 
 namespace optiling {
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_1000000000000000090, FlashAttentionScoreSimplifiedTilingData)
-REGISTER_TILING_DATA_CLASS(FusedInferAttentionScore_10000000000000090, FlashAttentionScoreSimplifiedTilingData)
 ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext *context);
+class FusedInferAttentionScoreTilingV2 : public FiaTilingBase{
+public:
+    explicit FusedInferAttentionScoreTilingV2(gert::TilingContext *context): FiaTilingBase(context) {}
+    ~FusedInferAttentionScoreTilingV2() override = default;
+
+protected:
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {return true;}
+    ge::graphStatus DoOpTiling() override;
+};
+
+ge::graphStatus TilingFusedInferAttentionScoreV2(gert::TilingContext *context);
+
 } // namespace optiling
 #endif  // AIR_CXX_RUNTIME_V2_OP_IMPL_FUSEDINFERATTENTIONSCORE_V2_H_

@@ -29,6 +29,7 @@
 #include "vf/vf_div_cast.h"
 #include "vf/vf_flash_decode.h"
 #endif
+#include "flash_attention_score_tiling_regbase.h"
 
 using namespace AscendC;
 using namespace AscendC::Impl::Detail;
@@ -80,7 +81,7 @@ public:
     static constexpr int64_t FP8_QUANT_KV_BLOCK_SIZE = isInfer ? 256 : 128;
     // ==================== Functions ======================
     __aicore__ inline FABlockVecBase() {};
-    __aicore__ inline void InitVecBlock(TPipe *pipe, const FlashAttentionScoreSimplifiedTilingData *__restrict tiling,
+    __aicore__ inline void InitVecBlock(TPipe *pipe, const optiling::FlashAttentionScoreSimplifiedTilingData *__restrict tiling,
         CVSharedParams<isInfer, isPa> &sharedParams, int32_t aicIdx, uint8_t subBlockIdx, AttenMaskInfo &attenMaskInfo, PseInfo &pseInfo) {
         if ASCEND_IS_AIV {
             tPipe = pipe;
@@ -107,7 +108,7 @@ public:
         ConstInfo<isInfer, hasRope> &constInfo);
 
     TPipe *tPipe;
-    const FlashAttentionScoreSimplifiedTilingData *__restrict tilingData;
+    const optiling::FlashAttentionScoreSimplifiedTilingData *__restrict tilingData;
     GlobalTensor<OUTPUT_T> attentionOutGm;
     GlobalTensor<half> attentionOutInitGm;
 
@@ -1466,7 +1467,7 @@ public:
     __aicore__ inline FABlockVecDummy() {};
     __aicore__ inline void CleanOutput(__gm__ uint8_t *softmaxLse, __gm__ uint8_t *attentionOut, 
         ConstInfo<isInfer, hasRope> &constInfo) {}
-    __aicore__ inline void InitVecBlock(TPipe *pipe, const FlashAttentionScoreSimplifiedTilingData *__restrict tiling,
+    __aicore__ inline void InitVecBlock(TPipe *pipe, const optiling::FlashAttentionScoreSimplifiedTilingData *__restrict tiling,
         CVSharedParams<isInfer, isPa> &sharedParams, int32_t aicIdx, uint8_t subBlockIdx,
         AttenMaskInfo &attenMaskInfo, PseInfo &pseInfo) {};
     __aicore__ inline void InitGlobalBuffer(

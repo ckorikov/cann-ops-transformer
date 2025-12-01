@@ -15,7 +15,7 @@
 #ifndef PA_COPY_RIGHT_CUBE_IN_NORM_H
 #define PA_COPY_RIGHT_CUBE_IN_NORM_H
 
-#include "lib/../../impl/adv_api/detail/matmul/resource/cube_in_buffer/cube_in_buffer.h"
+// #include "lib/../../impl/adv_api/detail/matmul/resource/cube_in_buffer/cube_in_buffer.h"
 #include "../../pfa_policy_data.h"
 
 namespace AscendC {

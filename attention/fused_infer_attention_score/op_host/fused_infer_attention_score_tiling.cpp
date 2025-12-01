@@ -14,7 +14,6 @@
  */
 
 #include "fused_infer_attention_score_tiling.h"
-#include "arch35/fused_infer_attention_score_tiling_v2.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
 #include "log/log.h"
@@ -24,6 +23,10 @@
 #include "platform/platform_info.h"
 #include "arch32/fused_infer_attention_score_tiling_v3.h"
 #include "flash_attention_infer_tiling.h"
+#include "register/op_def_registry.h"
+#include "tiling_base/tiling_templates_registry.h"
+#include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_impl.h"
+#include "arch35/fused_infer_attention_score_tiling_v2.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -1191,8 +1194,8 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
     bool nonMhaConditions = !isMha && (innerPrecise == 0);
 
     bool usingFAI = false;
-    if (inputLayoutStr == "TND" && !isLearnableSink && !isRopeSplitMla && sparseModeSupported &&
-        (nonMhaConditions || mhaConditions)) {
+    if (inputLayoutStr == "TND" && !isLearnableSink && !isRopeSplitMla &&
+        sparseModeSupported && (nonMhaConditions || mhaConditions)) {        
         if (!isPageAttention) {
             int64_t tempKD = tempK->GetStorageShape().GetDim(DIM_2);
             int64_t tempVD = tempV->GetStorageShape().GetDim(DIM_2);
@@ -1365,15 +1368,14 @@ static bool IsUsingIFA(gert::TilingContext &context, const string inputLayoutStr
 static ge::graphStatus TilingProcess4IFA(gert::TilingContext *context)
 {
     // IFA tiling path
-    IncreFlashAttentionTilingDataV2 ifaTilingData;
     IncreFlashAttentionContext ifaContext {};
     auto ret = ConvertContextToParamsIFA(*context, ifaContext);
     if (ret != ge::GRAPH_SUCCESS) {
         OP_LOGE(context->GetNodeName(), "Error occored while convert tilingContext to ifa context");
         return ret;
     }
-
-    return TilingIncreFlashAttentionAdapter(context, ifaContext, ifaTilingData);
+    IFATiling ifaTiling(context);
+    return ifaTiling.DoSubOpTiling(ifaContext);
 }
 
 static ge::graphStatus CheckQKV(gert::TilingContext &context)
@@ -1506,7 +1508,7 @@ static ge::graphStatus GetQueryN(const gert::TilingContext *context, const strin
     } else if (inputLayoutStr == "BSND_NBSD" || 
         inputLayoutStr == "BSND") {
         queryN = tempQ->GetStorageShape().GetDim(DIM_2);
-    } else if(inputLayoutStr == "BSH" || 
+    } else if (inputLayoutStr == "BSH" || 
         inputLayoutStr == "BSH_NBSD") {
         auto attrs = context->GetAttrs();
         int64_t numHeads = static_cast<int64_t>(*attrs->GetAttrPointer<uint32_t>(ATTR_N_INDEX));
@@ -1638,7 +1640,7 @@ static ge::graphStatus GetValueD(gert::TilingContext *context, const string inpu
 string GetOutputLayoutStr(const string &inputLayoutStr)
 {
     size_t underLinePos = inputLayoutStr.find_last_of('_');
-    if(underLinePos == std::string::npos) {
+    if (underLinePos == std::string::npos) {
         return inputLayoutStr;
     }
     return inputLayoutStr.substr(underLinePos + 1);
@@ -1770,7 +1772,7 @@ ge::graphStatus TilingFusedInferAttentionScore(gert::TilingContext *context)
     // 是否路由到IFA
     bool usingIFA = IsUsingIFA(*context, inputLayoutStr, queryD, queryS);
     bool usingFAI = IsUsingFAI(*context, inputLayoutStr, queryD);
-    if (usingFAI) { // split fuse tiling process
+    if (usingFAI) {
         OP_CHECK_IF(TilingProcess4SplitFuse(context) != ge::GRAPH_SUCCESS,
             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "tiling process for split fuse failed"),
             return ge::GRAPH_FAILED);
@@ -1797,12 +1799,11 @@ FIA_EXTERN_C ge::graphStatus DoOpTilingFusedInferAttentionScore(gert::TilingCont
         return ge::GRAPH_FAILED);
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
     auto socShortName = ascendcPlatform.GetSocVersion();
-    if ((socShortName == platform_ascendc::SocVersion::ASCEND910_95 ||
-        (socShortName == platform_ascendc::SocVersion::ASCEND910_55))) {
+    if ((socShortName == platform_ascendc::SocVersion::ASCEND910_95) || (socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
         return TilingFusedInferAttentionScoreV2(context);
     } else {
         return TilingFusedInferAttentionScore(context);
-    }
+    }    
     return ge::GRAPH_SUCCESS;
 }
 
@@ -1817,5 +1818,4 @@ __attribute__((visibility("default"))) ge::graphStatus DeviceDoOpTilingFusedInfe
     return DoOpTilingFusedInferAttentionScore(context);
 }
 }
-
 } // namespace optiling

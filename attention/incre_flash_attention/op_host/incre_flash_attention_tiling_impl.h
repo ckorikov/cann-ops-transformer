@@ -23,14 +23,14 @@
 #include <set>
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "exe_graph/runtime/tiling_context.h"	
+#include "exe_graph/runtime/tiling_context.h"
 #include "register/op_def_registry.h"
-#include "incre_flash_attention_tiling_mla.h"	
-#include "incre_flash_attention_tiling_context.h"	
+#include "incre_flash_attention_tiling_mla.h"
+#include "incre_flash_attention_tiling_context.h"
 #include "incre_flash_attention_tiling_base.h"
-#include "incre_flash_attention_tiling_struct.h"	
-#include "incre_flash_attention_tiling.h"	
-#include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling.h"
+#include "incre_flash_attention_tiling_struct.h"
+#include "incre_flash_attention_tiling.h"
+#include "../../common/op_host/fia_tiling_base.h"
 #include "../../prompt_flash_attention/op_host/prompt_flash_attention_tiling_context.h"
 #ifdef ASCENDC_OP_TEST
 #define IFA_EXTERN_C extern "C"
@@ -38,11 +38,14 @@
 #define IFA_EXTERN_C
 #endif
 namespace optiling {
-class IFATiling {
+class IFATiling : public FiaTilingBase {
 public:
-    IFATiling() = default;
+    explicit IFATiling(gert::TilingContext *context) : FiaTilingBase(context) {};
     ~IFATiling() = default;
-
+    void InitTilingInfo(TilingInfo *tilingInfo) override {}
+    bool IsCapable() override {return true;}
+    ge::graphStatus DoOpTiling() override;
+    ge::graphStatus DoSubOpTiling(IncreFlashAttentionContext& ifaContext);
     ge::graphStatus DoTiling(gert::TilingContext &context);
     ge::graphStatus RunBigKernelTiling(IncreFlashAttentionContext &context,
         IncreFlashAttentionTilingDataV2 &tilingData, bool isWorkspace = false);
@@ -431,7 +434,7 @@ private:
     uint32_t usedCoreNum_ = 0;
 
     uint32_t startIdxEachCore_[MAX_CORE_NUM] = {};
-    IncreFlashAttentionContext *context_ = nullptr;
+    IncreFlashAttentionContext *ifaContext_ = nullptr;
     IncreFlashAttentionTilingData *tilingData_ = nullptr;
     IncreFlashAttentionTilingDataPrefix *tilingDataPrefix_ = nullptr;
     IncreFlashAttentionBaseParams *tilingDataBase_ = nullptr;
@@ -490,8 +493,7 @@ std::string DataTypeToSerialString(ge::DataType type);
 ge::graphStatus PFAConvertContext(ContextParamsForPFATiling& contextKeyParams, gert::TilingContext* context);
 
 ge::graphStatus TilingPrepareForIncreFlashAttention(gert::TilingParseContext* context);
-ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext* context, IncreFlashAttentionContext& ifaContext,
-    IncreFlashAttentionTilingDataV2& ifaTilingData);
+ge::graphStatus TilingIncreFlashAttentionAdapter(gert::TilingContext* context);
 
 IFA_EXTERN_C ge::graphStatus TilingIncreFlashAttention(gert::TilingContext* context);
 
