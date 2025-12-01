@@ -640,9 +640,15 @@ ge::graphStatus IFATiling::ProcessPageAttentionFlag()
     const std::string inputLayoutStr = context_->layOut;
     bool isPAinputLayoutStr = inputLayoutStr != "BNSD" && inputLayoutStr != "TND" && inputLayoutStr != "TND_NTD" &&
         inputLayoutStr != "BNSD_NBSD" && *context_->innerPrecise != ATB_INNER_PRECISE;
-    OP_CHECK_IF((kDimNum == DIM_BNSD && isPAinputLayoutStr),
-        OP_LOGE(context_->opName, "when Page Attention scene, kvcache is BNBD, query layout must be BNSD, BNSD_NBSD, TND, TND_NTD or BNSD_BSND"),
-        return ge::GRAPH_FAILED);
+    if (inputQType_ == ge::DT_INT8 && inputKvType_ == ge::DT_INT8 && context_->keyRope.tensor != nullptr && context_->queryRope.tensor != nullptr && headDim_ == 512) { // 512 : for MLA
+        OP_CHECK_IF((kDimNum == DIM_BNSD),
+                    OP_LOGE(context_->opName, "when the dtype of query is int8 in MLA, KV layout must be NZ"),
+                    return ge::GRAPH_FAILED);        
+    } else {
+        OP_CHECK_IF((kDimNum == DIM_BNSD && isPAinputLayoutStr),
+                    OP_LOGE(context_->opName, "when Page Attention scene, kvcache is BNBD, query layout must be BNSD, BNSD_NBSD, TND, TND_NTD or BNSD_BSND"),
+                    return ge::GRAPH_FAILED);   
+    }
     return ge::GRAPH_SUCCESS;
 }
 
