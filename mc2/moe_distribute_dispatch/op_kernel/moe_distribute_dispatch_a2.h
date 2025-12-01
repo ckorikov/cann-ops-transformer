@@ -19,7 +19,7 @@
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
 #include "moe_distribute_dispatch_tiling.h"
-#include "moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 
 namespace MoeDistributeDispatchA2Impl {
 constexpr static uint8_t BUFFER_NUM = 2;

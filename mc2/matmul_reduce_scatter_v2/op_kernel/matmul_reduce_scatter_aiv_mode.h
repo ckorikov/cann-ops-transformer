@@ -19,7 +19,7 @@
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
 #include "matmul_reduce_scatter_v2_aiv_mode_tiling.h"
-#include "moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 #include "matmul_reduce_scatter_aiv_mode_util.h"
 #include "../3rd/template_linear_algebra/include/template_linear_algebra/catlass.hpp"
 #include "../3rd/template_linear_algebra/include/template_linear_algebra/arch/arch.hpp"

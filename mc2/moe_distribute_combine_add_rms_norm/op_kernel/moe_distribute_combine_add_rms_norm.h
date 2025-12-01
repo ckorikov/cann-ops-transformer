@@ -16,13 +16,12 @@
 
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
-#if __has_include("../moe_distribute_dispatch/moe_distribute_base.h")
-#include "../moe_distribute_dispatch/moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
+#if __has_include("../moe_distribute_combine_v2/moe_distribute_combine_v2_tiling.h")
 #include "../moe_distribute_combine_v2/moe_distribute_combine_v2_tiling.h"
 #include "../3rd/rms_norm/op_kernel/rms_norm_base.h"
 #include "../moe_distribute_dispatch/check_winsize.h"
 #else
-#include "../../moe_distribute_dispatch/op_kernel/moe_distribute_base.h"
 #include "../../moe_distribute_combine_v2/op_kernel/moe_distribute_combine_v2_tiling.h"
 #include "../../3rd/rms_norm/op_kernel/rms_norm_base.h"
 #include "../../moe_distribute_dispatch/op_kernel/check_winsize.h"

@@ -18,7 +18,7 @@
 #include "distribute_barrier_tiling.h"
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
-#include "moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 
 namespace DistributeBarrierImpl {
 constexpr uint8_t BUFFER_NUM = 2;       // 多buf

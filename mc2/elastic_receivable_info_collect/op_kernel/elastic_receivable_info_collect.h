@@ -18,7 +18,7 @@
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
 #include "elastic_receivable_info_collect_tiling.h"
-#include "../moe_distribute_dispatch/moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 
 namespace ElasticReceivableInfoCollectImpl {
 constexpr uint32_t UB_ALIGN = 32; // UB按32字节对齐
