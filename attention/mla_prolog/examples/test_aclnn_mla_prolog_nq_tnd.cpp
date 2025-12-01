@@ -9,7 +9,7 @@
  */
 
 /*!
- * \file test_aclnn_mla_prolog_nq_bsh.cpp
+ * \file test_aclnn_mla_prolog_nq_tnd.cpp
  * \brief
  */
 
@@ -113,20 +113,20 @@ int main() {
     // check根据自己的需要处理
     CHECK_RET(ret == 0, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
     // 2. 构造输入与输出，需要根据API的接口定义构造
-    std::vector<int64_t> tokenXShape = {8, 1, 7168};            // B,S,He
+    std::vector<int64_t> tokenXShape = {8, 7168};               // B*S,He
     std::vector<int64_t> weightDqShape = {7168, 1536};          // He,Hcq
     std::vector<int64_t> weightUqQrShape = {1536, 6144};        // Hcq,N*(D+Dr)
     std::vector<int64_t> weightUkShape = {32, 128, 512};        // N,D,Hckv
     std::vector<int64_t> weightDkvKrShape = {7168, 576};        // He,Hckv+Dr
     std::vector<int64_t> rmsnormGammaCqShape = {1536};          // Hcq
     std::vector<int64_t> rmsnormGammaCkvShape = {512};          // Hckv
-    std::vector<int64_t> ropeSinShape = {8, 1, 64};             // B,S,Dr
-    std::vector<int64_t> ropeCosShape = {8, 1, 64};             // B,S,Dr
-    std::vector<int64_t> cacheIndexShape = {8, 1};              // B,S
+    std::vector<int64_t> ropeSinShape = {8, 64};                // B*S,Dr
+    std::vector<int64_t> ropeCosShape = {8, 64};                // B*S,Dr
+    std::vector<int64_t> cacheIndexShape = {8};                 // B*S
     std::vector<int64_t> kvCacheShape = {16, 128, 1, 512};      // BolckNum,BlockSize,Nkv,Hckv
     std::vector<int64_t> krCacheShape = {16, 128, 1, 64};       // BolckNum,BlockSize,Nkv,Dr
-    std::vector<int64_t> queryShape = {8, 1, 32, 512};          // B,S,N,Hckv
-    std::vector<int64_t> queryRopeShape = {8, 1, 32, 64};       // B,S,N,Dr
+    std::vector<int64_t> queryShape = {8, 32, 512};             // B*S,N,Hckv
+    std::vector<int64_t> queryRopeShape = {8, 32, 64};          // B*S,N,Dr
     double rmsnormEpsilonCq = 1e-5;
     double rmsnormEpsilonCkv = 1e-5;
     char cacheMode[] = "PA_BSND";
