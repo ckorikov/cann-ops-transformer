@@ -1618,12 +1618,20 @@ static ge::graphStatus GetValueD(gert::TilingContext *context, const string inpu
         inputLayoutStr == "TND" || 
         inputLayoutStr == "TND_NTD" || 
         inputLayoutStr == "NTD_TND") {
+        OP_CHECK_IF((tempV->GetStorageShape().GetDimNum() != DIM_NUM_3),
+                    OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+                    "When block_table is null and input_layout is %s, dim number of key/value should be 3, but it is %zu.\n",
+                    inputLayoutStr.c_str(), tempV->GetStorageShape().GetDimNum()), return ge::GRAPH_FAILED);
         valueD = tempV->GetStorageShape().GetDim(DIM_2);
     } else if (inputLayoutStr == "BNSD_BSND" || 
         inputLayoutStr == "BNSD_NBSD"  || 
         inputLayoutStr == "BNSD"  || 
         inputLayoutStr == "BSND_NBSD" || 
         inputLayoutStr == "BSND") {
+        OP_CHECK_IF((tempV->GetStorageShape().GetDimNum() != DIM_NUM_4),
+                    OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
+                    "When block_table is null and input_layout is %s, dim number of key/value should be 4, but it is %zu.\n",
+                    inputLayoutStr.c_str(), tempV->GetStorageShape().GetDimNum()), return ge::GRAPH_FAILED);
         valueD = tempV->GetStorageShape().GetDim(DIM_3);
     } else {
         int64_t valueH = tempV->GetStorageShape().GetDim(DIM_2);
