@@ -101,8 +101,10 @@ ge::graphStatus SAFFNTilingComp::SAFFNTilingTPROLL(const gert::TilingContext* co
     auto compileInfo = static_cast<const SwinAttentionFFNCompileInfo*>(context->GetCompileInfo());
     OP_CHECK_NULL_WITH_CONTEXT(context, compileInfo);
 
-    uint32_t tmpAicNum = uint32_t(compileInfo->aicNum);
-    aicNum = tmpAicNum > USE_CORE_THRESHOLD ? USE_CORE_THRESHOLD : tmpAicNum;
+    auto platformInfo = context->GetPlatformInfo();
+    auto acInfo = platform_ascendc::PlatformAscendC(platformInfo);
+    aicNum = static_cast<uint64_t>(acInfo.GetCoreNumAic());
+    aicNum = aicNum > USE_CORE_THRESHOLD ? USE_CORE_THRESHOLD : aicNum;
     aivNum = aicNum * 2; // aiv:aic == 2:1 in 910B
     ubSize = compileInfo->ubSize;
     l1Size = compileInfo->l1Size;
@@ -201,7 +203,6 @@ ge::graphStatus TilingFuncForSwinAttentionFFN(gert::TilingContext* context)
 }
 
 static ge::graphStatus TilingPrepareForSwinAttentionFFN(gert::TilingParseContext* context) {
-    // auto compileInfo = GetCompileInfoPtr<SwinAttentionFFNCompileInfo>(context);
     auto compileInfo = context->GetCompiledInfo<SwinAttentionFFNCompileInfo>();
     OP_CHECK_NULL_WITH_CONTEXT(context, compileInfo);
     auto platformInfo = context->GetPlatformInfo();

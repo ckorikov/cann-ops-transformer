@@ -211,7 +211,7 @@ static void ExecuteTestCaseWithoutTilingKey(const gert::TilingContextPara& tilin
 }
 
 TEST_F(SwinAttentionFFNTiling, swin_attention_ffn_tiling_1){
-     optiling::SwinAttentionFFNCompileInfo compileInfo = {}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
+     optiling::SwinAttentionFFNCompileInfo compileInfo = {0}; // 根据tiling头文件中的compileInfo填入对应值，一般原先的用例里能找到
      gert::TilingContextPara tilingContextPara("SwinAttentionFFN", // op_name
                                                {
                                                 // input info

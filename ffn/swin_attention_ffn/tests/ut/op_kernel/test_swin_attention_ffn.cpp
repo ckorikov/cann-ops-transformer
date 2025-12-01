@@ -69,7 +69,7 @@ TEST_F(swin_attention_ffn_test, test_case0)
     tilingDatafromBin->bmmTailNum = 0;
     tilingDatafromBin->bmmFormerBatchNum = 1;
     tilingDatafromBin->bmmTailBatchNum = 0;
-    tilingDatafromBin->aivNum = 0;
+    tilingDatafromBin->aivNum = 48;
     tilingDatafromBin->shift1 = 4;
     tilingDatafromBin->shift2 = 4;
     tilingDatafromBin->tpBlockSize = 1024;
