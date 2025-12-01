@@ -476,9 +476,6 @@ aclnnStatus aclnnFlashAttentionScoreVX(
       <td rowspan="2">161002</td>
       <td>query、key、value、realShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOut、softmaxSumOut、softmaxOutOut、attentionOutOut的数据类型不在支持的范围内。</td>
     </tr>
-    <tr>
-      <td>query、key、value、realShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOut、softmaxSumOut、softmaxOutOut、attentionOutOut的数据格式不在支持的范围内。</td>
-    </tr>
   </tbody>
   </table>
 
@@ -727,7 +724,7 @@ int main() {
   int64_t nextTokens = 65536;
   int64_t headNum = 1;
   int64_t innerPrecise = 0;
-  int64_t sparseMod = 0;
+  int64_t sparseMode = 0;
   int64_t outDtype = 0;
   int64_t pseType = 1;
   int64_t seed = 0;
@@ -742,7 +739,7 @@ int main() {
   ret = aclnnFlashAttentionScoreVXGetWorkspaceSize(
             q, k, v, pse, dropMask, padding, attenmask, queryRope, keyRope, dScaleQ, dScaleK, dScaleV, prefix,
             actualSeqQLen, actualSeqKVLen, qStartIdx, kvStartIdx, scaleValue, keepProb, preTokens, nextTokens,
-            headNum, layOut, innerPrecise, sparseMod, outDtype, pseType, seed, offset, softmaxMax, softmaxSum,
+            headNum, layOut, innerPrecise, sparseMode, outDtype, pseType, seed, offset, softmaxMax, softmaxSum,
             softmaxOut, attentionOut, &workspaceSize, &executor);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionScoreVXGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
 

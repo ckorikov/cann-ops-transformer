@@ -12,7 +12,6 @@
 |<term>Atlas 训练系列产品</term>|      ×     |
 |<term>Atlas 200/300/500 推理产品</term>|      ×     |
 
-产品形态详细说明请参见[昇腾产品形态说明](https://www.hiascend.com/document/redirect/CannCommunityProductForm)。
 
 ## 功能说明
 
@@ -20,7 +19,6 @@
   - **该接口合并了[FlashAttentionScoreGradV2](./FlashAttentionScoreGradV2.md)接口和[FlashAttentionUnpaddingScoreGradV2](./FlashAttentionUnpaddingScoreGradV2.md)接口，并调整了Dropout功能**：
     -   <term>昇腾910_95 AI处理器</term>：keepProb小于1.0时，若没有外部传入的DropoutMask，则使用新增参数生成DropoutMask；若有外部传入的DropoutMask，则使用外部传入的DropoutMask
   
-- 计算公式：
   - pseType=1时，与[FlashAttentionScoreGrad](./FlashAttentionScoreGrad.md)计算公式相同
   - pseType=其他取值时，公式如下：
 
@@ -57,176 +55,601 @@
   **说明：**
   query、keyIn、value数据排布格式支持从多种维度解读，其中T (Total S Length) 表示所有batch对应的S的总长、B（Batch）表示输入样本批量大小、S（Seq-Length）表示输入样本序列长度、H（Head-Size）表示隐藏层的大小、N（Head-Num）表示多头数、d（Head-Dim）表示隐藏层最小的单元尺寸，且满足d=H/N。
 
-## 实现原理
+## 函数原型
 
-实现原理同[FlashAttentionScoreGradV2](./FlashAttentionScoreGradV2.md)。
-
-## 算子执行接口
 
 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnFlashAttentionScoreGradVXGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnFlashAttentionScoreGradVX”接口执行计算。
 
-* `aclnnStatus aclnnFlashAttentionScoreGradVXGetWorkspaceSize(const aclTensor *query, const aclTensor *keyIn, const aclTensor *value, const aclTensor *dy, const aclTensor *pseShiftOptional, const aclTensor *dropMaskOptional, const aclTensor *paddingMaskOptional, const aclTensor *attenMaskOptional, const aclTensor *softmaxMaxOptional, const aclTensor *softmaxSumOptional, const aclTensor *softmaxInOptional, const aclTensor *attentionInOptional, const aclTensor *queryRopeOptional, const aclTensor *keyRopeOptional, const aclTensor *dScaleQOptional, const aclTensor *dScaleKOptional, const aclTensor *dScaleVOptional, const aclTensor *dScaleDyOptional, const aclTensor *dScaleOOptional, const aclIntArray *prefixOptional, const aclIntArray *actualSeqQLenOptional, const aclIntArray *actualSeqKvLenOptional, const aclIntArray *qStartIdxOptional, const aclIntArray *kvStartIdxOptional, double scaleValueOptional, double keepProbOptional, int64_t preTokensOptional, int64_t nextTokensOptional, int64_t headNum, char *inputLayout, int64_t innerPreciseOptional, int64_t sparseModeOptional, int64_t pseTypeOptional,int64_t seedOptional, int64_t offsetOptional, int64_t outDtypeOptional, aclTensor *dqOut, aclTensor *dkOut, aclTensor *dvOut, aclTensor *dqRopeOut, aclTensor *dkRopeOut, aclTensor *dpseOut, uint64_t *workspaceSize, aclOpExecutor **executor)`
-* `aclnnStatus aclnnFlashAttentionScoreGradVX(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)`
+```c++
+aclnnStatus aclnnFlashAttentionScoreGradVXGetWorkspaceSize(
+  const aclTensor   *query,
+  const aclTensor   *keyIn, 
+  const aclTensor   *value, 
+  const aclTensor   *dy, 
+  const aclTensor   *pseShiftOptional, 
+  const aclTensor   *dropMaskOptional, 
+  const aclTensor   *paddingMaskOptional, 
+  const aclTensor   *attenMaskOptional, 
+  const aclTensor   *softmaxMaxOptional, 
+  const aclTensor   *softmaxSumOptional, 
+  const aclTensor   *softmaxInOptional, 
+  const aclTensor   *attentionInOptional, 
+  const aclTensor   *queryRopeOptional, 
+  const aclTensor   *keyRopeOptional, 
+  const aclTensor   *dScaleQOptional, 
+  const aclTensor   *dScaleKOptional, 
+  const aclTensor   *dScaleVOptional, 
+  const aclTensor   *dScaleDyOptional, 
+  const aclTensor   *dScaleOOptional, 
+  const aclIntArray *prefixOptional, 
+  const aclIntArray *actualSeqQLenOptional, 
+  const aclIntArray *actualSeqKvLenOptional, 
+  const aclIntArray *qStartIdxOptional, 
+  const aclIntArray *kvStartIdxOptional, 
+  double             scaleValueOptional, 
+  double             keepProbOptional, 
+  int64_t            preTokensOptional, 
+  int64_t            nextTokensOptional, 
+  int64_t            headNum, 
+  char              *inputLayout, 
+  int64_t            innerPreciseOptional, 
+  int64_t            sparseModeOptional, 
+  int64_t            pseTypeOptional,  
+  int64_t            seedOptional, 
+  int64_t            offsetOptional, 
+  int64_t            outDtypeOptional, 
+  aclTensor         *dqOut, 
+  aclTensor         *dkOut, 
+  aclTensor         *dvOut, 
+  aclTensor         *dqRopeOut, 
+  aclTensor         *dkRopeOut, 
+  aclTensor         *dpseOut, 
+  uint64_t          *workspaceSize, 
+  aclOpExecutor    **executor)`
+```
 
-**说明**：
+```c++
+aclnnStatus aclnnFlashAttentionScoreGradVX(
+  void             *workspace, 
+  uint64_t          workspaceSize, 
+  aclOpExecutor    *executor, 
+  aclrtStream       stream)
+```
 
-- 算子执行接口对外屏蔽了算子内部实现逻辑以及不同代际NPU的差异，且开发者无需编译算子，实现了算子的精简调用。
-- 若开发者不使用算子执行接口的调用算子，也可以定义基于Ascend IR的算子描述文件，通过ATC工具编译获得算子om文件，然后加载模型文件执行算子，详细调用方法可参见《应用开发指南》的[单算子调用 > 单算子模型执行](https://hiascend.com/document/redirect/CannCommunityCppOpcall)章节。
 
-### aclnnFlashAttentionScoreGradVXGetWorkspaceSize
-
->**说明：**
->query、keyIn、value数据排布格式支持从多种维度解读，其中T (Total S Length) 表示所有batch对应的S的总长、B（Batch）表示输入样本批量大小、S（Seq-Length）表示输入样本序列长度、H（Head-Size）表示隐藏层的大小、N（Head-Num）表示多头数、d（Head-Dim）表示隐藏层最小的单元尺寸，且满足d=H/N。
+## aclnnFlashAttentionScoreGradVXGetWorkspaceSize
 
 - **参数说明：**
-  - query（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入Q，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32
+<table style="undefined;table-layout: fixed; width: 1565px">
+  <colgroup>
+    <col style="width: 146px">
+    <col style="width: 135px">
+    <col style="width: 326px">
+    <col style="width: 246px">
+    <col style="width: 275px">
+    <col style="width: 101px">
+    <col style="width: 190px">
+    <col style="width: 146px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+      <th>使用说明</th>
+      <th>数据类型</th>
+      <th>数据格式</th>
+      <th>维度(shape)</th>
+      <th>非连续Tensor</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>query</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的Q。</td>
+      <td>数据类型与keyIn/value一致。</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>keyIn</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的K。</td>
+      <td>数据类型与query/value一致。</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>keyRopeOptional</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的输入K的rope部分。</td>
+      <td>数据类型与keyIn一致。</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>value</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的V。</td>
+      <td>数据类型与query/keyIn一致。</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dy</td>
+      <td>输入</td>
+      <td>Device侧的aclTensor，公式中的dY。</td>
+      <td>-</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>pseShiftOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，公式中的pse，表示位置编码。</td>
+      <td>支持[B,N,S,S]、[B,N,1,S]、[1,N,S,S]、[B,N,H,S]、[1,N,H,S]。</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dropMaskOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，公式中的Dropout。</td>
+      <td>-</td>
+      <td>UINT8</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>paddingMaskOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，预留参数暂未使用。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>qStartIdxOptional</td>
+      <td>可选输入</td>
+      <td>Host侧的aclIntArray，代表外切场景，当前分块Q的sequence在全局中的起始索引。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>kvStartIdxOptional</td>
+      <td>可选输入</td>
+      <td>Host侧的aclIntArray，代表外切场景，当前分块KV的sequence在全局中的起始索引。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>attenMaskOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，公式中的atten_mask。</td>
+      <td>
+        <ul>
+          <li>取值1表示该位不参与计算，0表示参与计算。</li>
+          <li>支持[B,N,S,S]、[B,1,S,S]、[1,1,S,S]、[S,S]。</li>
+        </ul>
+      </td>
+      <td>BOOL、UINT8</td>
+      <td>ND</td>
+      <td>0、2、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>softmaxMaxOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，注意力正向计算的中间输出。</td>
+      <td>shape=[B,N,Sq,8]。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+      <td>0、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>softmaxSumOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，注意力正向计算的中间输出。</td>
+      <td>shape=[B,N,Sq,8]。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+      <td>0、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>softmaxInOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，注意力正向计算的中间输出。预留参数暂未使用。</td>
+      <td>shape=[B,N,Sq,8]。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+      <td>0、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>attentionInOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，注意力正向的最终输出。</td>
+      <td>数据类型和shape与query一致。</td>
+      <td>FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+	  <tr>
+      <td>dScaleQOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，是query输入的反量化参数。</td>
+      <td>支持[B,N2,G,Sq/128,1]</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+	  <tr>
+      <td>dScaleKOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，是key输入的反量化参数。</td>
+      <td>支持[B,N2,1,Skv/128,1]</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+	  <tr>
+      <td>dScaleVOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，是value输入的反量化参数。</td>
+      <td>支持[B,N2,1,Skv/128,1]</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+	  <tr>
+      <td>dScaleDyOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，是dy输入的反量化参数。</td>
+      <td>支持[B,N2,G,Sq/128,1]</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+	  <tr>
+      <td>dScaleOOptional</td>
+      <td>可选输入</td>
+      <td>Device侧的aclTensor，是attentionOptional输入的反量化参数。</td>
+      <td>支持[B,N2,G,Sq/128,1]</td>
+      <td>FLOAT32</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>prefixOptional</td>
+      <td>可选输入</td>
+      <td>Host侧的aclIntArray，prefix稀疏场景每个Batch的N。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>actualSeqQLenOptional</td>
+      <td>输入</td>
+      <td>Host侧的aclIntArray，表示每个Batch的query序列长度。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>actualSeqKvLenOptional</td>
+      <td>输入</td>
+      <td>Host侧的aclIntArray，表示每个Batch的kv序列长度。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>ND</td>
+      <td>0、1</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>scaleValueOptional</td>
+      <td>输入</td>
+      <td>Host侧的double，公式中的scale缩放系数。</td>
+      <td>-</td>
+      <td>DOUBLE</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>keepProbOptional</td>
+      <td>输入</td>
+      <td>Host侧的double，dropMask中1的比例。</td>
+      <td>-</td>
+      <td>DOUBLE</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>preTokensOptional</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，稀疏计算窗口左边界。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>nextTokensOptional</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，稀疏计算窗口右边界。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>headNum</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，单卡head个数，对应query的N轴。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>inputLayout</td>
+      <td>输入</td>
+      <td>Host侧的string，query/key/value的数据排布格式。</td>
+      <td>支持BSH、SBH、BSND、BNSD。</td>
+      <td>String</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>innerPreciseOptional</td>
+      <td>输入</td>
+      <td>预留参数暂未使用。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>sparseModeOptional</td>
+      <td>输入</td>
+      <td>Host侧的int64_t，稀疏模式。</td>
+      <td>支持配置值0~8。</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>pseTypeOptional</td>
+      <td>输入</td>
+      <td>Host侧的整型。</td>
+      <td>支持配置值0~3。</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>seedOptional</td>
+      <td>输入</td>
+      <td>Host侧的整型。keepProbOptional小于1.0时，根据seedOptional和offsetOptional生成DropoutMask。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>offsetOptional</td>
+      <td>输入</td>
+      <td>Host侧的整型。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>outDtypeOptional</td>
+      <td>输入</td>
+      <td>Host侧的整型。值为0表示dqOut等输出是FLOAT16，为1表示是BFLOAT16。</td>
+      <td>-</td>
+      <td>INT64</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>dqOut</td>
+      <td>输出</td>
+      <td>公式中的dQ，query的梯度。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dqRopeOut</td>
+      <td>输出</td>
+      <td>公式中的dqRope，表示queryRope的梯度。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dkOut</td>
+      <td>输出</td>
+      <td>公式中的dK，keyIn的梯度。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dkRopeOut</td>
+      <td>输出</td>
+      <td>公式中的dkRope，表示keyInRope的梯度。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dvOut</td>
+      <td>输出</td>
+      <td>公式中的dV，value的梯度。</td>
+      <td>-</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、3、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>dpseOut</td>
+      <td>输出</td>
+      <td>d(pse)梯度。</td>
+      <td>暂未使用。</td>
+      <td>FLOAT16、BFLOAT16、FLOAT32</td>
+      <td>ND</td>
+      <td>0、4</td>
+      <td>√</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输出</td>
+      <td>返回Device侧需要申请的workspace大小。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输出</td>
+      <td>返回算子执行器，包含计算流程。</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+    </tr>
+  </tbody>
+</table>
 
-  - queryRopeOptional（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入Q的rope部分，即旋转位置编码，数据类型支持BFLOAT16和FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-
-  - keyIn（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入K，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32
-
-  - keyRopeOptional（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入K的rope部分，数据类型支持BFLOAT16和FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-
-  - value（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入V，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32
-
-  - dy（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入dY，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32
-
-  - pseShiftOptional（aclTensor\*，计算输入）：Device侧的aclTensor，公式中的输入pse，可选参数，表示位置编码，数据类型支持FLOAT16、BFLOAT16、FLOAT32，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持shape范围为\[B,N,H,S\]、\[1,N,H,S\]，H固定为1024；alibi位置编码场景，preTokens和nextTokens必须配置下三角；如果pseType为2或3的时候，数据类型需为FLOAT32, 对应shape支持范围是\[B,N],\[N]。
-
-  - dropMaskOptional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持UINT8，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。如不使用该参数，可传入nullptr。其shape和数据排布可表示为：
-
-    $$
-    (\sum_{b=0}^{B-1} (\sum_{n=0}^{N-1}(Sq*Skv)))/8
-    $$
-
-  - paddingMaskOptional（aclTensor\*，计算输入）：Device侧的aclTensor，**预留参数暂未使用，调用时该参数需传空**。
-
-  - qStartIdxOptional（aclIntArray\*，计算输入）：Host侧的aclIntArray，可选参数，数据类型支持INT64，代表外切场景，当前分块的Q的sequence在全局中的起始索引，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - kvStartIdxOptional（aclIntArray\*，计算输入）：Host侧的aclIntArray，可选参数，数据类型支持INT64，代表外切场景，当前分块的Q的sequence在全局中的起始索引，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - attenMaskOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选属性，数据类型支持BOOL\(8bit的BOOL\)、UINT8，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持shape范围为\[S1Max, S2Max\]；综合约束请见[约束说明](#1)。
-
-  - softmaxMaxOptional（aclTensor\*，计算输入）：Device侧的aclTensor，注意力正向计算的中间输出，数据类型支持FLOAT，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-
-  - softmaxSumOptional（aclTensor\*，计算输入）：Device侧的aclTensor，注意力正向计算的中间输出，数据类型支持FLOAT，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。综合约束请见[约束说明](#1)。
-
-  - softmaxInOptional（aclTensor\*，计算输入）：Device侧的aclTensor，注意力正向计算的中间输出，**预留参数暂未使用，调用时该参数需传空**。
-
-  - attentionInOptional（aclTensor\*，计算输入）：Device侧的aclTensor，注意力正向计算的最终输出，数据类型和shape与query一致，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN、FLOAT16、BFLOAT16、FLOAT32
-
-  - dScaleQOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选参数，是query输入的反量化参数，数据类型支持FLOAT32，数据类型为[B,N2,G,S1/128,1]，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - dScaleKOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选参数，是key输入的反量化参数，数据类型支持FLOAT32，数据类型为[B,N2,1,S2/128,1]，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - dScaleVOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选参数，是value输入的反量化参数，数据类型支持FLOAT32，数据类型为[B,N2,1,S2/128,1]，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - dScaleDyOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选参数，是dy输入的反量化参数，数据类型支持FLOAT32，数据类型为[B,N2,G,S1/128,1]，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - dScaleOOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选参数，是attentionOptional输入的反量化参数，数据类型支持FLOAT32，数据类型为[B,N2,G,S1/128,1]，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - prefixOptional（aclTensor\*，计算输入）：Device侧的aclTensor，可选属性，代表prefix稀疏计算场景每个Batch的N值，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND；综合约束请见[约束说明](#1)。
-
-  - actualSeqQLenOptional（aclIntArray\*，计算输入）：数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，描述了每个Batch对应的query S大小；综合约束请见[约束说明](#1)。
-
-  - actualSeqKvLenOptional（aclIntArray\*，计算输入）：数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，描述了每个Batch对应的key/value S大小。
-
-  - scaleValueOptional（double，计算输入）：Host侧的double，公式中d开根号的倒数，代表缩放系数，作为计算流中Muls的scalar值，数据类型支持DOUBLE。一般设置为d^-0.5。
-
-  - keepProbOptional（double，计算输入）：Host侧的double，代表dropMaskOptional中1的比例，数据类型支持DOUBLE；综合约束请见[约束说明](#1)。
-
-  - preTokensOptional（int64\_t，计算输入）：Host侧的int64\_t，用于稀疏计算的参数，数据类型支持INT64。
-
-  - nextTokensOptional（int64\_t，计算输入）：Host侧的int64\_t，用于稀疏计算的参数，数据类型支持INT64。
-
-  - headNum（int64\_t，计算输入）：Host侧的int64\_t，代表head个数，数据类型支持INT64；综合约束请见[约束说明](#1)。
-
-  - inputLayout（char\*，计算输入）：Host侧的string，代表输入query、keyIn、value的数据排布格式，支持BSH、SBH、BSND、BNSD、TND。
-
-  - innerPreciseOptional（int32\_t，计算输入）：**预留参数暂未使用，调用时该参数需传空**。
-
-  - sparseModeOptional（int64\_t，计算输入）：Host侧的int，表示sparse的模式，数据类型支持INT64。
-
-    -   sparseModeOptional为0时，代表defaultMask模式，如果attenMaskOptional未传入则不做mask操作，忽略preTokensOptional和nextTokensOptional\(内部赋值为INT\_MAX\)；如果传入，则需要传入完整的attenMaskOptional矩阵（S1Max \* S2Max），表示preTokensOptional和nextTokensOptional之间的部分需要计算。
-    -   sparseModeOptional为1时，代表allMask，即传入完整的attenMaskOptional矩阵。
-    -   sparseModeOptional为2时，代表leftUpCausal模式的mask，对应以左顶点为划分的下三角场景，需要传入优化后的attenMaskOptional矩阵（2048\*2048）。
-    -   sparseModeOptional为3时，代表rightDownCausal模式的mask，对应以右下顶点为划分的下三角场景，需要传入优化后的attenMaskOptional矩阵（2048\*2048）。
-    -   sparseModeOptional为4时，代表band场景，即计算preTokensOptional和nextTokensOptional之间的部分。
-    -   sparseModeOptional为5时，代表prefix场景，即在rightDownCausal的基础上，左侧加上一个长为S1，宽为N的矩阵，N的值由输入。
-    -   sparseModeOptional为6时，代表prefix压缩场景，需要传入shape为\[3072, 2048\]的attenMaskOptional矩阵；分为两部分：其中上半部分为\[2048, 2048\]的下三角矩阵；下半部分为\[1024, 2048\]的矩阵，矩形矩阵左半部分全0，右半部分全1。0代表保留，1代表掩掉。
-    -   sparseModeOptional为7时，代表rightDownCausal_Band场景，该场景由长序列外切产生，需要正确配置preTokensOptional和nextTokensOptional参数；传入shape为\[2048, 2048\]的下三角attenMaskOptional矩阵。
-    -   sparseModeOptional为8时，代表band_LeftUpCausal场景，该场景由长序列外切产生，需要正确配置preTokensOptional和nextTokensOptional参数；传入shape为\[2048, 2048\]的下三角attenMaskOptional矩阵。
-
-    用户不特意指定时建议传入0。sparse不同模式的详细说明请参见[sparse模式说明](./common/sparse_mode参数说明.md)。
-
-    >**说明：**
-    >当所有的attenMaskOptional的shape小于2048且相同的时候，建议使用default模式，来减少内存使用量；sparseModeOptional配置为1、2、3、5、6时，用户配置的preTokensOptional、nextTokensOptional不会生效；sparseModeOptional配置为0、4时，须保证attenMaskOptional与preTokensOptional、nextTokensOptional的范围一致。
-    >layout为非TND时支持sparseModeOptional配置范围：0到6（包含0和6），layout为TND时支持sparseModeOptional配置范围：0到8（包含0和8），但不支持值5。
-
-  - pseTypeOptional （int64\_t，计算输入）：Host侧的整型，数据类型支持INT64，用户不特意指定时可传入1，跟当前[FlashAttentionScoreGrad](./FlashAttentionScoreGrad.md)实现一致，支持配置值为0、1、2、3。
-    | pseType     | 含义                              |      备注   |
-    | ----------- | --------------------------------- | ----------|
-    | 0           | 外部传入pse 先mul再add              | - |
-    | 1           | 外部传入pse 先add再mul              | 跟[FlashAttentionScoreGrad](./FlashAttentionScoreGrad.md)实现一致。 |
-    | 2           | 内部生成pse 先mul再add              | - |
-    | 3           | 内部生成pse 先mul再add再sqrt         | - |
-
-  - seedOptional（int64\_t，计算输入）：Host侧的整型。数据类型支持INT64。keepProbOptional小于1.0时，根据seedOptional和offsetOptional生成DropoutMask。
-    
-  - offsetOptional（int64\_t，计算输入）：Host侧的整型。数据类型支持INT64。
-  
-  - outDtypeOptional（int64\_t，计算输入）：Host侧的整型。值为0表示dqOut等输出是FLOAT16类型，值为1表示dqOut等输出是BFLOAT16格式。
-    
-  - dqOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的dQ，表示query的梯度，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32
-      -   如果query数据类型为FLOAT8_E5M2或FLOAT8_E4M3FN，则数据类型根据outDtypeOptional决定
-        -   如果query数据类型为FLOAT16或BFLOAT16或FLOAT32，则数据类型与query数据类型一致
-  
-  - dqRopeOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的dqRope，表示queryRope的梯度，计算输出，数据类型支持BFLOAT16和FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-
-  - dkOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的dK，表示keyIn的梯度，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32
-      -   如果query数据类型为FLOAT8_E5M2或FLOAT8_E4M3FN，则数据类型根据outDtypeOptional决定
-        -   如果query数据类型为FLOAT16或BFLOAT16或FLOAT32，则数据类型与query数据类型一致
-  
-  - dkRopeOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的dkRope，表示keyInRope的梯度，计算输出，数据类型支持BFLOAT16和FLOAT16，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。  
-
-  - dvOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的dV，表示value的梯度，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32
-      -   如果query数据类型为FLOAT8_E5M2或FLOAT8_E4M3FN，则数据类型根据outDtypeOptional决定
-        -   如果query数据类型为FLOAT16或BFLOAT16或FLOAT32，则数据类型与query数据类型一致
-  
-  - dpseOut（aclTensor\*，计算输出）：Device侧的aclTensor，公式中的d\(pse\)，表示pse的梯度，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，**预留参数暂未使用，调用时该参数需传空**。但在pseShiftOptional不为空时，shape和数据类型与pseShiftOptional一致。
-    -   <term>昇腾910_95 AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32
-      -   如果query数据类型为FLOAT8_E5M2或FLOAT8_E4M3FN，则数据类型根据outDtypeOptional决定
-      -   如果query数据类型为FLOAT16或BFLOAT16或FLOAT32，则数据类型与query数据类型一致
-  
-  - workspaceSize（uint64\_t\*，出参）：返回用户需要在Device侧申请的workspace大小。
-  
-  - executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
   
 - **返回值：**
 
-     返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+  <table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+  <col style="width: 319px">
+  <col style="width: 144px">
+  <col style="width: 671px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>返回码</th>
+      <th>错误码</th>
+      <th>描述</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ACLNN_ERR_PARAM_NULLPTR</td>
+      <td>161001</td>
+      <td>传入参数是必选输入，输出或者必选属性，且是空指针。</td>
+    </tr>
+    <tr>
+      <td rowspan="2">ACLNN_ERR_PARAM_INVALID</td>
+      <td rowspan="2">161002</td>
+      <td>query、keyIn、value、dy、pseShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOptional、softmaxSumOptional、softmaxInOptional、attentionInOptional、dqOut、dkOut、dvOut的数据类型不在支持的范围内。</td>
+    </tr>
+  </tbody>
+  </table>
 
-     ```
-     第一段接口完成入参校验，若出现以下错误码，则对应原因为：
-     - 返回161001（ACLNN_ERR_PARAM_NULLPTR）：如果传入参数是必选输入，输出或者必选属性，且是空指针，则返回161001。
-     - 返回161002（ACLNN_ERR_PARAM_INVALID）：query、keyIn、value、dy、pseShiftOptional、dropMaskOptional、paddingMaskOptional、attenMaskOptional、softmaxMaxOptional、softmaxSumOptional、softmaxInOptional、attentionInOptional、dqOut、dkOut、dvOut的数据类型和数据格式不在支持的范围内。
-     ```
-
-### aclnnFlashAttentionScoreGradVX
+## aclnnFlashAttentionScoreGradVX
 
 -   **参数说明：**
-    -   workspace（void\*，入参）：在Device侧申请的workspace内存地址。
-    -   workspaceSize（uint64\_t，入参）：在Device侧申请的workspace大小，由第一段接口aclnnFlashAttentionScoreGradVXGetWorkspaceSize获取。
-    -   executor（aclOpExecutor\*，入参）：op执行器，包含了算子计算流程。
-    -   stream（aclrtStream，入参）：指定执行任务的Stream。
+  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
+  <col style="width: 144px">
+  <col style="width: 125px">
+  <col style="width: 700px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>参数名</th>
+      <th>输入/输出</th>
+      <th>描述</th>
+    </tr></thead>
+  <tbody>
+    <tr>
+      <td>workspace</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace内存地址。</td>
+    </tr>
+    <tr>
+      <td>workspaceSize</td>
+      <td>输入</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnFlashAttentionScoreGradVXGetWorkspaceSize获取。</td>
+    </tr>
+    <tr>
+      <td>executor</td>
+      <td>输入</td>
+      <td>op执行器，包含了算子计算流程。</td>
+    </tr>
+    <tr>
+      <td>stream</td>
+      <td>输入</td>
+      <td>指定执行任务的Stream。</td>
+    </tr>
+  </tbody>
+  </table>
+
 
 -   **返回值：**
 
@@ -234,7 +657,6 @@
 
 ## 约束说明<a name="1"></a>
 
-- 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配
 - 输入query、key、value、dy的B：batchsize必须相等。
 - 输入query、key、value、dy的inputLayout必须一致。
 - 输入query、key、value、dy的D：Head-Dim必须满足query和key的D相等，value和dy的D相等，并且query和key的D大于等于value和dy的D。
@@ -257,56 +679,6 @@
 
     -   seedOptional和offsetOptional只在keepProbOptional小于1.0时生效，否则不生效。
     -   keepProbOptional小于1.0时，若dropMaskOptional非nullptr，则使用输入的dropMask；否则使用seed和offset生成的dropMask。
-
-## 算子原型
-
-```c++
-REG_OP(FlashAttentionScoreGrad)
-    .INPUT(query, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .INPUT(key, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .INPUT(value, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .INPUT(dy, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(pse_shift, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(drop_mask, TensorType({DT_UINT8}))
-    .OPTIONAL_INPUT(padding_mask, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(atten_mask, TensorType({DT_BOOL, DT_UINT8}))
-    .OPTIONAL_INPUT(softmax_max, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(softmax_sum, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(softmax_in, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(attention_in, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(prefix, TensorType({DT_INT64}))
-    .OPTIONAL_INPUT(actual_seq_qlen, TensorType({DT_INT64}))
-    .OPTIONAL_INPUT(actual_seq_kvlen, TensorType({DT_INT64}))
-    .OPTIONAL_INPUT(q_start_idx, TensorType({DT_INT64}))
-    .OPTIONAL_INPUT(kv_start_idx, TensorType({DT_INT64}))
-    .OPTIONAL_INPUT(d_scale_q, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(d_scale_k, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(d_scale_v, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(d_scale_dy, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(d_scale_o, TensorType({DT_FLOAT32}))
-    .OPTIONAL_INPUT(query_rope, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OPTIONAL_INPUT(key_rope, TensorType({DT_FLOAT8_E5M2, DT_FLOAT8_E4M3FN, DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dq, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dk, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dv, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dpse, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dq_rope, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .OUTPUT(dk_rope, TensorType({DT_FLOAT16, DT_BF16, DT_FLOAT32}))
-    .ATTR(scale_value, Float, 1.0)
-    .ATTR(keep_prob, Float, 1.0)
-    .ATTR(pre_tockens, Int, 2147483647)
-    .ATTR(next_tockens, Int, 2147483647)
-    .REQUIRED_ATTR(head_num, Int)
-    .REQUIRED_ATTR(input_layout, String)
-    .ATTR(inner_precise, Int, 0)
-    .ATTR(sparse_mode, Int, 0)
-    .ATTR(pse_type, Int, 1)
-    .ATTR(seed, Int, 0)
-    .ATTR(offset, Int, 0)
-    .ATTR(out_dtype, Int, 0)
-    .OP_END_FACTORY_REG(FlashAttentionScoreGrad)
-```
-参数解释请参见**算子执行接口**。
 
 
 ## 调用示例
@@ -491,7 +863,7 @@ int main() {
   int64_t nextTokens = 65536;
   int64_t headNum = 1;
   int64_t innerPrecise = 0;
-  int64_t sparseMod = 0;
+  int64_t sparseMode = 0;
   int64_t pseType = 1;
   char layOut[5] = {'T', 'N', 'D', 0};
   
@@ -503,7 +875,7 @@ int main() {
   ret = aclnnFlashAttentionScoreGradVXGetWorkspaceSize(q, k, v, dx, pse, dropMask, padding,
             attenmask, softmaxMax, softmaxSum, softmaxIn, attentionIn, dScaleQ, dScaleK, dScaleV,
             dScaleDy, dScaleO, prefix, acSeqQLen, acSeqKvLen, qStartIdx, kvStartIdx,
-            scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise, sparseMod, pseType,
+            scaleValue, keepProb, preTokens, nextTokens, headNum, layOut, innerPrecise, sparseMode, pseType,
             0, 0, 0, dq, dk, dv, dpse, &workspaceSize, &executor);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnFlashAttentionScoreGradVXGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
   
