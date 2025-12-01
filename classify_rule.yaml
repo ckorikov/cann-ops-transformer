@@ -859,6 +859,8 @@ mc2:
       module: True
       src:
         - mc2/inplace_matmul_all_reduce_add_rms_norm
+        - mc2/matmul_all_reduce_add_rms_norm
+        - mc2/matmul_all_reduce
         - mc2/common
         - mc2/3rd
       exclude:
@@ -868,6 +870,7 @@ mc2:
         - mc2/inplace_matmul_all_reduce_add_rms_norm
       test:
         examples: False
+        ut: False
       options:
         - inplace_matmul_all_reduce_add_rms_norm
         - matmul_all_reduce_add_rms_norm
@@ -885,6 +888,7 @@ mc2:
         - mc2/matmul_all_reduce
       test:
         examples: False
+        ut: False
       options:
         - matmul_all_reduce
 
@@ -892,6 +896,7 @@ mc2:
       module: True
       src:
         - mc2/matmul_all_reduce_add_rms_norm
+        - mc2/matmul_all_reduce
         - mc2/common
         - mc2/3rd
       exclude:
@@ -901,6 +906,7 @@ mc2:
         - mc2/matmul_all_reduce_add_rms_norm
       test:
         examples: False
+        ut: False
       options:
         - matmul_all_reduce_add_rms_norm
 
