@@ -116,7 +116,8 @@ class CompileOpStaticLib:
         if is_need_path and file_path.name.endswith(".json"):
             with open(file_path, 'r', encoding='UTF-8') as json_fd:
                 json_dict = json.load(json_fd)
-                json_dict["filePath"] = str(file_path).split("/bin/")[-1].split("/kernel/")[-1]
+                soc = str(file_path).split("/binary/")[-1].split("/bin/")[0]
+                json_dict["filePath"] = os.path.join(soc, str(file_path).split("/bin/")[-1].split("/kernel/")[-1])
                 file_path = os.path.join(out_path, os.path.basename(file_path))
                 with open(file_path, 'w', encoding='UTF-8') as new_json_fd:
                     new_json_fd.write(json.dumps(json_dict, indent=4))
@@ -356,6 +357,8 @@ namespace l0op {{
 
         symbol_data = register_symbol.split("::")
         namespace = "::".join(symbol_data[:-1])
+        if "anonymous" in namespace:
+            return "", "", "nullptr"
         func_name = symbol_data[-1]
         reference_code = f"&{register_symbol}"
         return namespace, func_name, reference_code
@@ -366,6 +369,9 @@ namespace l0op {{
         declaration = ""
         reference_code = ""
         for binary_file in files:
+            # static not support supperkernel
+            if ("relocatable" in binary_file.name):
+                continue
             binary_name = binary_file.name.replace(".", "_").replace("-", "_")
             declaration += f"""// {binary_file.name}
 extern const uint8_t _binary_{binary_name}_start[];

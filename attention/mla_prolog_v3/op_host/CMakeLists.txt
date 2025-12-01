@@ -14,24 +14,15 @@ if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnInner PRIVATE
         mla_prolog_v3_def.cpp
     )
-    if (ENABLE_STATIC)
-        add_ops_compile_options(
-            OP_NAME MlaPrologV3
-            OPTIONS --cce-auto-sync=off
-                    -Wno-deprecated-declarations
-                    -Werror
-                    -mllvm -cce-aicore-hoist-movemask=false
-        )
-    else()
-        add_ops_compile_options(
-            OP_NAME MlaPrologV3
-            OPTIONS --cce-auto-sync=off
-                    -Wno-deprecated-declarations
-                    -Werror
-                    -mllvm -cce-aicore-hoist-movemask=false
-                    --op_relocatable_kernel_binary=true
-        )
-    endif()
+
+    add_ops_compile_options(
+        OP_NAME MlaPrologV3
+        OPTIONS --cce-auto-sync=off
+                -Wno-deprecated-declarations
+                -Werror
+                -mllvm -cce-aicore-hoist-movemask=false
+                --op_relocatable_kernel_binary=true
+    )
 endif()
 
 if (NOT BUILD_OPS_RTY_KERNEL)
