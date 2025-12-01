@@ -377,20 +377,21 @@ ge::graphStatus RecurrentGatedDeltaRuleTiling::CalUbSize()
     int64_t aNv = Ops::Base::CeilAlign(tilingData_.nv, static_cast<uint32_t>(16)); // 16 * 2 = 32B
     int64_t aDv = Ops::Base::CeilAlign(tilingData_.dv, static_cast<uint32_t>(16)); // 16 * 2 = 32B
     int64_t aDk = Ops::Base::CeilAlign(tilingData_.dk, static_cast<uint32_t>(16)); // 16 * 2 = 32B
-    int64_t usedUbBytes = MAX_MTP * (4 * aDk + 2 * aDv);              // 4 for qInQueue_ & kInQueue_, 2 for vInQueue_
-    usedUbBytes += 128;                                               // reserve 128 Bytes
-    usedUbBytes += MAX_MTP * (4 * aNv + 2 * aNv);                     // 4 for gamaInQueue_, 2 for betaInQueue_
+    int64_t usedUbBytes = MAX_MTP * (4 * aDk + 2 * aDv); // 4 for qInQueue_ & kInQueue_, 2 for vInQueue_
+    usedUbBytes += 128;                                  // reserve 128 Bytes
+    usedUbBytes += MAX_MTP * (4 * aNv + 2 * aNv);        // 4 for gamaInQueue_, 2 for betaInQueue_
     tilingData_.ubRestBytes = ubSize - usedUbBytes;
     usedUbBytes += MAX_MTP * (8 * aDk + 4 * aDv + 4 * aNv); // 8 for qk in ub, 4 for v in ub, 4 for beta in ub
     int64_t coeff = (2 + 2) * aDk + 4;                      // 2 for stateInQueue_, stateOutQueue_, 4 for attnOutQueue_
-    coeff += (4 + 4 + 4) * aDk + 4 + 4;                     // 4 for qInUb, kInUb, vInUb, deltaInUb, attnInUb
+    coeff += (4 + 4) * aDk + 4 + 4;                         // 4 for qInUb, kInUb, vInUb, deltaInUb, attnInUb
     int64_t vStep = (ubSize - usedUbBytes) / coeff / 8 * 8; // 8 * sizeof(float) = 32
-    vStep = vStep > aDv ? aDv : vStep;
-
-    if (vStep < 8) { // vStep不小于8
+    if (vStep < 8) {                                        // vStep不小于8
         OP_LOGE(context_->GetNodeName(), "vStep should be bigger than 8, shape is too big");
         return ge::GRAPH_FAILED;
     }
+    int64_t rptime = Ops::Base::CeilDiv(tilingData_.dv, static_cast<uint32_t>(vStep));
+    vStep = Ops::Base::CeilAlign(Ops::Base::CeilDiv(tilingData_.dv, static_cast<uint32_t>(rptime)),
+                                 static_cast<uint32_t>(8)); // 8 * sizeof(float) = 32
     tilingData_.ubCalSize = compileInfo_.ubSize;
     tilingData_.vStep = vStep;
     tilingData_.ubRestBytes -= ((2 + 2) * aDk + 4) * vStep; // 2 for stateInQueue_, stateOutQueue_, 4 for attnOutQueue_

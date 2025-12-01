@@ -28,6 +28,9 @@ using namespace AscendC;
 constexpr uint64_t BUFFER_NUM = 1;
 constexpr uint64_t MAX_MTP = 8;
 constexpr uint64_t BF16_NUM_PER_BLOCK = 16;
+constexpr uint64_t FP32_NUM_PER_BLOCK = 8;
+constexpr uint32_t REPEAT_LENTH = 64; // 256Byte for float
+constexpr uint32_t MAX_REPEAT_TIME = 255;
 
 struct RGDRInitParams {
     GM_ADDR query;
@@ -122,9 +125,7 @@ public:
         buffOffset += kSize;
         stateInUb = tmpBuff.GetWithOffset<float>(static_cast<uint32_t>(alignK_ * vStep_), buffOffset);
         buffOffset += cubeSize;
-        kBroadInUb = tmpBuff.GetWithOffset<float>(static_cast<uint32_t>(alignK_ * vStep_), buffOffset);
-        buffOffset += cubeSize;
-        deltaBroadInUb = tmpBuff.GetWithOffset<float>(static_cast<uint32_t>(alignK_ * vStep_), buffOffset);
+        broadTmpInUb = tmpBuff.GetWithOffset<float>(static_cast<uint32_t>(alignK_ * vStep_), buffOffset);
         buffOffset += cubeSize;
         betaInUb = tmpBuff.GetWithOffset<float>(static_cast<uint32_t>(betaUbSize), buffOffset);
     }
@@ -210,6 +211,25 @@ private:
         stateInQueue_.FreeTensor(stateLocal);
     }
 
+    __aicore__ inline void MatVecMul(const LocalTensor<float> &cubeTensor, const LocalTensor<float> &vecTensor,
+                                          LocalTensor<float> &dstTensor, uint32_t cols, bool isAdd)
+    {
+        uint8_t repeatStride = alignK_ / FP32_NUM_PER_BLOCK;
+        for (uint32_t i = 0; i < alignK_; i += REPEAT_LENTH) {
+            uint64_t mask = Std::min(REPEAT_LENTH, alignK_ - i);
+            for (uint32_t j = 0; j < cols; j += MAX_REPEAT_TIME) {
+                uint64_t repeatTime = Std::min(MAX_REPEAT_TIME, cols - j);
+                if (isAdd) {
+                    MulAddDst(dstTensor[j * alignK_ + i], cubeTensor[j * alignK_ + i], vecTensor[i], mask, repeatTime,
+                              {1, 1, 1, repeatStride, repeatStride, 0});
+                } else {
+                    Mul(dstTensor[j * alignK_ + i], cubeTensor[j * alignK_ + i], vecTensor[i], mask, repeatTime,
+                        {1, 1, 1, repeatStride, repeatStride, 0});
+                }
+            }
+        }
+    }
+
     __aicore__ inline void Compute(uint32_t curSingleV, uint64_t curQKOffset, uint64_t curVOffset)
     {
         uint32_t stateShape[2] = {curSingleV, alignK_};
@@ -220,25 +240,21 @@ private:
             Muls(stateInUb, stateInUb, gama_, alignK_ * curSingleV);
         }
         AscendC::PipeBarrier<PIPE_V>();
-        Broadcast<float, 2, 0>(kBroadInUb, kInUb[curQKOffset], stateShape, ktShape); //  2: Dim Number 0: First Dim
+        MatVecMul(stateInUb, kInUb[curQKOffset], broadTmpInUb, curSingleV, false);
         AscendC::PipeBarrier<PIPE_V>();
-        deltaBroadInUb = kBroadInUb * stateInUb;
-        AscendC::PipeBarrier<PIPE_V>();
-        ReduceSum<float, Pattern::Reduce::AR, true>(deltaInUb, deltaBroadInUb, stateShape, true);
+        ReduceSum<float, Pattern::Reduce::AR, true>(deltaInUb, broadTmpInUb, stateShape, true);
         AscendC::PipeBarrier<PIPE_V>();
         deltaInUb = vInUb[curVOffset] - deltaInUb;
         AscendC::PipeBarrier<PIPE_V>();
         Muls(deltaInUb, deltaInUb, beta_, curSingleV);
         AscendC::PipeBarrier<PIPE_V>();
-        Broadcast<float, 2, 1>(deltaBroadInUb, deltaInUb, stateShape, deltaShape); //  2: Dim Number 1: Second Dim
+        Broadcast<float, 2, 1>(broadTmpInUb, deltaInUb, stateShape, deltaShape); //  2: Dim Number 1: Second Dim
         AscendC::PipeBarrier<PIPE_V>();
-        MulAddDst(stateInUb, kBroadInUb, deltaBroadInUb, alignK_ * curSingleV);
+        MatVecMul(broadTmpInUb, kInUb[curQKOffset], stateInUb, curSingleV, true);
         AscendC::PipeBarrier<PIPE_V>();
-        Broadcast<float, 2, 0>(kBroadInUb, qInUb[curQKOffset], stateShape, ktShape); //  2: Dim Number 0: First Dim
+        MatVecMul(stateInUb, qInUb[curQKOffset], broadTmpInUb, curSingleV, false);
         AscendC::PipeBarrier<PIPE_V>();
-        kBroadInUb = kBroadInUb * stateInUb;
-        AscendC::PipeBarrier<PIPE_V>();
-        ReduceSum<float, Pattern::Reduce::AR, true>(attnInUb, kBroadInUb, stateShape, true);
+        ReduceSum<float, Pattern::Reduce::AR, true>(attnInUb, broadTmpInUb, stateShape, true);
         LocalTensor<outType> stateOutLocal = stateOutQueue_.AllocTensor<outType>();
         LocalTensor<outType> attnOutLocal = attnOutQueue_.AllocTensor<outType>();
         Cast(stateOutLocal, stateInUb, AscendC::RoundMode::CAST_RINT, alignK_ * curSingleV);
@@ -352,8 +368,7 @@ private:
     LocalTensor<float> gamaInUb;
     LocalTensor<float> betaInUb;
     LocalTensor<float> deltaInUb;
-    LocalTensor<float> kBroadInUb;
-    LocalTensor<float> deltaBroadInUb;
+    LocalTensor<float> broadTmpInUb;
     LocalTensor<float> attnInUb;
     LocalTensor<float> stateInUb;
     uint32_t B_;
