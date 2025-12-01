@@ -29,6 +29,7 @@ COV="false"
 CLANG="false"
 VERBOSE="false"
 THREAD_NUM=$(grep -c ^processor /proc/cpuinfo)
+ENABLE_VALGRIND=FALSE
 ENABLE_CREATE_LIB=FALSE
 ENABLE_OPKERNEL=FALSE
 ENABLE_BUILD_PKG=FALSE
@@ -108,6 +109,7 @@ function help_info() {
                 echo "    --cov                  Enable code coverage for unit tests"
                 echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"         
                 echo "    --disable_asan         Disable ASAN (Address Sanitizer)"
+                echo "    --valgrind             Run unit tests with valgrind (disables ASAN and noexec)"
                 echo "    --ophost_test          Build and run ophost unit tests"
                 echo "    --opapi_test           Build and run opapi unit tests"
                 echo "    --opgraph_test         Build and run opgraph unit tests"
@@ -125,6 +127,13 @@ function help_info() {
                 echo "Clean Options:"
                 echo $dotted_line
                 echo "    --make_clean           Clean build artifacts"
+                echo $dotted_line
+                return
+                ;;
+            valgrind)
+                echo "Valgrind Options:"
+                echo $dotted_line
+                echo "    --valgrind             Run unit tests with valgrind (disables ASAN and noexec)"
                 echo $dotted_line
                 return
                 ;;
@@ -180,6 +189,7 @@ function help_info() {
                 echo "    --cov                  Enable code coverage for unit tests"
                 echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"
                 echo "    --disable_asan         Disable ASAN (Address Sanitizer)"
+                echo "    --valgrind             Run unit tests with valgrind (disables ASAN and noexec)"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --ophost_test --noexec --cov"
@@ -193,6 +203,7 @@ function help_info() {
                 echo "    --cov                  Enable code coverage for unit tests"
                 echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"
                 echo "    --disable_asan         Disable ASAN (Address Sanitizer)"
+                echo "    --valgrind             Run unit tests with valgrind (disables ASAN and noexec)"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --opapi_test --noexec --cov"
@@ -206,6 +217,7 @@ function help_info() {
                 echo "    --cov                  Enable code coverage for unit tests"
                 echo "    --ops=op1,op2,...      Compile specified operators (comma-separated for multiple)"
                 echo "    --disable_asan         Disable ASAN (Address Sanitizer)"
+                echo "    --valgrind             Run unit tests with valgrind (disables ASAN and noexec)"
                 echo $dotted_line
                 echo "Examples:"
                 echo "    bash build.sh --opgraph_test --noexec --cov"
@@ -260,6 +272,7 @@ function help_info() {
     echo "    --noexec Only compile ut, do not execute the compiled executable file"
     echo "    --make_clean Clean build artifacts"
     echo "    --disable_asan Disable ASAN (Address Sanitizer)"
+    echo "    --valgrind run ut with valgrind. This option will disable asan, noexec and run utest by valgrind"
     echo "    --ops Compile specified operator, use snake name, like: --ops=add,add_lora, use ',' to separate different operator"
     echo "    --soc Compile binary with specified Ascend SoC, like: --soc=ascend310p,ascend910b, use ',' to separate different SoC"
     echo "    --vendor_name Specify the custom operator package vendor name, like: --vendor_name=customize, default to custom"
@@ -756,6 +769,7 @@ for arg in "$@"; do
             --opkernel) SHOW_HELP="opkernel" ;;
             -u|--test) SHOW_HELP="test" ;;
             --make_clean) SHOW_HELP="clean" ;;
+            --valgrind) SHOW_HELP="valgrind" ;;
             --ophost) SHOW_HELP="ophost" ;;
             --opapi) SHOW_HELP="opapi" ;;
             --opgraph) SHOW_HELP="opgraph" ;;
@@ -915,6 +929,12 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     --disable_asan)
+        ASAN="false"
+        shift
+        ;;
+    --valgrind)
+        ENABLE_VALGRIND=TRUE
+        ENABLE_UT_EXEC=FALSE
         ASAN="false"
         shift
         ;;
@@ -1146,6 +1166,10 @@ if [ -n "${TEST}" ];then
 
     if [ "${ASAN}" == "true" ];then
         CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_ASAN=TRUE"
+    fi
+
+    if [ "${ENABLE_VALGRIND}" == "TRUE" ];then
+        CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_VALGRIND=TRUE"
     fi
 
     if [ "${UBSAN}" == "true" ];then

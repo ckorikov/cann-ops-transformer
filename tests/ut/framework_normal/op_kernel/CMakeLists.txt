@@ -101,9 +101,16 @@ if(UT_TEST_ALL OR OP_KERNEL_UT)
         endif()
         if(ENABLE_VALGRIND)
             add_custom_command(
-                    TARGET ${OP_KERNEL_UT_EXE}_${socVersion} POST_BUILD
-                    COMMAND export LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} && valgrind --undef-value-errors=no --leak-check=full ./${OP_KERNEL_UT_EXE}_${socVersion}
-                    COMMENT "Run fast op utest with valgrind"
+                TARGET ${OP_KERNEL_UT_EXE}_${socVersion}
+                POST_BUILD
+                COMMAND
+                    ${CMAKE_COMMAND} -E env LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}
+                    valgrind 
+                    --undef-value-errors=no
+                    --leak-check=full 
+                    --log-file=valgrind_${OP_KERNEL_UT_EXE}_${socVersion}.log
+                    ./${OP_KERNEL_UT_EXE}_${socVersion}
+                COMMENT "Run fast op utest by valgrind, output saved to valgrind_${OP_KERNEL_UT_EXE}_${socVersion}.log"
             )
         endif()
     endforeach ()
