@@ -148,42 +148,6 @@ ge::graphStatus CheckAttentionInShape(gert::TilingContext *context)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus CheckSoftmaxDtype(gert::TilingContext *context) {
-    auto softmaxMax = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_MAX));
-    auto softmaxSum = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::SOFTMAX_SUM));
-    OP_CHECK_IF(softmaxMax == nullptr || softmaxSum == nullptr,
-               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "softmax_max or softmax_sum is nullptr."),
-               return ge::GRAPH_FAILED);
-
-    auto softmaxMaxType = static_cast<uint32_t>(softmaxMax->GetDataType());
-    auto softmaxSumType = static_cast<uint32_t>(softmaxSum->GetDataType());
-
-    bool softmaxTypeCheck = (softmaxMaxType == softmaxSumType) &&
-                            (softmaxMaxType == ge::DT_FLOAT);
-    OP_CHECK_IF(softmaxTypeCheck != true,
-               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "softmaxMaxType should be DT_FLOAT and same with softmaxSumType"),
-               return ge::GRAPH_FAILED);
-
-    return ge::GRAPH_SUCCESS;
-}
-
-ge::graphStatus CheckAttentionInDtype(gert::TilingContext *context) {
-    auto query = context->GetInputDesc(static_cast<size_t>(InputIndex::QUERY));
-    auto attentionIn = context->GetOptionalInputDesc(static_cast<size_t>(InputIndex::ATTENTION_IN));
-    OP_CHECK_IF(query == nullptr || attentionIn == nullptr,
-               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "query or attentionIn is nullptr."),
-               return ge::GRAPH_FAILED);
-
-    auto queryType = static_cast<uint32_t>(query->GetDataType());
-    auto attentionInType = static_cast<uint32_t>(attentionIn->GetDataType());
-
-    OP_CHECK_IF(queryType != attentionInType,
-               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "invalid attentionIn dtype should be same with query's dtype"),
-               return ge::GRAPH_FAILED);
-
-    return ge::GRAPH_SUCCESS;
-}
-
 ge::graphStatus CheckShapeValid(gert::TilingContext *context, int64_t b, int64_t n1, int64_t s1, int64_t d)
 {
     auto isShapeInValid = (b == 0 || n1 == 0 || s1 == 0 || d == 0);
@@ -228,25 +192,6 @@ ge::graphStatus CheckTndShapeValid(gert::TilingContext *context, int64_t t1, int
         return ret;
     }
     ret = CheckAttentionInShape(context);
-    if (ret != ge::GRAPH_SUCCESS) {
-        return ret;
-    }
-
-    return ge::GRAPH_SUCCESS;
-}
-
-ge::graphStatus CheckDtypeValid(gert::TilingContext *context)
-{
-    if (context == nullptr) {
-        OP_LOGE(context, "context is nullptr");
-        return ge::GRAPH_FAILED;
-    }
-
-    auto ret = CheckSoftmaxDtype(context);
-    if (ret != ge::GRAPH_SUCCESS) {
-        return ret;
-    }
-    ret = CheckAttentionInDtype(context);
     if (ret != ge::GRAPH_SUCCESS) {
         return ret;
     }
