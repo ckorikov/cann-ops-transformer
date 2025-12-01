@@ -154,7 +154,9 @@ function(pack_built_in)
 
   message(STATUS "current compute_unit is: ${compute_unit}")
   ExternalProject_Get_Property(tiling_sink_task BINARY_DIR)
-  set(310P_OPMASTER_SO ${BINARY_DIR}/Ascend310P-v${SYS_VERSION}-libopmaster.so)
+
+  # close install opmaster
+  # set(310P_OPMASTER_SO ${BINARY_DIR}/Ascend310P-v${SYS_VERSION}-libopmaster.so)
   install(CODE "
     if(EXISTS \"${310P_OPMASTER_SO}\")
       file(
@@ -163,7 +165,8 @@ function(pack_built_in)
     endif()
   ")
 
-  set(OTHER_OPMASTER_SO ${BINARY_DIR}/Ascend-v${SYS_VERSION}-libopmaster.so)
+  # close install opmaster
+  # set(OTHER_OPMASTER_SO ${BINARY_DIR}/Ascend-v${SYS_VERSION}-libopmaster.so)
   install(CODE "
     if(EXISTS \"${OTHER_OPMASTER_SO}\")
       file(
