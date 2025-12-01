@@ -33,6 +33,10 @@ constexpr uint64_t PRE_LOAD_NUM_MLA = 2;
 constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL); // 10^17
 constexpr uint64_t FIA_PERF_MODE_TILINGKEYOFFSET = uint64_t(1000000000000000UL); // 10^15
 
+constexpr uint8_t TILINGKEY_NUM_0 = 0;
+constexpr uint8_t TILINGKEY_NUM_3 = 3;
+constexpr uint8_t TILINGKEY_NUM_5 = 5;
+
 template <typename T> 
 inline auto Align(T num, T rnd) -> T
 {
@@ -117,7 +121,7 @@ void FiaTilingNonQuantMla::GenTilingKey()
     tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
                                     static_cast<uint8_t>(fiaInfo_->inputLayout),
                                     static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
-                                    0, 0, 0, 0, 3, 5, 0, 0, 0);
+                                    TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_3, TILINGKEY_NUM_5, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0);
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
 

@@ -65,6 +65,13 @@ constexpr uint32_t M_BASE_SIZE_128 = 128;
 constexpr uint32_t M_BASE_SIZE_256 = 256;
 constexpr uint32_t M_BASE_SIZE_512 = 512;
 
+constexpr uint8_t TILINGKEY_NUM_0 = 0;
+constexpr uint8_t TILINGKEY_NUM_3 = 3;
+
+constexpr int64_t MAX_ACTUAL_SEQUENCE = 2048;
+
+constexpr uint32_t MAX_GSIZE = 64;
+
 template <typename T> 
 inline auto Align(T num, T rnd) -> T
 {
@@ -153,7 +160,7 @@ void FiaTilingNonQuant::GenTilingKey()
     tilingKey_ = GET_TPL_TILING_KEY(static_cast<uint8_t>(inputQVal), static_cast<uint8_t>(inputKvVal), static_cast<uint8_t>(outputVal), static_cast<uint8_t>(isPageAttention),
                                     static_cast<uint8_t>(fiaInfo_->inputLayout),
                                     static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
-                                    0, 0, 0, 0, 3, 3, 0, softmaxBrcbFlagVal, 0);
+                                    TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_3, TILINGKEY_NUM_3, TILINGKEY_NUM_0, softmaxBrcbFlagVal, TILINGKEY_NUM_0);
 
     OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
 }
@@ -173,7 +180,7 @@ bool FiaTilingNonQuant::IsFlashDecode(uint32_t coreNum)
         OP_LOGD(fiaInfo_->opName, "flash decode split key/value."); 
         return true;
     }
-    if (coreOkFlag && (fiaInfo_->maxActualseq >= 2048)) { 
+    if (coreOkFlag && (fiaInfo_->maxActualseq >= MAX_ACTUAL_SEQUENCE)) { 
         OP_LOGD(fiaInfo_->opName, "flash decode and GQA split key/value.");
         return true;
     }
@@ -380,6 +387,7 @@ uint32_t FiaTilingNonQuant::GetL2CacheOffFlag()
 {
     uint64_t kvTypeSize = 2;
     uint64_t kvSize = 0;
+    float l2CacheSizeCoeff = static_cast<float>(1.2);
     if (fiaInfo_->kvStorageMode == KvStorageMode::PAGE_ATTENTION) {
         kvSize = fiaInfo_->opParamInfo.key.shape->GetStorageShape().GetShapeSize();
     } else if (fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST) {
@@ -396,12 +404,12 @@ uint32_t FiaTilingNonQuant::GetL2CacheOffFlag()
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L2, l2CacheSize);
 
     // 之前路由到IFA的GQA场景才需要考虑关闭L2Cache
-    if ((fiaInfo_->ropeMode == RopeMode::NO_ROPE) && (fiaInfo_->s1Size == 1) && (fiaInfo_->gSize <= 64)) {
+    if ((fiaInfo_->ropeMode == RopeMode::NO_ROPE) && (fiaInfo_->s1Size == 1) && (fiaInfo_->gSize <= MAX_GSIZE)) {
         // 1. 连续访存时, 即KV的layout为BNSD或者BnNBsD, 不涉及数据预取, 可以直接关闭L2Cache
         // 2. 考虑K和V数据的总大小超过一定值后, 关闭L2Cache, 当前系数确定为1.2
         if (fiaInfo_->kvLayout == FiaLayout::BNSD || fiaInfo_->kvLayout == FiaLayout::BnNBsD) {
             l2CacheOffFlag_ = 1U;
-        } else if (static_cast<double>(kvSize) * kvTypeSize * 2.0f >= l2CacheSize * 1.2) {
+        } else if (static_cast<double>(kvSize) * kvTypeSize * 2.0f >= l2CacheSize * l2CacheSizeCoeff) {
             l2CacheOffFlag_ = 1U;
         } else {
             l2CacheOffFlag_ = 0;
