@@ -283,6 +283,9 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
+        if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
+            tSize = qActSeqLensParser.GetTSize();
+        }
         // TND、NTD场景,S1和actualSeq相等,不需要初始化
         if constexpr (LAYOUT_T != FIA_LAYOUT::TND && LAYOUT_T != FIA_LAYOUT::NTD) {
             uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;

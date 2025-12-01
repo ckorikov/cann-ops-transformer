@@ -270,7 +270,10 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
-         // TND、NTD场景,S1和actualSeq相等,不需要初始化
+        if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
+            tSize = qActSeqLensParser.GetTSize();
+        }
+        // TND、NTD场景,S1和actualSeq相等,不需要初始化
         if constexpr (LAYOUT_T != FIA_LAYOUT::TND && LAYOUT_T != FIA_LAYOUT::NTD) {
             uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
             uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
