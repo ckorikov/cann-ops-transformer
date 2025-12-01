@@ -61,11 +61,11 @@
 
     - actualSeqLengthsKvOptional（aclIntArray\*，计算输入）：Host侧的aclIntArray，可传入nullptr，代表不同Batch中key/value的有效Sequence Length。数据类型支持INT64。如果不指定seqlen可以传入nullptr，表示和key/value的shape的S长度相同。综合约束请见[约束说明](#约束说明)。
 
-    - deqScale1Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持UINT64, FLOAT32。[数据格式](common/数据格式.md)支持ND，表示BMM1后面的反量化因子，支持per-tensor。 如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
+    - deqScale1Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持UINT64, FLOAT32。[数据格式](common/数据格式.md)支持ND，表示BMM1后面的反量化因子，支持per-tensor。使用全量化功能时，该参数由实际量化过程计算得来。如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
 
     - quantScale1Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持FLOAT32。[数据格式](common/数据格式.md)支持ND，表示BMM2前面的量化因子，支持per-tensor。 如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
     
-    - deqScale2Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持UINT64, FLOAT32。[数据格式](common/数据格式.md)支持ND，表示BMM2后面的反量化因子，支持per-tensor。 如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
+    - deqScale2Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持UINT64, FLOAT32。[数据格式](common/数据格式.md)支持ND，表示BMM2后面的反量化因子，支持per-tensor。使用全量化功能时，该参数由实际量化过程计算得来。如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
     
     - quantScale2Optional（aclTensor\*，计算输入）：Device侧的aclTensor，数据类型支持FLOAT32、BFLOAT16。[数据格式](common/数据格式.md)支持ND，表示输出的量化因子，支持per-tensor，per-channel。 如不使用该功能时可传入nullptr，综合约束请见[约束说明](#约束说明)。
     
@@ -356,6 +356,7 @@
             - INT4（INT32）伪量化场景支持后量化。
     - qkv FP8 per-block全量化
         - <term>昇腾910_95 AI处理器</term>：
+            - 在使用FP8 per-block全量化策略时，输入的query、key和value在量化前以float16或bfloat16格式存储。量化过程对张量按指定块大小\(128, 256\)进行分块，并分别将每个块内的数据量化成FLOAT8_E5M2或FLOAT8_E4M3FN类型，同时得到反量化系数dequantScaleQuery、keyAntiquantScale和valueAntiquantScale。
             - query、key和value的数据类型支持FLOAT8_E5M2、FLOAT8_E4M3FN。
             - queryQuantMode、keyAntiquantMode和valueAntiquantMode均为7。
             - dequantScaleQuery、keyAntiquantScale和valueAntiquantScale的数据类型固定为FLOAT32。

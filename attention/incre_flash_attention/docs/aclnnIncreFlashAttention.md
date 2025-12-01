@@ -122,7 +122,7 @@ aclnnStatus aclnnIncreFlashAttention(
         <td>输入</td>
         <td>公式中的输入K。</td>
         <td>key、value 中对应tensor的shape需要完全一致。</td>
-        <td>FLOAT16、BFLOAT16、INT8</td>
+        <td>FLOAT16、BFLOAT16</td>
         <td>ND</td>
         <td><ul><li>(B, N, S, D)</li><li>(B, S, N, D)</li><li>(B, S, H)</li></ul></td>
         <td>×</td>
@@ -132,7 +132,7 @@ aclnnStatus aclnnIncreFlashAttention(
         <td>输入</td>
         <td>公式中的输入V。</td>
         <td>key、value 中对应tensor的shape需要完全一致。</td>
-        <td>FLOAT16、BFLOAT16、INT8</td>
+        <td>FLOAT16、BFLOAT16</td>
         <td>ND</td>
         <td><ul><li>(B, N, S, D)</li><li>(B, S, N, D)</li><li>(B, S, H)</li></ul></td>
         <td>×</td>
