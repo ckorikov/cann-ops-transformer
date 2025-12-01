@@ -114,12 +114,24 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         // L1 residency SetTensorA to Obtain L1
         this->CopyND2NZOnTheFly(this->a1Local_, this->queryGm[this->tensorACoreOffset], outerSize, 
             this->tilingData->promptAttentionBaseParams.headSize, this->queryStride, true);
-        
         this->isInnerLoopLast_ = (startIndex == endIndex - 1);
         innerSize = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
         this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBCoreOffset], innerSize, 
-            this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);       
-        this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize, this->tilingData->promptAttentionBaseParams.headSize);
+            this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);
+        if constexpr (PFAT::isMLAScence) {
+            int32_t calcHeightAlign = (outerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
+            uint32_t calcQKWidth = this->tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
+            uint64_t qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
+            this->CopyND2NZOnTheFly(this->a1Local_[qkDstOffset], this->queryRopeGM[this->tensorQRopeCoreOffset], outerSize, 
+                this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->qRopeStride, true);
+            calcHeightAlign = (innerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
+            qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
+            this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeCoreOffset], innerSize, 
+                this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->kRopeStride, true);
+        }       
+        this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize,
+                          this->tilingData->promptAttentionBaseParams.headSize +
+                          this->tilingData->promptAttentionBaseParams.ropeHeadSize);
     }
     this->isSoftmaxResNeedUpdate = this->tilingData->promptAttentionBaseParams.isRowInvalid;
     for (int64_t sInnerLoopIdx = startIndex; sInnerLoopIdx < endIndex; sInnerLoopIdx++) {
@@ -192,6 +204,15 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             this->fetchOuterSize_ = outerSize;  // last innerloop fetch nextloop outersize
             this->CopyND2NZOnTheFly(this->a1Local_, this->queryGm[this->tensorAOffset], outerSize, 
                 this->tilingData->promptAttentionBaseParams.headSize, this->queryStride, true);
+            if constexpr (PFAT::isMLAScence) {
+                int32_t calcHeightAlign = (outerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
+                uint32_t calcQKWidth = this->tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
+                uint64_t qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
+                this->tensorQRopeOffset = this->tensorQRopeCoreOffset + this->singleProcessSOuterSize * this->qRopeStride;
+                this->tensorKRopeOffset = this->tensorKRopeCoreOffset + startIndex * this->kRopeStride * this->singleProcessSInnerSize;
+                this->CopyND2NZOnTheFly(this->a1Local_[qkDstOffset], this->queryRopeGM[this->tensorQRopeOffset], outerSize, 
+                    this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->qRopeStride, true);
+            }
             this->tensorBOffset = this->tensorBCoreOffset + 
                 startIndex * this->keyValueStride * this->singleProcessSInnerSize;
         }
@@ -200,7 +221,16 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             innerSize = this->isNextInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
             this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBOffset], innerSize, 
                 this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);
-            this->Bmm1Compute(this->a1Local_, this->b1Local_, this->fetchOuterSize_, innerSize, this->tilingData->promptAttentionBaseParams.headSize);
+            if constexpr (PFAT::isMLAScence) {
+                uint32_t calcQKWidth = this->tilingData->promptAttentionBaseParams.headSize / BLOCK_CUBE;
+                uint32_t calcHeightAlign = (innerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
+                uint64_t qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
+                this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeOffset], innerSize, 
+                    this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->kRopeStride, true);
+            }   
+            this->Bmm1Compute(this->a1Local_, this->b1Local_, this->fetchOuterSize_, innerSize,
+                              this->tilingData->promptAttentionBaseParams.headSize +
+                              this->tilingData->promptAttentionBaseParams.ropeHeadSize);
         }
         /* Step 6: bmm2 update and copyout */
         if (!isInnerLoopStart) {
@@ -280,8 +310,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCore(u
                                actualSeqLengthsIdx;
             int sOuterBlockNum = (actualSeqLengthsIdx + this->tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize - 1) /
                                   this->tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize;
-            this->multiSeqOffset = this->actualSeqOffsets[sIdx];
-            int32_t queryHeadEndOffset = this->multiSeqOffset + (loopNIdx + 1) * this->tilingData->promptAttentionBaseParams.seqSize * this->queryStride;
+            this->multiSeqOffset = this->actualSeqOffsets[sIdx]; // value and out multiSeqOffset
             int32_t tmpOuterLoopEnd = 0;
             if (isNLoopLast && sIdx == sLoopEndIdx - 1) { // N last && S last
                 tmpOuterLoopEnd = outerLoopEnd;

@@ -38,6 +38,17 @@
 #include "prompt_flash_attention_s1s2_bns1_x310.h"
 #endif
 
+#define INVOKE_PFA_KV_D_DIFF_OP_IMPL(templateClass, ...)                                                                  \
+    TPipe tPipe;                                                                                                        \
+    do {                                                                                                                \
+        if (query == nullptr) {return;}                                                                                 \
+        INVOKE_PFA_TILING_DATA(tiling);                                                                                 \
+        templateClass<__VA_ARGS__> op;                                                                                  \
+        REGIST_MATMUL_OBJ(&tPipe, GetSysWorkSpacePtr(), op.mm, bmm1tiling, op.bmm2, bmm2tiling);                        \
+        op.InitKVDIFF(query, key, value, pseShift, attenMask, actualSeqLengths, actualSeqLengthsKV, blocktable, queryPaddingSize,         \
+                kvPaddingSize, keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                    \
+        op.Process();                                                                                                   \
+    } while (0)
 #define INVOKE_PFA_GENERAL_OP_IMPL(templateClass, ...)                                                                  \
     TPipe tPipe;                                                                                                        \
     do {                                                                                                                \
@@ -788,6 +799,7 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
         TILING_KEY_IS(QINT8_KVFP16_OUTINT8_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_BNSD_310TILING);
         TILING_KEY_IS(QFP4E1M2_KVFP16_OUTBF16_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_BNSD_310TILING);
         TILING_KEY_IS(QFP4E1M2_KVFP16_OUTINT8_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_BNSD_310TILING);
+        TILING_KEY_IS(QFP16_KVFP16_OUTFP16_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_KV_D_DIFF_BSND_310TILING);
         #if TILING_KEY_VAR == QINT8_KVFP16_OUTBF16_BSH_HIGHLEVELAPI_MDL_310TILING
             INVOKE_PFA_NEW_GQA_OP_IMPL(PromptAttentionPrefill, PFATypeNZ<PFALayoutNZ::BNSD, half, int8_t>, PrecType::BMM1_FP16_EXP_FP32);//高性能
         #elif TILING_KEY_VAR == QINT8_KVFP16_OUTINT8_BSH_HIGHLEVELAPI_MDL_310TILING
@@ -800,6 +812,8 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BNSD, half, int8_t, half, half, ModeNZ::HighPrecisionNZ>);
         #elif TILING_KEY_VAR == QFP4E1M2_KVFP16_OUTINT8_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_BNSD_310TILING
             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BSH, half, int8_t, half, half, ModeNZ::HighPrecisionNZ>);
+        #elif TILING_KEY_VAR == QFP16_KVFP16_OUTFP16_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_KV_D_DIFF_BSND_310TILING
+            INVOKE_PFA_KV_D_DIFF_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BSH, half, int8_t, half, half, ModeNZ::HighPerformanceNZ, true>);
         #endif
     #endif
     }    
