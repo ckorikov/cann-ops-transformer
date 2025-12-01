@@ -272,6 +272,10 @@ if("${ASCEND_OP_NAME}" STREQUAL "add_example")
     add_subdirectory(examples)
 endif()
 
+if("${ASCEND_OP_NAME}" STREQUAL "all_gather_add")
+    add_subdirectory(examples/mc2)
+endif()
+
 list(APPEND OP_LIST ${COMPILED_OPS})
 list(APPEND OP_DIR_LIST ${COMPILED_OP_DIRS})
 
