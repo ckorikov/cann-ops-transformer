@@ -12,7 +12,7 @@
 
 ## 功能说明
 
--   **接口功能**：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以MoeGatingTopKSoftmax算子的输出x和expert_idx作为输入，并输出Routing矩阵expanded_x等结果供后续计算使用。本接口针对V1接口（MoeInitRouting，源码未开放）做了如下功能变更，请根据实际情况选择合适的接口：
+-   **接口功能**：该算子对应MoE（Mixture of Experts，混合专家模型）中的**Routing计算**，以[aclnnMoeGatingTopKSoftmax](../../moe_gating_top_k_softmax/docs/aclnnMoeGatingTopKSoftmax.md)算子的计算结果作为输入，并输出Routing矩阵expandedXOut等结果供后续计算使用。本接口针对[aclnnMoeInitRouting](../../moe_init_routing/docs/aclnnMoeInitRouting.md)做了如下功能变更，请根据实际情况选择合适的接口：
 
     - 新增Drop模式，在该模式下输出内容会将每个专家需要处理的Token个数对齐为expertCapacity个，超过expertCapacity个的Token会被Drop，不足的会用0填充。
     - 新增Dropless模式下expertTokensCountOrCumsumOut可选输出，输出每个专家需要处理的累积Token个数（Cumsum），或每个专家需要处理的Token数（Count）。
@@ -61,40 +61,40 @@
 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeInitRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeInitRoutingV2”接口执行计算。
 ```cpp
 aclnnStatus aclnnMoeInitRoutingV2GetWorkspaceSize(
-    const aclTensor *x, 
-    const aclTensor *expertIdx, 
-    int64_t          activeNum, 
-    int64_t          expertCapacity, 
-    int64_t          expertNum, 
-    int64_t          dropPadMode, 
-    int64_t          expertTokensCountOrCumsumFlag, 
-    bool             expertTokensBeforeCapacityFlag, 
-    const aclTensor *expandedXOut, 
-    const aclTensor *expandedRowIdxOut, 
-    const aclTensor *expertTokensCountOrCumsumOut, 
-    const aclTensor *expertTokensBeforeCapacityOut, 
-    uint64_t        *workspaceSize, 
+    const aclTensor  *x, 
+    const aclTensor  *expertIdx, 
+    int64_t           activeNum, 
+    int64_t           expertCapacity, 
+    int64_t           expertNum, 
+    int64_t           dropPadMode, 
+    int64_t           expertTokensCountOrCumsumFlag, 
+    bool              expertTokensBeforeCapacityFlag, 
+    const aclTensor  *expandedXOut, 
+    const aclTensor  *expandedRowIdxOut, 
+    const aclTensor  *expertTokensCountOrCumsumOut, 
+    const aclTensor  *expertTokensBeforeCapacityOut, 
+    uint64_t         *workspaceSize, 
     aclOpExecutor   **executor)
 ```
 ```cpp
 aclnnStatus aclnnMoeInitRoutingV2(
-    void            *workspace, 
-    uint64_t         workspaceSize, 
-    aclOpExecutor   *executor, 
-    aclrtStream      stream)
+    void             *workspace, 
+    uint64_t          workspaceSize, 
+    aclOpExecutor    *executor, 
+    aclrtStream       stream)
 ```
 
 ## aclnnMoeInitRoutingV2GetWorkspaceSize
 
 -   **参数说明：**
-    <table style="undefined;table-layout: fixed; width: 1550px"><colgroup>
-      <col style="width: 170px">
+    <table style="undefined;table-layout: fixed; width: 1562px"><colgroup>
+      <col style="width: 265px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 550px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
-      <col style="width: 190px">
+      <col style="width: 223px">  
+      <col style="width: 391px">  
+      <col style="width: 181px">  
+      <col style="width: 111px"> 
+      <col style="width: 126px">
       <col style="width: 145px">
       </colgroup>
     <thead>
@@ -134,7 +134,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>表示是否为Active场景。</td>
         <td>该属性在dropPadMode为0时生效，值范围大于等于0，0表示Dropless场景，大于0时表示Active场景，约束所有专家共同处理tokens总量。</td>
-        <td>INT64</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -144,7 +144,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>表示每个专家能够处理的tokens数。</td>
         <td>值范围大于等于0，Drop/Pad场景下值域范围(0, numRows]，此时各专家将超过capacity的tokens drop掉，不够capacity阈值时则pad全0 tokens，其他场景不关心该属性值。</td>
-        <td>INT64</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -154,7 +154,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>表示专家数。</td>
         <td>值范围大于等于0，Drop/Pad场景下或者expertTokensCountOrCumsumFlag大于0需要输出expertTokensCountOrCumsumOut时，expertNum需大于0。</td>
-        <td>INT64</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -164,7 +164,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>表示是否为Drop/Pad场景。</td>
         <td>取值为0或1。<ul><li>0：表示非Drop/Pad场景，该场景下不校验expertCapacity。</li><li>1：表示Drop/Pad场景，需要校验expertNum和expertCapacity，对于每个专家处理的超过和不足expertCapacity的值会做相应的处理。</li></ul></td>
-        <td>INT64</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -174,7 +174,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>控制是否输出expertTokensCountOrCumsumOut。</td>
         <td>取值为0、1和2。<ul><li>0：表示不输出expertTokensCountOrCumsumOut。</li><li>1：表示输出的值为各个专家处理的token数量的累计值。</li><li>2：表示输出的值为各个专家处理的token数量。</li></ul></td>
-        <td>INT64</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -184,7 +184,7 @@ aclnnStatus aclnnMoeInitRoutingV2(
         <td>输入</td>
         <td>控制是否输出expertTokensBeforeCapacityOut。</td>
         <td>取值为false和true<ul><li>false：表示不输出expertTokensBeforeCapacityOut。</li><li>true：表示输出expertTokensBeforeCapacityOut，值为在drop之前各个专家处理的token数量。</li></ul></td>
-        <td>BOOL</td>
+        <td>-</td>
         <td>-</td>
         <td>-</td>
         <td>-</td>
@@ -307,10 +307,11 @@ aclnnStatus aclnnMoeInitRoutingV2(
 
 ## aclnnMoeInitRoutingV2
 -   **参数说明：**
-    <table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
-    <col style="width: 250px">
+    <table style="undefined;table-layout: fixed; width: 1179px"> <colgroup>
+    <col style="width: 169px">
     <col style="width: 130px">
-    <col style="width: 800px">
+    <col style="width: 880px">
+    </colgroup>
     <thead>
     <tr>
         <th>参数名</th>
@@ -373,7 +374,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
     return shape_size;
 }
 int Init(int32_t deviceId, aclrtStream* stream) {
-    // 固定写法，AscendCL初始化
+    // 固定写法，资源初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);
