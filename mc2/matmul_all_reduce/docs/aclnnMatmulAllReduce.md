@@ -268,7 +268,7 @@ aclnnStatus aclnnMatmulAllReduce(
     #include <iostream>
     #include <vector>
     #include <thread>
-    #include "../op_api/aclnn_matmul_all_reduce.h"
+    #include "aclnnop/aclnn_matmul_all_reduce.h"
 
     int ndev = 8;
 
@@ -467,7 +467,7 @@ aclnnStatus aclnnMatmulAllReduce(
     #include <iostream>
     #include <vector>
     #include <getopt.h>
-    #include "../op_api/aclnn_matmul_all_reduce.h"
+    #include "aclnnop/aclnn_matmul_all_reduce.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

@@ -325,7 +325,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
+#include "aclnnop/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 

@@ -31,7 +31,8 @@
 
 #include "acl/acl.h"
 #include "acl/acl_base.h"
-#include "../op_host/op_api/aclnn_grouped_mat_mul_all_reduce.h"
+#include "aclnnop/aclnn_grouped_mat_mul_all_reduce.h"
+
 using namespace std;
 
 #ifdef __aarch64__

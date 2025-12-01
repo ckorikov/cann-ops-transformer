@@ -279,12 +279,12 @@ aclnnStatus aclnnAllGatherMatmul(
 
 示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```Cpp
     #include <thread>
     #include <iostream>
     #include <vector>
-    #include "../op_api/aclnn_all_gather_matmul.h"
+    #include "aclnnop/aclnn_all_gather_matmul.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -493,7 +493,7 @@ aclnnStatus aclnnAllGatherMatmul(
     #include <iostream>
     #include <vector>
     #include <getopt.h>
-    #include "../op_api/aclnn_all_gather_matmul.h"
+    #include "aclnnop/aclnn_all_gather_matmul.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

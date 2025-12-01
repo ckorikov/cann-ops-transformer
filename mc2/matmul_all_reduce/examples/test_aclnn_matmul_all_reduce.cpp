@@ -16,7 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_matmul_all_reduce.h"
+#include "aclnnop/aclnn_matmul_all_reduce.h"
 
 int ndev = 8;
 

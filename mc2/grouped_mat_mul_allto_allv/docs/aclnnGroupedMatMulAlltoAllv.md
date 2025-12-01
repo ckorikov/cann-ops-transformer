@@ -291,7 +291,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../op_api/aclnn_grouped_mat_mul_allto_allv.h"
+    #include "aclnnop/aclnn_grouped_mat_mul_allto_allv.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -572,7 +572,7 @@ aclnnStatus aclnnGroupedMatMulAlltoAllv(
     #include "acl/acl.h"
     #include <getopt.h>
     #include "hccl/hccl.h"
-    #include "../op_api/aclnn_grouped_mat_mul_allto_allv.h"
+    #include "aclnnop/aclnn_grouped_mat_mul_allto_allv.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
