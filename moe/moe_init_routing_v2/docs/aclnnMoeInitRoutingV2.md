@@ -52,9 +52,6 @@
     $$
     expertTokensBeforeCapacityOut[i]=Histogram(sortedExpertIdx)
     $$
-## 实现原理
-
-详细实现原理参考[MoeInitRoutingV2算子设计介绍](./MoeInitRoutingV2算子设计介绍.md)。
 
 ## 函数原型
 
