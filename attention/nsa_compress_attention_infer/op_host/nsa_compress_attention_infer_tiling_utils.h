@@ -66,7 +66,7 @@ constexpr uint32_t NUM_VECTOR_PER_CUBE = 2;
 constexpr uint32_t ALIGNED_32 = 32;
 
 constexpr int64_t MAX_ACTUALQSEQLEN = 4;
-constexpr int64_t MIN_ACTUALQSEQLEN = 2;
+constexpr int64_t MIN_ACTUALQSEQLEN = 1;
 
 }  // namespace optiling
 
