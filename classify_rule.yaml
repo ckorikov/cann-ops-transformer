@@ -6,6 +6,52 @@
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
+# classify_rule.yaml
+#
+# 用来配置 CI 如何根据文件变更列表触发相应的验证
+#
+# 配置以结点为最小单位，结点可以处在不同的目录层级，解析器基于 module:True 标识确认结点位置，例如：
+# global_config: -------------- 一级目录下的结点
+#   module: True
+# attention:
+#   flash_attention_score: ---- 二级目录下的结点
+#     module: True
+# mc2:
+#   matrix:
+#     all_gather_matmul: ------ 三级目录下的结点
+#       module: True
+#
+# 对于一个结点，允许配置的字段如下：
+# op_name: -------------------- 结点名，一般为算子名
+#   module: True -------------- 固定写法，标识此处为一个结点
+#   src: ---------------------- [可选] 配置看护的源码列表，当其中的文件被修改时，会触发该结点 options 中配置的算子验证
+#     - op_name --------------- 算子的根目录一般需要看护
+#     - common ---------------- 算子依赖的一些公共文件一般也需要看护
+#   exclude: ------------------ [可选] 配置排除的源码列表，里面的文件不会被看护
+#     - op_name/docs ---------- 算子的文档目录一般需要排除
+#     - op_name/README.md ----- 算子的 README 文件一般需要排除
+#   ut_cov_exclude: ----------- [可选] 配置统计 ut 覆盖率时，需要排除的源码列表
+#     - op_name/examples ------ 算子的 examples 目录一般不需要看护覆盖率
+#     - op_name/tests --------- 算子的 tests 目录一般不需要看护覆盖率
+#   test: --------------------- [可选] 配置该结点的校验方式，目前支持 example、ut
+#     example: True ----------- [可选] 配置为 True 时，验证会被触发，未填写的字段默认为 True
+#     ut: False --------------- [可选] 配置为 False 时，验证不会被触发，其他结点的 options 配置了本结点时，也不会触发本结点的验证
+#   options: ------------------ [可选] 校验列表，用于配置当前结点的 src 被修改时，需要触发的验证
+#     - op_name --------------- 当前算子
+#     - another_op_name ------- 需要一起验证的算子（例如有些算子在examples用例中需要一起执行），被触发结点的options不会递归触发
+# 注意，exclude 和 ut_cov_exclude 的影响不局限于当前结点，而是对全仓代码生效，慎用正则表达式！
+
+global_config:
+  module: True
+  ut_cov_exclude:
+    - "*/tests/*"
+    - "*/third_party/*"
+    - "*/gtest/*"
+    - "*/json/*"
+    - build
+    - common
+    - mc2/3rd
+    - mc2/common
 
 attention:
   # flash_attention_score:
@@ -15,6 +61,8 @@ attention:
   #   exclude:
   #     - attention/flash_attention_score/docs
   #     - attention/flash_attention_score/README.md
+  #   ut_cov_exclude:
+  #     - attention/flash_attention_score
   #   options:
   #     - flash_attention_score
 
@@ -25,6 +73,8 @@ attention:
   #   exclude:
   #     - attention/flash_attention_score_grad/docs
   #     - attention/flash_attention_score_grad/README.md
+  #   ut_cov_exclude:
+  #     - attention/flash_attention_score_grad
   #   options:
   #     - flash_attention_score_grad
 
@@ -35,6 +85,8 @@ attention:
     exclude:
       - attention/fused_infer_attention_score/docs
       - attention/fused_infer_attention_score/README.md
+    ut_cov_exclude:
+      - attention/fused_infer_attention_score
     options:
       - incre_flash_attention
       # - fused_infer_attention_score
@@ -47,6 +99,8 @@ attention:
     exclude:
       - attention/incre_flash_attention/docs
       - attention/incre_flash_attention/README.md
+    ut_cov_exclude:
+      - attention/incre_flash_attention
     options:
       - incre_flash_attention
       # - fused_infer_attention_score
@@ -58,6 +112,8 @@ attention:
     exclude:
       - attention/nsa_compress/docs
       - attention/nsa_compress/README.md
+    ut_cov_exclude:
+      - attention/nsa_compress
     options:
       - nsa_compress
 
@@ -68,6 +124,8 @@ attention:
     exclude:
       - attention/nsa_compress_attention/docs
       - attention/nsa_compress_attention/README.md
+    ut_cov_exclude:
+      - attention/nsa_compress_attention
     options:
       - nsa_compress_attention
 
@@ -78,6 +136,8 @@ attention:
     exclude:
       - attention/nsa_compress_attention_infer/docs
       - attention/nsa_compress_attention_infer/README.md
+    ut_cov_exclude:
+      - attention/nsa_compress_attention_infer
     options:
       - nsa_compress_attention_infer
 
@@ -88,6 +148,8 @@ attention:
     exclude:
       - attention/nsa_compress_grad/docs
       - attention/nsa_compress_grad/README.md
+    ut_cov_exclude:
+      - attention/nsa_compress_grad
     options:
       - nsa_compress_grad
 
@@ -98,6 +160,8 @@ attention:
     exclude:
       - attention/nsa_compress_with_cache/docs
       - attention/nsa_compress_with_cache/README.md
+    ut_cov_exclude:
+      - attention/nsa_compress_with_cache
     options:
       - nsa_compress_with_cache
 
@@ -108,6 +172,8 @@ attention:
     exclude:
       - attention/nsa_selected_attention/docs
       - attention/nsa_selected_attention/README.md
+    ut_cov_exclude:
+      - attention/nsa_selected_attention
     options:
       - nsa_selected_attention
 
@@ -118,6 +184,8 @@ attention:
     exclude:
       - attention/nsa_selected_attention_grad/docs
       - attention/nsa_selected_attention_grad/README.md
+    ut_cov_exclude:
+      - attention/nsa_selected_attention_grad
     options:
       - nsa_selected_attention_grad
 
@@ -128,6 +196,8 @@ attention:
     exclude:
       - attention/nsa_selected_attention_infer/docs
       - attention/nsa_selected_attention_infer/README.md
+    ut_cov_exclude:
+      - attention/nsa_selected_attention_infer
     options:
       - nsa_selected_attention_infer
 
@@ -138,6 +208,8 @@ attention:
     exclude:
       - attention/prompt_flash_attention/docs
       - attention/prompt_flash_attention/README.md
+    ut_cov_exclude:
+      - attention/prompt_flash_attention
     options:
       - prompt_flash_attention
       # - fused_infer_attention_score
@@ -150,6 +222,8 @@ gmm:
     exclude:
       - gmm/grouped_matmul/docs
       - gmm/grouped_matmul/README.md
+    ut_cov_exclude:
+      - gmm/grouped_matmul
     options:
       - grouped_matmul
 
@@ -160,6 +234,8 @@ gmm:
     exclude:
       - gmm/grouped_matmul_swiglu_quant/docs
       - gmm/grouped_matmul_swiglu_quant/README.md
+    ut_cov_exclude:
+      - gmm/grouped_matmul_swiglu_quant
     options:
       - grouped_matmul_swiglu_quant
 
@@ -170,6 +246,8 @@ gmm:
     exclude:
       - gmm/grouped_matmul_swiglu_quant_v2/docs
       - gmm/grouped_matmul_swiglu_quant_v2/README.md
+    ut_cov_exclude:
+      - gmm/grouped_matmul_swiglu_quant_v2
     options:
       - grouped_matmul_swiglu_quant_v2
 
@@ -180,6 +258,8 @@ gmm:
     exclude:
       - gmm/grouped_matmul_add/docs
       - gmm/grouped_matmul_add/README.md
+    ut_cov_exclude:
+      - gmm/grouped_matmul_add
     options:
       - grouped_matmul_add
 
@@ -190,6 +270,8 @@ gmm:
     exclude:
       - gmm/grouped_matmul_finalize_routing/docs
       - gmm/grouped_matmul_finalize_routing/README.md
+    ut_cov_exclude:
+      - gmm/grouped_matmul_finalize_routing
     options:
       - grouped_matmul_finalize_routing
 
@@ -201,6 +283,8 @@ ffn:
     exclude:
       - ffn/ffn/docs
       - ffn/ffn/README.md
+    ut_cov_exclude:
+      - ffn/ffn
     options:
       - ffn
 
@@ -211,6 +295,8 @@ ffn:
     exclude:
       - ffn/swin_attention_ffn/docs
       - ffn/swin_attention_ffn/README.md
+    ut_cov_exclude:
+      - ffn/swin_attention_ffn
     options:
       - swin_attention_ffn
 
@@ -221,6 +307,8 @@ ffn:
     exclude:
       - ffn/swin_transformer_ln_qkv/docs
       - ffn/swin_transformer_ln_qkv/README.md
+    ut_cov_exclude:
+      - ffn/swin_transformer_ln_qkv
     options:
       - swin_transformer_ln_qkv
 
@@ -231,6 +319,8 @@ ffn:
     exclude:
       - ffn/swin_transformer_ln_qkv_quant/docs
       - ffn/swin_transformer_ln_qkv_quant/README.md
+    ut_cov_exclude:
+      - ffn/swin_transformer_ln_qkv_quant
     options:
       - swin_transformer_ln_qkv_quant
 
@@ -242,10 +332,12 @@ moe:
     exclude:
       - moe/moe_finalize_routing_v2/docs
       - moe/moe_finalize_routing_v2/README.md
+    ut_cov_exclude:
+      - moe/moe_finalize_routing_v2
     options:
       - moe_finalize_routing_v2
       - moe_token_unpermute
-  
+
   moe_compute_expert_tokens:
     module: True
     src:
@@ -253,6 +345,8 @@ moe:
     exclude:
       - moe/moe_compute_expert_tokens/docs
       - moe/moe_compute_expert_tokens/README.md
+    ut_cov_exclude:
+      - moe/moe_compute_expert_tokens
     options:
       - moe_compute_expert_tokens
 
@@ -263,6 +357,8 @@ moe:
     exclude:
       - moe/moe_finalize_routing/docs
       - moe/moe_finalize_routing/README.md
+    ut_cov_exclude:
+      - moe/moe_finalize_routing
     options:
       - moe_finalize_routing
 
@@ -273,6 +369,8 @@ moe:
     exclude:
       - moe/moe_finalize_routing_v2_grad/docs
       - moe/moe_finalize_routing_v2_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_finalize_routing_v2_grad
     options:
       - moe_finalize_routing_v2_grad
 
@@ -283,6 +381,8 @@ moe:
     exclude:
       - moe/moe_fused_topk/docs
       - moe/moe_fused_topk/README.md
+    ut_cov_exclude:
+      - moe/moe_fused_topk
     options:
       - moe_fused_topk
 
@@ -293,6 +393,8 @@ moe:
     exclude:
       - moe/moe_gating_top_k/docs
       - moe/moe_gating_top_k/README.md
+    ut_cov_exclude:
+      - moe/moe_gating_top_k
     options:
       - moe_gating_top_k
 
@@ -303,6 +405,8 @@ moe:
     exclude:
       - moe/moe_gating_top_k_softmax/docs
       - moe/moe_gating_top_k_softmax/README.md
+    ut_cov_exclude:
+      - moe/moe_gating_top_k_softmax
     options:
       - moe_gating_top_k_softmax
 
@@ -313,6 +417,8 @@ moe:
     exclude:
       - moe/moe_gating_top_k_softmax_v2/docs
       - moe/moe_gating_top_k_softmax_v2/README.md
+    ut_cov_exclude:
+      - moe/moe_gating_top_k_softmax_v2
     options:
       - moe_gating_top_k_softmax_v2
 
@@ -323,6 +429,8 @@ moe:
     exclude:
       - moe/moe_init_routing/docs
       - moe/moe_init_routing/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing
     options:
       - moe_init_routing
 
@@ -333,6 +441,8 @@ moe:
     exclude:
       - moe/moe_init_routing_quant/docs
       - moe/moe_init_routing_quant/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing_quant
     options:
       - moe_init_routing_quant
 
@@ -343,6 +453,8 @@ moe:
     exclude:
       - moe/moe_init_routing_quant_v2/docs
       - moe/moe_init_routing_quant_v2/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing_quant_v2
     options:
       - moe_init_routing_quant_v2
 
@@ -353,6 +465,8 @@ moe:
     exclude:
       - moe/moe_init_routing_v2/docs
       - moe/moe_init_routing_v2/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing_v2
     options:
       - moe_init_routing_v2
 
@@ -363,6 +477,8 @@ moe:
     exclude:
       - moe/moe_init_routing_v2_grad/docs
       - moe/moe_init_routing_v2_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing_v2_grad
     options:
       - moe_init_routing_v2_grad
       - moe_token_permute_grad
@@ -374,6 +490,8 @@ moe:
     exclude:
       - moe/moe_init_routing_v3/docs
       - moe/moe_init_routing_v3/README.md
+    ut_cov_exclude:
+      - moe/moe_init_routing_v3
     options:
       - moe_init_routing_v3
 
@@ -384,6 +502,8 @@ moe:
     exclude:
       - moe/moe_re_routing/docs
       - moe/moe_re_routing/README.md
+    ut_cov_exclude:
+      - moe/moe_re_routing
     options:
       - moe_re_routing
 
@@ -394,6 +514,8 @@ moe:
     exclude:
       - moe/moe_token_permute/docs
       - moe/moe_token_permute/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute
     options:
       - moe_token_permute
 
@@ -404,6 +526,8 @@ moe:
     exclude:
       - moe/moe_token_permute_grad/docs
       - moe/moe_token_permute_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute_grad
     options:
       - moe_token_permute_grad
 
@@ -414,6 +538,8 @@ moe:
     exclude:
       - moe/moe_token_permute_with_ep/docs
       - moe/moe_token_permute_with_ep/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute_with_ep
     options:
       - moe_token_permute_with_ep
 
@@ -424,6 +550,8 @@ moe:
     exclude:
       - moe/moe_token_permute_with_ep_grad/docs
       - moe/moe_token_permute_with_ep_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute_with_ep_grad
     options:
       - moe_token_permute_with_ep_grad
 
@@ -434,6 +562,8 @@ moe:
     exclude:
       - moe/moe_token_permute_with_routing_map/docs
       - moe/moe_token_permute_with_routing_map/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute_with_routing_map
     options:
       - moe_token_permute_with_routing_map
 
@@ -444,6 +574,8 @@ moe:
     exclude:
       - moe/moe_token_permute_with_routing_map_grad/docs
       - moe/moe_token_permute_with_routing_map_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_permute_with_routing_map_grad
     options:
       - moe_token_permute_with_routing_map_grad
       - moe_token_unpermute
@@ -455,6 +587,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute/docs
       - moe/moe_token_unpermute/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute
     options:
       - moe_token_unpermute
       - moe_token_permute_with_routing_map_grad
@@ -466,6 +600,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute_grad/docs
       - moe/moe_token_unpermute_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute_grad
     options:
       - moe_token_unpermute_grad
 
@@ -476,6 +612,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute_with_ep/docs
       - moe/moe_token_unpermute_with_ep/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute_with_ep
     options:
       - moe_token_unpermute_with_ep
 
@@ -486,6 +624,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute_with_ep_grad/docs
       - moe/moe_token_unpermute_with_ep_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute_with_ep_grad
     options:
       - moe_token_unpermute_with_ep_grad
 
@@ -496,6 +636,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute_with_routing_map/docs
       - moe/moe_token_unpermute_with_routing_map/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute_with_routing_map
     options:
       - moe_token_unpermute_with_routing_map
 
@@ -506,6 +648,8 @@ moe:
     exclude:
       - moe/moe_token_unpermute_with_routing_map_grad/docs
       - moe/moe_token_unpermute_with_routing_map_grad/README.md
+    ut_cov_exclude:
+      - moe/moe_token_unpermute_with_routing_map_grad
     options:
       - moe_token_unpermute_with_routing_map_grad
 
@@ -517,6 +661,8 @@ posembedding:
     exclude:
       - posembedding/apply_rotary_pos_emb/docs
       - posembedding/apply_rotary_pos_emb/README.md
+    ut_cov_exclude:
+      - posembedding/apply_rotary_pos_emb
     options:
       - apply_rotary_pos_emb
 
@@ -527,6 +673,8 @@ posembedding:
     exclude:
       - posembedding/dequant_rope_quant_kvcache/docs
       - posembedding/dequant_rope_quant_kvcache/README.md
+    ut_cov_exclude:
+      - posembedding/dequant_rope_quant_kvcache
     options:
       - dequant_rope_quant_kvcache
 
@@ -537,6 +685,8 @@ posembedding:
     exclude:
       - posembedding/interleave_rope/docs
       - posembedding/interleave_rope/README.md
+    ut_cov_exclude:
+      - posembedding/interleave_rope
     options:
       - interleave_rope
       - rotary_position_embedding
@@ -548,6 +698,8 @@ posembedding:
     exclude:
       - posembedding/rope_quant_kvcache/docs
       - posembedding/rope_quant_kvcache/README.md
+    ut_cov_exclude:
+      - posembedding/rope_quant_kvcache
     options:
       - rope_quant_kvcache
 
@@ -558,6 +710,8 @@ posembedding:
     exclude:
       - posembedding/rope_with_sin_cos_cache/docs
       - posembedding/rope_with_sin_cos_cache/README.md
+    ut_cov_exclude:
+      - posembedding/rope_with_sin_cos_cache
     options:
       - rope_with_sin_cos_cache
 
@@ -568,6 +722,8 @@ posembedding:
     exclude:
       - posembedding/rotary_position_embedding/docs
       - posembedding/rotary_position_embedding/README.md
+    ut_cov_exclude:
+      - posembedding/rotary_position_embedding
     options:
       - rotary_position_embedding
 
@@ -578,187 +734,397 @@ posembedding:
     exclude:
       - posembedding/rotary_position_embedding_grad/docs
       - posembedding/rotary_position_embedding_grad/README.md
+    ut_cov_exclude:
+      - posembedding/rotary_position_embedding_grad
     options:
       - rotary_position_embedding_grad
-  
+
 mc2:
-  all_gather_matmul:
-    module: True
-    src:
-      - mc2/all_gather_matmul
-    exclude:
-      - mc2/all_gather_matmul/docs
-      - mc2/all_gather_matmul/README.md
-    # options:
-    #   - all_gather_matmul
+  matrix:
+    all_gather_matmul:
+      module: True
+      src:
+        - mc2/all_gather_matmul
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/all_gather_matmul/docs
+        - mc2/all_gather_matmul/README.md
+      ut_cov_exclude:
+        - mc2/all_gather_matmul
+      test:
+        examples: False
+      options:
+        - all_gather_matmul
+        - all_gather_matmul_v2
 
-  allto_all_all_gather_batch_mat_mul:
-    module: True
-    src:
-      - mc2/allto_all_all_gather_batch_mat_mul
-    exclude:
-      - mc2/allto_all_all_gather_batch_mat_mul/docs
-      - mc2/allto_all_all_gather_batch_mat_mul/README.md
-    # options:
-    #   - allto_all_all_gather_batch_mat_mul
+    all_gather_matmul_v2:
+      module: True
+      src:
+        - mc2/all_gather_matmul_v2
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/all_gather_matmul_v2/docs
+        - mc2/all_gather_matmul_v2/README.md
+      ut_cov_exclude:
+        - mc2/all_gather_matmul_v2
+      test:
+        examples: False
+        ut: False
+      options:
+        - all_gather_matmul_v2
 
-  allto_allv_grouped_mat_mul:
-    module: True
-    src:
-      - mc2/allto_allv_grouped_mat_mul
-    exclude:
-      - mc2/allto_allv_grouped_mat_mul/docs
-      - mc2/allto_allv_grouped_mat_mul/README.md
-    # options:
-    #   - allto_allv_grouped_mat_mul
+    allto_all_all_gather_batch_mat_mul:
+      module: True
+      src:
+        - mc2/allto_all_all_gather_batch_mat_mul
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/allto_all_all_gather_batch_mat_mul/docs
+        - mc2/allto_all_all_gather_batch_mat_mul/README.md
+      ut_cov_exclude:
+        - mc2/allto_all_all_gather_batch_mat_mul
+      test:
+        examples: False
+      options:
+        - allto_all_all_gather_batch_mat_mul
 
-  batch_mat_mul_reduce_scatter_allto_all:
-    module: True
-    src:
-      - mc2/batch_mat_mul_reduce_scatter_allto_all
-    exclude:
-      - mc2/batch_mat_mul_reduce_scatter_allto_all/docs
-      - mc2/batch_mat_mul_reduce_scatter_allto_all/README.md
-    # options:
-    #   - batch_mat_mul_reduce_scatter_allto_all
+    allto_allv_grouped_mat_mul:
+      module: True
+      src:
+        - mc2/allto_allv_grouped_mat_mul
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/allto_allv_grouped_mat_mul/docs
+        - mc2/allto_allv_grouped_mat_mul/README.md
+      ut_cov_exclude:
+        - mc2/allto_allv_grouped_mat_mul
+      test:
+        examples: False
+      options:
+        - allto_allv_grouped_mat_mul
 
-  distribute_barrier:
-    module: True
-    src:
-      - mc2/distribute_barrier
-    exclude:
-      - mc2/distribute_barrier/docs
-      - mc2/distribute_barrier/README.md
-    # options:
-    #   - distribute_barrier
+    batch_mat_mul_reduce_scatter_allto_all:
+      module: True
+      src:
+        - mc2/batch_mat_mul_reduce_scatter_allto_all
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/batch_mat_mul_reduce_scatter_allto_all/docs
+        - mc2/batch_mat_mul_reduce_scatter_allto_all/README.md
+      ut_cov_exclude:
+        - mc2/batch_mat_mul_reduce_scatter_allto_all
+      test:
+        examples: False
+      options:
+        - batch_mat_mul_reduce_scatter_allto_all
 
-  grouped_mat_mul_all_reduce:
-    module: True
-    src:
-      - mc2/grouped_mat_mul_all_reduce
-    exclude:
-      - mc2/grouped_mat_mul_all_reduce/docs
-      - mc2/grouped_mat_mul_all_reduce/README.md
-    # options:
-    #   - grouped_mat_mul_all_reduce
+    grouped_mat_mul_all_reduce:
+      module: True
+      src:
+        - mc2/grouped_mat_mul_all_reduce
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/grouped_mat_mul_all_reduce/docs
+        - mc2/grouped_mat_mul_all_reduce/README.md
+      ut_cov_exclude:
+        - mc2/grouped_mat_mul_all_reduce
+      test:
+        examples: False
+      options:
+        - grouped_mat_mul_all_reduce
 
-  grouped_mat_mul_allto_allv:
-    module: True
-    src:
-      - mc2/grouped_mat_mul_allto_allv
-    exclude:
-      - mc2/grouped_mat_mul_allto_allv/docs
-      - mc2/grouped_mat_mul_allto_allv/README.md
-    # options:
-    #   - grouped_mat_mul_allto_allv
+    grouped_mat_mul_allto_allv:
+      module: True
+      src:
+        - mc2/grouped_mat_mul_allto_allv
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/grouped_mat_mul_allto_allv/docs
+        - mc2/grouped_mat_mul_allto_allv/README.md
+      ut_cov_exclude:
+        - mc2/grouped_mat_mul_allto_allv
+      test:
+        examples: False
+      options:
+        - grouped_mat_mul_allto_allv
 
-  inplace_matmul_all_reduce_add_rms_norm:
-    module: True
-    src:
-      - mc2/inplace_matmul_all_reduce_add_rms_norm
-    exclude:
-      - mc2/inplace_matmul_all_reduce_add_rms_norm/docs
-      - mc2/inplace_matmul_all_reduce_add_rms_norm/README.md
-    # options:
-    #   - inplace_matmul_all_reduce_add_rms_norm
-    #   - matmul_all_reduce_add_rms_norm
+    inplace_matmul_all_reduce_add_rms_norm:
+      module: True
+      src:
+        - mc2/inplace_matmul_all_reduce_add_rms_norm
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/inplace_matmul_all_reduce_add_rms_norm/docs
+        - mc2/inplace_matmul_all_reduce_add_rms_norm/README.md
+      ut_cov_exclude:
+        - mc2/inplace_matmul_all_reduce_add_rms_norm
+      test:
+        examples: False
+      options:
+        - inplace_matmul_all_reduce_add_rms_norm
+        - matmul_all_reduce_add_rms_norm
 
-  matmul_all_reduce:
-    module: True
-    src:
-      - mc2/matmul_all_reduce
-    exclude:
-      - mc2/matmul_all_reduce/docs
-      - mc2/matmul_all_reduce/README.md
-    # options:
-    #   - matmul_all_reduce
+    matmul_all_reduce:
+      module: True
+      src:
+        - mc2/matmul_all_reduce
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/matmul_all_reduce/docs
+        - mc2/matmul_all_reduce/README.md
+      ut_cov_exclude:
+        - mc2/matmul_all_reduce
+      test:
+        examples: False
+      options:
+        - matmul_all_reduce
 
-  matmul_all_reduce_add_rms_norm:
-    module: True
-    src:
-      - mc2/matmul_all_reduce_add_rms_norm
-    exclude:
-      - mc2/matmul_all_reduce_add_rms_norm/docs
-      - mc2/matmul_all_reduce_add_rms_norm/README.md
-    # options:
-    #   - matmul_all_reduce_add_rms_norm
+    matmul_all_reduce_add_rms_norm:
+      module: True
+      src:
+        - mc2/matmul_all_reduce_add_rms_norm
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/matmul_all_reduce_add_rms_norm/docs
+        - mc2/matmul_all_reduce_add_rms_norm/README.md
+      ut_cov_exclude:
+        - mc2/matmul_all_reduce_add_rms_norm
+      test:
+        examples: False
+      options:
+        - matmul_all_reduce_add_rms_norm
 
-  matmul_reduce_scatter:
-    module: True
-    src:
-      - mc2/matmul_reduce_scatter
-    exclude:
-      - mc2/matmul_reduce_scatter/docs
-      - mc2/matmul_reduce_scatter/README.md
-    # options:
-    #   - matmul_reduce_scatter
+    matmul_reduce_scatter:
+      module: True
+      src:
+        - mc2/matmul_reduce_scatter
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/matmul_reduce_scatter/docs
+        - mc2/matmul_reduce_scatter/README.md
+      ut_cov_exclude:
+        - mc2/matmul_reduce_scatter
+      test:
+        examples: False
+      options:
+        - matmul_reduce_scatter
 
-  moe_distribute_combine:
-    module: True
-    src:
-      - mc2/moe_distribute_combine
-    exclude:
-      - mc2/moe_distribute_combine/docs
-      - mc2/moe_distribute_combine/README.md
-    # options:
-    #   - moe_distribute_combine
+    matmul_reduce_scatter_v2:
+      module: True
+      src:
+        - mc2/matmul_reduce_scatter_v2
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/matmul_reduce_scatter_v2/docs
+        - mc2/matmul_reduce_scatter_v2/README.md
+      ut_cov_exclude:
+        - mc2/matmul_reduce_scatter_v2
+      test:
+        examples: False
+      options:
+        - matmul_reduce_scatter_v2
 
-  moe_distribute_combine_add_rms_norm:
-    module: True
-    src:
-      - mc2/moe_distribute_combine_add_rms_norm
-    exclude:
-      - mc2/moe_distribute_combine_add_rms_norm/docs
-      - mc2/moe_distribute_combine_add_rms_norm/README.md
-    # options:
-    #   - moe_distribute_combine_add_rms_norm
+    quant_all_reduce:
+      module: True
+      src:
+        - mc2/quant_all_reduce
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/quant_all_reduce/docs
+        - mc2/quant_all_reduce/README.md
+      ut_cov_exclude:
+        - mc2/quant_all_reduce
+      test:
+        examples: False
+      options:
+        - quant_all_reduce
 
-  moe_distribute_combine_v2:
-    module: True
-    src:
-      - mc2/moe_distribute_combine_v2
-    exclude:
-      - mc2/moe_distribute_combine_v2/docs
-      - mc2/moe_distribute_combine_v2/README.md
-    # options:
-    #   - moe_distribute_combine_v2
+    quant_reduce_scatter:
+      module: True
+      src:
+        - mc2/quant_reduce_scatter
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/quant_reduce_scatter/docs
+        - mc2/quant_reduce_scatter/README.md
+      ut_cov_exclude:
+        - mc2/quant_reduce_scatter
+      test:
+        examples: False
+      options:
+        - quant_reduce_scatter
 
-  moe_distribute_dispatch:
-    module: True
-    src:
-      - mc2/moe_distribute_dispatch
-    exclude:
-      - mc2/moe_distribute_dispatch/docs
-      - mc2/moe_distribute_dispatch/README.md
-    # options:
-    #   - moe_distribute_dispatch
+  moe_distribute:
+    distribute_barrier:
+      module: True
+      src:
+        - mc2/distribute_barrier
+        - mc2/common
+      exclude:
+        - mc2/distribute_barrier/docs
+        - mc2/distribute_barrier/README.md
+      ut_cov_exclude:
+        - mc2/distribute_barrier
+      test:
+        examples: False
+      options:
+        - distribute_barrier
+        - moe_distribute_dispatch_v2
+        - moe_distribute_combine_v2
 
-  moe_distribute_dispatch_v2:
-    module: True
-    src:
-      - mc2/moe_distribute_dispatch_v2
-    exclude:
-      - mc2/moe_distribute_dispatch_v2/docs
-      - mc2/moe_distribute_dispatch_v2/README.md
-    # options:
-    #   - moe_distribute_dispatch_v2
+    elastic_receivable_info_collect:
+      module: True
+      src:
+        - mc2/elastic_receivable_info_collect
+        - mc2/common
+      exclude:
+        - mc2/elastic_receivable_info_collect/docs
+        - mc2/elastic_receivable_info_collect/README.md
+      ut_cov_exclude:
+        - mc2/elastic_receivable_info_collect
+      test:
+        examples: False
+      options:
+        - elastic_receivable_info_collect
 
-  moe_update_expert:
-    module: True
-    src:
-      - mc2/moe_update_expert
-    exclude:
-      - mc2/moe_update_expert/docs
-      - mc2/moe_update_expert/README.md
-    # options:
-    #   - moe_update_expert
+    elastic_receivable_test:
+      module: True
+      src:
+        - mc2/elastic_receivable_test
+        - mc2/common
+      exclude:
+        - mc2/elastic_receivable_test/docs
+        - mc2/elastic_receivable_test/README.md
+      ut_cov_exclude:
+        - mc2/elastic_receivable_test
+      test:
+        examples: False
+      options:
+        - elastic_receivable_test
 
-  quant_reduce_scatter:
-    module: True
-    src:
-      - mc2/quant_reduce_scatter
-    exclude:
-      - mc2/quant_reduce_scatter/docs
-      - mc2/quant_reduce_scatter/README.md
-    # options:
-    #   - quant_reduce_scatter
+    moe_distribute_buffer_reset:
+      module: True
+      src:
+        - mc2/moe_distribute_buffer_reset
+        - mc2/common
+      exclude:
+        - mc2/moe_distribute_buffer_reset/docs
+        - mc2/moe_distribute_buffer_reset/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_buffer_reset
+      test:
+        examples: False
+      options:
+        - moe_distribute_buffer_reset
+
+    moe_distribute_combine:
+      module: True
+      src:
+        - mc2/moe_distribute_combine
+        - mc2/common
+      exclude:
+        - mc2/moe_distribute_combine/docs
+        - mc2/moe_distribute_combine/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_combine
+      test:
+        examples: False
+      options:
+        - moe_distribute_combine
+        - moe_distribute_dispatch
+
+    moe_distribute_combine_add_rms_norm:
+      module: True
+      src:
+        - mc2/moe_distribute_combine_add_rms_norm
+        - mc2/common
+        - mc2/3rd
+      exclude:
+        - mc2/moe_distribute_combine_add_rms_norm/docs
+        - mc2/moe_distribute_combine_add_rms_norm/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_combine_add_rms_norm
+      test:
+        examples: False
+      options:
+        - moe_distribute_combine_add_rms_norm
+        - moe_distribute_dispatch_v2
+
+    moe_distribute_combine_v2:
+      module: True
+      src:
+        - mc2/moe_distribute_combine_v2
+        - mc2/common
+      exclude:
+        - mc2/moe_distribute_combine_v2/docs
+        - mc2/moe_distribute_combine_v2/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_combine_v2
+      test:
+        examples: False
+      options:
+        - moe_distribute_combine_v2
+        - moe_distribute_dispatch_v2
+
+    moe_distribute_dispatch:
+      module: True
+      src:
+        - mc2/moe_distribute_dispatch
+        - mc2/common
+      exclude:
+        - mc2/moe_distribute_dispatch/docs
+        - mc2/moe_distribute_dispatch/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_dispatch
+      test:
+        examples: False
+      options:
+        - moe_distribute_dispatch
+        - moe_distribute_combine
+
+    moe_distribute_dispatch_v2:
+      module: True
+      src:
+        - mc2/moe_distribute_dispatch_v2
+        - mc2/common
+      exclude:
+        - mc2/moe_distribute_dispatch_v2/docs
+        - mc2/moe_distribute_dispatch_v2/README.md
+      ut_cov_exclude:
+        - mc2/moe_distribute_dispatch_v2
+      test:
+        examples: False
+      options:
+        - moe_distribute_dispatch_v2
+        - moe_distribute_combine_v2
+
+    moe_update_expert:
+      module: True
+      src:
+        - mc2/moe_update_expert
+        - mc2/common
+      exclude:
+        - mc2/moe_update_expert/docs
+        - mc2/moe_update_expert/README.md
+      ut_cov_exclude:
+        - mc2/moe_update_expert
+      test:
+        examples: False
+      options:
+        - moe_update_expert
+        - moe_distribute_dispatch_v2
+        - moe_distribute_combine_add_rms_norm
