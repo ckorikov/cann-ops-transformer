@@ -1116,6 +1116,8 @@ bool PromptFlashAttentionTiling::PromptFlashAttentionCheckBmm1(PromptFlashAttent
     if (curShortSocName == platform_ascendc::SocVersion::ASCEND310P) {
         PromptFlashAttention310PSetBmm1(bmm1);
         bmm1Headsize = tilingData.promptAttentionBaseParams.get_headSize() + tilingData.promptAttentionBaseParams.get_ropeHeadSize();
+        l1SizeRemain = l1SizeRemain - 2 * (tilingData.promptAttentionTensorSizeRect.get_scmTmpSize() /
+            tilingData.promptAttentionBaseParams.get_headSize()) * tilingData.promptAttentionBaseParams.get_ropeHeadSize();
     } else { // 910b
         matmul_tiling::DataType bmm1InputType = matmul_tiling::DataType::DT_FLOAT16;
         matmul_tiling::DataType bmm1OutputType = matmul_tiling::DataType::DT_FLOAT16;

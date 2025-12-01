@@ -127,7 +127,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             calcHeightAlign = (innerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
             qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
             this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeCoreOffset], innerSize, 
-                this->tilingData->promptAttentionBaseParams.headSize, this->kRopeStride, true);
+                this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->kRopeStride, true);
         }       
         this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize,
                           this->tilingData->promptAttentionBaseParams.headSize +

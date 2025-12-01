@@ -386,7 +386,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitPFABuffer
         if (queryRope != nullptr) {
             queryRopeGM.SetGlobalBuffer((__gm__ T*)queryRope);
             keyRopeGM.SetGlobalBuffer((__gm__ T*)keyRope);
-            qkL1Size = (tilingData->promptAttentionTensorSizeRect.scmTmpSize / tilingData->promptAttentionBaseParams.headSize) *
+            qkL1Size = ((tilingData->promptAttentionTensorSizeRect.scmTmpSize  * sizeof(mmInputType)) / tilingData->promptAttentionBaseParams.headSize) *
                        (tilingData->promptAttentionBaseParams.headSize + tilingData->promptAttentionBaseParams.ropeHeadSize);
         }
     } else {

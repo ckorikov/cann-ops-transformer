@@ -813,7 +813,7 @@ extern "C" __global__ __aicore__ void prompt_flash_attention_FIAS(__gm__ uint8_t
         #elif TILING_KEY_VAR == QFP4E1M2_KVFP16_OUTINT8_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_BNSD_310TILING
             INVOKE_PFA_GENERAL_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BSH, half, int8_t, half, half, ModeNZ::HighPrecisionNZ>);
         #elif TILING_KEY_VAR == QFP16_KVFP16_OUTFP16_HIGHLEVELAPI_MDL_NOTAIL_CUBEVECTORDIFF_KV_D_DIFF_BSND_310TILING
-            INVOKE_PFA_KV_D_DIFF_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BSH, half, half, half, half, ModeNZ::HighPerformanceNZ, true>);
+            INVOKE_PFA_KV_D_DIFF_OP_IMPL(PromptFlashAttentionS1s2Bns1X310, PFATypeNZ<PFALayoutNZ::BSH, half, int8_t, half, half, ModeNZ::HighPerformanceNZ, true>);
         #endif
     #endif
     }    
