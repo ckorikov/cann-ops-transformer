@@ -3873,5 +3873,5 @@ IFA_EXTERN_C ge::graphStatus TilingIncreFlashAttention(gert::TilingContext *cont
 {
     return TilingIncreFlashAttentionAdapter(context);
 }
-REGISTER_TILING_TEMPLATE_FIA(IncreFlashAttention, IFATiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 90);
+REGISTER_TILING_TEMPLATE_FIA(IncreFlashAttention, IFATiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND310P}), 90);
 } // namespace optiling

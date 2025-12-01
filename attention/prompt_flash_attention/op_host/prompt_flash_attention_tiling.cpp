@@ -6545,5 +6545,5 @@ PFA_EXTERN_C ge::graphStatus PromptFlashAttentionTiling::DoOpTiling() {
         PromptFlashAttentionSetTilingData(context_, tilingData);
         return ret;
 }
-REGISTER_TILING_TEMPLATE_FIA(PromptFlashAttention, PromptFlashAttentionTiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 91);
+REGISTER_TILING_TEMPLATE_FIA(PromptFlashAttention, PromptFlashAttentionTiling, std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B, (int32_t)platform_ascendc::SocVersion::ASCEND310P}), 91);
 }
