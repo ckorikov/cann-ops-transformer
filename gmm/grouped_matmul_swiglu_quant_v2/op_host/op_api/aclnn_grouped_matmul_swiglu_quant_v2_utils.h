@@ -216,7 +216,9 @@ protected:
     bool checkMxfp4InputShape()
     {   
         int64_t kValue = gmmDsqParams_.x->GetViewShape().GetDim(1);
-        int64_t nValue = ((*gmmDsqParams_.weightScale)[0])->GetViewShape().GetDim(1);
+        // 转置情况下从weight的第1维获取n，非转置情况下从weight的第2维获取n
+        int64_t nValue = gmmDsqParams_.transposeWeight ? ((*gmmDsqParams_.weight)[0])->GetViewShape().GetDim(1) :
+                                                         ((*gmmDsqParams_.weight)[0])->GetViewShape().GetDim(2);
         //mxfp4场景不支持k=2
         CHECK_COND(
             kValue != MXFP4_K_CONSTRAINT, ACLNN_ERR_PARAM_INVALID,

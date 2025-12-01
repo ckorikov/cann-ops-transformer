@@ -239,17 +239,17 @@ gmm:
     options:
       - grouped_matmul_swiglu_quant
 
-  grouped_matmul_swiglu_quant_v2:
-    module: True
-    src:
-      - gmm/grouped_matmul_swiglu_quant_v2
-    exclude:
-      - gmm/grouped_matmul_swiglu_quant_v2/docs
-      - gmm/grouped_matmul_swiglu_quant_v2/README.md
-    ut_cov_exclude:
-      - gmm/grouped_matmul_swiglu_quant_v2
-    options:
-      - grouped_matmul_swiglu_quant_v2
+  # grouped_matmul_swiglu_quant_v2:
+  #   module: True
+  #   src:
+  #     - gmm/grouped_matmul_swiglu_quant_v2
+  #   exclude:
+  #     - gmm/grouped_matmul_swiglu_quant_v2/docs
+  #     - gmm/grouped_matmul_swiglu_quant_v2/README.md
+  #   ut_cov_exclude:
+  #     - gmm/grouped_matmul_swiglu_quant_v2
+  #   options:
+  #     - grouped_matmul_swiglu_quant_v2
 
   grouped_matmul_add:
     module: True
