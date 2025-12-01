@@ -120,8 +120,8 @@ public:
         }
         pipe_->Reset();
         uint64_t inputBlockLen = curRows * totalNandSLen;
-        uint64_t inputBlockSize = totalNandSLen / sizeof(T);
-        uint64_t scaleBlockSize = Ceil(totalNandSLen, sizeof(float));
+        uint64_t inputBlockSize = inputBlockLen / sizeof(T);
+        uint64_t scaleBlockSize = Ceil(inputBlockLen, sizeof(float));
         uint64_t inputOffset = this->procRows_ * totalNandSLen * outerIdx * this->coreNum_;
         if ((outerIdx > 0) && (outerIdx == (this->outLoopNum_ - 1)) && (this->procRowsFirstTail_ != 0) &&
             (this->tailUsedCoreNum_ != 0)) {
@@ -140,6 +140,7 @@ public:
                 ProcessDequantReduce(i, curRows, tileN, totalNandSLen, reduceOut);
             }
             ProcessQuant(i, curRows, tileN, totalNandSLen, reduceOut);
+            PipeBarrier<PIPE_ALL>();
         }
     }
 

@@ -136,7 +136,7 @@ __aicore__ inline void MatmulAllReduceCommFp8MixedCalc<XType, WType, YType, MmTy
     coreNum_ = GetBlockNum() * GetTaskRation();
     if constexpr(std::is_same<XType, fp8_e5m2_t>::value) {
         hcclType_ = AscendC::HCCL_DATA_TYPE_FP8E5M2;
-    } else {
+    } else if constexpr(std::is_same<XType, fp8_e4m3fn_t>::value) {
         hcclType_ = AscendC::HCCL_DATA_TYPE_FP8E4M3;
     }
     if ASCEND_IS_AIV { // V核的0核下发通信任务

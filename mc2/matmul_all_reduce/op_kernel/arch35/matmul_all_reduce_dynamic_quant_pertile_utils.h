@@ -73,8 +73,9 @@ __aicore__ inline void DynamicDequant(uint32_t curScaleCnt, uint32_t padCalCnt, 
 template <class XType, class YType>
 __aicore__ inline uint32_t GetMaxProcRows(bool isQuant, uint32_t calBuffSize)
 {
-    uint32_t curUbSize = isQuant ? TOTAL_UB_SIZE - calBuffSize - COMPARE_ALIGN_LEN + 1 - UB_DATABLOCK + 1 :
-                                   TOTAL_UB_SIZE - calBuffSize - UB_DATABLOCK + 1;
+    uint32_t curUbSize = isQuant ?
+                             TOTAL_UB_SIZE - calBuffSize - (COMPARE_ALIGN_LEN - 1 + UB_DATABLOCK - 1) * DOUBLE_BUFFER :
+                             TOTAL_UB_SIZE - calBuffSize - (UB_DATABLOCK - 1) * DOUBLE_BUFFER;
     // 将ub空间按照各个buf所占比例切分
     uint32_t ubDenom =
         isQuant ? 3 * TILELEN * sizeof(float) + TILELEN * sizeof(XType) + sizeof(float) + sizeof(uint8_t) :
@@ -86,7 +87,7 @@ __aicore__ inline uint32_t GetMaxProcRows(bool isQuant, uint32_t calBuffSize)
 template <class XType>
 __aicore__ inline uint32_t GetMixedMaxProcRows(uint32_t calBuffSize)
 {
-    uint32_t curUbSize = TOTAL_UB_SIZE - calBuffSize - COMPARE_ALIGN_LEN + 1 - UB_DATABLOCK + 1;
+    uint32_t curUbSize = TOTAL_UB_SIZE - calBuffSize - (COMPARE_ALIGN_LEN - 1 + UB_DATABLOCK - 1) * DOUBLE_BUFFER;
     uint32_t tilesBuffRatio = TILELEN * sizeof(XType);
     uint32_t scalesBuffRatio = sizeof(float);
     uint32_t calcBuffRatio = 3 * TILELEN * sizeof(float) + sizeof(uint8_t);
