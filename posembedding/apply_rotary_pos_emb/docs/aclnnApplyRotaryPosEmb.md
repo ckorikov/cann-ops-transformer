@@ -340,7 +340,7 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
 }
 
 int main() {
-    // 1. 固定写法，device/stream初始化, 参考acl API手册
+   // 1. 固定写法，device/stream初始化, 参考acl API手册
     // 根据自己的实际device填写deviceId
     int32_t deviceId = 0;
     aclrtStream stream;
@@ -427,18 +427,14 @@ int main() {
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
-    for (int64_t i = 0; i < size; i++) {
-        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
-    }
-
     auto size1 = GetShapeSize(keyShape);
     std::vector<float> resultData1(size1, 0);
     ret = aclrtMemcpy(resultData1.data(), resultData1.size() * sizeof(resultData1[0]), keyDeviceAddr, size1 * sizeof(float),
                       ACL_MEMCPY_DEVICE_TO_HOST);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("copy result from device to host failed. ERROR: %d\n", ret); return ret);
 
-    for (int64_t i = 0; i < size1; i++) {
-        LOG_PRINT("result[%ld] is: %f\n", i, resultData1[i]);
+    for (int64_t i = 0; i < size; i++) {
+        LOG_PRINT("result[%ld] is: %f\n", i, resultData[i]);
     }
 
     // 6. 释放aclTensor和aclScalar，需要根据具体API的接口定义修改
