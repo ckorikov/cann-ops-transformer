@@ -13,7 +13,9 @@
  * \brief
  */
 
+#include <graph/utils/type_utils.h>
 #include <register/op_impl_registry.h>
+#include "err/ops_err.h"
 
 using namespace ge;
 
@@ -51,45 +53,46 @@ enum class AttrIndex : uint32_t {
 
 ge::graphStatus InferShape4SparseFlashAttentionGrad(gert::InferShapeContext *context)
 {
-    OPS_LOG_E_IF_NULL("context", context, return ge::GRAPH_FAILED);
-    OPS_LOGD(context, "Enter InferShape4SparseFlashAttentionGrad.");
+    OP_CHECK_IF(context == nullptr, OP_LOGE("SparseFlashAttentionGrad", "InferShapeContext is nullptr"),
+               return ge::GRAPH_FAILED);
+    OP_LOGD(context, "Enter InferShape4SparseFlashAttentionGrad.");
 
     const gert::Shape *queryShape = context->GetInputShape(static_cast<size_t>(InputIndex::QUERY));
     const gert::Shape *keyShape = context->GetInputShape(static_cast<size_t>(InputIndex::KEY));
     const gert::Shape *valueShape = context->GetInputShape(static_cast<size_t>(InputIndex::VALUE));
     const gert::Shape *queryRopeShape = context->GetOptionalInputShape(static_cast<size_t>(InputIndex::Q_ROPE));
     const gert::Shape *keyRopeShape = context->GetOptionalInputShape(static_cast<size_t>(InputIndex::K_ROPE));
-    OPS_LOG_E_IF_NULL(context, queryShape, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, keyShape, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, valueShape, return ge::GRAPH_FAILED)
+    OP_CHECK_NULL_WITH_CONTEXT(context, queryShape);
+    OP_CHECK_NULL_WITH_CONTEXT(context, keyShape);
+    OP_CHECK_NULL_WITH_CONTEXT(context, valueShape);
 
     auto attrs = context->GetAttrs();
     auto scaleValue = attrs->GetInt(static_cast<size_t>(AttrIndex::SCALE_VALUE));
     auto selectedBlockSize = attrs->GetInt(static_cast<size_t>(AttrIndex::SELECTED_BLOCK_SIZE));
     const char *inputLayout = attrs->GetAttrPointer<char>(static_cast<size_t>(AttrIndex::INPUT_LAYOUT));
-    OPS_LOG_E_IF_NULL(context, attrs, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, scaleValue, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, selectedBlockSize, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, inputLayout, return ge::GRAPH_FAILED)
+    OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
+    OP_CHECK_NULL_WITH_CONTEXT(context, scaleValue);
+    OP_CHECK_NULL_WITH_CONTEXT(context, selectedBlockSize);
+    OP_CHECK_NULL_WITH_CONTEXT(context, inputLayout);
 
     gert::Shape *dqShape = context->GetOutputShape(static_cast<size_t>(OutputIndex::DQ));
     gert::Shape *dkShape = context->GetOutputShape(static_cast<size_t>(OutputIndex::DK));
     gert::Shape *dvShape = context->GetOutputShape(static_cast<size_t>(OutputIndex::DV));
-    OPS_LOG_E_IF_NULL(context, dqShape, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, dkShape, return ge::GRAPH_FAILED)
-    OPS_LOG_E_IF_NULL(context, dvShape, return ge::GRAPH_FAILED)
+    OP_CHECK_NULL_WITH_CONTEXT(context, dqShape);
+    OP_CHECK_NULL_WITH_CONTEXT(context, dkShape);
+    OP_CHECK_NULL_WITH_CONTEXT(context, dvShape);
     *dqShape = *queryShape;
     *dkShape = *keyShape;
     *dvShape = *valueShape;
 
     if (queryRopeShape != nullptr) {
         gert::Shape *dqRopeShape = context->GetOutputShape(static_cast<size_t>(OutputIndex::DQ_ROPE));
-        OPS_LOG_E_IF_NULL(context, dqRopeShape, return ge::GRAPH_FAILED)
+        OP_CHECK_NULL_WITH_CONTEXT(context, dqRopeShape);
         *dqRopeShape = *queryRopeShape;
     }
     if (keyRopeShape != nullptr) {
         gert::Shape *dkRopeShape = context->GetOutputShape(static_cast<size_t>(OutputIndex::DK_ROPE));
-        OPS_LOG_E_IF_NULL(context, dkRopeShape, return ge::GRAPH_FAILED)
+        OP_CHECK_NULL_WITH_CONTEXT(context, dkRopeShape);
         *dkRopeShape = *keyRopeShape;
     }
 
@@ -98,8 +101,9 @@ ge::graphStatus InferShape4SparseFlashAttentionGrad(gert::InferShapeContext *con
 
 ge::graphStatus InferDataType4SparseFlashAttentionGrad(gert::InferDataTypeContext *context)
 {
-    OPS_LOG_E_IF_NULL("context", context, return ge::GRAPH_FAILED);
-    OPS_LOGD(context, "Enter InferDataType4SparseFlashAttentionGrad.");
+    OP_CHECK_IF(context == nullptr, OP_LOGE("SparseFlashAttentionGrad", "InferDataTypeContext is nullptr"),
+               return ge::GRAPH_FAILED);
+    OP_LOGD(context, "Enter InferDataType4SparseFlashAttentionGrad.");
 
     auto dtype = context->GetInputDataType(static_cast<size_t>(InputIndex::QUERY));
     context->SetOutputDataType(static_cast<size_t>(OutputIndex::DQ), dtype);

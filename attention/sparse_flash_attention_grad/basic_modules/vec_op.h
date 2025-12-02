@@ -307,7 +307,7 @@ __aicore__ inline void VecOp<SFAGT>::InitUB(TPipe *pipe)
     pipe->InitBuffer(vecQue, totalUbSpace);
 
     // topk
-    int32_t topkNumber = AlignTo<int32_t>(selectedBlockCount, BLOCK);
+    int32_t topkNumber = AlignTo<int32_t>(selectedCountOffset, BLOCK);
     topkIndicesTensor = vecQue.GetWithOffset<int32_t>(topkNumber, ubOffset);
     ubOffset += topkNumber * sizeof(int32_t);
 

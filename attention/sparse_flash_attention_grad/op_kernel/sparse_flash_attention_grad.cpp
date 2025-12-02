@@ -45,6 +45,7 @@ sparse_flash_attention_grad(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ u
                             __gm__ uint8_t *dq_rope, __gm__ uint8_t *dk_rope,
                             __gm__ uint8_t *workspace, __gm__ uint8_t *tiling_data)
 {
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16)
     if (TILING_KEY_IS(1000)) {
         INVOKE_SELECTED_ATTENTION_BASIC_IMPL(half, false, false, false);
