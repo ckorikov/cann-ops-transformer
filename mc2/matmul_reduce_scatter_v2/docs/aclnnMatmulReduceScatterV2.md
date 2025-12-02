@@ -20,6 +20,7 @@
         -   新增了对低精度数据类型FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8的支持。支持pertensor、perblock[量化方式](../../../docs/zh/context/量化介绍.md)。
     -   <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
         -   新增了对低精度数据类型INT8的支持。支持pertoken/perchannel[量化方式](../../../docs/zh/context/量化介绍.md)。
+        -   新增了对FLOAT8_E4M3FN/FLOAT8_E5M2 mixfp8量化的支持[量化方式](../../../docs/zh/context/量化介绍.md)
 
 -   **计算公式**：
     -   情形1：如果x1和x2数据类型为FLOAT16/BFLOAT16时，入参x1、x2进行matmul计算后，进行ReduceScatter通信。
@@ -34,6 +35,11 @@
     
     $$
     output=ReduceScatter(\sum_{0}^{\left \lfloor \frac{k}{blockSize} \right \rfloor} (x1_{pr}@x2_{rq}*(x1Scale_{pr}*x2Scale_{rq})))
+    $$
+    -   情形4：如果x1和x2数据类型为FLOAT8_E4M3FN/FLOAT8_E5M2的pertensor mixfp8量化场景，且不输出amaxOut，当x1为(a0, a1, 2)x2为(b0, b1, 2)时x1Scale为(a0, ceildiv(a1, 64), 2), x2Scale为(b1, ceildiv(b0, 64), 2)，x1不转置，x2转置时，入参x1、x2进行matmul计算和dequant计算后，再进行ReduceScatter通信。
+    
+    $$
+    output=ReduceScatter(\sum_{0}^{\left \lfloor \frac{k}{blockSize=32} \right \rfloor} (x1_{pr}@x2_{rq}*(x1Scale_{pr}*x2Scale_{rq})))
     $$
     
 ## 函数原型

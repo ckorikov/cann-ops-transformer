@@ -17,11 +17,12 @@
 - **算子功能**：
   aclnnAllGatherMatmulV2接口是对aclnnAllGatherMatmul接口的功能拓展，x1和x2新增支持低精度数据类型（如FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8），同时支持pertensor、perblock[量化方式](common/量化介绍.md)。
   
-  功能可分为以下4种情形：  
+  功能可分为以下5种情形：  
     - 如果x1和x2数据类型为FLOAT16/BFLOAT16时，入参x1进行allgather后，对x1、x2进行matmul计算；
     - 如果x1和x2数据类型为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，不输出amaxOut，入参x1进行allgather后，对x1、x2进行matmul计算，然后进行dequant操作；
     - 如果x1和x2数据类型为FLOAT8_E4M3FN/FLOAT8_E5M2/HIFLOAT8，且输出amaxOut，入参x1进行allgather后，对x1、x2进行matmul计算，然后进行dequant操作，最后进行quant操作， 当前版本暂不支持；
     - 如果groupSize取值为有效值，入参x1进行allgather后，对x1、x2进行perblock量化matmul计算，然后进行dequant操作。
+    - 如果x1和x2数据类型为FLOAT8_E4M3FN/FLOAT8_E5M2，x1 shape为(a0, a1, 2), x2 shape 为(b1, b0, 2),且x1Scale shape为(a0, ceilDiv(a1, 64), 2)，x2Scale shape为(b1, ceilDiv(b0, 64), 2), x1不转置，x2转置，x1Scale不转置， x2Scale转置，入参x1进行allgather后，对x1、x2进行matmul计算，然后进行dequant操作；
 
 - **计算公式**：
     - 情形1：
@@ -70,6 +71,14 @@
     $$
     
       其中$output\left[r(y), r(z)\right]$表示从output矩阵中取出第$(groupSizeM*(y-1)+1)$到$(groupSizeM*y)$行和$(groupSizeN*(z-1)+1)$到$(groupSizeN*z)$列构成的块。
+
+    - 情形5：
+    $$
+    gatherOut=append(allgather(x1), allgather(x1Scale))
+    $$
+    $$
+    output=\sum_{0}^{\left \lfloor \frac{k}{blockSize=32} \right \rfloor} (allgather(x1)_{pr}@x2_{rq}*(allgather(x1Scale)_{pr}*x2Scale_{rq}))
+    $$
 
 ## 函数原型
 
