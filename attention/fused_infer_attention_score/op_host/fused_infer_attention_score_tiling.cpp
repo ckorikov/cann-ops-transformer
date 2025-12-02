@@ -1088,10 +1088,10 @@ static ge::graphStatus IsMla(gert::TilingContext *context)
     auto qRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
     auto kRope = context->GetOptionalInputTensor(KEY_ROPE_INDEX);
     OP_CHECK_IF((qRope != nullptr && kRope == nullptr),
-        OP_LOGE(context->GetNodeName(), "keyRope is null, but queryRope exists, they should be both null or exist."),
+        OP_LOGE(context->GetNodeName(), "KRope is null, but QRope exists, they should be both null or exist."),
         return ge::GRAPH_FAILED);
     OP_CHECK_IF((qRope == nullptr && kRope != nullptr),
-        OP_LOGE(context->GetNodeName(), "queryRope is null, but keyRope exists, they should be both null or exist."),
+        OP_LOGE(context->GetNodeName(), "QRope is null, but KRope exists, they should be both null or exist."),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }

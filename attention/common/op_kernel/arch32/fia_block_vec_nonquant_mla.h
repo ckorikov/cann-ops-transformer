@@ -25,6 +25,7 @@
 #include "../memory_copy.h"
 
 using namespace AttentionCommon;
+using namespace fa_base_vector;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
@@ -152,7 +153,7 @@ protected:
     uint32_t negativeIntScalar = *((uint32_t *)&BOOL_ATTEN_MASK_SCALAR_VALUE);
     static constexpr uint64_t kvHeadNum = 1ULL;
     static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T); // 32768/4=8096
-    static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
+    static constexpr uint32_t BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(T); // 32/4=8
     static constexpr T FLOAT_E_SCALAR = 8388608;
     static constexpr T LN2 = 0.6931471805599453094172;
     static constexpr T RECIP_OF_LN2 = 1 / LN2;
@@ -338,12 +339,12 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ComputeLogSumExpAndCopyToGm
     //  dst-Shape  { B  N2, splitKV s1, G, fa_base_vector::FP32_BLOCK_ELEMENT_NUM}
     // 这里的offset计算，后续FD切G改切M时，同步改掉
     uint64_t baseOffset = mSplitInfo.nBufferStartM / 2;
-    size_t size = mSplitInfo.vecDealM * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
+    size_t size = mSplitInfo.vecDealM * FP32_BLOCK_ELEMENT_NUM;
     uint64_t accumTmpOutNum = CalcAccumOffset(info.bIdx, info.gS1Idx);
     uint64_t offset = (accumTmpOutNum * kvHeadNum * constInfo.mBaseSize +              // taskoffset
                        info.tndCoreStartKVSplitPos * kvHeadNum * constInfo.mBaseSize + // 份数offset
                        mSplitInfo.nBufferStartM + mSplitInfo.vecStartM) *
-                      fa_base_vector::FP32_BLOCK_ELEMENT_NUM; // m轴offset
+                        FP32_BLOCK_ELEMENT_NUM; // m轴offset
 
     LocalTensor<T> tmp = outputBuff2.Get<T>();
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
@@ -371,7 +372,7 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ElewiseCompute(
 
     if (constInfo.attenMaskFlag == 1) {
         AscendC::PipeBarrier<PIPE_V>();
-        fa_base_vector::MaskInfo maskInfo;
+        MaskInfo maskInfo;
         maskInfo.gs1StartIdx = info.gS1Idx + mSplitInfo.nBufferStartM + mSplitInfo.vecStartM + startRow;
         maskInfo.gs1dealNum = dealRowCount;
         maskInfo.s1Size = info.actS1Size;
@@ -381,37 +382,37 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ElewiseCompute(
         maskInfo.s2Size = info.actS2Size;
         maskInfo.preToken = constInfo.preToken;
         maskInfo.nextToken = constInfo.nextToken;
-        maskInfo.sparseMode = static_cast<fa_base_vector::SparseMode>(constInfo.sparseMode);
+        maskInfo.sparseMode = static_cast<SparseMode>(constInfo.sparseMode);
         maskInfo.batchIdx = info.bIdx;
         maskInfo.batchOffset = constInfo.attenMaskSize;
         maskInfo.attenMaskStride = constInfo.attenMaskStride;
         maskInfo.maskValue = negativeIntScalar;
         if (constInfo.qSeqSize == 1) {
-            maskInfo.layout = fa_base_vector::S1_EQUAL1;
+            maskInfo.layout = S1_EQUAL1;
         } else if (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::BSH) {
-            maskInfo.layout = fa_base_vector::SG;
+            maskInfo.layout = SG;
         } else {
-            maskInfo.layout = fa_base_vector::GS;
+            maskInfo.layout = GS;
         }
 
-        maskInfo.attenMaskType = fa_base_vector::MASK_BOOL; // compatible with int8/uint8
+        maskInfo.attenMaskType = MASK_BOOL; // compatible with int8/uint8
         LocalTensor<bool> maskUb = inputBuff2.Get<bool>();
         maskUb = maskUb[pingpongFlag * INPUT2_BUFFER_OFFSET / sizeof(bool)];
         LocalTensor<bool> attenMaskTmpUb = attenMaskTmpBuff.Get<bool>();
         WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF2_FLAG + pingpongFlag);
 
-        fa_base_vector::AttentionmaskCopyIn(maskUb, attenMaskBoolGm, attenMaskTmpUb, maskInfo);
+        AttentionmaskCopyIn(maskUb, attenMaskBoolGm, attenMaskTmpUb, maskInfo);
         AscendC::PipeBarrier<PIPE_V>();
         LocalTensor<uint8_t> ubWorkSpace = tmpBuf.Get<uint8_t>();
-        fa_base_vector::AttentionmaskCompute<MM1_OUT_T>(mmResUb, mmResUb, maskUb, ubWorkSpace, maskInfo);
+        AttentionmaskCompute<MM1_OUT_T>(mmResUb, mmResUb, maskUb, ubWorkSpace, maskInfo);
         SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF2_FLAG + pingpongFlag);
-        if (constInfo.sparseMode == fa_base_vector::BAND) {
+        if (constInfo.sparseMode == BAND) {
             WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF2_FLAG + pingpongFlag);
             attenMaskTmpUb = attenMaskTmpBuff.Get<bool>(); // 后续改成attenMaskTmpBuff，加上pingpong
             maskUb = inputBuff2.Get<bool>();
             maskUb = maskUb[pingpongFlag * INPUT2_BUFFER_OFFSET / sizeof(bool)];
-            fa_base_vector::AttentionmaskCopyIn(maskUb, attenMaskBoolGm, attenMaskTmpUb, maskInfo, true);
-            fa_base_vector::AttentionmaskCompute<MM1_OUT_T>(mmResUb, mmResUb, maskUb, ubWorkSpace, maskInfo, true);
+            AttentionmaskCopyIn(maskUb, attenMaskBoolGm, attenMaskTmpUb, maskInfo, true);
+            AttentionmaskCompute<MM1_OUT_T>(mmResUb, mmResUb, maskUb, ubWorkSpace, maskInfo, true);
             SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF2_FLAG + pingpongFlag);
         }
     }
@@ -499,7 +500,7 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::AmlaVecCompute(
     LocalTensor<T> nTmp3 = nTmp[6 * SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T)];
     Brcb(nTmp3, nUpdateTmp2, (dealRowCount + 7) / 8, {1, 8});
     AscendC::PipeBarrier<PIPE_V>();
-    fa_base_vector::RowMuls(mmResUb, mmResUb, nTmp3, dealRowCount, columnCount, actualColumnCount);
+    RowMuls(mmResUb, mmResUb, nTmp3, dealRowCount, columnCount, actualColumnCount);
 
     Div(tmpCofUb, nTmp, nUpdateTmp2, calCount); // cof(i)=tmpS32/tmpS16
     if (info.isFirstSInnerLoop) {
@@ -547,11 +548,11 @@ FiaBlockVecNonQuantMla<FIAT>::DealInvalidRows(const AttentionCommon::RunInfo &in
         return;
     }
 
-    if (constInfo.sparseMode == fa_base_vector::ALL_MASK || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
+    if (constInfo.sparseMode == ALL_MASK || constInfo.sparseMode == LEFT_UP_CAUSAL) {
         return;
     }
 
-    fa_base_vector::InvalidRowParams params {
+    InvalidRowParams params {
         .actS1Size = info.actS1Size,
         .gSize = constInfo.gSize,
         .gS1Idx = info.gS1Idx + wsMStart,
@@ -561,7 +562,7 @@ FiaBlockVecNonQuantMla<FIAT>::DealInvalidRows(const AttentionCommon::RunInfo &in
         .nextTokensPerBatch = info.nextTokensPerBatch,
     };
 
-    fa_base_vector::InvalidRows<T, fa_base_vector::GeInputUbFormat<LAYOUT_T>()> invalidRows;
+    InvalidRows<T, GeInputUbFormat<LAYOUT_T>()> invalidRows;
     invalidRows(attenOutUb, params);
 }
 
@@ -574,18 +575,18 @@ FiaBlockVecNonQuantMla<FIAT>::DealInvalidMaskRows(const AttentionCommon::RunInfo
     if (!constInfo.isRowInvalid || !constInfo.attenMaskFlag) {
         return;
     }
-    if (constInfo.sparseMode != fa_base_vector::DEFAULT_MASK && constInfo.sparseMode != fa_base_vector::ALL_MASK) {
+    if (constInfo.sparseMode != DEFAULT_MASK && constInfo.sparseMode != ALL_MASK) {
         return;
     }
     uint32_t baseOffset = mSplitInfo.nBufferStartM / 2 + startRow;
     if constexpr (SOFTMAX_WITH_BRC) {
-        baseOffset = baseOffset * (fa_base_vector::BYTE_BLOCK / sizeof(T));
+        baseOffset = baseOffset * (BYTE_BLOCK / sizeof(T));
     }
 
     uint32_t outIdx = info.loop % (constInfo.preLoadNum);
     uint32_t softmaxOutOffset = outIdx * SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T) + baseOffset;
 
-    fa_base_vector::InvalidMaskRows<MM2_OUT_T, T, SOFTMAX_WITH_BRC>(softmaxOutOffset, dealRowCount, columnCount,
+    InvalidMaskRows<MM2_OUT_T, T, SOFTMAX_WITH_BRC>(softmaxOutOffset, dealRowCount, columnCount,
         softmaxMaxUb, negativeIntScalar, bmm2ResUb);
 }
 
@@ -891,7 +892,7 @@ FiaBlockVecNonQuantMla<FIAT>::Bmm2FDDataCopyOut(const AttentionCommon::RunInfo &
     DataCopyExtParams dataCopyParams;
     dataCopyParams.blockCount = dealRowCount;
     dataCopyParams.blockLen = actualColumnCount * sizeof(T);
-    dataCopyParams.srcStride = (columnCount - actualColumnCount) / (fa_base_vector::BYTE_BLOCK / sizeof(T));
+    dataCopyParams.srcStride = (columnCount - actualColumnCount) / (BYTE_BLOCK / sizeof(T));
     dataCopyParams.dstStride = 0;
     DataCopyPad(dst, tmp, dataCopyParams);
     SetFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
@@ -1033,7 +1034,7 @@ FiaBlockVecNonQuantMla<FIAT>::DealBmm2ResBaseBlock(const AttentionCommon::RunInf
     LocalTensor<T> tmpSumUb = attenMaskTmpBuff.Get<T>(); // sumUb用临时内存 16 * 32B  = 512B
     Brcb(tmpSumUb, aMlaSumUb[idx * SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T) + baseOffset], (dealRowCount + 7) / 8, {1, 8});
     AscendC::PipeBarrier<PIPE_V>();
-    fa_base_vector::RowDivs(bmm2ResUb, tmpBmm2ResUb, tmpSumUb, dealRowCount, columnCount, actualColumnCount);
+    RowDivs(bmm2ResUb, tmpBmm2ResUb, tmpSumUb, dealRowCount, columnCount, actualColumnCount);
     AscendC::PipeBarrier<PIPE_V>();
 
     SetFlag<AscendC::HardEvent::V_MTE2>(SYNC_INPUT_BUF1_FLAG + pingpongFlag);

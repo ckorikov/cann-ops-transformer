@@ -31,6 +31,7 @@
 
 using namespace optiling;
 using namespace matmul;
+using namespace fa_base_vector;
 using AscendC::CacheMode;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
@@ -216,7 +217,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
 
     constInfo.headDim = tilingData->baseParams.headDim;
     constInfo.headDimRope = tilingData->baseParams.headDimRope;
-    constInfo.headDimAlign = Align(constInfo.headDim, (uint64_t)fa_base_vector::BYTE_BLOCK);
+    constInfo.headDimAlign = Align(constInfo.headDim, (uint64_t)BYTE_BLOCK);
 
     constInfo.mmResUbSize = tilingData->workspaceParams.mm1ResSize;
     constInfo.bmm2ResUbSize = tilingData->workspaceParams.mm2ResSize;
@@ -481,7 +482,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         info.actualSingleProcessSInnerSize = info.actS2Size - s2Cur * constInfo.s2BaseSize;
     }
     info.actualSingleProcessSInnerSizeAlign =
-        Align((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)fa_base_vector::BYTE_BLOCK);
+        Align((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)BYTE_BLOCK);
 
     // 命名修改为isUpdateKV
     if (constInfo.batchContinuous) {
@@ -498,11 +499,11 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     int64_t safeNextToken = constInfo.nextToken;
     GetSafeActToken(info.actS1Size, info.actS2Size, safePreToken, safeNextToken);
 
-    if (constInfo.sparseMode == fa_base_vector::BAND) {
+    if (constInfo.sparseMode == BAND) {
         info.preTokensPerBatch = safePreToken;
         info.nextTokensPerBatch =
             static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + safeNextToken;
-    } else if ((constInfo.sparseMode == fa_base_vector::DEFAULT_MASK) && constInfo.attenMaskFlag) {
+    } else if ((constInfo.sparseMode == DEFAULT_MASK) && constInfo.attenMaskFlag) {
         info.nextTokensPerBatch = safeNextToken;
         info.preTokensPerBatch = 
             static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size) + safePreToken;
@@ -881,13 +882,13 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     int64_t safeNextToken = constInfo.nextToken;
     GetSafeActToken(actSeqLensQ, actSeqLensKv, safePreToken, safeNextToken);
 
-    int64_t preTokenLeftUp = (constInfo.sparseMode != fa_base_vector::BAND) ? safePreToken :
+    int64_t preTokenLeftUp = (constInfo.sparseMode != BAND) ? safePreToken :
         (static_cast<int64_t>(actSeqLensQ) - static_cast<int64_t>(actSeqLensKv) + safePreToken);
     int64_t nextTokenLeftUp;
-    if (constInfo.sparseMode == fa_base_vector::DEFAULT_MASK || constInfo.sparseMode == fa_base_vector::ALL_MASK 
-        || constInfo.sparseMode == fa_base_vector::LEFT_UP_CAUSAL) {
+    if (constInfo.sparseMode == DEFAULT_MASK || constInfo.sparseMode == ALL_MASK 
+        || constInfo.sparseMode == LEFT_UP_CAUSAL) {
         nextTokenLeftUp = safeNextToken;
-    } else if (constInfo.sparseMode == fa_base_vector::RIGHT_DOWN_CAUSAL) {
+    } else if (constInfo.sparseMode == RIGHT_DOWN_CAUSAL) {
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ);
     } else {
         nextTokenLeftUp = static_cast<int64_t>(actSeqLensKv) - static_cast<int64_t>(actSeqLensQ) + safeNextToken;

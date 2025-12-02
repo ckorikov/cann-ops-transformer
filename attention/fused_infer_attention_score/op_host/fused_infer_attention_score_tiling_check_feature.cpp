@@ -30,7 +30,7 @@ namespace optiling {
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
 {
     OP_CHECK_IF(qkHeadDim_ != 512U && qkHeadDim_ != 128U,
-        OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim only support 128 and 512, but got %u",
+        OP_LOGE(opName_, "In %s situation, rope exsists, the K/V's head dim only support 128 and 512, but got %u",
             QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
         return ge::GRAPH_FAILED);
 
@@ -46,21 +46,21 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(n2Size_ != 1,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s should be 1, but got %u",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, %s should be 1, but got %u",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_,
                 KV_HEADS_NUM_NAME.c_str(), n2Size_), return ge::GRAPH_FAILED);
 
         std::vector<uint32_t> gSizeSupportList = {1, 2, 4, 8, 16, 32, 64, 128};
         OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
-            OP_LOGE(opName_, "In %s situation, rope exsists, the query/key's head dim(%u) should be equal to the value's head dim(%u)",
+            OP_LOGE(opName_, "In %s situation, rope exsists, the Q/K's head dim(%u) should be equal to the value's head dim(%u)",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(ropeHeadDim_ != 64,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the rope's head dim should be 64, but got %u",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, the rope's head dim should be 64, but got %u",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
     } else if (vHeadDim_ == 128U) {
         return CheckFeatureGqaNoQuantShape();
@@ -77,7 +77,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantLayout() const
             "BSH", "BSND", "BNSD", "TND", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD"
         };
         OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
             return ge::GRAPH_FAILED);
     } else if (vHeadDim_ == 128U) {
@@ -97,7 +97,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureNoQuantDtype() const
         return ge::GRAPH_FAILED);
 
     OP_CHECK_IF(inputQType_ != inputKvType_,
-        OP_LOGE(opName_, "In %s situation, key and value dtype(%s) must equal to query dtype(%s)",
+        OP_LOGE(opName_, "In %s situation, K and V dtype(%s) must equal to query dtype(%s)",
             QuantModeToSerialString(quantMode_).c_str(),
             FusedDataTypeToSerialString(inputQType_).c_str(),
             FusedDataTypeToSerialString(inputKvType_).c_str()),
@@ -177,7 +177,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
         if (sparseMode == static_cast<int32_t>(SPARSE_MODE_NO_MASK) &&
             maskDimNum == DIM_NUM_TWO && s1Size_ == 1U && maskDim0 == static_cast<size_t>(bSize_)) {
             OP_CHECK_IF(qLayout_ == FiaLayout::TND || qLayout_ == FiaLayout::NTD,
-                    OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, when %s layout is TND/NTD, %s layout BS2 is not supported.",
+                    OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, when %s layout is TND/NTD, %s layout BS2 is not supported.",
                         QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, QUERY_NAME.c_str(), ATTEN_MASK_NAME.c_str()),
                 return ge::GRAPH_FAILED);
         }
@@ -190,7 +190,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantLse() const
 {
     OP_CHECK_IF(fiaInfo_.softmaxLseFlag && vHeadDim_ == 512U,
-        OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, value's head dim is %d, %s is not support",
+        OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, value's head dim is %d, %s is not support",
             QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_, SOFTMAX_LSE_NAME.c_str()),
         return ge::GRAPH_FAILED);
 
@@ -236,11 +236,11 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
             return ge::GRAPH_FAILED;
         }
         OP_CHECK_IF(fiaInfo_.softmaxLseFlag,
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, %s output is not supported.",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, %s output is not supported.",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, SOFTMAX_LSE_NAME.c_str()),
             return ge::GRAPH_FAILED);
         if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
-            OP_LOGE(opName_, "In %s situation, rope exsists and query/key head dim = %u, the key/value's storage mode not support tensor list",
+            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, the K/V's storage mode not support tensor list",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
             return ge::GRAPH_FAILED;
         }
@@ -380,40 +380,40 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantLayout() const
     if (kvStorageMode_ == KvStorageMode::BATCH_CONTINUOUS) {
         OP_CHECK_IF(kvLayout_ != FiaLayout::BSH && kvLayout_ != FiaLayout::BSND && kvLayout_ != FiaLayout::BNSD &&
             kvLayout_ != FiaLayout::TND && kvLayout_ != FiaLayout::NTD,
-            OP_LOGE(opName_, "In %s situation, key/value's layout only support BSH, BSND, BNSD, TND and NTD in batch continuous scene, but got %s",
+            OP_LOGE(opName_, "In %s situation, K/V's layout only support BSH, BSND, BNSD, TND and NTD in batch continuous scene, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ != qLayout_,
-            OP_LOGE(opName_, "In %s situation, key/value's layout and query's layout should be same in batch continuous scene.",
+            OP_LOGE(opName_, "In %s situation, K/V's layout and query's layout should be same in batch continuous scene.",
                 QuantModeToSerialString(quantMode_).c_str()),
             return ge::GRAPH_FAILED);
     } else if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
         OP_CHECK_IF(kvLayout_ != FiaLayout::BSH && kvLayout_ != FiaLayout::BSND && kvLayout_ != FiaLayout::BNSD,
-            OP_LOGE(opName_, "In %s situation, key/value's layout only support BSH, BSND and BNSD in tensor list scene, but got %s",
+            OP_LOGE(opName_, "In %s situation, K/V's layout only support BSH, BSND and BNSD in tensor list scene, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ != qLayout_,
-            OP_LOGE(opName_, "In %s situation, key/value's layout and query's layout should be same in tensor list scene.",
+            OP_LOGE(opName_, "In %s situation, K/V's layout and query's layout should be same in tensor list scene.",
             QuantModeToSerialString(quantMode_).c_str()),
             return ge::GRAPH_FAILED);
     } else if (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION) {
         OP_CHECK_IF(kvLayout_ == FiaLayout::BnBsH && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the key/value's layout is BnBsH, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnBsH, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ == FiaLayout::BnNBsD && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the key/value's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ == FiaLayout::NZ && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the key/value's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
     }

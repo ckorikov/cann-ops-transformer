@@ -162,7 +162,7 @@ void FiaTilingNonQuant::GenTilingKey()
                                     static_cast<uint8_t>(fiaInfo_->inputKvLayout), static_cast<uint8_t>(isFlashDecode), static_cast<uint8_t>(fiaInfo_->sysPrefixFlag),
                                     TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_0, TILINGKEY_NUM_3, TILINGKEY_NUM_3, TILINGKEY_NUM_0, softmaxBrcbFlagVal, TILINGKEY_NUM_0);
 
-    OP_LOGI(fiaInfo_->opName, "FIA tilingKey_: %lu.", tilingKey_);
+    OP_LOGI(fiaInfo_->opName, "FIA tiling_: %lu.", tilingKey_);
 }
 
 bool FiaTilingNonQuant::IsFlashDecode(uint32_t coreNum)
@@ -177,11 +177,11 @@ bool FiaTilingNonQuant::IsFlashDecode(uint32_t coreNum)
     float flashDecodeBNRatio = static_cast<float>(0.5); // 0.5, 经验值
     bool coreOkFlag = (static_cast<float>(fiaInfo_->bSize) * static_cast<float>(fiaInfo_->n2Size) <= flashDecodeBNRatio * static_cast<float>(coreNum));
     if (coreOkFlag && (fiaInfo_->gSize == static_cast<uint32_t>(1))) {
-        OP_LOGD(fiaInfo_->opName, "flash decode split key/value."); 
+        OP_LOGD(fiaInfo_->opName, "flash decode split K/V tensors."); 
         return true;
     }
     if (coreOkFlag && (fiaInfo_->maxActualseq >= MAX_ACTUAL_SEQUENCE)) { 
-        OP_LOGD(fiaInfo_->opName, "flash decode and GQA split key/value.");
+        OP_LOGD(fiaInfo_->opName, "flash decode and GQA split K/V tensors.");
         return true;
     }
 

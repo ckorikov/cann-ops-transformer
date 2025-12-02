@@ -116,7 +116,7 @@ ge::graphStatus FiaTilingCheck::CheckDtypeAndSetQuantFlagMla()
     } else if (VecContains(mlaFullquantDtypeList, actualDtypeList)) {
         quantMode_ = FiaQuantMode::FULL_QUANT;
     } else {
-        OP_LOGE(opName_, "In %s situation and rope exsists, only supports [query_dtype, kv_dtype, query_rope_dtype, key_rope_dtype] as %s, %s, %s, but got %s",
+        OP_LOGE(opName_, "In %s situation and rope exsists, only supports [Q_dtype, kv_dtype, Q_rope_dtype, K_rope_dtype] as %s, %s, %s, but got %s",
             QuantModeToSerialString(quantMode_).c_str(),
             DtypeDoubleListToStr(mlaNoquantDtypeList).c_str(),
             DtypeDoubleListToStr(mlaAntiquantDtypeList).c_str(),
