@@ -113,8 +113,7 @@ __global__ __aicore__ void rotary_position_embedding_grad(
             pipe.Reset();
         } else {
             // 调用reduce模版，做reduce操作
-            using ReduceOp = ReduceSch<
-                ReduceSumOp<float>, REDUCE_TPL_VALUE,
+            using ReduceOp = ReduceSch<REDUCE_TPL_VALUE,
                 RotaryPositionEmbeddingGrad::RotaryPositionEmbeddingGradDag<DTYPE_DY, float>::OpDag>;
             ReduceOp reduceOp(&tilingData.reduceTiling);
             if (tilingData.rotaryXParams.rotaryMode ==

@@ -20,9 +20,9 @@
 #include "atvoss/util/dag.h"
 #include "atvoss/util/vec.h"
 #include "atvoss/util/placeholder.h"
+#include "atvoss/reduce/reduce_operator.h"
 
 namespace RotaryPositionEmbeddingGrad {
-using namespace AscendC;
 using namespace Ops::Base;
 template <typename T, typename PromteT>
 struct RotaryPositionEmbeddingGradDag {
@@ -31,7 +31,7 @@ struct RotaryPositionEmbeddingGradDag {
     using Cast0 = Bind<Vec::Cast<PromteT, T, 0>, OpCopyIn0>;
     using Cast1 = Bind<Vec::Cast<PromteT, T, 0>, OpCopyIn1>;
     using Mul0 = Bind<Vec::Mul<PromteT>, Cast0, Cast1>;
-    using Reduce0 = Bind<Vec::ReduceOp<PromteT>, Mul0>;
+    using Reduce0 = Bind<Vec::ReduceSumOp<PromteT>, Mul0>;
     using Cast2 = Bind<Vec::Cast<T, PromteT, 1>, Reduce0>;
     using OpCopyOut = Bind<Vec::CopyOut<T>, Placeholder::Out0<T>, Cast2>;
     using Outputs = Elems<OpCopyOut>;
