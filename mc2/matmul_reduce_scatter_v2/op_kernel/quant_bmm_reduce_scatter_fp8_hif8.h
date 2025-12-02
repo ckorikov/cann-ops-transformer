@@ -16,10 +16,9 @@
 #ifndef QUANT_BMM_MATMUL_REDUCE_SCATTER_FP8_HIF8_H
 #define QUANT_BMM_MATMUL_REDUCE_SCATTER_FP8_HIF8_H
 
-#include "mc2_common_def.h"
 #include "lib/hccl/hccl.h"
 #include "common_def.h"
-#include "../inc/platform.h"
+#include "../common/inc/kernel/mc2_common_def.h"
 #include "../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_mix_perblock.h"
 #include "../3rd/quant_batch_matmul_v3/op_kernel/arch35/qbmm_cube_on_the_fly.h"
 #include "../common/new_mc2_mm/kernel/mc2_quant_batch_matmul.h"

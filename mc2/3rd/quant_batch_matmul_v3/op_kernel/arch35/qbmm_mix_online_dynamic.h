@@ -15,7 +15,6 @@
 #ifndef MC2_QBMM_MIX_ONLINE_DYNAMIC_H
 #define MC2_QBMM_MIX_ONLINE_DYNAMIC_H
 
-#include "../../../../inc/platform.h"
 #include "mm_extension_interface/qbmm_custom_mm_policy.h"
 #include "qbmm_asw_block.h"
 #include "../quant_batch_matmul_v3_base.h"
@@ -586,7 +585,7 @@ __aicore__ inline void Mc2QuantBmmPertokenRegbaseKernel<LOCAL_TEMPLATE_FUNC_MIX_
     __ubuf__ cType *dst, __ubuf__ l0cDtype *l0cOut, __ubuf__ scaleType *scale, __ubuf__ ptScaleType *perTokenScale,
     __ubuf__ BiasDtype *bias, uint16_t mSize, uint16_t nSize)
 {
-    uint32_t eleNumPerVf = platform::GetVRegSize() / sizeof(l0cDtype);
+    uint32_t eleNumPerVf = GetVectorRegSize() / sizeof(l0cDtype);
     uint32_t nSrcUbAligned = DequantBmm::Align(nSize, static_cast<uint16_t>(DATA_BLOCK / sizeof(l0cDtype)));
     uint32_t nDstUbAligned = DequantBmm::Align(nSize, static_cast<uint16_t>(DATA_BLOCK / sizeof(cType)));
     uint16_t nLoopCnt = (nSize + eleNumPerVf - 1) / eleNumPerVf;

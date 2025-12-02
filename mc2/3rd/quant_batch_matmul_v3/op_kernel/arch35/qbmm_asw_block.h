@@ -81,6 +81,15 @@ struct PerBlockMmParam {
     uint64_t fixSrcStride;
 };
 
+__aicore__ inline constexpr uint32_t GetVectorRegSize()
+{
+#if __CCE_AICORE__ == 310
+    return AscendC::VECTOR_REG_WIDTH;
+#else
+    return 256U;
+    #endif
+}
+
 class Mc2QuantBmmAswBlock {
 public:
     __aicore__ inline Mc2QuantBmmAswBlock() {}

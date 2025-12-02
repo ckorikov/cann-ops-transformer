@@ -296,7 +296,7 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::AivPerTensor
                                                                                     float scaleScalar, uint16_t mSize,
                                                                                     uint16_t nSize, uint32_t nSrcUbAligned)
 {
-    uint32_t eleNumPerVf = platform::GetVRegSize() / sizeof(l0cDtype);
+    uint32_t eleNumPerVf = GetVectorRegSize() / sizeof(l0cDtype);
     uint16_t nLoopCnt = (nSize + eleNumPerVf - 1) / eleNumPerVf;
     __VEC_SCOPE__
     {
@@ -335,7 +335,7 @@ __aicore__ inline void MatMulPerBlock<MATMUL_PERBLOCK_FUNC_PARAMS>::AivPerTensor
                                                                                     __ubuf__ ptScaleType *muledScale, uint16_t mSize,
                                                                                     uint16_t nSize, uint32_t nSrcUbAligned)
 {
-    uint32_t eleNumPerVf = platform::GetVRegSize() / sizeof(l0cDtype);
+    uint32_t eleNumPerVf = GetVectorRegSize() / sizeof(l0cDtype);
     uint16_t nLoopCnt = (nSize + eleNumPerVf - 1) / eleNumPerVf;
     __VEC_SCOPE__
     {

@@ -62,7 +62,7 @@ __aicore__ inline void DynamicDequant(uint32_t curScaleCnt, uint32_t padCalCnt, 
     const uint32_t broadCastSrc[BROADCAST_DIM] = {curScaleCnt, 1};
     Cast(tempOut, tilesLocal, RoundMode::CAST_NONE, padCalCnt);
     Broadcast<float, BROADCAST_DIM, 1, false>(tempScale, scalesLocal, broadCastDst, broadCastSrc);
-    if (!std::is_same<U, float>::value) {
+    if constexpr (!std::is_same<U, float>::value) {
         Div(tempOut, tempOut, tempScale, padCalCnt);
         Cast(outLocal, tempOut, RoundMode::CAST_RINT, padCalCnt);
     } else {
