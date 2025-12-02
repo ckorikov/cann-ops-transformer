@@ -2296,10 +2296,16 @@ ge::graphStatus IFATiling::CalcInnerSize(uint32_t seqSize)
      */
     sInnerSize_ = MAX_SPLIT_SIZE; // 8192
     if (antiQuantFlag_) {
-        if (nNumOfQInOneGroup_ > 1U && (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD)) {
-            sInnerSize_ = 2048U;
-        } else if (nNumOfQInOneGroup_ > 1 || (nNumOfQInOneGroup_ == 1U && perfMode_ == IfaPerfMode::CUBE_VIEW_MM_DD)) {
-            sInnerSize_ = 1024U;
+        if (nNumOfQInOneGroup_ > 1U) {
+            if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM || perfMode_ == IfaPerfMode::CUBE_VIEW_MM_FULL_LOAD) {	
+                sInnerSize_ = 2048U;	
+            } else {	
+                sInnerSize_ = 1024U;	
+            }
+        } else if (nNumOfQInOneGroup_ == 1) {
+            if (perfMode_ == IfaPerfMode::CUBE_VIEW_MM_DD) {
+                sInnerSize_ = 1024U;
+            }
         }
     } else {
         /** 当前版本限制workspace大小不超过32MB，否则会影响网络中前后算子性能，
