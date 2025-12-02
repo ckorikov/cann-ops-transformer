@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from functools import partial
 from itertools import chain
 from typing import Dict, Iterator, List, Set, Tuple, TextIO
+import shutil
 
 from common.py.utils import pkg_utils
 from common.py.filelist import (
@@ -623,6 +624,11 @@ def main(pkg_name='', xml_file='', main_args=None):
         return FAIL
 
     generate_config_inc(xml_config.package_attr)
+
+    if main_args.independent_pkg:
+        src_file_path = os.path.join(TOP_DIR, "build", "filelist.csv")
+        dst_file_path = os.path.join(main_args.pkg_output_dir, "share", "info", main_args.pkg_name, "script")
+        shutil.copy(src_file_path, dst_file_path)
 
     package_option = PackageOption(
         main_args.os_arch, main_args.package_suffix, main_args.not_in_name, main_args.pkg_version, main_args.ext_name,
