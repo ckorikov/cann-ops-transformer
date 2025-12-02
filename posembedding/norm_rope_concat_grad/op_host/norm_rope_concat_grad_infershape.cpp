@@ -233,5 +233,5 @@ static ge::graphStatus InferDataType4NormRopeConcatGrad(gert::InferDataTypeConte
     return GRAPH_SUCCESS;
 }
 
-IMPL_OP(NormRopeConcatGrad).InferShape(InferShape4NormRopeConcatGrad).InferDataType(InferDataType4NormRopeConcatGrad);
+IMPL_OP_INFERSHAPE(NormRopeConcatGrad).InferShape(InferShape4NormRopeConcatGrad).InferDataType(InferDataType4NormRopeConcatGrad);
 } // namespace ops
