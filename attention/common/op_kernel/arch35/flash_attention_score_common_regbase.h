@@ -147,7 +147,8 @@ __aicore__ constexpr bool ContainOptionalInput(
 __aicore__ constexpr bool IsDn(
     bool isFp32, bool isValidFp8, regbaseutil::PseTypeEnum pseMode, bool hasAtten, bool hasDrop, bool isS1Base64,
     regbaseutil::DTemplateType dTemplateType, bool hasRope) {
-    if ((!isFp32 || isValidFp8) && !ContainOptionalInput(pseMode, hasAtten, hasDrop) && !isS1Base64 &&
+    if (((!isFp32 && !ContainOptionalInput(pseMode, hasAtten, hasDrop)) ||
+        (isValidFp8 && !hasDrop && pseMode == regbaseutil::PseTypeEnum::PSE_NONE_TYPE)) && !isS1Base64 &&
         (uint16_t)dTemplateType <= (uint16_t)regbaseutil::DTemplateType::Aligned256 && !hasRope) {
         return true;
     }

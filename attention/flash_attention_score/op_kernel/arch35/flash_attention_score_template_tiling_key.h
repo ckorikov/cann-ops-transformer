@@ -29,17 +29,17 @@
 
 // 可表示的tilingkey范围为64bit，注意不能超过限制
 ASCENDC_TPL_ARGS_DECL(FlashAttentionScore, // 算子唯一标识，可以opType保持一致
-    // bit:3-0 1: 空tensor场景
-    ASCENDC_TPL_UINT_DECL(KernelTypeKey, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1),
-    // bit:5-4 ImplMode 0: AA_HIGH_PRECISION
+    // bit:1-0 1: 空tensor场景
+    ASCENDC_TPL_UINT_DECL(KernelTypeKey, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 0, 1),
+    // bit:3-2 ImplMode 0: AA_HIGH_PRECISION
     //          1: AA_HIGH_PERFORMANCE
     //          2: AA_INVALID_LINE_HIGH_PRECISION
     ASCENDC_TPL_UINT_DECL(ImplMode, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2),
-    // bit:7-6 Layout 0: BSND --> LayoutTypeEnum::None
+    // bit:7-4 Layout 0: BSND --> LayoutTypeEnum::None
     //        1: SBND
     //        2: BNSD
     //        3: TND  --> LayoutTypeEnum::LAYOUT_TND
-    ASCENDC_TPL_UINT_DECL(Layout, ASCENDC_TPL_3_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3, 4),
+    ASCENDC_TPL_UINT_DECL(Layout, ASCENDC_TPL_4_BW, ASCENDC_TPL_UI_LIST, 0, 1, 2, 3, 4),
     // bit:17-8
     ASCENDC_TPL_UINT_DECL(S1TemplateType, ASCENDC_TPL_10_BW, ASCENDC_TPL_UI_LIST, 0, 16, 64, 128, 256),
     // bit:27-18

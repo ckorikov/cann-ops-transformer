@@ -188,13 +188,18 @@ __aicore__ inline int64_t ComputeOffsetForNoCompress(const RunInfo<isInfer> &run
 
 __aicore__ inline int64_t ComputeOffsetForCausal(const int64_t &delta, const uint32_t &s1BaseSize,
                                                  const uint32_t &s2BaseSize, const uint32_t &attenMaskS2Size,
-                                                 const int64_t &vecCoreOffset)
+                                                 const int64_t &vecCoreOffset, const bool useDn = false)
 {
+    if (useDn) {
+        if (delta >= 0) {
+            return Min(delta, s2BaseSize) + vecCoreOffset + 1;
+        }
+        return (Min(-1 * delta, s1BaseSize)) * attenMaskS2Size + vecCoreOffset + 1;
+    }
     if (delta <= 0) {
         return Min(-1 * delta, s1BaseSize) + vecCoreOffset * attenMaskS2Size;
-    } else {
-        return (Min(delta, s2BaseSize) + vecCoreOffset) * attenMaskS2Size;
     }
+    return (Min(delta, s2BaseSize) + vecCoreOffset) * attenMaskS2Size;
 }
 
 __aicore__ inline int64_t ComputeOffsetForPrefixRectangle(const int64_t &delta, const uint32_t &s2BaseSize,
@@ -298,7 +303,7 @@ __aicore__ inline void MergePrefixModeMask(LocalTensor<uint8_t> &maskPre, LocalT
                                       
 template <bool hasAtten, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
 __aicore__ inline int64_t ComputeAttenMaskInnerOffset(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
-                                                      AttenMaskInfo &attenMaskInfo)
+                                                      AttenMaskInfo &attenMaskInfo, const bool useDn = false)
 {
     if constexpr (hasAtten == true) {
         if (attenMaskInfo.compressMode == static_cast<uint8_t>(AttenMaskCompressMode::NO_COMPRESS_MODE)) {
@@ -395,7 +400,7 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(const RunInfo<isInfer> &ru
             deltaPre = s1Offset - s2Offset - runInfo.preTokensPerBatch - 1;
             deltaCausalOrNext = s1Offset - s2Offset + runInfo.nextTokensPerBatch;
             attenMaskInfo.attenMaskOffsetPre = ComputeOffsetForCausal(deltaPre, constInfo.s1BaseSize,
-                constInfo.s2BaseSize, attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset);
+                constInfo.s2BaseSize, attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset, useDn);
             
         } else if (attenMaskInfo.compressMode == static_cast<uint8_t>(AttenMaskCompressMode::PREFIX_MODE)) {
             deltaCausalOrNext = s1Offset - s2Offset - deltaN;
@@ -417,7 +422,7 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(const RunInfo<isInfer> &ru
                 attenMaskInfo.attenMaskS2Size, 0);
         } else {
             ret = ComputeOffsetForCausal(deltaCausalOrNext, constInfo.s1BaseSize, constInfo.s2BaseSize,
-                attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset);
+                attenMaskInfo.attenMaskS2Size, runInfo.vecCoreOffset, useDn);
         }
         return ret;
     }
@@ -425,9 +430,9 @@ __aicore__ inline int64_t ComputeAttenMaskInnerOffset(const RunInfo<isInfer> &ru
 
 template <bool hasAtten, bool isFd = false, bool hasRope = false, bool isInfer = false, DTemplateType dTemplateType = DTemplateType::Aligned128>
 __aicore__ inline int64_t ComputeAttenMaskOffset(const RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
-    AttenMaskInfo &attenMaskInfo)
+    AttenMaskInfo &attenMaskInfo, const bool useDn = false)
 {
-    auto result = ComputeAttenMaskInnerOffset<hasAtten, hasRope, isInfer, dTemplateType>(runInfo, constInfo, attenMaskInfo);
+    auto result = ComputeAttenMaskInnerOffset<hasAtten, hasRope, isInfer, dTemplateType>(runInfo, constInfo, attenMaskInfo, useDn);
     if constexpr (isFd) {
         result += runInfo.flashDecodeS2Idx * constInfo.sInnerLoopSize;
     }
@@ -498,6 +503,23 @@ __aicore__ inline void AttenMaskCopyIn(TQue<QuePosition::VECIN, 1> &attenMaskInQ
             attenMaskInQue.template EnQue(attenMaskUb);
         }
         return;
+    }
+}
+
+template <bool hasAtten, bool hasRope = false, bool isInfer = false>
+__aicore__ inline void AttenMaskCopyInDn(TQue<QuePosition::VECIN, 1> &attenMaskInQue,
+                                         GlobalTensor<uint8_t> &srcTensor,
+                                         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo,
+                                         AttenMaskInfo &attenMaskInfo, bool needAtten)
+{
+    if constexpr (hasAtten) {
+        LocalTensor<uint8_t> attenMaskUb = attenMaskInQue.template AllocTensor<uint8_t>();
+        if (needAtten) {
+            int64_t maskOffset = ComputeAttenMaskOffset<hasAtten>(runInfo, constInfo, attenMaskInfo, true);
+            BoolCopyInRegbase<isInfer>(attenMaskUb, srcTensor, maskOffset, runInfo.s2RealSize,
+                                       constInfo.s1BaseSize >> 1, attenMaskInfo.attenMaskS2Size, constInfo.s1BaseSize >> 1, constInfo);
+        }
+        attenMaskInQue.template EnQue(attenMaskUb);
     }
 }
 
