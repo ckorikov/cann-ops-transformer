@@ -23,7 +23,7 @@
 
 namespace optiling {
 
-using namespace Ops::Math::OpTiling;
+using namespace Ops::Transformer::OpTiling;
 
 const uint32_t BLOCK_DIM = 8;
 const int64_t TILE_NUM = 8;
