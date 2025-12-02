@@ -963,25 +963,23 @@ void FlashAttentionScoreTilingRegbase::SetSplitCoreModeParam(int64_t totalSize)
     }
 
     CalcThresholdForS2Size();
-    // 如果两个核存在不完全复用右矩阵的情况，则考虑新分核方式
-    if (2 * totalSize > static_cast<int64_t>(aicNum) * multiCoreParamsRegbase_->get_s1OuterSize()) {
-        // 索引从0开始，需要将基本块个数减1
-        if ((sparseMode == static_cast<int64_t>(SparseMode::LEFT_UP_CAUSAL)) &&
-            IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
+
+    // 索引从0开始，需要将基本块个数减1
+    if ((sparseMode == static_cast<int64_t>(SparseMode::LEFT_UP_CAUSAL)) &&
+        IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
+        firstFullLoadS1OuterIdx = CeilDivision(std::min(s1Size, s2Size), s1BasicBlock) - 1;
+        splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+    } else if ((sparseMode == static_cast<int64_t>(SparseMode::RIGHT_DOWN_CAUSAL)) &&
+        IsUseSpliteCoreMode(SparseMode::RIGHT_DOWN_CAUSAL)) {
+        firstFullLoadS1OuterIdx = multiCoreParamsRegbase_->get_s1OuterSize() - 1;
+        splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+    } else if (sparseMode == static_cast<int64_t>(SparseMode::NO_MASK)) {
+        if (!hasAttenMask && s2Size >= thresholdS2Size) {
+            firstFullLoadS1OuterIdx = -1;
+            splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
+        } else if (preTokens >= s1Size && nextTokens == 0 && IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
             firstFullLoadS1OuterIdx = CeilDivision(std::min(s1Size, s2Size), s1BasicBlock) - 1;
             splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
-        } else if ((sparseMode == static_cast<int64_t>(SparseMode::RIGHT_DOWN_CAUSAL)) &&
-            IsUseSpliteCoreMode(SparseMode::RIGHT_DOWN_CAUSAL)) {
-            firstFullLoadS1OuterIdx = multiCoreParamsRegbase_->get_s1OuterSize() - 1;
-            splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
-        } else if (sparseMode == static_cast<int64_t>(SparseMode::NO_MASK)) {
-            if (!hasAttenMask && s2Size >= thresholdS2Size) {
-                firstFullLoadS1OuterIdx = -1;
-                splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
-            } else if (preTokens >= s1Size && nextTokens == 0 && IsUseSpliteCoreMode(SparseMode::LEFT_UP_CAUSAL)) {
-                firstFullLoadS1OuterIdx = CeilDivision(std::min(s1Size, s2Size), s1BasicBlock) - 1;
-                splitCoreMode = SplitCoreMode::SQ_MULTI_CORE_FIRST;
-            }
         }
     }
 
