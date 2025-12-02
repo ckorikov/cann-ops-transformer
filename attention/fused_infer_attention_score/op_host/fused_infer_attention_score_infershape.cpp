@@ -418,6 +418,7 @@ static ge::graphStatus InferDataTypeFusedInferAttentionScore(gert::InferDataType
     // default set q's dtype as fia's output type
     ge::DataType outputType = context->GetInputDataType(FIA_QUERY_INDEX);
     // 10 is quant_scale2's index, if not instantiated or illegal return ge::DT_UNDEFINED
+    OP_LOGE(context->GetNodeName(), "wzn: outType front is : %d", outputType);
     if (context->GetOptionalInputDataType(FIA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) {
         outputType = ge::DT_INT8;
 
@@ -430,6 +431,7 @@ static ge::graphStatus InferDataTypeFusedInferAttentionScore(gert::InferDataType
                 outputType = iter->second;
             }
         }
+        OP_LOGE(context->GetNodeName(), "wzn: outType back is : %d", outputType);
     } else if (context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_INT8 ||
         context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_FLOAT8_E5M2 ||
         context->GetInputDataType(FIA_QUERY_INDEX) == ge::DT_FLOAT8_E4M3FN ||
