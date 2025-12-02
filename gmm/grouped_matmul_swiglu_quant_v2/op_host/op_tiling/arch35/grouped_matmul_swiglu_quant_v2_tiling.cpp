@@ -191,19 +191,19 @@ ge::graphStatus GroupedMatmulSwigluQuantDavidV2Tiling::DoOpTiling()
 ge::graphStatus GroupedMatmulSwigluQuantDavidV2Tiling::DoLibApiTiling()
 {
     CalBasicBlock();
+    auto baseM_modified = std::min(basicTiling_.baseM, static_cast<uint64_t>(128));
+    basicTiling_.baseM = GroupedMatmul::CeilAlign(baseM_modified, GmmConstant::CUBE_BLOCK);
     OP_CHECK_IF(CalL1Tiling() != ge::GRAPH_SUCCESS,
                OP_LOGE(context_->GetNodeName(), "CalL1Tiling failed"), return ge::GRAPH_FAILED);
-    auto baseM_modified = std::min(basicTiling_.baseM, static_cast<uint64_t>(128));
-    baseM_modified = GroupedMatmul::CeilAlign(baseM_modified, GmmConstant::CUBE_BLOCK);
     tilingData_.mmTilingData.set_M(inputParams_.mSize);
     tilingData_.mmTilingData.set_N(inputParams_.nSize);
     tilingData_.mmTilingData.set_Ka(inputParams_.kSize);
     tilingData_.mmTilingData.set_Kb(inputParams_.kSize);
     tilingData_.mmTilingData.set_usedCoreNum(aicoreParams_.aicNum);
-    tilingData_.mmTilingData.set_baseM(baseM_modified);
+    tilingData_.mmTilingData.set_baseM(basicTiling_.baseM);
     tilingData_.mmTilingData.set_baseN(basicTiling_.baseN);
     tilingData_.mmTilingData.set_baseK(basicTiling_.baseK);
-    tilingData_.mmTilingData.set_singleCoreM(baseM_modified);
+    tilingData_.mmTilingData.set_singleCoreM(basicTiling_.baseM);
     tilingData_.mmTilingData.set_singleCoreN(basicTiling_.singleCoreN);
     tilingData_.mmTilingData.set_singleCoreK(basicTiling_.singleCoreK);
     tilingData_.mmTilingData.set_depthA1(basicTiling_.depthA1);
