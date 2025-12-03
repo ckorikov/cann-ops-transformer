@@ -308,6 +308,32 @@ install_dos2unix() {
     fi
 }
 
+install_gawk() {
+    echo -e "\n==== 检查gawk ===="
+
+    if command -v gawk &> /dev/null; then
+        echo "gawk已安装"
+        return
+    fi
+
+    echo "安装gawk..."
+    case "$OS" in
+        debian|rhel)
+            run_command sudo $PKG_MANAGER install -y gawk
+            ;;
+        macos)
+            run_command brew install gawk
+            ;;
+    esac
+
+    if command -v gawk &> /dev/null; then
+        echo "gawk安装成功"
+    else
+        echo "gawk安装失败"
+        exit 1
+    fi
+}
+
 install_googletest() {
     # googletest建议版本使用release-1.11.0
     echo -e "\n==== 检查googletest ===="
@@ -384,6 +410,7 @@ main() {
     install_cmake
     install_pigz
     install_dos2unix
+    install_gawk
     install_googletest
 
     echo -e "===================================================="
