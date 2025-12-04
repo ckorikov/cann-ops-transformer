@@ -1,0 +1,249 @@
+/**
+ * This program is free software, you can redistribute it and/or modify it.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
+
+/*!
+ * \file grouped_matmul_torch.h
+ * \brief
+ */
+
+// groupedmatmul_npu.cpp
+#include <ATen/ATen.h>
+#include <torch_npu/npu_functions.h>
+#include <torch_npu/npu_interface.h>
+#include <c10/util/Half.h>
+#include <tuple>
+#include <vector>
+#include <sstream>
+#include <type_traits>
+#include <ATen/Operators.h>
+#include <torch/all.h>
+#include <torch/library.h>
+#include "acl/acl.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/DeviceUtils.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
+#include "tiling/platform/platform_ascendc.h"
+
+// ScalarType 到 C++ 类型的转换模板（需在头文件中定义）
+template <c10::ScalarType ScalarType>
+struct ScalarTypeToCppType;
+
+template <>
+struct ScalarTypeToCppType<at::kHalf> {
+    using type = c10::Half;
+};
+
+template <>
+struct ScalarTypeToCppType<at::kBFloat16> {
+    using type = at::BFloat16;
+};
+
+template <>
+struct ScalarTypeToCppType<at::kFloat> {
+    using type = float;
+};
+
+template <>
+struct ScalarTypeToCppType<at::kDouble> {
+    using type = double;
+};
+
+template <>
+struct ScalarTypeToCppType<at::kInt> {
+    using type = int32_t;
+};
+
+template <>
+struct ScalarTypeToCppType<at::kLong> {
+    using type = int64_t;
+};
+
+// 类型组合结构
+struct TypeCombo {
+    c10::ScalarType x;
+    c10::ScalarType bias;
+    c10::ScalarType scale;
+    c10::ScalarType offset;
+    c10::ScalarType antiquantScale;
+    c10::ScalarType antiquantOffset;
+    c10::ScalarType groupList;
+    c10::ScalarType perTokenScale;
+    c10::ScalarType weight;
+    c10::ScalarType output;
+};
+
+// 类型组合管理器
+class TypeComboManager {
+public:
+    static std::vector<TypeCombo> createCombosFromLists(
+        const std::vector<c10::ScalarType> &x_list, const std::vector<c10::ScalarType> &bias_list,
+        const std::vector<c10::ScalarType> &scale_list, const std::vector<c10::ScalarType> &offset_list,
+        const std::vector<c10::ScalarType> &antiquantScale_list,
+        const std::vector<c10::ScalarType> &antiquantOffset_list, const std::vector<c10::ScalarType> &groupList_list,
+        const std::vector<c10::ScalarType> &perTokenScale_list, const std::vector<c10::ScalarType> &weight_list,
+        const std::vector<c10::ScalarType> &output_list)
+    {
+        std::vector<TypeCombo> combos;
+        combos.reserve(x_list.size());
+
+        for (size_t i = 0; i < x_list.size(); ++i) {
+            combos.push_back({x_list[i], bias_list[i], scale_list[i], offset_list[i], antiquantScale_list[i],
+                              antiquantOffset_list[i], groupList_list[i], perTokenScale_list[i], weight_list[i],
+                              output_list[i]});
+        }
+
+        return combos;
+    }
+
+
+    template <typename TensorContainer>
+    bool checkTensorType(const TensorContainer &container, c10::ScalarType expected_type,
+                         const char *name = "curTensor", bool allow_empty = true)
+    {
+        const char *func_name = "[checkTensorType]";
+
+        // 处理 optional 类型
+        if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>> ||
+                      std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+            if (!container.has_value()) {
+                TORCH_CHECK(allow_empty,
+                            func_name << name << " is not provided (null optional), but empty is not allowed");
+                return allow_empty;
+            }
+        }
+        // 获取实际的值或引用
+        auto get_value = [&]() -> auto &
+        {
+            if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>>) {
+                return container.value();
+            } else if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+                return container.value();
+            } else if constexpr (std::is_same_v<TensorContainer, torch::TensorList>) {
+                return container;
+            } else if constexpr (std::is_same_v<TensorContainer, torch::Tensor>) {
+                return container;
+            }
+        };
+
+        const auto &value = get_value();
+
+        // 处理 Tensor 和 TensorList 的不同检查逻辑
+        if constexpr (std::is_same_v<TensorContainer, torch::Tensor> ||
+                      std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+            // 单个 Tensor 的处理
+            if (!value.defined()) {
+                TORCH_CHECK(allow_empty, func_name << name << " tensor is not defined");
+                return allow_empty;
+            }
+            if (value.scalar_type() != expected_type) {
+                return false;
+            }
+            return true;
+        } else {
+            // TensorList 的处理
+            if (value.empty()) {
+                TORCH_CHECK(allow_empty, func_name << name << " tensor list is empty, but empty is not allowed");
+                return allow_empty;
+            }
+
+            for (size_t i = 0; i < value.size(); ++i) {
+                const torch::Tensor &tensor = value[i];
+                if (!tensor.defined()) {
+                    TORCH_CHECK(allow_empty, func_name << name << " tensor list contains undefined tensor");
+                    return allow_empty;
+                }
+                if (tensor.scalar_type() != expected_type) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+
+    static int findMatchingCombo(const std::vector<TypeCombo> &combos, const torch::TensorList &x,
+                                 const torch::TensorList &weight, const c10::optional<torch::TensorList> &bias,
+                                 const c10::optional<torch::TensorList> &scale,
+                                 const c10::optional<torch::TensorList> &offset,
+                                 const c10::optional<torch::TensorList> &antiquantScale,
+                                 const c10::optional<torch::TensorList> &antiquantOffset,
+                                 const c10::optional<torch::Tensor> &groupList,
+                                 const c10::optional<torch::TensorList> &perTokenScale)
+    {
+        for (size_t i = 0; i < combos.size(); ++i) {
+            const auto &combo = combos[i];
+            if (checkTensorType(x, combo.x, "x", false) && checkTensorType(weight, combo.weight, "weight", false) &&
+                checkTensorType(bias, combo.bias, "bias", true) && checkTensorType(scale, combo.scale, "scale", true) &&
+                checkTensorType(offset, combo.offset, "offset", true) &&
+                checkTensorType(antiquantScale, combo.antiquantScale, "antiquantScale", true) &&
+                checkTensorType(antiquantOffset, combo.antiquantOffset, "antiquantOffset", true) &&
+                checkTensorType(perTokenScale, combo.perTokenScale, "perTokenScale", true) &&
+                checkTensorType(groupList, combo.groupList, "groupList", true)) {
+                return static_cast<int>(i);
+            }
+        }
+        return -1;
+    }
+};
+
+template <typename TensorContainer>
+void checkTensorOnNPU(const TensorContainer &container, const char *name = "curTensor", bool allow_empty = false)
+{
+    const char *func_name = "[checkTensorOnNPU]";
+
+    // 处理 optional 类型
+    if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>> ||
+                  std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+        if (!container.has_value()) {
+            TORCH_CHECK(allow_empty, func_name << name << " is not provided (null optional), but empty is not allowed");
+            return;
+        }
+    }
+    // 获取实际的值或引用
+    auto get_value = [&]() -> auto &
+    {
+        if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>>) {
+            return container.value();
+        } else if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+            return container.value();
+        } else if constexpr (std::is_same_v<TensorContainer, torch::TensorList>) {
+            return container;
+        } else if constexpr (std::is_same_v<TensorContainer, torch::Tensor>) {
+            return container;
+        }
+    };
+    const auto &value = get_value();
+    // 处理 Tensor 和 TensorList 的不同检查逻辑
+    if constexpr (std::is_same_v<TensorContainer, torch::Tensor> ||
+                  std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
+        // 单个 Tensor 的处理
+        if (!value.defined()) {
+            TORCH_CHECK(allow_empty, func_name << name << " tensor is undefined, but empty is not allowed");
+            return;
+        }
+
+        if (!torch_npu::utils::is_npu(value)) {
+            TORCH_CHECK(false, func_name << name << " tensor must be on NPU device");
+        }
+    } else {
+        // TensorList 的处理
+        if (value.empty()) {
+            TORCH_CHECK(allow_empty, func_name << name << " tensor list is empty, but empty is not allowed");
+            return;
+        }
+        for (size_t i = 0; i < value.size(); ++i) {
+            const torch::Tensor &tensor = value[i];
+            if (tensor.defined() && !torch_npu::utils::is_npu(tensor)) {
+                TORCH_CHECK(false, func_name << name << " tensor at index " << i << " must be on NPU device");
+            }
+        }
+    }
+}
