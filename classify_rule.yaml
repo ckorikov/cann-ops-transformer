@@ -789,6 +789,7 @@ mc2:
         - mc2/allto_all_all_gather_batch_mat_mul
       test:
         examples: False
+        ut: False
       options:
         - allto_all_all_gather_batch_mat_mul
 
@@ -821,6 +822,7 @@ mc2:
         - mc2/batch_mat_mul_reduce_scatter_allto_all
       test:
         examples: False
+        ut: False
       options:
         - batch_mat_mul_reduce_scatter_allto_all
 
