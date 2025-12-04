@@ -20,8 +20,14 @@
 namespace MoeGatingTopK {
 using namespace AscendC;
 const float MIN_FP32 = *(float *)(&F32_NEG_INF);
+constexpr int32_t F16_NEG_INF = 0xFC00;
+const half MIN_FP16 = *(half *)(&F16_NEG_INF);
 constexpr int32_t FLOAT32_NEG_INF = 0xFF800000; // -inf -2139095040
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
+constexpr int64_t ONE_REPEAT_SORT_NUM = 16;
+#else
 constexpr int64_t ONE_REPEAT_SORT_NUM = 32;
+#endif
 constexpr int64_t BLOCK_BYTES = 32;
 constexpr int64_t REPEAT_BYTES = 256;
 constexpr int64_t REPEAT_BLOCKS = 8;
