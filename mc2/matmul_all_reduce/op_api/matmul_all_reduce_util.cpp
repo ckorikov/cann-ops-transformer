@@ -179,13 +179,6 @@ bool MatmulAllReduceCheckShape(
     outShape.SetDim(x1_len - 1, x2->GetViewShape().GetDim(1));
     OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(output, outShape, return false);
 
-    // 判断output是否为空tensor
-    if (output->IsEmpty()) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Output is empty tensor, output shape is: %s",
-            op::ToString(output->GetViewShape()).GetString());
-        return false;
-    }
-
     if (x3 != nullptr) {
         OP_CHECK_SHAPE_NOT_EQUAL(output, x3, return false);
     }
@@ -381,13 +374,6 @@ bool QuantMatmulAllReduceCheckShape(
     op::Shape outShape = x1->GetViewShape();
     outShape.SetDim(x1Len - 1, x2Dim1);
     OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(output, outShape, return false);
-
-    // 判断output是否为空tensor
-    if (output->IsEmpty()) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Output is empty tensor, output shape is: %s",
-            op::ToString(output->GetViewShape()).GetString());
-        return false;
-    }
     
     // x1 shape [s,m,k], x2 shape [k,n], output shape [s,m,n], bias shape [n]
     if (bias != nullptr) {
