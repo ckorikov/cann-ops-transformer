@@ -33,7 +33,6 @@
 using namespace optiling;
 using namespace matmul;
 using namespace AttentionCommon;
-using namespace fa_base_vector;
 using AscendC::CacheMode;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
@@ -251,7 +250,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::InitTilingData()
 
     constInfo.headDim = tilingData->baseParams.headDim;
     constInfo.headDimRope = tilingData->baseParams.headDimRope;
-    constInfo.headDimAlign = Align(constInfo.headDim, (uint64_t)BYTE_BLOCK);
+    constInfo.headDimAlign = Align(constInfo.headDim, (uint64_t)fa_base_vector::BYTE_BLOCK);
 
     constInfo.mmResUbSize = tilingData->workspaceParams.mm1ResSize;
     constInfo.bmm2ResUbSize = tilingData->workspaceParams.mm2ResSize;
@@ -548,7 +547,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT>::CalcParams(uint64_t loop, uint32
         info.actualSingleProcessSInnerSize = info.actS2Size - s2Cur * constInfo.s2BaseSize;
     }
     info.actualSingleProcessSInnerSizeAlign =
-        Align((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)BYTE_BLOCK);
+        Align((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)fa_base_vector::BYTE_BLOCK);
 
     if (constInfo.batchContinuous) {
         info.isChangeBatch = false;

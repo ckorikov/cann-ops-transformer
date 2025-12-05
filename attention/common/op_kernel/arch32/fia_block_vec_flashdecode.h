@@ -25,7 +25,6 @@
 #include "../memory_copy.h"
 
 using namespace AttentionCommon;
-using namespace fa_base_vector;
 struct TaskInfo {
     uint32_t bIdx;
     uint32_t n2Idx;
@@ -88,7 +87,7 @@ private:
     static constexpr uint64_t SYNC_SINK_BUF1_FLAG = 12;
     static constexpr uint64_t SYNC_SINK_BUF2_FLAG = 13;
 
-    static constexpr uint32_t BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(T); // 32/4=8
+    static constexpr uint32_t BLOCK_ELEMENT_NUM = fa_base_vector::BYTE_BLOCK / sizeof(T); // 32/4=8
 
 protected:
     GlobalTensor<T> lseSumFdGm;
@@ -276,9 +275,9 @@ void FiaBlockVecFlashDecode<FIAT>::CopyLseIn(uint32_t startRow,
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_SUM_BUF1_FLAG + cntM % 2);
     WaitFlag<AscendC::HardEvent::V_MTE2>(SYNC_LSE_MAX_BUF1_FLAG + cntM % 2);
 
-    uint64_t combineLseOffset = (baseOffset + startRow) * FP32_BLOCK_ELEMENT_NUM;
-    uint64_t combineLoopOffset = constInfo.mBaseSize * FP32_BLOCK_ELEMENT_NUM;
-    uint64_t dealRowCountAlign = dealRowCount * FP32_BLOCK_ELEMENT_NUM;
+    uint64_t combineLseOffset = (baseOffset + startRow) * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
+    uint64_t combineLoopOffset = constInfo.mBaseSize * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
+    uint64_t dealRowCountAlign = dealRowCount * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
     for (uint32_t i = 0; i < taskInfo.actualCombineLoopSize; i++) {
         DataCopy(lseSum[i * dealRowCountAlign], lseSumFdGm[combineLseOffset + i * combineLoopOffset],
                  dealRowCountAlign); // 份数offset
@@ -363,7 +362,7 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
 
     LocalTensor<T> lseMaxUb = cntM % 2 == 0 ? fdLseMaxUbBuf1.Get<T>() : fdLseMaxUbBuf2.Get<T>();
     LocalTensor<T> lseSumUb = cntM % 2 == 0 ? fdLseSumUbBuf1.Get<T>() : fdLseSumUbBuf2.Get<T>();
-    uint64_t dealRowCountAlign = dealRowCount * FP32_BLOCK_ELEMENT_NUM;
+    uint64_t dealRowCountAlign = dealRowCount * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
 
     if (unlikely(learnableSinkFlag)) {
         SinkMax(lseMaxUb, startRow, dealRowCount);
@@ -373,10 +372,10 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
     Duplicate(lseSumUb, AttentionCommon::ConstInfo::FLOAT_ZERO, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
-    ColMax(lseMaxUb, lseMax, lseMaxUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
+    fa_base_vector::ColMax(lseMaxUb, lseMax, lseMaxUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
-    RowSub(lseExp, lseMax, lseMaxUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
+    fa_base_vector::RowSub(lseExp, lseMax, lseMaxUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
     Exp(lseExp, lseExp, taskInfo.actualCombineLoopSize * dealRowCountAlign);
@@ -385,14 +384,14 @@ FiaBlockVecFlashDecode<FIAT>::ComputeScaleValue(LocalTensor<T> &lseExp,
     Mul(lseExp, lseSum, lseExp, taskInfo.actualCombineLoopSize * dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
-    ColAdd(lseSumUb, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
+    fa_base_vector::ColAdd(lseSumUb, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 
     if (unlikely(learnableSinkFlag)) {
         SinkExpSumUpdate(lseMaxUb, lseSumUb, dealRowCountAlign);
     }
 
-    MatDivsVec(lseExp, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
+    fa_base_vector::MatDivsVec(lseExp, lseExp, lseSumUb, taskInfo.actualCombineLoopSize, dealRowCountAlign, dealRowCountAlign);
     AscendC::PipeBarrier<PIPE_V>();
 }
 
@@ -463,7 +462,7 @@ void FiaBlockVecFlashDecode<FIAT>::Bmm2DataCopyOut(uint64_t attenOutOffset, Loca
     DataCopyExtParams dataCopyParams;
     dataCopyParams.blockCount = dealRowCount;
     dataCopyParams.blockLen = actualColumnCount * sizeof(OUT_T);
-    dataCopyParams.srcStride = (columnCount - actualColumnCount) / (BYTE_BLOCK / sizeof(OUT_T));
+    dataCopyParams.srcStride = (columnCount - actualColumnCount) / (fa_base_vector::BYTE_BLOCK / sizeof(OUT_T));
     dataCopyParams.dstStride = 0;
     DataCopyPad(attentionOutGm[attenOutOffset + startRow * actualColumnCount], attenOutUb,
                 dataCopyParams);
@@ -476,11 +475,11 @@ void FiaBlockVecFlashDecode<FIAT>::ReduceFinalRes(LocalTensor<T> &reduceOut,
                                                       uint32_t cntKV, 
                                                       uint32_t dealRowCount)
 {
-    uint32_t dealRowCountAlign = dealRowCount * FP32_BLOCK_ELEMENT_NUM;
+    uint32_t dealRowCountAlign = dealRowCount * fa_base_vector::FP32_BLOCK_ELEMENT_NUM;
     LocalTensor<T> tmpRst =
         cntKV == 0 ? reduceOut : mm2Res; // 第一次mul结果直接写入reduceOut，否则在mm2Res原地进行mul，再加到reduceOut
 
-    RowMuls(tmpRst, mm2Res, lseLocal[cntKV * dealRowCountAlign], dealRowCount, constInfo.headDimAlign, constInfo.headDim);
+    fa_base_vector::RowMuls(tmpRst, mm2Res, lseLocal[cntKV * dealRowCountAlign], dealRowCount, constInfo.headDimAlign, constInfo.headDim);
 
     if (cntKV != 0) {
         AscendC::PipeBarrier<PIPE_V>();
@@ -649,14 +648,14 @@ FiaBlockVecFlashDecode<FIAT>::FlashDecode(FDparams &fd)
 
                 WaitFlag<HardEvent::MTE3_V>(SYNC_LSEOUTPUT_BUF_FLAG);
                 LocalTensor<T> lseftMaxLseUb = fdLseUbBuf.Get<T>();
-                ComputeSoftMaxLse(lseftMaxLseUb, lseSumUb, lseMaxUb, actualGSplitSize);
+                fa_base_vector::ComputeSoftMaxLse(lseftMaxLseUb, lseSumUb, lseMaxUb, actualGSplitSize);
                 // 判断是否行无效       
-                bool isInValidRowsFlag = IsExistInvalidRows(nextTokensPerBatch, preTokensPerBatch, constInfo.sparseMode,
+                bool isInValidRowsFlag = fa_base_vector::IsExistInvalidRows(nextTokensPerBatch, preTokensPerBatch, constInfo.sparseMode,
                                           constInfo.attenMaskFlag, constInfo.isRowInvalid);
                 if (isInValidRowsFlag) {
                     SoftMaxShapeInfo softmaxShapeInfo{
-                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(FP32_BLOCK_ELEMENT_NUM),
-                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(FP32_BLOCK_ELEMENT_NUM)};
+                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(fa_base_vector::FP32_BLOCK_ELEMENT_NUM),
+                    static_cast<uint32_t>(actualGSplitSize), static_cast<uint32_t>(fa_base_vector::FP32_BLOCK_ELEMENT_NUM)};
                     AdjustSoftMaxRes<T, T>(lseftMaxLseUb, lseMaxUb, negativeIntScalar, (T)3e+99, softmaxShapeInfo);
                 }
                 SetFlag<HardEvent::V_MTE3>(SYNC_LSEOUTPUT_BUF_FLAG);
