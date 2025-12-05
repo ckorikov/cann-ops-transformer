@@ -331,7 +331,8 @@ void MlaPrologTilingCheck::FillOptionalOutputParamShapeWithDims()
     }
 
     if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
-        if (scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TENSOR) {
+        if (scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TENSOR ||
+            scenarioInfo_.quantMode_ == QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR) {
             expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.nSize, 1});
         } else {
             expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, std::vector<uint32_t>{0});
