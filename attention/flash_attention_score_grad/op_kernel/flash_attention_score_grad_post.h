@@ -38,7 +38,7 @@ class FlashAttentionScoreGradPost {
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){};
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *dpse, __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
                          __gm__ uint8_t *workspace, const TILING_TYPE *__restrict ordTilingData, TPipe *pipe_in);
     __aicore__ inline void Process();
     __aicore__ inline void InitIndex(uint64_t startIdx, int64_t curG, int64_t &curS, GM_ADDR seqS, int64_t d, int64_t dAlign);
@@ -140,7 +140,8 @@ public:
 template <typename OUT_TYPE, class TILING_TYPE, const bool CAST_DV, const uint32_t LAYOUT,
           const uint32_t INPUT_FORMAT, const uint32_t HAS_ROPE>
 __aicore__ inline void FlashAttentionScoreGradPost<OUT_TYPE, TILING_TYPE, CAST_DV, LAYOUT, INPUT_FORMAT, HAS_ROPE>::Init(
-    __gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv, __gm__ uint8_t *actual_seq_qlen,
+    __gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
+    __gm__ uint8_t *dpse, __gm__ uint8_t *actual_seq_qlen,
     __gm__ uint8_t *actual_seq_kvlen, __gm__ uint8_t *workspace, const TILING_TYPE *__restrict ordTilingData,
     TPipe *pipe_in)
 {
@@ -715,7 +716,7 @@ class FlashAttentionScoreGradPost<OUT_TYPE, FlashAttentionScoreGradTilingDataS1s
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){}
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *dpse, __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
                          __gm__ uint8_t *workspace, const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb *__restrict ordTilingData, TPipe *pipe_in)
     {
         cBlockIdx = GetBlockIdx();
@@ -1385,7 +1386,7 @@ class FlashAttentionScoreGradPost<OUT_TYPE, FlashAttentionScoreGradTilingDataS1s
 public:
     __aicore__ inline FlashAttentionScoreGradPost(){}
     __aicore__ inline void Init(__gm__ uint8_t *dq, __gm__ uint8_t *dqRope, __gm__ uint8_t *dk, __gm__ uint8_t *dkRope, __gm__ uint8_t *dv,
-                         __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
+                         __gm__ uint8_t *dpse, __gm__ uint8_t *actual_seq_qlen, __gm__ uint8_t *actual_seq_kvlen,
                          __gm__ uint8_t *workspace, const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 *__restrict ordTilingData, TPipe *pipe_in)
     {
         cBlockIdx = GetBlockIdx();
@@ -1402,6 +1403,7 @@ public:
             dkRopeGm.SetGlobalBuffer((__gm__ OUT_TYPE *)dkRope);
         }
         dvGm.SetGlobalBuffer((__gm__ OUT_TYPE *)dv);
+        dpseGm.SetGlobalBuffer((__gm__ OUT_TYPE *)dpse);
 
         // tiling_data
         usedCoreNum = tilingData->postTilingData.coreNum;
@@ -1419,6 +1421,10 @@ public:
         vPostBlockTotal = tilingData->postTilingData.vPostBlockTotal;
         vPostBaseNum = tilingData->postTilingData.vPostBaseNum;
         vPostTailNum = tilingData->postTilingData.vPostTailNum;
+        psePostBlockFactor = tilingData->postTilingData.psePostBlockFactor;
+        psePostBlockTotal = tilingData->postTilingData.psePostBlockTotal;
+        psePostBaseNum = tilingData->postTilingData.psePostBaseNum;
+        psePostTailNum = tilingData->postTilingData.psePostTailNum;
         qSizeAlign = tilingData->postTilingData.qSizeAlign;
         kvSizeAlign = tilingData->postTilingData.kvSizeAlign;
         vSizeAlign = tilingData->postTilingData.vSizeAlign;
@@ -1470,6 +1476,8 @@ public:
             dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
                                         tilingData->postTilingData.dvWorkSpaceOffset / sizeof(float));
         }
+        dpseWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace +
+            tilingData->postTilingData.dpseWorkSpaceOffset / sizeof(float));
 
         if constexpr (INPUT_FORMAT == NZ) {
             pipe->InitBuffer(inQueuePing, 1, ubBaseSize * 2 + nzReservedSize);
@@ -1674,6 +1682,38 @@ public:
                 inQueue.FreeTensor(vecIn);
                 outQueue.FreeTensor(vecOut);
             }
+        }
+        AscendC::PipeBarrier<PIPE_ALL>();
+
+        // init pse
+        uint64_t pseBegin = cBlockIdx * psePostBlockFactor * psePostBaseNum;
+        uint64_t pseEnd = (cBlockIdx + 1) * psePostBlockFactor * psePostBaseNum;
+        if (((cBlockIdx + 1) * psePostBlockFactor * psePostBaseNum) > psePostBlockTotal) {
+            pseEnd = psePostBlockTotal;
+        }
+
+        for (uint64_t i = pseBegin; i < pseEnd; i = i + psePostBaseNum) {
+            AscendC::LocalTensor<float> vecIn = inQueue.template AllocTensor<float>();
+            AscendC::LocalTensor<OUT_TYPE> vecOut = outQueue.template AllocTensor<OUT_TYPE>();
+            uint64_t dataSize = i + psePostBaseNum < psePostBlockTotal ? psePostBaseNum : psePostTailNum;
+            DataCopy(vecIn, dpseWorkSpaceGm[i], (dataSize + 7) / 8 * 8); // dataSize(fp32) align 32B
+            inQueue.EnQue(vecIn);
+            inQueue.template DeQue<float>();
+            if constexpr (AscendC::IsSameType<OUT_TYPE, float>::value) {
+                Muls(vecOut, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
+                outQueue.EnQue(vecOut);
+                outQueue.template DeQue<OUT_TYPE>();
+                DataCopy(dpseGm[i], vecOut, (dataSize + 7) / 8 * 8); // dataSize(fp32) align 32B
+            } else {
+                Muls(vecIn, vecIn, (float)tilingData->postTilingData.scaleValue, dataSize);
+                AscendC::PipeBarrier<PIPE_V>();
+                Cast(vecOut, vecIn, AscendC::RoundMode::CAST_ROUND, dataSize);
+                outQueue.EnQue(vecOut);
+                outQueue.template DeQue<OUT_TYPE>();
+                DataCopy(dpseGm[i], vecOut, (dataSize + 15) / 16 * 16); // dataSize(fp16) align 32B
+            }
+            inQueue.FreeTensor(vecIn);
+            outQueue.FreeTensor(vecOut);
         }
     }
     __aicore__ inline void NZ2ND(LocalTensor<float> &dstTensor, LocalTensor<float> &srcTensor, uint64_t sLen,
@@ -1955,10 +1995,10 @@ public:
     TBuf<> tmpBufPing;
     TBuf<> tmpBufPong;
 
-    AscendC::GlobalTensor<OUT_TYPE> dqGm, dkGm, dvGm;
+    AscendC::GlobalTensor<OUT_TYPE> dqGm, dkGm, dvGm, dpseGm;
     AscendC::GlobalTensor<OUT_TYPE> dqRopeGm, dkRopeGm;
     // input
-    AscendC::GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm;
+    AscendC::GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dpseWorkSpaceGm;
     AscendC::GlobalTensor<float> dqRopeWorkSpaceGm, dkRopeWorkSpaceGm;
 
     const FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2 *__restrict tilingData;
@@ -2001,6 +2041,11 @@ public:
     int64_t vPostBaseNum;
     int64_t vPostTailNum;
     uint64_t vSizeAlign;
+
+    int64_t psePostBlockFactor;
+    uint64_t psePostBlockTotal;
+    int64_t psePostBaseNum;
+    int64_t psePostTailNum;
 
     // org shape info
     int64_t b;

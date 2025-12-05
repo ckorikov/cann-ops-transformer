@@ -1081,6 +1081,11 @@ public:
     uint32_t vPostBlockTotal = 0;
     uint32_t vPostBaseNum = 0;
     uint32_t vPostTailNum = 0;
+    uint32_t psePostBlockFactor = 0;
+    uint32_t psePostBlockTotal = 0;
+    uint32_t psePostBaseNum = 0;
+    uint32_t psePostTailNum = 0;
+    uint64_t pseSize = 0;
     uint64_t qSizeAlign = 0;
     uint64_t kvSizeAlign = 0;
     uint64_t qRopeSizeAlign = 0;
@@ -1091,6 +1096,7 @@ public:
     uint64_t dkWorkSpaceOffset = 0;
     uint64_t dkRopeWorkSpaceOffset = 0;
     uint64_t dvWorkSpaceOffset = 0;
+    uint64_t dpseWorkSpaceOffset = 0;
     int64_t b = 0;
     int64_t n2 = 0;
     int64_t g = 0;
@@ -1325,6 +1331,51 @@ public:
         this->vPostTailNum = vPostTailNum_val;
     }
 
+    uint32_t get_psePostBlockFactor() const
+    {
+        return psePostBlockFactor;
+    }
+    void set_psePostBlockFactor(uint32_t psePostBlockFactor_val)
+    {
+        this->psePostBlockFactor = psePostBlockFactor_val;
+    }
+
+    uint32_t get_psePostBlockTotal() const
+    {
+        return psePostBlockTotal;
+    }
+    void set_psePostBlockTotal(uint32_t psePostBlockTotal_val)
+    {
+        this->psePostBlockTotal = psePostBlockTotal_val;
+    }
+
+    uint32_t get_psePostBaseNum() const
+    {
+        return psePostBaseNum;
+    }
+    void set_psePostBaseNum(uint32_t psePostBaseNum_val)
+    {
+        this->psePostBaseNum = psePostBaseNum_val;
+    }
+
+    uint32_t get_psePostTailNum() const
+    {
+        return psePostTailNum;
+    }
+    void set_psePostTailNum(uint32_t psePostTailNum_val)
+    {
+        this->psePostTailNum = psePostTailNum_val;
+    }
+
+    uint64_t get_pseSize() const
+    {
+        return pseSize;
+    }
+    void set_pseSize(uint64_t pseSize_val)
+    {
+        this->pseSize = pseSize_val;
+    }
+
     uint64_t get_qSizeAlign() const
     {
         return qSizeAlign;
@@ -1413,6 +1464,15 @@ public:
     void set_dvWorkSpaceOffset(uint64_t dvWorkSpaceOffset_val)
     {
         this->dvWorkSpaceOffset = dvWorkSpaceOffset_val;
+    }
+
+    uint64_t get_dpseWorkSpaceOffset() const
+    {
+        return dpseWorkSpaceOffset;
+    }
+    void set_dpseWorkSpaceOffset(uint64_t dpseWorkSpaceOffset_val)
+    {
+        this->dpseWorkSpaceOffset = dpseWorkSpaceOffset_val;
     }
 
     int64_t get_b() const
@@ -1514,6 +1574,11 @@ public:
         vPostBlockTotal = 0;
         vPostBaseNum = 0;
         vPostTailNum = 0;
+        psePostBlockFactor = 0;
+        psePostBlockTotal = 0;
+        psePostBaseNum = 0;
+        psePostTailNum = 0;
+        pseSize = 0;
         qSizeAlign = 0;
         kvSizeAlign = 0;
         qRopeSizeAlign = 0;

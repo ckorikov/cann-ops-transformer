@@ -106,6 +106,7 @@ struct FuzzyBaseInfoParams { // 频繁使用的基础参数
     int64_t qRopeSizeAlign = 0;
     int64_t kRopeSizeAlign = 0;
     int64_t dropMaskSize = 0;
+    int64_t pseSize = 0;
 
     uint32_t baseMN = 0;
     int64_t blockStarts[CORE_LIST_NUM] = {0};

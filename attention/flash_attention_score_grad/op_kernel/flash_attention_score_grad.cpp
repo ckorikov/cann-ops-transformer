@@ -84,7 +84,7 @@ constexpr static const uint32_t TND = 3;
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2, true, INPUT_LAYOUT,     \
                                     input_format>                                                                      \
             opPost;                                                                                                    \
-        opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);       \
+        opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost); \
         opPost.Process();                                                                                              \
     } while (0)
 
@@ -120,7 +120,7 @@ constexpr static const uint32_t TND = 3;
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2, true, INPUT_LAYOUT,     \
                                     input_format, HAS_ROPE>                                                            \
             opPost;                                                                                                    \
-        opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);       \
+        opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost); \
         opPost.Process();                                                                                              \
     } while (0)
 
@@ -158,7 +158,7 @@ constexpr static const uint32_t TND = 3;
             TPipe pipePost;                                                                                            \
             constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                   \
             FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb, true, INPUT_LAYOUT, input_format> opPost;\
-            opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);   \
+            opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);   \
             opPost.Process();                                                                                          \
         }                                                                                                              \
     } while (0)
@@ -198,7 +198,7 @@ constexpr static const uint32_t TND = 3;
             TPipe pipePost;                                                                                            \
             constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                   \
                 FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb, true, INPUT_LAYOUT, input_format, HAS_ROPE> opPost;\
-            opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);   \
+            opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);   \
             opPost.Process();                                                                                          \
         }                                                                                                              \
     } while (0)
@@ -235,7 +235,7 @@ constexpr static const uint32_t TND = 3;
             TPipe pipePost;                                                                                                \
             constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
             FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb, true, INPUT_LAYOUT,input_format> opPost;\
-            opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);       \
+            opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);       \
             opPost.Process();                                                                                              \
         }                                                                                                       \
     } while (0)
@@ -275,7 +275,7 @@ constexpr static const uint32_t TND = 3;
             TPipe pipePost;                                                                                                \
             constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
             FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2gs1s2SameAb, true, INPUT_LAYOUT, input_format, HAS_ROPE> opPost;\
-            opPost.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost);       \
+            opPost.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipePost); \
             opPost.Process();                                                                                              \
         }                                                     \
     } while (0)
@@ -308,7 +308,7 @@ constexpr static const uint32_t TND = 3;
         constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2, true, INPUT_LAYOUT,          \
         input_format> opCast;                                                                                          \
-        opCast.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeCast);       \
+        opCast.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeCast); \
         opCast.Process();                                                                                              \
     } while (0)
 
@@ -334,7 +334,7 @@ constexpr static const uint32_t TND = 3;
         constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataS1s2Bn2, true, INPUT_LAYOUT,          \
         input_format> opCast;                                                                                          \
-        opCast.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeCast);       \
+        opCast.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeCast); \
         opCast.Process();                                                                                              \
     } while (0)
 
@@ -427,7 +427,7 @@ constexpr static const uint32_t TND = 3;
         constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradUbngs1s2BbTilingData, false,                    \
         layout, input_format> opMuls;                                                                                  \
-        opMuls.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeMuls);       \
+        opMuls.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeMuls); \
         opMuls.Process();                                                                                              \
         pipeMuls.Destroy();                                                                                            \
     } while (0)
@@ -458,7 +458,7 @@ constexpr static const uint32_t TND = 3;
         constexpr static uint32_t input_format = (MM2_OUT_FORMAT == MM_NZ_OUT_FORMAT) ? NZ : ND;                       \
         FlashAttentionScoreGradPost<INPUT_TYPE, FlashAttentionScoreGradTilingDataUngs1s2Bbn, false,                    \
         layout, input_format> opMuls;                                                                                  \
-        opMuls.Init(dq, dqRope, dk, dkRope, dv, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeMuls);       \
+        opMuls.Init(dq, dqRope, dk, dkRope, dv, dpse, actual_seq_qlen, actual_seq_kvlen, user, tilingData, &pipeMuls); \
         opMuls.Process();                                                                                              \
         pipeMuls.Destroy();                                                                                            \
     } while (0)

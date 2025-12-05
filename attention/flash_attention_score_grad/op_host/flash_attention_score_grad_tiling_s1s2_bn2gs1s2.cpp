@@ -327,6 +327,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::ProcessPseNormal(cons
     auto dim1 = pseShape->GetStorageShape().GetDim(DIM_1);
     auto dim2 = pseShape->GetStorageShape().GetDim(DIM_2);
     auto dim3 = pseShape->GetStorageShape().GetDim(DIM_3);
+    fBaseParams.pseSize = dim0 * dim1 * dim2 * dim3;
 
     bool isBN1S = (dim0 == fBaseParams.b && dim1 == fBaseParams.n1 && dim2 == 1 && dim3 == fBaseParams.s2);
     bool isBNSS = (dim0 == fBaseParams.b && dim1 == fBaseParams.n1 && dim2 == fBaseParams.s1 && dim3 == fBaseParams.s2);
@@ -1396,6 +1397,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetWorkspaceSize()
     // matmal3 v
     workspaceSize =
         (workspaceSize + static_cast<size_t>(fBaseParams.vSizeAlign) * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+    // pseTmp
+    workspaceSize =
+        (workspaceSize + static_cast<size_t>(fBaseParams.pseSize) * FP32_BYTES + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     // mask bool workspace size
     if (fBaseParams.dropoutIsDivisibleBy8 == 0) {
         workspaceSize =
@@ -2487,6 +2491,23 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPostTiling()
         tilingData->postTilingData.set_vSizeAlign(fBaseParams.vSizeAlign);
     }
 
+    {
+        int64_t psePostBaseNum = qPostBaseNum;
+        OP_CHECK_IF(psePostBaseNum == 0, OP_LOGE(context_, "divisor psePostBaseNum is 0."),
+            return ge::GRAPH_FAILED);
+        int64_t psePostBlockTotal = fBaseParams.pseSize;
+        int64_t psePostTailNumTmp = psePostBlockTotal % psePostBaseNum;
+        int64_t psePostTailNum = psePostTailNumTmp == 0 ? psePostBaseNum : psePostTailNumTmp;
+        int64_t psePostBlockOuterTotal = (psePostBlockTotal + psePostBaseNum - 1) / psePostBaseNum;
+        int64_t psePostBlockFactor = (psePostBlockOuterTotal + fBaseParams.blockOuter - 1) / fBaseParams.blockOuter;
+
+        tilingData->postTilingData.set_psePostBlockFactor(psePostBlockFactor);
+        tilingData->postTilingData.set_psePostBlockTotal(psePostBlockTotal);
+        tilingData->postTilingData.set_psePostBaseNum(psePostBaseNum);
+        tilingData->postTilingData.set_psePostTailNum(psePostTailNum);
+        tilingData->postTilingData.set_pseSize(fBaseParams.pseSize);
+    }
+
     tilingData->postTilingData.set_scaleValue(fBaseParams.scaleValue);
     tilingData->postTilingData.set_coreNum(fBaseParams.coreNum);
     tilingData->postTilingData.set_postUbBaseSize(postUbBaseSize);
@@ -2515,6 +2536,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DoPostTiling()
             (workspaceOffsets + fBaseParams.kRopeSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
     }
     tilingData->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
+    workspaceOffsets = (workspaceOffsets + fBaseParams.vSizeAlign * sizeof(float) + GM_ALIGN) / GM_ALIGN * GM_ALIGN;
+    tilingData->postTilingData.set_dpseWorkSpaceOffset(workspaceOffsets);
 
     tilingData->postTilingData.set_b(fBaseParams.b);
     tilingData->postTilingData.set_n2(fBaseParams.n2);
@@ -2545,5 +2568,5 @@ void FlashAttentionScoreGradTilingS1s2Bn2gs1s2::DetermineMode()
 REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2gs1s2,
                                          std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B,
                                                                (int32_t)platform_ascendc::SocVersion::ASCEND910_93}),
-                                         16000);
+                                         900);
 } // namespace optiling

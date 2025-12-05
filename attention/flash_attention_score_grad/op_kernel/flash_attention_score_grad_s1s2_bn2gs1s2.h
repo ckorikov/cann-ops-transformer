@@ -161,7 +161,7 @@ protected:
     GlobalTensor<float> softmaxMaxGm, softmaxSumGm;
 
     // output
-    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm;
+    GlobalTensor<float> dqWorkSpaceGm, dkWorkSpaceGm, dvWorkSpaceGm, dpseWorkSpaceGm;
     GlobalTensor<float> dqRopeWorkSpaceGm;
     GlobalTensor<float> dkRopeWorkSpaceGm;
     GlobalTensor<T1> dropWorkSpaceGm, mulWorkSpaceGm;
@@ -489,6 +489,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2<
     int64_t qPostBlockTotal = TilingData->postTilingData.qSizeAlign;
     int64_t kvPostBlockTotal = TilingData->postTilingData.kvSizeAlign;
     int64_t vPostBlockTotal = TilingData->postTilingData.vSizeAlign;
+    int64_t psePostBlockTotal = TilingData->postTilingData.pseSize;
     int64_t qRopePostBlockTotal = 0;
     int64_t kRopePostBlockTotal = 0;
     if constexpr (HAS_ROPE == ENABLE) {
@@ -518,7 +519,9 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2<
     dvWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(T2));
     workspaceOffsets =
         (workspaceOffsets + vPostBlockTotal * sizeof(float) + ADDR_ALIGN_SIZE) / ADDR_ALIGN_SIZE * ADDR_ALIGN_SIZE;
-    
+    dpseWorkSpaceGm.SetGlobalBuffer((__gm__ float *)workspace + workspaceOffsets / sizeof(T2));
+    workspaceOffsets =
+        (workspaceOffsets + psePostBlockTotal * sizeof(float) + ADDR_ALIGN_SIZE) / ADDR_ALIGN_SIZE * ADDR_ALIGN_SIZE;
 
     if constexpr (IS_DROP == ENABLE) {
         if (!dropBitMode) {
@@ -584,6 +587,18 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2gs1s2<
             PseInnerAlibiCreate<true>(this->pseAlibiGm, pseHelpBuffer, pseInfo);
         }
     }
+
+    int64_t n = psePostBlockTotal;
+    float initValue = 0.0f;
+    if ((GetBlockIdx() + 1) < GetBlockNum()) {
+        InitOutput<float>(dpseWorkSpaceGm[n / GetBlockNum() * GetBlockIdx()],
+            n / GetBlockNum(), initValue);
+    }
+    if ((GetBlockIdx() + 1) == GetBlockNum()) {
+        InitOutput<float>(dpseWorkSpaceGm[n / GetBlockNum() * GetBlockIdx()],
+            n - n / GetBlockNum() * (GetBlockNum() - 1), initValue);
+    }
+    SyncAll();
 }
 
 template <typename T1, typename T2, const uint32_t IS_ATTEN_MASK, const uint32_t IS_PSE, const uint32_t IS_DROP,
@@ -1960,20 +1975,20 @@ FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, MM_O
     // mul
     ///////////////////////////////////////////////////////////////
     AscendC::PipeBarrier<PIPE_V>();
-    LocalTensor<float> vecClc2Buffer =
-        ubBuffer.GetWithOffset<float>(32 * 1024 / sizeof(float), ubBufferOffset + T2Begin);
-    Mul(vecClc1Buffer, vecClc1Buffer, vecClc2Buffer, s1ExtendSubGraph * s2ExtendAlign);
+    LocalTensor<T2> vecClc2Buffer =
+        ubBuffer.GetWithOffset<T2>(32 * 1024 / sizeof(T2), ubBufferOffset + T2Begin);
+    Mul(vecClc2Buffer, vecClc1Buffer, vecClc2Buffer, s1ExtendSubGraph * s2ExtendAlign);
     LocalTensor<T1> vecOutBuffer;
     if constexpr (!IsSameType<T1, float>::value) {
         vecOutBuffer = ubBuffer.GetWithOffset<T1>(17 * 1024 / sizeof(T1), ubBufferOffset + T1Begin);
         AscendC::PipeBarrier<PIPE_V>();
-        Cast(vecOutBuffer, vecClc1Buffer, RoundMode::CAST_ROUND, s1ExtendSubGraph * s2ExtendAlign);
+        Cast(vecOutBuffer, vecClc2Buffer, RoundMode::CAST_ROUND, s1ExtendSubGraph * s2ExtendAlign);
     }
     if constexpr (MM_OUT_FORMAT == CubeFormat::NZ) {
         AscendC::PipeBarrier<PIPE_V>();
         auto tmpTensor1 = tmpBuffer.Get<T1>();
         if constexpr (IsSameType<T1, float>::value) {
-            DataCopy(tmpTensor1, vecClc1Buffer, s1ExtendSubGraph * s2ExtendAlign);
+            DataCopy(tmpTensor1, vecClc2Buffer, s1ExtendSubGraph * s2ExtendAlign);
             AscendC::PipeBarrier<PIPE_V>();
             ND2NZ(vecClc1Buffer, tmpTensor1, s1ExtendSubGraph, s2ExtendAlign);
         } else {
@@ -2011,7 +2026,7 @@ FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, MM_O
         if constexpr(IsSameType<T1, float>::value) {
                DataCopyPad(mulWorkSpaceGm[pingpongIdx * coreNum * cubeBaseMN + cBlockIdx * cubeBaseMN +
                                    curS1Idx * s1VecSize * s2CvExtendAlign + curS2Idx * s2VecSize],
-                    vecClc1Buffer,
+                    vecClc2Buffer,
                     {static_cast<uint16_t>(s1ExtendSubGraph), static_cast<uint16_t>(s2ExtendAlign * sizeof(T1)), 0,
                      static_cast<uint16_t>((s2CvExtendAlign - s2ExtendAlign) * sizeof(T1))});
         } else {
@@ -2021,6 +2036,18 @@ FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, MM_O
                     {static_cast<uint16_t>(s1ExtendSubGraph), static_cast<uint16_t>(s2ExtendAlign * sizeof(T1)), 0,
                      static_cast<uint16_t>((s2CvExtendAlign - s2ExtendAlign) * sizeof(T1))});
         }
+    }
+    ///////////////////////////////////////////////////////////////
+    // dS reduce
+    ///////////////////////////////////////////////////////////////
+    {
+        SetAtomicAdd<float>();
+        int64_t dpseWSGmOffset = ((static_cast<uint16_t>(n2DimIdx) * g + gDimIdx) * s1 +
+            s1oDimIdx * s1CvInner) * s2 + s2oCvDimIdx * s2CvInner;
+        DataCopyPad(dpseWorkSpaceGm[dpseWSGmOffset], vecClc2Buffer,
+            {static_cast<uint16_t>(s1ExtendSubGraph), static_cast<uint16_t>(s2ExtendAlign * sizeof(float)), 0,
+            static_cast<uint16_t>((s2 - s2ExtendAlign) * sizeof(float))});
+        SetAtomicNone();
     }
 
     if ((s1VecLoop * s2VecLoop > 2) && (curIdx < (s1VecLoop * s2VecLoop - 2))) {
