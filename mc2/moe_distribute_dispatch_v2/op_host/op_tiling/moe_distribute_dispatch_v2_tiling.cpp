@@ -613,7 +613,7 @@ static bool CheckCommAlgAttrs(const char *nodeName,
     const MoeDistributeDispatchV2TilingData &tilingData, bool isActiveMask, bool isSetCommAlg)
 {
     uint32_t tpWorldSize = tilingData.moeDistributeDispatchV2Info.tpWorldSize;
-    uint32_t hasElasticInfo = tilingData.moeDistributeDispatchV2Info.hasElasticInfo;
+    bool hasElasticInfo = tilingData.moeDistributeDispatchV2Info.hasElasticInfo;
     int32_t zeroComputeExpertNum = tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum;
 
     // 校验动态缩容和FullMesh_v2不能同时启用
