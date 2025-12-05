@@ -139,7 +139,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>pseShift</td>
         <td>输入</td>
         <td>位置编码</td>
-        <td><ul><li>不使用该功能时可传入nullptr。</li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>不使用该功能时可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16</td>
         <td>ND</td>
@@ -150,7 +151,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>attenMask</td>
         <td>输入</td>
         <td>mask矩阵</td>
-        <td><ul><li>不使用该功能可传入nullptr。</li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>不使用该功能可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>BOOL、INT8、UINT8</td>
         <td>ND</td>
@@ -161,7 +163,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>actualSeqLengths</td>
         <td>输入</td>
         <td>不同Batch中query的有效序列长度。</td>
-        <td><ul><li>不指定序列长度可传入nullptr。</li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>不指定序列长度可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li><ul></td>
         <td>INT64</td>
         <td>TND</td>
@@ -184,7 +187,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>deqScale1</td>
         <td>输入</td>
         <td>BMM1后面的反量化因子。</td>
-          <td><ul><li>支持per-tensor。</li>
+          <td><ul><li>不支持空tensor。</li>
+          <li>支持per-tensor。</li>
               <li>不使用该功能时可传入nullptr。</li>
               <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>UINT64、FLOAT32</td>
@@ -196,7 +200,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>quantScale1</td>
         <td>输入</td>
         <td>BMM2前面的量化因子。</td>
-        <td><ul><li>支持per-tensor。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor。 </li>
             <li>不使用该功能时可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT32</td>
@@ -208,7 +213,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>deqScale2</td>
         <td>输入</td>
         <td>BMM2后面的反量化因子。</td>
-        <td><ul><li>支持per-tensor。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor。 </li>
            <li>不使用该功能时可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>UINT64、FLOAT32</td>
@@ -220,7 +226,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>quantScale2</td>
         <td>输入</td>
         <td>输出的量化因子。</td>
-        <td><ul><li>支持per-tensor，per-channel。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor，per-channel。 </li>
             <li>不使用该功能时可传入nullptr。</li>
              <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT32、BFLOAT16</td>
@@ -232,7 +239,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>quantOffset2</td>
         <td>输入</td>
         <td>输出的量化偏移。</td>
-        <td><ul><li>支持per-tensor，per-channel。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor，per-channel。 </li>
             <li>不使用该功能时可传入nullptr。</li>
              <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT32、BFLOAT16</td>
@@ -244,7 +252,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
         <td>antiquantScale</td>
         <td>输入</td>
         <td>伪量化因子。</td>
-        <td><ul><li>支持per-tensor，per-channel，per-token。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor，per-channel，per-token。 </li>
             <li>不使用该功能时可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
@@ -256,7 +265,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
       <td>antiquantOffset</td>
         <td>输入</td>
         <td>伪量化偏移。</td>
-        <td><ul><li>支持per-tensor，per-channel，per-token。 </li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>支持per-tensor，per-channel，per-token。 </li>
             <li>使用时，shape必须与antiquantScale保持一致。</li>
             <li>不使用该功能时可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
@@ -269,7 +279,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
        <td>blockTable</td>
         <td>输入</td>
         <td>PageAttention中KV存储使用的block映射表。</td>
-        <td>不使用该功能时可传入nullptr。</td>
+        <td><ul><li>不支持空tensor。</li>
+        <li>不使用该功能时可传入nullptr。</li></ul></td>
         <td>INT32</td>
         <td>ND</td>
         <td>1</td>
@@ -279,7 +290,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
        <td>queryPaddingSize</td>
         <td>输入</td>
         <td>表示Query中每个batch的数据是否右对齐，且右对齐的个数是多少。</td>
-        <td><ul><li>仅支持Q_S大于1，其余场景该参数无效。</li>
+        <td><ul><li>不支持空tensor。</li>
+        <li>仅支持Q_S大于1，其余场景该参数无效。</li>
             <li>不使用该功能时可传入nullptr。</li></ul></td>
         <td>INT64</td>
         <td>ND</td>
@@ -290,7 +302,8 @@ aclnnStatus aclnnFusedInferAttentionScore(
        <td>kvPaddingSize</td>
         <td>输入</td>
         <td>表示key/value中每个batch的数据是否右对齐，且右对齐的个数是多少。</td>
-        <td>不使用该功能时可传入nullptr。</td>
+        <td><ul><li>不支持空tensor。</li>
+        <li>不使用该功能时可传入nullptr。</li></ul></td>
         <td>INT64</td>
         <td>ND</td>
         <td>1</td>
