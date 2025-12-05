@@ -230,48 +230,10 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKGroupIndex()
     }
 
     // 排序，将kgroup选出来
-
     ProposalConcat(sortOutGroupBuffer_, top2ScoreSumPerGroup_, 1, 4);
     ProposalConcat(sortOutGroupBuffer_, indexTensor_, 1, 5);
     RpSort16(sortedGroupTensor, sortOutGroupBuffer_, 1);
 
-    // // ----------temp
-    // PipeBarrier<PIPE_ALL>();
-    // LocalTensor<half> topKGroupIndexTensor = sharedTmpBuffer_.template ReinterpretCast<half>();
-    // ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 4);
-    // DataCopy(yGm_, topKGroupIndexTensor, 16);
-    // PipeBarrier<PIPE_ALL>();
-
-    // ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
-    // LocalTensor<int32_t> topKGroupIndexTensorInt = topKGroupIndexTensor[ONE_REPEAT_SORT_NUM].template ReinterpretCast<int32_t>();
-    // Cast(topKGroupIndexTensorInt, topKGroupIndexTensor, RoundMode::CAST_ROUND, 16);
-    // DataCopy(expertIdxGm_, topKGroupIndexTensorInt, 16);
-    // PipeBarrier<PIPE_ALL>();
-    // // ----------temp
-    // PipeBarrier<PIPE_V>();
-    // LocalTensor<half> sortedGroupIndexTensor = indexTensor;
-    // ProposalExtract(sortedGroupIndexTensor, sortedGroupTensor, 1, 5);
-
-    // 以下代码是不是不需要 TODO
-    // 需要将组排序(这里是降序，所以下mrgsor的时候反着取，3、2、1、0)
-    // Cast(sortedGroupTensor, sortedGroupIndexTensor, RoundMode::CAST_ROUND, kGroup_);
-    // PipeBarrier<PIPE_V>();
-    // duplicateNum = ONE_REPEAT_SORT_NUM - kGroup_;
-    // if (duplicateNum > 0) {
-    //     uint64_t mask0 = UINT64_MAX << kGroup_;
-    //     uint64_t mask[2] = {mask0, 0};
-    //     Duplicate(sortedGroupTensor, MIN_FP16, mask, 1, 1, 8);
-    //     PipeBarrier<PIPE_V>();
-    // }
-
-    // ProposalConcat(sortTmpBuffer, sortedGroupTensor, 4, 4);
-    // ProposalConcat(sortTmpBuffer, sortedGroupIndexTensor, 4, 5);
-    // RpSort16(top2ValueInGroupTensor, sortTmpBuffer, 1);
-    // PipeBarrier<PIPE_V>();
-    // ProposalExtract(sortedGroupTensor, top2ValueInGroupTensor, 1, 4);
-
-    // PipeBarrier<PIPE_V>();
-    // Cast(sortedGroupIndexTensor, sortedGroupTensor, RoundMode::CAST_ROUND, kGroup_);
     sortedInGroupQueue_.EnQue<half>(sortedInGroupTensor);
     sortedGroupQueue_.EnQue<half>(sortedGroupTensor);
 }
@@ -536,7 +498,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Process()
         ComputeX();
         SortInGroup();
         SelectTopKGroupIndex();
-        if (k_ == 4) {
+        if (kGroup_ == 4) {
             SelectTopKExpertIdx();
         } else {
             SelectTopKExpertIdxEight();
