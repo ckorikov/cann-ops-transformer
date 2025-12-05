@@ -93,6 +93,7 @@ private:
     LocalTensor<half> top2ScoreSumPerGroup_;
     LocalTensor<half> sortOutGroupBuffer_;
     LocalTensor<half> reduceSumBuffer_;
+    LocalTensor<half> finalSortTemp_;
     LocalTensor<uint8_t> sharedTmpBuffer_;
 
     GlobalTensor<T> yGm_;
@@ -332,6 +333,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     LocalTensor<int32_t> topKGroupIndexTensorInt = topKGroupIndexTensor[ONE_REPEAT_SORT_NUM].template ReinterpretCast<int32_t>();
     Cast(topKGroupIndexTensorInt, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
 
+    // 0 ~ 3
     AscendC::MrgSort4Info params;
     params.elementLengths[0] = k_;
     params.elementLengths[1] = k_;
@@ -339,7 +341,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     params.elementLengths[3] = k_;
     params.ifExhaustedSuspension = true;
     params.validBit = 0b1111;
-    params.repeatTimes = 2;
+    params.repeatTimes = 1;
     event_t eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
     SetFlag<HardEvent::V_S>(eventIdVToS);
     WaitFlag<HardEvent::V_S>(eventIdVToS);
@@ -356,10 +358,41 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     srcList.src3 = sortedInGroupTensor[listOffset3];
     srcList.src4 = sortedInGroupTensor[listOffset4];
 
-    MrgSort4<half>(sortedGroupTensor, srcList, params);
+    MrgSort4<half>(finalSortTemp_, srcList, params);
     PipeBarrier<PIPE_V>();
 
+    // 4 ~ 7
+    SetFlag<HardEvent::V_S>(eventIdVToS);
+    WaitFlag<HardEvent::V_S>(eventIdVToS);
+    listOffset1 = topKGroupIndexTensorInt.GetValue(4) * perGroupExpertCount_ * 8;
+    listOffset2 = topKGroupIndexTensorInt.GetValue(5) * perGroupExpertCount_ * 8;
+    listOffset3 = topKGroupIndexTensorInt.GetValue(6) * perGroupExpertCount_ * 8;
+    listOffset4 = topKGroupIndexTensorInt.GetValue(7) * perGroupExpertCount_ * 8;
+    SetFlag<HardEvent::S_V>(eventIdSToV);
+    WaitFlag<HardEvent::S_V>(eventIdSToV);
+    srcList.src1 = sortedInGroupTensor[listOffset1];
+    srcList.src2 = sortedInGroupTensor[listOffset2];
+    srcList.src3 = sortedInGroupTensor[listOffset3];
+    srcList.src4 = sortedInGroupTensor[listOffset4];
 
+    MrgSort4<half>(finalSortTemp_[4 * perGroupExpertCount_ * 8], srcList, params);
+    PipeBarrier<PIPE_V>();
+
+    // 归并
+    params.elementLengths[0] = k_ * 4;
+    params.elementLengths[1] = k_ * 4;
+    params.elementLengths[2] = k_ * 4;
+    params.elementLengths[3] = k_ * 4;
+    params.ifExhaustedSuspension = true;
+    params.validBit = 0b0011;
+    params.repeatTimes = 1;
+
+    srcList.src1 = finalSortTemp_;
+    srcList.src2 = finalSortTemp_[4 * perGroupExpertCount_ * 8];
+
+
+    MrgSort4<half>(sortedGroupTensor, srcList, params);
+    // end
     ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
     Cast(expertIdxTensor, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
 
@@ -376,8 +409,6 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
     LocalTensor<half> xSigmoidTensor = xSigmoidQueue_.DeQue<half>();
     LocalTensor<half> yTensor = yOutQueue_.AllocTensor<half>();
 
-    // LocalTensor<half> calTensor = calcTmpBuffer_.Get<half>();
-
     GatherV100(yTensor, xSigmoidTensor, expertIdxTensor.template ReinterpretCast<uint32_t>(), k_);
     PipeBarrier<PIPE_V>();
     ReduceSum(reduceSumBuffer_, yTensor, sharedTmpBuffer_.template ReinterpretCast<half>(), k_);
@@ -388,10 +419,6 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
     Cast(reduceSumFp32Buffer, reduceSumBuffer_, RoundMode::CAST_NONE, 1);
     Adds(reduceSumFp32Buffer, reduceSumFp32Buffer, eps_, 1);
     Cast(reduceSumBuffer_, reduceSumFp32Buffer, RoundMode::CAST_NONE, 1);
-    // // temp
-    // PipeBarrier<PIPE_V>();
-    // DataCopy(yGm_, reduceSumBuffer_, 16);
-    // PipeBarrier<PIPE_V>();
 
     SetFlag<HardEvent::V_S>(eventIdVToS);
     WaitFlag<HardEvent::V_S>(eventIdVToS);
@@ -401,9 +428,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
     Duplicate(reduceSumBuffer_, sumValue, k_);
     PipeBarrier<PIPE_V>();
     Div(yTensor, yTensor, reduceSumBuffer_, k_);
-    // PipeBarrier<PIPE_V>();
-    // DataCopy(yGm_, yTensor, 16);
-    // PipeBarrier<PIPE_V>();
+
     PipeBarrier<PIPE_V>();
 
     Duplicate(reduceSumFp32Buffer, routedScalingFactor_, k_);
@@ -494,7 +519,8 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
     top2ScoreSumPerGroup_ = gropedSortedScore_[expertCount_];
     sortOutGroupBuffer_ = top2ScoreSumPerGroup_[expertCount_ / ONE_REPEAT_SORT_NUM];
     reduceSumBuffer_ = sortOutGroupBuffer_[ONE_REPEAT_SORT_NUM * regionProposalSize_ / sizeof(half)];
-    sharedTmpBuffer_ = reduceSumBuffer_[(k_ + 15) / 16 * 16].template ReinterpretCast<uint8_t>();
+    finalSortTemp_ = reduceSumBuffer_[(k_ + 15) / 16 * 16];
+    sharedTmpBuffer_ = finalSortTemp_[4 * perGroupExpertCount_ * 8 * 2].template ReinterpretCast<uint8_t>();
 
     PipeBarrier<PIPE_V>();
     ArithProgression(indexTensor_, (half)0, (half)1, expertCount_); // 生成组索引
