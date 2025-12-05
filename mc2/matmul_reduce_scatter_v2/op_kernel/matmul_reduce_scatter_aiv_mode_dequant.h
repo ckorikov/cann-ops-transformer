@@ -142,7 +142,6 @@ public:
 private:
     uint32_t m0;
     uint32_t n0;
-    Arch::Resource<ArchTag> resource;
 };
 }
 #endif //MATMUL_REDUCE_SCATTER_AIV_MODE_DEQUANT_H

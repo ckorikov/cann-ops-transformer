@@ -92,6 +92,7 @@ private:
     __gm__ int32_t* gm_accum;
     bool needAivDequant;
     DequantRunner<cType> dequant_runner;
+    Arch::Resource<Arch::AtlasA2> resource;
 };
 
 template <TemplateMMReduceScatterV2Class>

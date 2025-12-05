@@ -28,14 +28,14 @@ namespace matmulReduceScatterV2_util{
 #define DEQUANT_ARGS_CALL() \
     rowNum, colNum, perChannelScale, perTokenScale, workspace, reinterpret_cast<GM_ADDR>(output), \
     tileM0, tileN0, pValue, swizzlDirect, swizzlCount, \
-    coreIdx, coreNum, rankSize, calIdx, needPerChannel, needPerToken
+    coreIdx, coreNum, rankSize, calIdx, resource, needPerChannel, needPerToken
 
 #define DEQUANT_ARGS_FUN() \
     uint32_t rowNum, uint32_t colNum, __gm__ float32_t *perChannelScale, __gm__ float32_t *perTokenScale, \
     __gm__ int32_t *workspace, GM_ADDR output,                                                            \
     uint32_t tileM0, uint32_t tileN0, uint32_t pValue, uint32_t swizzlDirect, uint32_t swizzlCount,       \
     uint32_t coreIdx, uint32_t coreNum, uint32_t rankSize, uint32_t calIdx,                               \
-    bool needPerChannel = false, bool needPerToken = false
+    Arch::Resource<Arch::AtlasA2> resource, bool needPerChannel = false, bool needPerToken = false
 
 constexpr int32_t MAX_BLOCK_COUNT = 2;
 constexpr int32_t FLAG_ZERO_IDX = 0;
