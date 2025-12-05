@@ -1490,6 +1490,11 @@ private:
         // N2*G*T(BS1)*D
         OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
         uint64_t s1Size = 0;
+        uint32_t gIdxStart = 0;
+        uint32_t s1IdxStart = 0;
+        uint32_t gIdxEnd = 0;
+        uint32_t s1IdxEnd = 0;
+
         if constexpr (GmLayoutParams<GM_FORMAT>::CATEGORY == FormatCategory::GM_Q_OUT_TND) {
             s1Size = offsetCalculator.actualSeqLensQParser.GetActualSeqLength(gmCoord.bIdx);
         } else {
@@ -1499,11 +1504,12 @@ private:
                 s1Size = offsetCalculator.GetDimS1();
             }
         }
+        
         if (s1Size != 0) {
-            uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-            uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-            uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-            uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+            gIdxStart = gmCoord.gS1Idx / s1Size;
+            s1IdxStart = gmCoord.gS1Idx % s1Size;
+            gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+            s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
         }
 
         uint64_t queryGmbaseOffset =
@@ -1590,6 +1596,11 @@ public:
         if constexpr (UB_FORMAT == UbFormat::GS1) {
             OffsetCalculator<GM_FORMAT> &offsetCalculator = dstTensor.offsetCalculator;
             uint32_t s1Size = 0;
+            uint32_t gIdxStart = 0;
+            uint32_t s1IdxStart = 0;
+            uint32_t gIdxEnd = 0;
+            uint32_t s1IdxEnd = 0;
+
             if constexpr (GmLayoutParams<GM_FORMAT>::CATEGORY == FormatCategory::GM_Q_OUT_TND) {
                 s1Size = offsetCalculator.actualSeqLensQParser.GetActualSeqLength(gmCoord.bIdx);
             } else {
@@ -1600,10 +1611,10 @@ public:
                 }
             }
             if (s1Size != 0) {
-                uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-                uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-                uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-                uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+                gIdxStart = gmCoord.gS1Idx / s1Size;
+                s1IdxStart = gmCoord.gS1Idx % s1Size;
+                gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+                s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
             }
 
             uint64_t attenOutGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, 0);
@@ -2023,6 +2034,11 @@ private:
     {
         OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
         uint64_t s1Size = 0;
+        uint32_t gIdxStart = 0;
+        uint32_t s1IdxStart = 0;
+        uint32_t gIdxEnd = 0;
+        uint32_t s1IdxEnd = 0;
+
         if constexpr (GmLayoutParams<GM_FORMAT>::CATEGORY == FormatCategory::GM_Q_OUT_TND) {
             s1Size = offsetCalculator.actualSeqLensQParser.GetActualSeqLength(gmCoord.bIdx);
         } else {
@@ -2033,10 +2049,10 @@ private:
             }
         }
         if (s1Size != 0) {
-            uint32_t gIdxStart = gmCoord.gS1Idx / s1Size;
-            uint32_t s1IdxStart = gmCoord.gS1Idx % s1Size;
-            uint32_t gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
-            uint32_t s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
+            gIdxStart = gmCoord.gS1Idx / s1Size;
+            s1IdxStart = gmCoord.gS1Idx % s1Size;
+            gIdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) / s1Size;
+            s1IdxEnd = (gmCoord.gS1Idx + gmCoord.gS1DealSize) % s1Size;
         }
         uint64_t queryGmbaseOffset = offsetCalculator.GetOffset(gmCoord.bIdx, gmCoord.n2Idx, gIdxStart, 0, gmCoord.dIdx);
 

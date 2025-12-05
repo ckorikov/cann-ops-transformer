@@ -877,9 +877,6 @@ FiaBlockVecNonQuantMla<FIAT>::Bmm2FDDataCopyOut(const AttentionCommon::RunInfo &
                                                         LocalTensor<T> &bmm2ResUb, uint32_t wsMStart, uint32_t startRow, 
                                                         uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount)
 {
-    DealInvalidRows(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
-    DealInvalidMaskRows(info, mSplitInfo, bmm2ResUb, startRow, dealRowCount, columnCount, actualColumnCount);
-    AscendC::PipeBarrier<PIPE_V>();
     LocalTensor<T> tmp = outputBuff1.Get<T>();
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF1_FLAG);
     DataCopy(tmp, bmm2ResUb, columnCount * dealRowCount);
