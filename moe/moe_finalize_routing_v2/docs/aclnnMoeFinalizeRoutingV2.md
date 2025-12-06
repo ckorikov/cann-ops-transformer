@@ -1,11 +1,18 @@
 # aclnnMoeFinalizeRoutingV2
 
+[📄 查看源码](https://gitcode.com/cann/ops-transformer/tree/master/moe/moe_finalize_routing_v2)
+
 ## 产品支持情况
 
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
+| <term>昇腾910_95 AI处理器</term>                             |    √     |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品 </term>                             |    √     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 ## 功能说明
 
@@ -22,7 +29,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnMoeFinalizeRoutingV2GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnMoeFinalizeRoutingV2”接口执行计算。
 
 ```c++
 aclnnStatus aclnnMoeFinalizeRoutingV2GetWorkspaceSize(
@@ -188,10 +195,18 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
     - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
       - expandedX要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
       - scalesOptional：混合精度模式下，支持 expandedX 为 BFLOAT16 时 scalesOptional 为 FLOAT32；非混合精度模式下，数据类型要求与expandedX一致。
+    - <term>昇腾910_95 AI处理器</term>：
+      - expandedX要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
+      - scalesOptional数据类型可以与expandedX不一致。
+    - <term>Atlas 推理系列产品 </term>：
+      - expandedX要求是一个2D的Tensor，数据类型支持FLOAT16、FLOAT32，shape要求尾轴H为32对齐。
+      - x1Optional、x2Optional、biasOptional、expertIdxOptional仅支持传入nullptr
+      - 仅支持dropPadMode传入2。
+      - scalesOptional数据类型支持FLOAT16、FLOAT32，且需要与expandedX一致。
 
 -   **返回值：**
 
-    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     第一段接口完成入参校验，出现以下场景时报错：
 
@@ -268,7 +283,7 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
 
 - **返回值**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 1. 确定性计算：默认确定性实现。
@@ -295,7 +310,7 @@ C：表示expert capacity，即专家处理token数量的能力阈值。
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 ```cpp
 #include "acl/acl.h"
 #include "aclnnop/aclnn_moe_finalize_routing_v2.h"
