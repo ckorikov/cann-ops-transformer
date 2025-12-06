@@ -21,13 +21,16 @@ using namespace AscendC;
 
 template <typename T>
 __aicore__ inline void GatherV100(const LocalTensor<T>& dst, const LocalTensor<T>& src,
-                                  const LocalTensor<uint32_t>& indexTensor,
+                                  const LocalTensor<int32_t>& indexTensor,
+                                  const LocalTensor<uint8_t>& sharedTmpBuffer,
                                   const uint32_t count) {
+    LocalTensor<int32_t> tempBuffer = sharedTmpBuffer.template ReinterpretCast<int32_t>();
+    DataCopy(tempBuffer, indexTensor, count);
     event_t eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
     SetFlag<HardEvent::V_S>(eventIdVToS);
     WaitFlag<HardEvent::V_S>(eventIdVToS);
     for (uint32_t index = 0; index < count; ++index) {
-        uint32_t realIndex = indexTensor.GetValue(index);
+        uint32_t realIndex = static_cast<uint32_t>(tempBuffer.GetValue(index));
         dst.SetValue(index, src.GetValue(realIndex));
     }
     event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
@@ -139,7 +142,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyInX(int64_t row)
 {
     LocalTensor<half> xInLocalTensor = xInQueue_.AllocTensor<half>();
     DataCopy(xInLocalTensor, xGm_[row * expertCount_], expertCount_);
-    xInQueue_.EnQue(xInLocalTensor);
+    xInQueue_.EnQue<half>(xInLocalTensor);
 }
 
 template <typename T>
@@ -281,7 +284,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdx()
     ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
     Cast(expertIdxTensor, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
 
-    expertIdxOutQueue_.EnQue(expertIdxTensor);
+    expertIdxOutQueue_.EnQue<int32_t>(expertIdxTensor);
     sortedGroupQueue_.FreeTensor(sortedGroupTensor);
     sortedInGroupQueue_.FreeTensor(sortedInGroupTensor);
 }
@@ -361,7 +364,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
     Cast(expertIdxTensor, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
 
-    expertIdxOutQueue_.EnQue(expertIdxTensor);
+    expertIdxOutQueue_.EnQue<int32_t>(expertIdxTensor);
     sortedGroupQueue_.FreeTensor(sortedGroupTensor);
     sortedInGroupQueue_.FreeTensor(sortedInGroupTensor);
 }
@@ -376,21 +379,14 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
     LocalTensor<half> yTensor = yOutQueue_.AllocTensor<half>();
     LocalTensor<float> reduceSumFp32Buffer = reduceSumBuffer_.template ReinterpretCast<float>();
     LocalTensor<float> yTensorFp32 = reduceSumFp32Buffer[(k_ + 63) / 64 * 64].template ReinterpretCast<float>();
-
-    GatherV100(yTensorFp32, xSigmoidTensorFp32, expertIdxTensor.template ReinterpretCast<uint32_t>(), k_);
+    PipeBarrier<PIPE_V>();
+    GatherV100(yTensorFp32, xSigmoidTensorFp32, expertIdxTensor, sharedTmpBuffer_, k_);
     PipeBarrier<PIPE_V>();
     ReduceSumFp32V100(reduceSumFp32Buffer, yTensorFp32, k_);
 
     Adds(reduceSumFp32Buffer, reduceSumFp32Buffer, eps_, 1);
 
-    event_t eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
-    event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
-    SetFlag<HardEvent::V_S>(eventIdVToS);
-    WaitFlag<HardEvent::V_S>(eventIdVToS);
-    float sumValue = reduceSumFp32Buffer.GetValue(0);
-    SetFlag<HardEvent::S_V>(eventIdSToV);
-    WaitFlag<HardEvent::S_V>(eventIdSToV);
-    Duplicate(reduceSumFp32Buffer, sumValue, k_);
+    Duplicate(reduceSumFp32Buffer, reduceSumFp32Buffer.GetValue(0), k_);
     Div(yTensorFp32, yTensorFp32, reduceSumFp32Buffer, k_);
     Duplicate(reduceSumFp32Buffer, routedScalingFactor_, k_);
     Mul(yTensorFp32, yTensorFp32, reduceSumFp32Buffer, k_);
@@ -398,7 +394,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
 
     xSigmoidQueue_.EnQue<half>(xSigmoidTensor);
     expertIdxOutQueue_.EnQue<int32_t>(expertIdxTensor);
-    yOutQueue_.EnQue(yTensor);
+    yOutQueue_.EnQue<half>(yTensor);
 }
 
 template <typename T>
@@ -408,8 +404,10 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyOut(int64_t row)
     LocalTensor<int32_t> expertIdxTensor = expertIdxOutQueue_.DeQue<int32_t>();
     LocalTensor<half> xSigmoidTensor = xSigmoidQueue_.DeQue<half>();
     uint32_t alignOut = (k_ + 15) / 16 * 16;
+    PipeBarrier<PIPE_MTE2>();
     DataCopy(yGm_[row * k_], yOutTensor, alignOut);
-    DataCopy(expertIdxGm_[row * k_], expertIdxTensor, alignOut);
+    DataCopy(expertIdxGm_[row * k_], expertIdxTensor, (k_ + 7) / 8 * 8);
+    PipeBarrier<PIPE_MTE2>();
     xSigmoidQueue_.FreeTensor(xSigmoidTensor);
     expertIdxOutQueue_.FreeTensor(expertIdxTensor);
     yOutQueue_.FreeTensor(yOutTensor);
