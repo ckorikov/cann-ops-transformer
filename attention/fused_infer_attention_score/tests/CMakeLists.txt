@@ -16,12 +16,9 @@ set(_FIA_TilingSourcesExt
         ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling.cpp
         ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling_check.cpp
         ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling_register.cpp
-        ${OPS_TRANSFORMER_DIR}/attention/incre_flash_attention/op_host/incre_flash_attention_tiling_v2.cpp
         ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling.cpp
-        ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_v2.cpp
         ${OPS_TRANSFORMER_DIR}/attention/prompt_flash_attention/op_host/prompt_flash_attention_tiling_register.cpp
         ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling.cpp
-        ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/arch35/fused_infer_attention_score_tiling_v2.cpp
         ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_register.cpp
         ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_v3.cpp
         ${OPS_TRANSFORMER_DIR}/attention/fused_infer_attention_score/op_host/arch32/fused_infer_attention_score_tiling_check.cpp

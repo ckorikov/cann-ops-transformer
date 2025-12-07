@@ -5257,37 +5257,3 @@ TEST_F(Ts_Fia_Ascend910B1, case_CheckMlaMisc_220)
     cs.mOpInfo.mExp.mSuccess = false;
     ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
 }
-
-TEST_F(Ts_Fia_Ascend910_9591, case_pa_bsh_padding)
-{
-    FiaCase cs;
-    cs.mParam.b = 1;
-    cs.mParam.n = 20;
-    cs.mParam.s = 1024;
-    cs.mParam.d = 128;
-    cs.mParam.layout = "BSH";
-    cs.mParam.antiquant_mode = 0;
-    cs.mParam.key_antiquant_mode = 0;
-    cs.mParam.value_antiquant_mode = 0;
-    cs.mParam.numHeads = 1;
-    cs.mParam.kvNumHeads = 1;
-    cs.mParam.scaleValue = 1.0f;
-    cs.mParam.actualSeqLength = {256};
-    cs.mParam.actualSeqLengthKV = {512};
-    cs.mParam.blockSize = 128;
-    cs.mOpInfo.mCtr.mRunTiling = true;
-    cs.mOpInfo.mCtr.mRunKernel = false;
-
-    ASSERT_TRUE(cs.Init());
-    cs.query = Tensor("query", {1, 512, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
-    cs.key = TensorList("key", {4, 128, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
-    cs.value = TensorList("value", {4, 128, 128}, "BSH", ge::DT_INT8, ge::FORMAT_ND);
-    cs.queryPaddinSize = Tensor("queryPaddingSize", {1}, "1", ge::DataType::DT_INT8, ge::FORMAT_ND);
-    cs.antiquantScale = Tensor("antiquantScale", {2}, "1", ge::DataType::DT_BF16, ge::FORMAT_ND);
-    cs.antiquantOffset = Tensor("antiquantOffset", {2}, "1", ge::DataType::DT_BF16, ge::FORMAT_ND);
-    cs.attentionOut = Tensor("attentionOut", {1, 512, 128}, "BSH", ge::DT_BF16, ge::FORMAT_ND);
-    cs.blocktable = Tensor("blockTable", {1, 8}, "BNSD", ge::DT_INT32, ge::FORMAT_ND);
-
-    cs.mOpInfo.mExp.mSuccess = false;
-    ASSERT_EQ(cs.Run(), cs.mOpInfo.mExp.mSuccess);
-}

@@ -26,7 +26,6 @@
 #include "register/op_def_registry.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "../../incre_flash_attention/op_host/incre_flash_attention_tiling_impl.h"
-#include "arch35/fused_infer_attention_score_tiling_v2.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -1813,12 +1812,7 @@ FIA_EXTERN_C ge::graphStatus DoOpTilingFusedInferAttentionScore(gert::TilingCont
         return ge::GRAPH_FAILED);
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfoPtr);
     auto socShortName = ascendcPlatform.GetSocVersion();
-    if ((socShortName == platform_ascendc::SocVersion::ASCEND910_95) || (socShortName == platform_ascendc::SocVersion::ASCEND910_55)) {
-        return TilingFusedInferAttentionScoreV2(context);
-    } else {
-        return TilingFusedInferAttentionScore(context);
-    }    
-    return ge::GRAPH_SUCCESS;
+    return TilingFusedInferAttentionScore(context);
 }
 
 extern "C" {

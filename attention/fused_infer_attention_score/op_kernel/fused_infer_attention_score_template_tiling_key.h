@@ -20,10 +20,7 @@
 #include <iostream>
 #include <string>
 
-#include "../../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_template_tiling_key_enum.h"
 #include "ascendc/host_api/tiling/template_argument.h"
-#include "../../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_tiling_regbase.h"
-#include "../../incre_flash_attention/op_kernel/arch35/incre_flash_attention_tiling_regbase.h"
 
 #ifndef ORIG_DTYPE_QUERY
 #define ORIG_DTYPE_QUERY (DT_BF16)

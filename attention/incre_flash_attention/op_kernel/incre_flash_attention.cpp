@@ -14,44 +14,9 @@
  */
 
 #include "kernel_operator.h"
-
-#if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
-#ifdef NOT_DYNAMIC_COMPILE
-#include "arch35/incre_flash_attention_template_tiling_key.h"
-#include "arch35/incre_flash_attention_entry_regbase.h"
-#include "../../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
-#else
-#include "arch35/incre_flash_attention_template_tiling_key.h"
-#include "./arch35/incre_flash_attention_entry_regbase.h"
-#include "../prompt_flash_attention/op_kernel/arch35/prompt_flash_attention_entry_regbase.h"
-#endif
-#elif (__NPU_ARCH__ == 5102)
-#ifdef NOT_DYNAMIC_COMPILE
-#include "../../prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_entry_regbase.h"
-#else
-#include "../prompt_flash_attention/op_kernel/arch38/prompt_flash_attention_entry_regbase.h"
-#endif
-#else
 #include "incre_flash_attention_obp.h"
-
-#endif // CCE_AICORE 310
 using namespace AscendC;
 
-#if (__CCE_AICORE__ == 310)
-template<uint8_t inOutLayoutType, uint16_t config, uint8_t pseMode, uint8_t quantMode, bool hasAttenMask, bool hasRope, 
-  bool isPa, bool isFd, bool emptyTensor, uint8_t PFAMask, uint8_t pFAMatMulType>
- __global__ __aicore__ void
-incre_flash_attention_FIAS(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
-                        __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
-                        __gm__ uint8_t *deqScale1, __gm__ uint8_t *quantScale1, __gm__ uint8_t *deqScale2, __gm__ uint8_t *quantScale2,
-                        __gm__ uint8_t *quantOffset2, __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
-                        __gm__ uint8_t *blocktable, __gm__ uint8_t *queryPaddingSize, __gm__ uint8_t *kvPaddingSize,
-                        __gm__ uint8_t *keyAntiquantScale, __gm__ uint8_t *keyAntiquantOffset, __gm__ uint8_t *valueAntiquantScale,
-                        __gm__ uint8_t *valueAntiquantOffset, __gm__ uint8_t *keySharedPrefix, __gm__ uint8_t *valueSharedPrefix,
-                        __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
-                        __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *dequantScaleQuery, __gm__ uint8_t *attentionOut,
-                        __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
-#else
 extern "C" __global__ __aicore__ void
 incre_flash_attention_FIAS(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
                         __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengthsQ, __gm__ uint8_t *actualSeqLengths,
@@ -63,33 +28,13 @@ incre_flash_attention_FIAS(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ ui
                         __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
                         __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *dequantScaleQuery, __gm__ uint8_t *attentionOut,
                         __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
-#endif
 {
-#if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
-    incre_flash_attention_FIAS_regbase<inOutLayoutType, config, pseMode, quantMode, hasAttenMask, hasRope, isPa, isFd, emptyTensor, PFAMask, pFAMatMulType>(
-                                    query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, deqScale1, quantScale1,
-                                    deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, queryPaddingSize,
-                                    kvPaddingSize, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, keySharedPrefix,
-                                    valueSharedPrefix, actualSharedPrefixLen, attentionOut, softmaxLse, workspace, tiling);
-#else 
-    incre_flash_attention_FIAS_OBP(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, deqScale1, quantScale1,
-                                    deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, queryPaddingSize,
-                                    kvPaddingSize, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, keySharedPrefix,
-                                    valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, keyRopeAntiquantScale, dequantScaleQuery,
-                                    attentionOut, softmaxLse, workspace, tiling);
-#endif
+incre_flash_attention_FIAS_OBP(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, deqScale1, quantScale1,
+                                deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, queryPaddingSize,
+                                kvPaddingSize, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset, keySharedPrefix,
+                                valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, keyRopeAntiquantScale, dequantScaleQuery,
+                                attentionOut, softmaxLse, workspace, tiling);
 }
-#if (__CCE_AICORE__ == 310)
-template<uint8_t inOutLayoutType, uint16_t config, uint8_t pseMode, uint8_t quantMode, bool hasAttenMask, bool hasRope, 
-  bool isPa, bool isFd, bool emptyTensor, uint8_t PFAMask, uint8_t pFAMatMulType>
- __global__ __aicore__ void
-incre_flash_attention(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
-                      __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *deqScale1,
-                      __gm__ uint8_t *quantScale1, __gm__ uint8_t *deqScale2, __gm__ uint8_t *quantScale2,
-                      __gm__ uint8_t *quantOffset2, __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
-                      __gm__ uint8_t *blocktable, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *attentionOut,
-                      __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
-#else
 extern "C" __global__ __aicore__ void
 incre_flash_attention(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *pseShift,
                       __gm__ uint8_t *attenMask, __gm__ uint8_t *actualSeqLengths, __gm__ uint8_t *deqScale1,
@@ -97,38 +42,9 @@ incre_flash_attention(__gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t
                       __gm__ uint8_t *quantOffset2, __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
                       __gm__ uint8_t *blocktable, __gm__ uint8_t *kvPaddingSize, __gm__ uint8_t *attentionOut,
                       __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
-#endif
 {
-#if (__CCE_AICORE__ == 310)
-    if (quantMode >= 15) {
-        prompt_flash_attention_FIAS_regbase<inOutLayoutType, config, pseMode, quantMode, hasAttenMask, hasRope, isPa, isFd, emptyTensor, PFAMask, pFAMatMulType>(
-                                            query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1,
-                                            quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                                            kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                            attentionOut, nullptr, workspace, tiling);
-    } else {
-        incre_flash_attention_FIAS<inOutLayoutType, config, pseMode, quantMode, hasAttenMask, hasRope, isPa, isFd, emptyTensor, PFAMask, pFAMatMulType>(
-                                    query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1, quantScale1,
-                                    deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                                    kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                    attentionOut, nullptr, workspace, tiling);
-    }
-#elif (__NPU_ARCH__ == 5102)
-    if (TILING_KEY_VAR >= PFA_FlAG_IN_TILING) {
-        prompt_flash_attention_FIAS_regbase(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1,
-                                            quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                                            kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                            attentionOut, nullptr, workspace, tiling);
-    } else {
-        incre_flash_attention_FIAS(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1, quantScale1,
-                                    deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                                    kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                                    attentionOut, nullptr, workspace, tiling);
-    }
-#else
-    incre_flash_attention_FIAS(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1, quantScale1,
-                            deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
-                            kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                            attentionOut, nullptr, workspace, tiling);
-#endif
+incre_flash_attention_FIAS(query, key, value, pseShift, attenMask, nullptr, actualSeqLengths, deqScale1, quantScale1,
+                        deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blocktable, nullptr,
+                        kvPaddingSize, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                        attentionOut, nullptr, workspace, tiling);
 }

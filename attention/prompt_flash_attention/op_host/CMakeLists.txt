@@ -25,25 +25,8 @@ add_ops_compile_options(
 
 set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
 if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
-    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
-        add_ops_compile_options(
-            OP_NAME PromptFlashAttention
-            COMPUTE_UNIT ascend910_9599
-            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
-        )
-    endif()
     set(prompt_flash_attention_depends attention/flash_attention_score attention/common CACHE INTERNAL "Dependencies for prompt_flash_attention")
 else()
     set(prompt_flash_attention_depends attention/common CACHE INTERNAL "Dependencies for prompt_flash_attention")
     add_modules_sources_with_soc(OPTYPE prompt_flash_attention ACLNNTYPE aclnn_inner)
-endif()
-
-if(NOT BUILD_OPS_RTY_KERNEL) #    
-    if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
-        add_ops_compile_options(
-            OP_NAME PromptFlashAttention
-            COMPUTE_UNIT ascend910_9599
-            OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
-        )
-    endif()
 endif()

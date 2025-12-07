@@ -15,7 +15,6 @@
 #include "ts_ifa.h"
 class Ts_Ifa_Ascend910B2_Case : public Ts_Ifa_WithParam_Ascend910B2 {};
 class Ts_Ifa_Ascend310P3_Case : public Ts_Ifa_WithParam_Ascend310P3 {};
-class Ts_Ifa_Ascend910_9591_Case : public Ts_Ifa_WithParam_Ascend910_9591 {};
 
 TEST_P(Ts_Ifa_Ascend910B2_Case, general_case)
 {

@@ -16,7 +16,6 @@
 #include "ts_pfa.h"
 class Ts_Pfa_Ascend910B2_Case : public Ts_Pfa_WithParam_Ascend910B2 {};
 class Ts_Pfa_Ascend310P3_Case : public Ts_Pfa_WithParam_Ascend310P3 {};
-class Ts_Pfa_Ascend910_9591_Case : public Ts_Pfa_WithParam_Ascend910_9591 {};
 TEST_P(Ts_Pfa_Ascend910B2_Case, general_case)
 {
     ASSERT_TRUE(case_->Init());
@@ -27,11 +26,6 @@ TEST_P(Ts_Pfa_Ascend310P3_Case, general_case)
     ASSERT_TRUE(case_->Init());
     ASSERT_TRUE(case_->Run());
 }
-TEST_P(Ts_Pfa_Ascend910_9591_Case, general_case)
-{
-    ASSERT_TRUE(case_->Init());
-    // ASSERT_TRUE(case_->Run());
-}
 
 const auto Tc_Pfa_General_Case =
     ::testing::Values(PfaCase("case_001", true, "",
@@ -41,4 +35,3 @@ const auto Tc_Pfa_General_Case =
 
 INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend910B2_Case, Tc_Pfa_General_Case);
 INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend310P3_Case, Tc_Pfa_General_Case);
-INSTANTIATE_TEST_SUITE_P(Pfa, Ts_Pfa_Ascend910_9591_Case, Tc_Pfa_General_Case);

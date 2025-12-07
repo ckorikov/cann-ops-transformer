@@ -72,9 +72,7 @@ extern "C" __global__ __aicore__ void fused_infer_attention(
     __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *learnableSink, __gm__ uint8_t *attentionOut,
     __gm__ uint8_t *softmaxLse, __gm__ uint8_t *workspace, __gm__ uint8_t *tiling)
 {
-#if (__CCE_AICORE__ == 310) || (defined __DAV_310R6__)
-
-#elif (__CCE_AICORE__ == 200)
+#if (__CCE_AICORE__ == 200)
 
 #else
     TPipe tPipe;
