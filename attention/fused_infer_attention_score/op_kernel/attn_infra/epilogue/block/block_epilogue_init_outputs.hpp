@@ -75,7 +75,6 @@ public:
         // init attnOut with 0
         AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID6);
         AscendC::Duplicate(attnOutUbTensor, static_cast<ElementAttnOut>(ATTN_OUT_INI), embedRoundV * qSThisSubBlock);
-        AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID6);
         AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID6);
         for (uint32_t qNIdx = 0; qNIdx < qNThisSubBlock; qNIdx++) {
@@ -91,7 +90,6 @@ public:
             // init lseOut with inf
             AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID7);
             AscendC::Duplicate(lseOutUbTensor, LSE_OUT_INI, qSThisSubBlock * FLOAT_ELEM_NUM_PER_BLK);
-            AscendC::PipeBarrier<PIPE_V>();
             AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
             AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
             for (uint32_t qNIdx = 0; qNIdx < qNThisSubBlock; qNIdx++) {
@@ -116,6 +114,9 @@ public:
         uint32_t qSBlockSize, uint32_t qNBlockSize)
     {
         uint32_t rowNum = qSBlockSize * qNBlockSize;
+        uint32_t oHiddenSize = layoutOutput.shape(1);
+        uint32_t qHeads = layoutLse.shape(1);
+        uint32_t embedV = oHiddenSize / qHeads;
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
