@@ -18,10 +18,17 @@
 #include "fused_infer_attention_score_tilingdata.h"
 #include "../../common/op_kernel/fia_public_define.h"
 
+#ifdef NOT_DYNAMIC_COMPILE
+#include "../../common/op_kernel/arch32/fia_kernel_empty_tensor.h"
+#else
+#include "../common/arch32/fia_kernel_empty_tensor.h"
+#endif
+
 #ifdef FIA_ENABLE_MLA
 // mla模板使用私有tiling结构，框架编译时根据一组DType预编译获取keylist，根据keylist找到对应的tiling结构
 // 在这组DType中，若没有mla模板的key，包含mla模板编译会报错：unknown type name 'FusedInferAttentionScoreTilingData'
-#if ((ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)) || \
+#if ((ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) &&                                   \
+     (ORIG_DTYPE_KEY == DT_FLOAT16)) ||
     ((ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16))
 #include "../../common/op_kernel/arch32/fia_kernel_nonquant_mla.h"
 #include "../../common/op_kernel/arch32/fia_kernel_nonquant.h"
@@ -31,34 +38,19 @@
 using namespace AscendC;
 using namespace AttentionCommon;
 
-#define INVOKE_FIA_NO_KFC_MLA_OP_IMPL(templateClass, ...)                                                               \
+#define INVOKE_FIA_OP_GENERAL_IMPL(templateClass, CubeBlockType, VecBlockType, FdBlockType, ...)                       \
     do {                                                                                                               \
-        using CubeBlockType = FiaBlockCubeNonQuantMla<FIAType<__VA_ARGS__>>;                                              \
-        using VecBlockType = FiaBlockVecNonQuantMla<FIAType<__VA_ARGS__>>;                                     \
-        using FdBlockType = FiaBlockVecFlashDecode<FIAType<__VA_ARGS__>>;                                                  \
-        templateClass<FIAType<__VA_ARGS__>, CubeBlockType, VecBlockType, FdBlockType> op;                              \
-        FIA_COPY_TILING_DATA(optiling::FusedInferAttentionScoreTilingData, tiling);                                              \
-        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths,                           \
-            deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,             \
-            blocktable, queryPaddingSize, kvPaddingSize,                                                               \
-            keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                          \
-            keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,                                                 \
-            queryRope, keyRope, keyRopeAntiquantScale,                                                                 \
-            attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                              \
-        op.Process();                                                                                              \
-    } while (0)
-
-#define INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(templateClass, ...)                                                            \
-    do {                                                                                                               \
-        templateClass<FIAType<__VA_ARGS__>> op;                                                                        \
-        FIA_COPY_TILING_DATA(optiling::FusedInferAttentionScoreTilingData, tiling);                                              \
-        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths,                           \
-            deqScale1, quantScale1, deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset,             \
-            blocktable, queryPaddingSize, kvPaddingSize,                                                               \
-            keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,                          \
-            keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen,                                                 \
-            queryRope, keyRope, keyRopeAntiquantScale, learnableSink,                                                  \
-            attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                                              \
+        using CubeBlockTypeT = CubeBlockType<FIAType<__VA_ARGS__>>;                                                    \
+        using VecBlockTypeT = VecBlockType<FIAType<__VA_ARGS__>>;                                                      \
+        using FdBlockTypeT = FdBlockType<FIAType<__VA_ARGS__>>;                                                        \
+                                                                                                                       \
+        templateClass<FIAType<__VA_ARGS__>, CubeBlockTypeT, VecBlockTypeT, FdBlockTypeT> op;                           \
+        FIA_COPY_TILING_DATA(FusedInferAttentionScoreTilingData, tiling);                                              \
+        op.Init(query, key, value, pseShift, attenMask, actualSeqLengthsQ, actualSeqLengths, deqScale1, quantScale1,   \
+                deqScale2, quantScale2, quantOffset2, antiquantScale, antiquantOffset, blockTable, queryPaddingSize,   \
+                kvPaddingSize, keyAntiquantScale, keyAntiquantOffset, valueAntiquantScale, valueAntiquantOffset,       \
+                keySharedPrefix, valueSharedPrefix, actualSharedPrefixLen, queryRope, keyRope, keyRopeAntiquantScale,  \
+                learnableSink, attentionOut, softmaxLse, user, tiling_data, tiling, &tPipe);                           \
         op.Process();                                                                                                  \
     } while (0)
 

@@ -602,13 +602,18 @@ template <GmFormat FORMAT>
 struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_BNGSD> {
     GmLayout<FORMAT> gmLayout;
     ActualSeqLensParser<ActualSeqLensMode::BY_BATCH> actualSeqLensQParser;
+    bool isQPaddingFlag = false;
+    uint64_t qPaddingSize = 0;
 
     __aicore__ inline OffsetCalculatorImpl() = default;
 
-    __aicore__ inline void Init(uint32_t b, uint32_t n2, uint32_t g, uint32_t s1, uint32_t d, GlobalTensor<uint64_t> actualSeqLengthsGmQ,
-                                uint32_t actualLenQDims)
+    __aicore__ inline void Init(uint32_t b, uint32_t n2, uint32_t g, uint32_t s1, uint32_t d,
+                                GlobalTensor<uint64_t> actualSeqLengthsGmQ, uint32_t actualLenQDims,
+                                bool isQPaddingFlag = false, uint64_t qPaddingSize = 0)
     {
-        if(actualLenQDims != 0) { 
+        this->isQPaddingFlag = isQPaddingFlag;
+        this->qPaddingSize = qPaddingSize;
+        if(actualLenQDims != 0) {
             actualSeqLensQParser.Init(actualSeqLengthsGmQ, actualLenQDims, 0);
         }
         gmLayout.MakeLayout(b, n2, g, s1, d);
@@ -616,6 +621,9 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_BNGSD> {
 
     __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t gIdx, uint32_t s1Idx, uint32_t dIdx)
     {
+        if (isQPaddingFlag) {
+            s1Idx += GetDimS1() - qPaddingSize - actualSeqLensQParser.GetActualSeqLength(bIdx);
+        }
         uint64_t offset = bIdx * GetStrideB() + n2Idx * GetStrideN2() + gIdx * GetStrideG() + s1Idx * GetStrideS1() +
                           dIdx * GetStrideD();
         return offset;
@@ -746,6 +754,9 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_Q_OUT_TND> {
 template <GmFormat FORMAT>
 struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_BNSD> {
     GmLayout<FORMAT> gmLayout;
+    ActualSeqLensParser<ActualSeqLensMode::BY_BATCH> actualSeqLensKVParser;
+    bool isKvPaddingFlag = false;
+    uint64_t kvPaddingSize = 0;
 
     __aicore__ inline OffsetCalculatorImpl() = default;
 
@@ -754,8 +765,23 @@ struct OffsetCalculatorImpl<FORMAT, FormatCategory::GM_KV_BNSD> {
         gmLayout.MakeLayout(b, n2, s2, d);
     }
 
+    __aicore__ inline void Init(uint32_t b, uint32_t n2, uint32_t s2, uint32_t d, GlobalTensor<uint64_t> actualSeqLengthsGm,
+                                uint32_t actualLenKvDims, bool isKvPaddingFlag = false, uint64_t kvPaddingSize = 0)
+    {
+        this->isKvPaddingFlag = isKvPaddingFlag;
+        this->kvPaddingSize = kvPaddingSize;
+        if(actualLenKvDims != 0) {
+            actualSeqLensKVParser.Init(actualSeqLengthsGm, actualLenKvDims, 0);
+        }
+        gmLayout.MakeLayout(b, n2, s2, d);
+    }
+
     __aicore__ inline uint64_t GetOffset(uint32_t bIdx, uint32_t n2Idx, uint32_t s2Idx, uint32_t dIdx)
     {
+        if (isKvPaddingFlag) {
+            s2Idx += GetDimS2() - kvPaddingSize - actualSeqLensKVParser.GetActualSeqLength(bIdx);
+        }
+
         uint64_t offset = bIdx * GetStrideB() + n2Idx * GetStrideN2() + s2Idx * GetStrideS2() + dIdx * GetStrideD();
         return offset;
     }
@@ -1871,27 +1897,18 @@ template <typename T>
 __aicore__ inline void CopySingleMatrixNDToND(LocalTensor<T> ubTensor, const GlobalTensor<T> gmTensor, 
                                             uint32_t blockCount, uint32_t blockLen, uint32_t srcStride, uint32_t dstStride, uint32_t rightPadding)
 {
-    if (rightPadding != 0) {
-        DataCopyExtParams dataCopyParams;
-        dataCopyParams.blockCount = static_cast<uint16_t>(blockCount); // 外部传入
-        dataCopyParams.blockLen = blockLen;
-        dataCopyParams.srcStride = srcStride;
-        dataCopyParams.dstStride = dstStride; // 外部传入
+    DataCopyExtParams dataCopyParams;
+    dataCopyParams.blockCount = static_cast<uint16_t>(blockCount); // 外部传入
+    dataCopyParams.blockLen = blockLen;
+    dataCopyParams.srcStride = srcStride;
+    dataCopyParams.dstStride = dstStride; // 外部传入
 
-        DataCopyPadExtParams<T> dataCopyPadParams;
-        dataCopyPadParams.isPad = true;
-        dataCopyPadParams.leftPadding = 0;
-        dataCopyPadParams.rightPadding = rightPadding;
-        dataCopyPadParams.paddingValue = 0;
-        DataCopyPad(ubTensor, gmTensor, dataCopyParams, dataCopyPadParams);
-    } else {
-        DataCopyParams repeatParams;
-        repeatParams.blockCount = static_cast<uint16_t>(blockCount);
-        repeatParams.blockLen = blockLen / 32UL;
-        repeatParams.srcStride = srcStride / 32UL;
-        repeatParams.dstStride = dstStride;
-        DataCopy(ubTensor, gmTensor, repeatParams);
-    }
+    DataCopyPadExtParams<T> dataCopyPadParams;
+    dataCopyPadParams.isPad = true;
+    dataCopyPadParams.leftPadding = 0;
+    dataCopyPadParams.rightPadding = rightPadding;
+    dataCopyPadParams.paddingValue = 0;
+    DataCopyPad(ubTensor, gmTensor, dataCopyParams, dataCopyPadParams);
 }
 
 template <typename POST_QUANT_T, GmFormat GM_FORMAT>
@@ -2260,12 +2277,14 @@ private:
 
 // ---------------------------------------------CopyPSEGmToUb--------------------------------------
 struct GmPseCoord {
-    uint32_t bIdx;
-    uint32_t n2Idx;
-    uint32_t gS1Idx;
-    uint32_t s2Idx;
-    uint32_t gS1DealSize;
-    uint32_t s2DealSize;
+    uint32_t bIdx = 0;
+    uint32_t n2Idx = 0;
+    uint32_t gS1Idx = 0;
+    uint32_t s2Idx = 0;
+    uint32_t gS1DealSize = 0;
+    uint32_t s2DealSize = 0;
+    uint64_t s1LeftPaddingSize = 0;
+    uint64_t s2LeftPaddingSize = 0;
 };
 
 // 对齐暂不考虑TND
@@ -2285,7 +2304,8 @@ public:
             uint32_t gIdxStart = gmPseCoord.gS1Idx / offsetCalculator.GetDimS1();
             uint32_t s1IdxStart = gmPseCoord.gS1Idx % offsetCalculator.GetDimS1();
             uint64_t offset =
-                offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart, s1IdxStart, gmPseCoord.s2Idx);
+                offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart,
+                    gmPseCoord.s1LeftPaddingSize + s1IdxStart, gmPseCoord.s2LeftPaddingSize + gmPseCoord.s2Idx);
             // 统一的接口
             uint32_t blockCount = gmPseCoord.gS1DealSize;
             uint32_t srcStride = (offsetCalculator.GetStrideS1() - gmPseCoord.s2DealSize) * sizeof(PSE_T);
@@ -2293,13 +2313,13 @@ public:
                                    dstStride, rightPadding);
         } else if constexpr (UB_FORMAT == UbFormat::S1G) {
             // 不连续，需要分3次拷贝
-            OffsetCalculator<GM_FORMAT> &offsetCalculator = dstTensor.offsetCalculator;
+            OffsetCalculator<GM_FORMAT> &offsetCalculator = srcTensor.offsetCalculator;
             uint32_t s1IdxStart = gmPseCoord.gS1Idx / offsetCalculator.GetDimG();
             uint32_t gIdxStart = gmPseCoord.gS1Idx % offsetCalculator.GetDimG();
             uint32_t s1IdxEnd = (gmPseCoord.gS1Idx + gmPseCoord.gS1DealSize) / offsetCalculator.GetDimG();
             uint32_t gIdxEnd = (gmPseCoord.gS1Idx + gmPseCoord.gS1DealSize) % offsetCalculator.GetDimG();
-            uint64_t gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart, s1IdxStart,
-                                                         gmPseCoord.s2Idx); // GM上为GS1
+            uint64_t gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, gIdxStart,
+                gmPseCoord.s1LeftPaddingSize + s1IdxStart, gmPseCoord.s2LeftPaddingSize + gmPseCoord.s2Idx); // GM上为GS1
 
             // 处理第一个S
             uint32_t headSize = 0;
@@ -2313,18 +2333,20 @@ public:
             CopySingleMatrixNDToND(dstTensor.tensor, srcTensor.gmTensor[gmOffset], headSize, blockLen, srcStride,
                                    dstStride, rightPadding);
             if (s1IdxEnd - s1IdxStart >= 1) {
-                uint64_t ubOffset = ((uint64_t)headSize) * ((uint64_t)srcTensor.colCount);
+                uint64_t ubOffset = ((uint64_t)headSize) * ((uint64_t)dstTensor.colCount);
+                // 处理中间块
+                gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, 0,
+                    gmPseCoord.s1LeftPaddingSize + s1IdxStart + 1, gmPseCoord.s2LeftPaddingSize + gmPseCoord.s2Idx); // GM上为GS1
                 // 处理中间块
                 for (uint32_t i = s1IdxStart + 1; i < s1IdxEnd; i++) {
-                    gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, 0, i, gmPseCoord.s2Idx); // GM上为GS1
                     CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset], offsetCalculator.GetDimG(),
                                            blockLen, srcStride, dstStride, rightPadding);
                     ubOffset += offsetCalculator.GetDimG() * dstTensor.colCount;
+                    gmOffset += offsetCalculator.GetStrideS1();
                 }
 
                 // 处理尾块
                 if (gIdxEnd > 0) {
-                    gmOffset = offsetCalculator.GetOffset(gmPseCoord.bIdx, gmPseCoord.n2Idx, 0, s1IdxEnd, gmPseCoord.s2Idx);
                     CopySingleMatrixNDToND(dstTensor.tensor[ubOffset], srcTensor.gmTensor[gmOffset], gIdxEnd,
                                            blockLen, srcStride, dstStride, rightPadding);
                 }
@@ -2333,6 +2355,28 @@ public:
     }
 };
 
+template <FIA_LAYOUT LAYOUT_T>
+__aicore__ inline constexpr bool IsSupportPse() {
+    if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::BSH) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <FIA_LAYOUT LAYOUT_T>
+__aicore__ inline constexpr UbFormat GetPseUbFormat() {
+    static_assert((LAYOUT_T == FIA_LAYOUT::BSH) ||
+                  (LAYOUT_T == FIA_LAYOUT::BNSD) ||
+                  (LAYOUT_T == FIA_LAYOUT::TND) ||
+                  (LAYOUT_T == FIA_LAYOUT::NTD),
+                  "Get PSE UbFormat fail, LAYOUT_T is incorrect");
+    if constexpr (LAYOUT_T == FIA_LAYOUT::BNSD || LAYOUT_T == FIA_LAYOUT::NTD) {
+        return UbFormat::GS1;
+    } else {
+        return UbFormat::S1G;
+    }
+}
 // --------------CopyAttentionMask----------------------------------------------------------------
 enum SparseMode : uint8_t {
     DEFAULT_MASK = 0,
@@ -2430,10 +2474,11 @@ __aicore__ inline void CopyAttentionMask(FaUbTensor<T> &attenMaskUb, GlobalTenso
 }
 
 // ----------------------------------------------Copy LSE UB To Gm--------------------------------
-template <typename T>
+template <typename T, ActualSeqLensMode Q_MODE>
 __aicore__ inline void DataCopySoftmaxLseBSND(GlobalTensor<float> softmaxLseGm, LocalTensor<T> lseSrc,
                                                  uint64_t bN2Offset, uint32_t mOffset, uint32_t dealCount, 
-                                                 const ConstInfo &constInfo)
+                                                 const ConstInfo &constInfo,
+                                                 ActualSeqLensParser<Q_MODE> qActSeqLensParser, uint64_t bIdx)
 {
     uint32_t startS1Idx = mOffset / constInfo.gSize;
     uint32_t startGIdx = mOffset % constInfo.gSize;
@@ -2442,9 +2487,13 @@ __aicore__ inline void DataCopySoftmaxLseBSND(GlobalTensor<float> softmaxLseGm, 
     uint64_t outOffset = 0;
     uint64_t ubOffset = 0;
     uint32_t curDealRowCount = 0;
+    uint64_t s1LeftPaddingSize = 0;
+    if (constInfo.isQHasLeftPadding) {
+        s1LeftPaddingSize = constInfo.qSeqSize - constInfo.qLeftPaddingSize - qActSeqLensParser.GetActualSeqLength(bIdx);
+    }
 
     for (uint32_t s1Idx = startS1Idx; s1Idx <= endS1Idx; s1Idx++) {
-        outOffset = bN2Offset + startGIdx * constInfo.qSeqSize + s1Idx;
+        outOffset = bN2Offset + startGIdx * constInfo.qSeqSize + s1Idx + s1LeftPaddingSize;
         if (s1Idx != endS1Idx) {
             curDealRowCount =  constInfo.gSize - startGIdx;
         }
@@ -2470,7 +2519,11 @@ __aicore__ inline void DataCopySoftmaxLseBNSD(GlobalTensor<float> softmaxLseGm, 
 {
     uint64_t gOffset = mOffset / qActSeqLensParser.GetActualSeqLength(bIdx) * constInfo.qSeqSize;
     uint64_t seqOffset = mOffset % qActSeqLensParser.GetActualSeqLength(bIdx);
-    uint64_t outOffset = bN2Offset + gOffset + seqOffset;
+    uint64_t s1LeftPaddingSize = 0;
+    if (constInfo.isQHasLeftPadding) {
+        s1LeftPaddingSize = constInfo.qSeqSize - constInfo.qLeftPaddingSize - qActSeqLensParser.GetActualSeqLength(bIdx);
+    }
+    uint64_t outOffset = bN2Offset + gOffset + seqOffset + s1LeftPaddingSize;
     uint64_t ubOffset = 0;
     // dealCount ≤ 当前actQs剩余部分，则直接搬运全部dealCount
     if ((qActSeqLensParser.GetActualSeqLength(bIdx) - seqOffset) >= dealCount) {
