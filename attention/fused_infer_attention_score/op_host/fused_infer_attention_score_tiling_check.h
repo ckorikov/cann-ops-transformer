@@ -186,7 +186,7 @@ private:
     ge::graphStatus CheckActualSeqLensQ() const;
     ge::graphStatus CheckActualSeqLensKv() const;
     ge::graphStatus CheckBlockTable() const;
-
+    ge::graphStatus CheckExistenceSystemPrefix() const;
     // 特性交叉校验
     ge::graphStatus CheckFeatureInOutDtype() const;
     ge::graphStatus CheckFeatureActualSeqLensExistence() const;
@@ -217,6 +217,9 @@ private:
     ge::graphStatus CheckFeatureGqaNoquant();
     ge::graphStatus CheckFeatureGqaAntiquant() const;
     ge::graphStatus CheckFeatureGqaFullquant() const;
+    ge::graphStatus CheckFeatureGqaPrefix() const;
+    ge::graphStatus CheckFeatureLeftPadding() const;
+    ge::graphStatus CheckFeaturePSE() const;
     ge::graphStatus CheckFeatureMla();
     ge::graphStatus CheckFeatureGqa();
     ge::graphStatus CheckFeature();
@@ -248,6 +251,9 @@ private:
     ge::graphStatus CheckSoftmaxLseDType();
     ge::graphStatus CheckSoftmaxLse();
     ge::graphStatus CheckMultiParaConsistency();
+    ge::graphStatus CheckSystemPrefix();
+    ge::graphStatus CheckSystemPrefixDtype();
+    ge::graphStatus CheckSystemPrefixShape();
 
 private:
     const char *opName_ = nullptr;
@@ -315,6 +321,7 @@ private:
     std::shared_ptr<FiaTilingShapeCompare> softmaxLseShapeCmp_ = nullptr;
     std::shared_ptr<FiaTilingShapeCompare> quantScale2ShapeCmp_ = nullptr;
     std::shared_ptr<FiaTilingShapeCompare> quantOffset2ShapeCmp_ = nullptr;
+    std::shared_ptr<FiaTilingShapeCompare> prefixKeyShapeCmp_ = nullptr;
 };
 } // namespace optiling
 #endif // FUSED_INFER_ATTENTION_SCORE_TILING_CHECK_H

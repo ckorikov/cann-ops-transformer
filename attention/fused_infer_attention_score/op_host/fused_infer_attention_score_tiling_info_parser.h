@@ -44,6 +44,8 @@ public:
     ge::graphStatus GetKvCache();
     ge::graphStatus GetOpParaInfo();
 
+    ge::graphStatus GetEmptyTensorFlag();
+
     ge::graphStatus GetMaxWorkspaceFlag();
     ge::graphStatus GetLegacyIfaFlag();
 
@@ -73,10 +75,13 @@ public:
     ge::graphStatus GetN2Size();
     ge::graphStatus GetGSize();
     ge::graphStatus GetSparseMode();
+    ge::graphStatus GetMaskFlag();
     ge::graphStatus GetAttenMaskInfo();
     ge::graphStatus GetPaddingSizeFlag();
     ge::graphStatus GetActualSeqInfo();
     ge::graphStatus GetPreNextToken();
+    ge::graphStatus GetSystemPrefix();
+    ge::graphStatus GetPseShiftFlag();
     ge::graphStatus GetOldIfaGqaFlag();
     TilingKeyLayout MapStringToLayout(FiaLayout &layoutString) const;
     void GenerateAxisInfo(FiaTilingInfo &fiaInfo);
@@ -132,6 +137,7 @@ public:
     std::vector<gert::StorageShape *> kCache_ = {};
     std::vector<gert::StorageShape *> vCache_ = {};
 
+    bool emptyTensorFlag_ = false;
     bool isSameSeqAllKVTensor_ = true;
     bool isSameActualseq_ = true;
     bool attenMaskFlag_ = false;
@@ -143,13 +149,18 @@ public:
     bool kvPaddingSizeFlag_ = false;
     bool qPaddingSizeFlag_ = false;
     bool pseShiftFlag_ = false;
+    bool pseShiftByBatch_ = false;
+    uint32_t pseShiftS1_ = 0;
+    uint32_t pseShiftS2_ = 0;
     int64_t maxActualseq_ = 0;
     bool isMaxWorkspace_ = false;
     bool isLegacyIfa_ = false;
+    bool systemPrefixFlag_ = false;
+    int64_t systemPrefixLen_ = 0;
+    int64_t systemPrefixMaxLen_ = 0;
 
     bool isAccumQSeq_ = false;
     bool isAccumKVSeq_ = false;
-    
     uint32_t actualLenQDims_ = 0;
     uint32_t actualLenDims_ = 0;
     std::vector<int64_t> kvListSeqLens_ {};
@@ -159,5 +170,6 @@ public:
     std::shared_ptr<FiaTilingShape> valueShape_ = nullptr;
     std::shared_ptr<FiaTilingShape> queryRopeShape_ = nullptr;
     std::shared_ptr<FiaTilingShape> keyRopeShape_ = nullptr;
+    std::shared_ptr<FiaTilingShape> keyPrefixShape_ = nullptr;
 };
 } // optiling

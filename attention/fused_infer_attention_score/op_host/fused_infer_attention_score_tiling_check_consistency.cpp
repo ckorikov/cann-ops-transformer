@@ -454,9 +454,72 @@ ge::graphStatus FiaTilingCheck::CheckPseShiftShape()
         shapeParams.S1 = static_cast<int64_t>(s1Size_);
         shapeParams.S2 = s2Size_;
     }
-    shapeParams.compareTypeMap = {{FiaAxis::S2, FiaCompareType::GREATER_EQUAL}};
+    shapeParams.compareTypeMap = {{FiaAxis::S1, FiaCompareType::GREATER_EQUAL}, {FiaAxis::S2, FiaCompareType::GREATER_EQUAL}};
     
     return pseShiftShapeCmp_->CompareShape(shapeParams, __func__);
+}
+
+ge::graphStatus FiaTilingCheck::CheckSystemPrefix()
+{
+    if (fiaInfo_.sysPrefixFlag) {
+        if (CheckSystemPrefixDtype() != ge::GRAPH_SUCCESS || CheckSystemPrefixShape() != ge::GRAPH_SUCCESS) {
+            return ge::GRAPH_FAILED;
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckSystemPrefixDtype()
+{
+    if (opParamInfo_.keySharedPrefix.desc->GetDataType() != inputKvType_) {
+        OP_LOGE(opName_, "when key's dtype is %s, keySharedPrefix dtype should be %s, but got %s.",
+            FusedDataTypeToSerialString(opParamInfo_.key.desc->GetDataType()).c_str(),
+            FusedDataTypeToSerialString(inputKvType_).c_str(),
+            FusedDataTypeToSerialString(opParamInfo_.keySharedPrefix.desc->GetDataType()).c_str());
+        return ge::GRAPH_FAILED;
+    }
+    if (opParamInfo_.valueSharedPrefix.desc->GetDataType() != inputKvType_) {
+        OP_LOGE(opName_, "when value's dtype is %s, valueSharedPrefix dtype should be %s, but got %s.",
+            FusedDataTypeToSerialString(opParamInfo_.value.desc->GetDataType()).c_str(),
+            FusedDataTypeToSerialString(inputKvType_).c_str(),
+            FusedDataTypeToSerialString(opParamInfo_.valueSharedPrefix.desc->GetDataType()).c_str());
+        return ge::GRAPH_FAILED;
+    }
+
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckSystemPrefixShape()
+{
+    if (!fiaInfo_.sysPrefixFlag) {
+        return ge::GRAPH_SUCCESS;
+    }
+    auto prefixKShape = opParamInfo_.keySharedPrefix.tensor->GetStorageShape();
+    auto prefixVShape = opParamInfo_.valueSharedPrefix.tensor->GetStorageShape();
+    prefixKeyShapeCmp_ = std::make_shared<FiaTilingShapeCompare>(prefixKShape, kvLayout_, KEY_NAME, opName_);
+    if (fiaInfo_.systemPrefixLen > fiaInfo_.systemPrefixMaxLen) {
+        OP_LOGE(opName_, "actual prefix len should be less than or equal to prefixlen");
+        return ge::GRAPH_FAILED;
+    }
+
+    if (prefixKShape != prefixVShape) {
+        OP_LOGE(opName_, "Prefix shapes mismatch: prefix key shape and prefix value shape");
+        return ge::GRAPH_FAILED;
+    }
+    if (prefixKShape.GetDim(0) != 1) {
+        OP_LOGE(opName_, "System prefix is enabled, Prefix batch dimension must be 1, got %ld", prefixKShape.GetDim(0));
+        return ge::GRAPH_FAILED;
+    }
+
+    FiaTilingShapeCompareParam shapeParams;
+    shapeParams.B = static_cast<int64_t>(bSize_);
+    shapeParams.N = static_cast<int64_t>(n2Size_);
+    shapeParams.S = s2Size_;
+    shapeParams.D = static_cast<int64_t>(qkHeadDim_);
+    // 前缀的B和S2和正常的没关系
+    shapeParams.compareTypeMap = {{FiaAxis::S, FiaCompareType::IGNORE_INPUT},
+                                  {FiaAxis::B, FiaCompareType::IGNORE_INPUT}};
+    return prefixKeyShapeCmp_->CompareShape(shapeParams, __func__);
 }
 
 ge::graphStatus FiaTilingCheck::CheckMask()
@@ -635,7 +698,8 @@ ge::graphStatus FiaTilingCheck::CheckMultiParaConsistency()
         ge::GRAPH_SUCCESS != CheckAttenOut() ||
         ge::GRAPH_SUCCESS != CheckPseShift() ||
         ge::GRAPH_SUCCESS != CheckMask() ||
-        ge::GRAPH_SUCCESS != CheckSoftmaxLse()) {
+        ge::GRAPH_SUCCESS != CheckSoftmaxLse()||
+        ge::GRAPH_SUCCESS != CheckSystemPrefix()) {
         return ge::GRAPH_FAILED;
     }
 
