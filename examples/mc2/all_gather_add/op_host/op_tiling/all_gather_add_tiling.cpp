@@ -26,7 +26,7 @@ using namespace ge;
 
 namespace {
     constexpr uint32_t TILE_NUM = 1;
-    constexpr uint32_t COMM_TURN = 1;
+    constexpr uint32_t COMM_TURN = 2;
 }
 namespace optiling {
 
@@ -77,7 +77,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     tilingData->blockElemNum = tilingData->totalElemNum / context->GetBlockDim();
     tilingData->addTileElemNum = tilingData->blockElemNum / tilingData->tileNum;
     uint32_t rankSize = *context->GetAttrs()->GetAttrPointer<uint32_t>(static_cast<int>(1));
-    tilingData->gatherTileElemNum = tilingData->totalElemNum / rankSize;
+    tilingData->gatherTileElemNum = tilingData->totalElemNum / rankSize / tilingData->commTurn;
     
     // 设置workspaceSize gather out需要额外的临时内存，大小与b输入一致
     size_t* currentWorkspace = context->GetWorkspaceSizes(1);
