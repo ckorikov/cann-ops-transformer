@@ -19,7 +19,7 @@
 #include "kernel_tiling/kernel_tiling.h"
 #include "all_gather_add_tiling.h"
 
-constexpr int32_t ALLGATHER_ADD_BUFFER_NUM = 1;
+constexpr int32_t ADD_BUFFER_NUM = 2;
 
 namespace AscendC {
 class AllGatherAdd {
@@ -43,9 +43,9 @@ private:
     TPipe *tPipe_;
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
 
-    TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueGather;
-    TQue<QuePosition::VECIN, ALLGATHER_ADD_BUFFER_NUM> inputQueueB;
-    TQue<QuePosition::VECOUT, ALLGATHER_ADD_BUFFER_NUM> outputQueueC;
+    TQue<QuePosition::VECIN, ADD_BUFFER_NUM> inputQueueGather;
+    TQue<QuePosition::VECIN, ADD_BUFFER_NUM> inputQueueB;
+    TQue<QuePosition::VECOUT, ADD_BUFFER_NUM> outputQueueC;
 
     GlobalTensor<half> inputAGM;
     GlobalTensor<half> gatherOutGM;
@@ -65,7 +65,7 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     tilingData_ = tilingData;
     tPipe_ = tPipe;
     blockElemNum_ = tilingData->blockElemNum;
-    addTileElemNum_ = tilingData->addTileElemNum;
+    addTileElemNum_ = tilingData->addTileElemNum / ADD_BUFFER_NUM;
     tileNum_ = tilingData->tileNum;
 
     // 初始化hccl对象
@@ -73,21 +73,23 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling));
 
     // 传入全局数据的指针，并设置存储大小
-    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileElemNum); // 非多轮切分AllGather场景，每张卡参与Gather的数据大小为{240，256}
+    inputAGM.SetGlobalBuffer((__gm__ half*)aGM, tilingData->gatherTileElemNum); // AllGather分两轮进行（commTurn = 2），每张卡参与Gather的数据大小为{120，256}
     gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM + blockElemNum_ * AscendC::GetBlockIdx(), blockElemNum_);
     inputBGM.SetGlobalBuffer((__gm__ half*)bGM + blockElemNum_ * AscendC::GetBlockIdx(), blockElemNum_);
     outputCGM.SetGlobalBuffer((__gm__ half*)cGM + blockElemNum_ * AscendC::GetBlockIdx(), blockElemNum_);
     
-    tPipe_->InitBuffer(inputQueueGather, ALLGATHER_ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
-    tPipe_->InitBuffer(inputQueueB, ALLGATHER_ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
-    tPipe_->InitBuffer(outputQueueC, ALLGATHER_ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
+    tPipe_->InitBuffer(inputQueueGather, ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
+    tPipe_->InitBuffer(inputQueueB, ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
+    tPipe_->InitBuffer(outputQueueC, ADD_BUFFER_NUM, addTileElemNum_ * sizeof(half));
 }
 
 __aicore__ inline void AllGatherAdd::HcclPrepare()
 {
+    uint32_t rankDim = hccl_.GetRankDim();
+    uint64_t strideCount = tilingData_->gatherTileElemNum * rankDim; // 通信多轮切分，多张卡的数据拼接到gatherOutGM时，相邻数据块的起始地址偏移
     // 下发通信任务
     handleId_ = hccl_.AllGather<true>((__gm__ uint8_t*)this->inputAGM.GetPhyAddr(), (__gm__ uint8_t*)this->gatherOutGM.GetPhyAddr(), tilingData_->gatherTileElemNum,
-                                      HcclDataType::HCCL_DATA_TYPE_FP16, 0, tilingData_->commTurn);
+                                      HcclDataType::HCCL_DATA_TYPE_FP16, strideCount, tilingData_->commTurn);
 }
 
 __aicore__ inline void AllGatherAdd::CopyIn(int32_t progress)
@@ -127,9 +129,11 @@ __aicore__ inline void AllGatherAdd::HcclFinalize()
 __aicore__ inline void AllGatherAdd::Process()
 {
     HcclPrepare();
+    int addLoop = tileNum_ * ADD_BUFFER_NUM;
     for (int i = 0; i < tilingData_->commTurn; i++) {
         hccl_.Wait(handleId_);
-        for (int j = 0; j < tileNum_; j++) {
+        // 对前一轮通信结果进行Add计算
+        for (int j = 0; j < addLoop; j++) {
             CopyIn(j);
             Compute();
             CopyOut(j);
