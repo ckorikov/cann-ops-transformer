@@ -19,6 +19,9 @@
 namespace MoeGatingTopK {
 using namespace AscendC;
 
+constexpr uint32_t FakerFp32RealFp16Multi = 2;
+constexpr uint32_t FakerFp32RealFp16Up = FakerFp32RealFp16Multi - 1;
+
 template <typename T>
 __aicore__ inline void GatherV100(const LocalTensor<T>& dst, const LocalTensor<T>& src,
                                   const LocalTensor<int32_t>& indexTensor,
@@ -97,6 +100,7 @@ private:
     LocalTensor<uint8_t> sharedTmpBuffer_;
 
     GlobalTensor<T> yGm_;
+    GlobalTensor<float> yGmFp32_;
     GlobalTensor<int32_t> expertIdxGm_;
     GlobalTensor<T> outGm_;
 
@@ -129,12 +133,17 @@ private:
 
 template <typename T>
 __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyInBias()
-{
-    LocalTensor<half> biasTensor = biasInBuffer_.Get<half>();
-    DataCopy(biasTensor, biasGm_, expertCount_);
+{   LocalTensor<half> biasTensorTemp = sharedTmpBuffer_.template ReinterpretCast<half>();
+    LocalTensor<float> biasTensor = biasInBuffer_.Get<float>();
+    DataCopy(biasTensorTemp, biasGm_, expertCount_);
     event_t eventIdMte2ToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));
     SetFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
     WaitFlag<HardEvent::MTE2_V>(eventIdMte2ToV);
+
+    // PipeBarrier<PIPE_MTE2>();
+    // PipeBarrier<PIPE_V>();
+    Cast(biasTensor, biasTensorTemp, RoundMode::CAST_NONE, expertCount_);
+    PipeBarrier<PIPE_V>();
 }
 
 template <typename T>
@@ -150,8 +159,9 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::ComputeX()
 {
     LocalTensor<half> xInLocalTensor = xInQueue_.DeQue<half>();
     LocalTensor<float> xInLocalTensorFp32 = sharedTmpBuffer_.template ReinterpretCast<float>();
-    LocalTensor<uint8_t> sharedTmpBuffer = sharedTmpBuffer_[expertCountAlign_ * 4];
-    LocalTensor<half> biasTensor = biasInBuffer_.Get<half>();
+    LocalTensor<float> xBiasTensorFp32 = sharedTmpBuffer_[expertCountAlign_ * 4].template ReinterpretCast<float>();
+    LocalTensor<uint8_t> sharedTmpBuffer = sharedTmpBuffer_[expertCountAlign_ * 4 * 2];
+    LocalTensor<float> biasTensor = biasInBuffer_.Get<float>();
     LocalTensor<half> xSigmoidTensor = xSigmoidQueue_.AllocTensor<half>();
     LocalTensor<float> xSigmoidTensorFp32 = xSigmoidTensor[expertCountAlign_].template ReinterpretCast<float>();
     LocalTensor<half> xBiasTensor = xSigmoidAddBiasQueue_.AllocTensor<half>();
@@ -159,19 +169,18 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::ComputeX()
     PipeBarrier<PIPE_V>();
     Cast(xInLocalTensorFp32, xInLocalTensor, RoundMode::CAST_NONE, expertCount_);
     Sigmoid(xSigmoidTensorFp32, xInLocalTensorFp32, sharedTmpBuffer, expertCount_);
-    PipeBarrier<PIPE_V>();
-    Cast(xSigmoidTensor, xSigmoidTensorFp32, RoundMode::CAST_NONE, expertCount_);
-    if (addBias_) {
-        Add(xBiasTensor, xSigmoidTensor, biasTensor, expertCount_);
-    } else {
-        Adds(xBiasTensor, xSigmoidTensor, static_cast<half>(0), expertCount_);
-    }
 
+    // Cast(xSigmoidTensor, xSigmoidTensorFp32, RoundMode::CAST_NONE, expertCount_);
+    if (addBias_) {
+        Add(xBiasTensorFp32, xSigmoidTensorFp32, biasTensor, expertCount_);
+    } else {
+        Adds(xBiasTensorFp32, xSigmoidTensorFp32, static_cast<float>(0), expertCount_);
+    }
+    Cast(xBiasTensor, xBiasTensorFp32, RoundMode::CAST_NONE, expertCount_);
     xSigmoidAddBiasQueue_.EnQue<half>(xBiasTensor);
     xSigmoidQueue_.EnQue<half>(xSigmoidTensor);
     xInQueue_.FreeTensor(xInLocalTensor);
 }
-
 template <typename T>
 __aicore__ inline void MoeGatingTopKEKFullload<T>::SortInGroup()
 {
@@ -207,6 +216,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKGroupIndex()
     // LocalTensor<half> top2ValueInGroupTensor = calcTmpBuffer_[indexMax + expertCount_];
     LocalTensor<half> sortedInGroupTensor = sortedInGroupQueue_.DeQue<half>();
     LocalTensor<half> sortedGroupTensor = sortedGroupQueue_.AllocTensor<half>();
+    PipeBarrier<PIPE_V>();
     ProposalExtract(gropedSortedScore_, sortedInGroupTensor, expertCount_ / ONE_REPEAT_SORT_NUM, 4);
 
     // GetValue替代GatherMask
@@ -220,12 +230,10 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKGroupIndex()
     event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
     SetFlag<HardEvent::S_V>(eventIdSToV);
     WaitFlag<HardEvent::S_V>(eventIdSToV);
-    PipeBarrier<PIPE_V>();
 
     PairReduceSum(top2ScoreSumPerGroup_, top2ScoreSumPerGroup_, 1, groupCount_ * 2, 1, 1,
                   1); // 计算每个组内最大的两个数之和
 
-    PipeBarrier<PIPE_V>();
     // 用最小值补到16个数
     int64_t duplicateNum = ONE_REPEAT_SORT_NUM - groupCount_;
     if (duplicateNum > 0) {
@@ -234,10 +242,24 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKGroupIndex()
         Duplicate(top2ScoreSumPerGroup_, MIN_FP16, mask, 1, 1, 8);
         PipeBarrier<PIPE_V>();
     }
-
     // 排序，将kgroup选出来
     ProposalConcat(sortOutGroupBuffer_, top2ScoreSumPerGroup_, 1, 4);
     ProposalConcat(sortOutGroupBuffer_, indexTensor_, 1, 5);
+    RpSort16(sortedGroupTensor, sortOutGroupBuffer_, 1);
+    PipeBarrier<PIPE_V>();
+
+    ProposalExtract(top2ScoreSumPerGroup_, sortedGroupTensor, 1, 5);
+
+    PipeBarrier<PIPE_V>();
+    duplicateNum = ONE_REPEAT_SORT_NUM - kGroup_;
+    if (duplicateNum > 0) {
+        uint64_t mask0 = UINT64_MAX << kGroup_;
+        uint64_t mask[2] = {mask0, 0};
+        Duplicate(top2ScoreSumPerGroup_, MIN_FP16, mask, 1, 1, 8);
+        PipeBarrier<PIPE_V>();
+    }
+
+    ProposalConcat(sortOutGroupBuffer_, top2ScoreSumPerGroup_, 1, 4);
     RpSort16(sortedGroupTensor, sortOutGroupBuffer_, 1);
 
     sortedInGroupQueue_.EnQue<half>(sortedInGroupTensor);
@@ -251,7 +273,8 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdx()
     LocalTensor<half> sortedGroupTensor = sortedGroupQueue_.DeQue<half>();
     LocalTensor<int32_t> expertIdxTensor = expertIdxOutQueue_.AllocTensor<int32_t>();
     LocalTensor<half> topKGroupIndexTensor = sharedTmpBuffer_.template ReinterpretCast<half>();
-    ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
+    PipeBarrier<PIPE_V>();
+    ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 4);
 
     LocalTensor<int32_t> topKGroupIndexTensorInt = topKGroupIndexTensor[ONE_REPEAT_SORT_NUM].template ReinterpretCast<int32_t>();
     Cast(topKGroupIndexTensorInt, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
@@ -266,10 +289,10 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdx()
     event_t eventIdVToS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
     SetFlag<HardEvent::V_S>(eventIdVToS);
     WaitFlag<HardEvent::V_S>(eventIdVToS);
-    int64_t listOffset1 = topKGroupIndexTensorInt.GetValue(0) * perGroupExpertCount_ * 8;
-    int64_t listOffset2 = topKGroupIndexTensorInt.GetValue(1) * perGroupExpertCount_ * 8;
-    int64_t listOffset3 = topKGroupIndexTensorInt.GetValue(2) * perGroupExpertCount_ * 8;
-    int64_t listOffset4 = topKGroupIndexTensorInt.GetValue(3) * perGroupExpertCount_ * 8;
+    int64_t listOffset1 = topKGroupIndexTensorInt.GetValue(3) * perGroupExpertCount_ * 8;
+    int64_t listOffset2 = topKGroupIndexTensorInt.GetValue(2) * perGroupExpertCount_ * 8;
+    int64_t listOffset3 = topKGroupIndexTensorInt.GetValue(1) * perGroupExpertCount_ * 8;
+    int64_t listOffset4 = topKGroupIndexTensorInt.GetValue(0) * perGroupExpertCount_ * 8;
     event_t eventIdSToV = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));
     SetFlag<HardEvent::S_V>(eventIdSToV);
     WaitFlag<HardEvent::S_V>(eventIdSToV);
@@ -280,10 +303,10 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdx()
     srcList.src4 = sortedInGroupTensor[listOffset4];
 
     MrgSort4<half>(sortedGroupTensor, srcList, params);
-    PipeBarrier<PIPE_V>();
+    // PipeBarrier<PIPE_V>();
     ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
     Cast(expertIdxTensor, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
-
+    PipeBarrier<PIPE_V>();
     expertIdxOutQueue_.EnQue<int32_t>(expertIdxTensor);
     sortedGroupQueue_.FreeTensor(sortedGroupTensor);
     sortedInGroupQueue_.FreeTensor(sortedInGroupTensor);
@@ -325,9 +348,8 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     srcList.src2 = sortedInGroupTensor[listOffset2];
     srcList.src3 = sortedInGroupTensor[listOffset3];
     srcList.src4 = sortedInGroupTensor[listOffset4];
-
-    MrgSort4<half>(finalSortTemp_, srcList, params);
     PipeBarrier<PIPE_V>();
+    MrgSort4<half>(finalSortTemp_, srcList, params);
 
     // 4 ~ 7
     SetFlag<HardEvent::V_S>(eventIdVToS);
@@ -344,8 +366,6 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     srcList.src4 = sortedInGroupTensor[listOffset4];
 
     MrgSort4<half>(finalSortTemp_[4 * perGroupExpertCount_ * 8], srcList, params);
-    PipeBarrier<PIPE_V>();
-
     // 归并
     params.elementLengths[0] = k_ * 4;
     params.elementLengths[1] = k_ * 4;
@@ -358,8 +378,8 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertIdxEight()
     srcList.src1 = finalSortTemp_;
     srcList.src2 = finalSortTemp_[4 * perGroupExpertCount_ * 8];
 
-
     MrgSort4<half>(sortedGroupTensor, srcList, params);
+    PipeBarrier<PIPE_V>();
     // end
     ProposalExtract(topKGroupIndexTensor, sortedGroupTensor, 1, 5);
     Cast(expertIdxTensor, topKGroupIndexTensor, RoundMode::CAST_ROUND, k_);
@@ -390,8 +410,9 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::SelectTopKExpertScore()
     Div(yTensorFp32, yTensorFp32, reduceSumFp32Buffer, k_);
     Duplicate(reduceSumFp32Buffer, routedScalingFactor_, k_);
     Mul(yTensorFp32, yTensorFp32, reduceSumFp32Buffer, k_);
+    Duplicate(yTensor, (half)0, (k_ + 15) / 16 * 16);
     Cast(yTensor, yTensorFp32, RoundMode::CAST_NONE, k_);
-
+    PipeBarrier<PIPE_V>();
     xSigmoidQueue_.EnQue<half>(xSigmoidTensor);
     expertIdxOutQueue_.EnQue<int32_t>(expertIdxTensor);
     yOutQueue_.EnQue<half>(yTensor);
@@ -403,9 +424,13 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyOut(int64_t row)
     LocalTensor<half> yOutTensor = yOutQueue_.DeQue<half>();
     LocalTensor<int32_t> expertIdxTensor = expertIdxOutQueue_.DeQue<int32_t>();
     LocalTensor<half> xSigmoidTensor = xSigmoidQueue_.DeQue<half>();
-    uint32_t alignOut = (k_ + 15) / 16 * 16;
+    // uint32_t alignOut = (k_ + 7) / 8 * 8;
     PipeBarrier<PIPE_MTE2>();
-    DataCopy(yGm_[row * k_], yOutTensor, alignOut);
+
+    LocalTensor<float> yOutTensorFp32 = yOutTensor.template ReinterpretCast<float>();
+    DataCopy(yGmFp32_[row * k_ / FakerFp32RealFp16Multi],
+                      yOutTensorFp32,
+                      ((k_ / FakerFp32RealFp16Multi) + 7) / 8 * 8);
     DataCopy(expertIdxGm_[row * k_], expertIdxTensor, (k_ + 7) / 8 * 8);
     PipeBarrier<PIPE_MTE2>();
     xSigmoidQueue_.FreeTensor(xSigmoidTensor);
@@ -439,18 +464,27 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
     expertCountAlign_ = Align(expertCount_, 16);
     kAlign_ = Align(expertCount_, sizeof(float));
 
+    // useSpace = expertCountAlign_ * sizeof(biasT) + expertCountAlign_ * sizeof(xT) * 2 + expertCountAlign_ * (sizeof(float) + sizeof(T)) + expertCountAlign_ * sizeof(float) + pRsortBufferToatalSize_ * 2 + pRsoetExBuffer_ + pRsortBufferToatalSize_
+    // init output gm buf
     // bias
     biasGm_.SetGlobalBuffer((__gm__ T *)bias, expertCount_);
-    pipe_->InitBuffer(biasInBuffer_, expertCountAlign_ *sizeof(T));
+    pipe_->InitBuffer(biasInBuffer_, expertCountAlign_ * sizeof(float));
 
     // x
     xGm_.SetGlobalBuffer((__gm__ T *)x + perCoreRowCount_ * expertCount_ * blockIdx_, expertCount_);
+
+    yGm_.SetGlobalBuffer((__gm__ T *)y + perCoreRowCount_ * k_ * blockIdx_, k_);
+    // 当选取的专家个数k_是奇数时，这里会出问题，所以当前仅支持取k_为偶数
+    // TODO 待确认这个偏移对不对
+    yGmFp32_.SetGlobalBuffer((__gm__ float *)y + (perCoreRowCount_ * k_ * blockIdx_) / FakerFp32RealFp16Multi, k_);
+    expertIdxGm_.SetGlobalBuffer((__gm__ int32_t *)expertIdx + perCoreRowCount_ * k_ * blockIdx_, k_);
+    outGm_.SetGlobalBuffer((__gm__ T *)out + perCoreRowCount_ * expertCount_ * blockIdx_, expertCount_);
+
     pipe_->InitBuffer(xInQueue_, 2, expertCountAlign_ * sizeof(T));
 
     pipe_->InitBuffer(xSigmoidQueue_, 1, expertCountAlign_ * (sizeof(float) + sizeof(T)));
-    pipe_->InitBuffer(xSigmoidAddBiasQueue_, 1, AlignBytes(expertCount_, sizeof(float)));
+    pipe_->InitBuffer(xSigmoidAddBiasQueue_, 1, expertCountAlign_ * sizeof(float));
 
-    pipe_->InitBuffer(calcTmpBuffer_, tilingData_->calTmpBufUbSize);
     pRsortBufferToatalSize_ = expertCount_ * regionProposalSize_;
     pRsoetExBuffer_ = 2 * regionProposalSize_;
     pipe_->InitBuffer(sortGroupTmpBuffer_, pRsortBufferToatalSize_ * 2 + pRsoetExBuffer_);
@@ -458,37 +492,32 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
     // 组排序结果
     pipe_->InitBuffer(sortedInGroupQueue_, 1, pRsortBufferToatalSize_);
 
-    // init output gm buf
-    yGm_.SetGlobalBuffer((__gm__ T *)y + perCoreRowCount_ * k_ * blockIdx_, k_);
-    expertIdxGm_.SetGlobalBuffer((__gm__ int32_t *)expertIdx + perCoreRowCount_ * k_ * blockIdx_, k_);
-    outGm_.SetGlobalBuffer((__gm__ T *)out + perCoreRowCount_ * expertCount_ * blockIdx_, expertCount_);
-
     pipe_->InitBuffer(yOutQueue_, 2, kAlign_ * sizeof(T));
     pipe_->InitBuffer(expertIdxOutQueue_, 2, AlignBytes(k_, sizeof(int32_t)));
     pipe_->InitBuffer(outOutQueue_, 2, AlignBytes(expertCount_, sizeof(float)));
 
-    pipe_->InitBuffer(sortedGroupQueue_, 1,
-                      (groupCount_ + ONE_REPEAT_SORT_NUM - 1) / ONE_REPEAT_SORT_NUM * ONE_REPEAT_SORT_NUM *
-                          sizeof(float) * 2);
-
+    pipe_->InitBuffer(sortedGroupQueue_, 1, regionProposalSize_ * 4);
+    pipe_->InitBuffer(calcTmpBuffer_, 128 * 1024);
     indexTensor_ = calcTmpBuffer_.Get<half>();
+    // gropedSortedScore_ 这个可以并入sharedTmpBuffer
     gropedSortedScore_ = indexTensor_[expertCount_];
+    // top2ScoreSumPerGroup_ 这个可以并入sharedTmpBuffer
     top2ScoreSumPerGroup_ = gropedSortedScore_[expertCount_];
     sortOutGroupBuffer_ = top2ScoreSumPerGroup_[expertCount_ / ONE_REPEAT_SORT_NUM];
     reduceSumBuffer_ = sortOutGroupBuffer_[ONE_REPEAT_SORT_NUM * regionProposalSize_ / sizeof(half)];
     finalSortTemp_ = reduceSumBuffer_[(k_ + 127) / 128 * 128 * 2];
     sharedTmpBuffer_ = finalSortTemp_[4 * perGroupExpertCount_ * 8 * 2].template ReinterpretCast<uint8_t>();
-
-    PipeBarrier<PIPE_V>();
-    ArithProgression(indexTensor_, (half)0, (half)1, expertCount_); // 生成组索引
-    PipeBarrier<PIPE_V>();
 }
 
 template <typename T>
 __aicore__ inline void MoeGatingTopKEKFullload<T>::Process()
 {
+    SetAtomicAdd<float>();
     CopyInBias();
     for (int64_t row = 0; row < curCoreRowCount_; row++) {
+        PipeBarrier<PIPE_V>();
+        ArithProgression(indexTensor_, (half)0, (half)1, expertCount_); // 生成组索引
+        PipeBarrier<PIPE_V>();
         CopyInX(row);
         ComputeX();
         SortInGroup();
@@ -501,6 +530,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Process()
         SelectTopKExpertScore();
         CopyOut(row);
     }
+    SetAtomicNone();
 }
 } // namespace MoeGatingTopK
 #endif // MOE_GATING_TOP_K_E_K_FULLLOAD_H
