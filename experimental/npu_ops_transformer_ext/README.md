@@ -27,7 +27,6 @@ NpuOpsTransformerExt 是一个轻量级，高性能的算子开发工程模板�
 *   CANN Ascend Toolkit
 *   PyTorch: 2.1.0+
 *   PyTorchAdapter
-*   gcc: 9.0.0+
 
 ## 环境准备 | Preparation
 
@@ -67,19 +66,17 @@ NpuOpsTransformerExt 是一个轻量级，高性能的算子开发工程模板�
     pip install torch-${torch_version}+cpu-${python_version}-linux_${arch}.whl
     ```
 
-   根据实际环境，安装对应torch-npu包: `torch_npu-${torch_version}-${python_version}-linux_${arch}.whl` 下载链接为:[官网地址](https://gitcode.com/Ascend/pytorch/releases)
+   根据实际环境，安装对应torch-npu包: `torch_npu-${torch_version}-${python_version}-linux_${arch}.whl`
 
-   安装命令如下：
+   可以直接使用pip命令下载安装，命令如下：
 
     ```sh
-    pip install torch_npu-${torch_version}-${python_version}-linux_${arch}.whl
+    pip install torch_npu
     ```
     
     - \$\{torch\_version\}：表示torch包版本号。
     - \$\{python\_version\}：表示python版本号。
     - \$\{arch\}：表示CPU架构，如aarch64、x86_64。
-    
-    注：目前torch_npu支持RunOpApiV2接口的版本包括2.1.0、2.4.0+。
 
 ## 安装步骤 | Installation
 
