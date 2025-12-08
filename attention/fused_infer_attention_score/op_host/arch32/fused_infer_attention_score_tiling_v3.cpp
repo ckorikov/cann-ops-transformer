@@ -667,13 +667,24 @@ bool IsEmptyTensor(const gert::TilingContext *context)
 
 bool CheckGqaFeatureSupport(const gert::TilingContext *context)
 {
-    auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
-    auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
-    if (quantScale2 != nullptr ||
-        quantOffset2 != nullptr) {
-        return false;
+    auto pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
+    auto queryPaddingSize = context->GetOptionalInputTensor(QUERY_PADDING_SIZE_INDEX);
+    auto kvPaddingSize = context->GetOptionalInputTensor(KV_PADDING_SIZE_INDEX);
+    auto keySharedPrefix = context->GetOptionalInputTensor(KEY_SHARED_PREFIX_INDEX);
+    auto valueSharedPrefix = context->GetOptionalInputTensor(VALUE_SHARED_PREFIX_INDEX);
+    auto actualSharedPrefixLen = context->GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
+    auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);	
+    auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);	
+    if (pseShift != nullptr ||	
+        queryPaddingSize != nullptr ||
+        kvPaddingSize != nullptr ||
+        keySharedPrefix != nullptr ||
+        valueSharedPrefix != nullptr ||
+        actualSharedPrefixLen != nullptr ||
+        quantScale2 != nullptr ||
+        quantOffset2 != nullptr) {	
+        return false;	
     }
-
     return true;
 }
 
@@ -778,7 +789,8 @@ bool CheckGqaConstrain(gert::TilingContext *context)
 
     if (CheckGqaInputLayoutSupport(context) &&
         CheckGqaDSupport(context) && 
-        CheckGqaFeatureSupport(context)) { 
+        CheckGqaFeatureSupport(context) &&
+        !IsEmptyTensor(context)) { 
             return true;
     }
 
