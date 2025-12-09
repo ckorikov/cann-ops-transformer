@@ -68,6 +68,6 @@ python test_causal_conv1d.py
 3. 当前版本仅支持固定 chunk_size = 256；
 4. 已通过 PyTorch 参考实现的精度比对验证（测试脚本见各算子的 test 目录）。
 
-**单融合算子性能加速比（多组测试参数平均）：**
+**单融合算子性能加速比 (每个算子tests下测试脚本在910B3的profile结果)：**
 
-<img src="https://raw.gitcode.com/user-images/assets/7673863/8a541ffa-ecf3-4013-a9b6-2c376059fb60/image.png" height="200">
+![alt text](image.png)
