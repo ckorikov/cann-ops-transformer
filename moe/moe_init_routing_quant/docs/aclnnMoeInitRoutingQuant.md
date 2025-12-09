@@ -79,7 +79,8 @@ $$
 
 ## 约束说明
 
-无。
+- 确定性计算：
+  - aclnnMoeInitRoutingQuant默认确定性实现。
 
 ## 调用示例
 

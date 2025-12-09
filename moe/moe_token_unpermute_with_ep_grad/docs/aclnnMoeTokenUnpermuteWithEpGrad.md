@@ -107,8 +107,9 @@
     返回aclnnStatus状态码，具体参见[aclnn返回码](./common/aclnn返回码.md)。
 
 ## 约束说明
-
-topkNum <= 512
+- 确定性计算：
+  - aclnnMoeTokenUnpermuteWithEpGrad默认确定性实现。
+- topkNum <= 512
 
 ## 调用示例
 
