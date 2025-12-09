@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 /**
- * 算子功能：获取test修改后的数据区结果，输出给主机端处理
+ * 算子功能：采集test修改后的数据区结果，输出给主机端处理
  * @brief aclnnElasticReceivableInfoCollect的第一段接口，根据具体的计算流程，计算workspace大小。
  * @domain aclnn_ops_infer
  * @param [in] group: 计算输入，str。通信域名称，专家并行的通信域。
@@ -50,4 +50,4 @@ ACLNN_API aclnnStatus aclnnElasticReceivableInfoCollect(void *workspace, uint64_
 }
 #endif
 
-#endif  // OP_API_INC_ELASTIC_RECEIVABLE_INFO_COLLECT_H_
+#endif // OP_API_INC_ELASTIC_RECEIVABLE_INFO_COLLECT_H_

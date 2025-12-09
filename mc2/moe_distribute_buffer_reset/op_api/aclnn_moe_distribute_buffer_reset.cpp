@@ -25,7 +25,7 @@ using namespace op;
 extern "C" {
 #endif
 
-enum NnopbaseHcclServerType:uint32_t {
+enum NnopbaseHcclServerType : uint32_t {
     NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
     NNOPBASE_HCCL_SERVER_TYPE_MTE,
     NNOPBASE_HCCL_SERVER_TYPE_END
@@ -67,7 +67,7 @@ static aclnnStatus CheckParams(const aclTensor *elasticInfo, const char *groupEp
 }
 
 aclnnStatus aclnnMoeDistributeBufferResetGetWorkspaceSize(const aclTensor *elasticInfo, const char *groupEp,
-                                                          int32_t epWorldSize, int32_t needSync,
+                                                          int64_t epWorldSize, int64_t needSync,
                                                           uint64_t *workspaceSize, aclOpExecutor **executor)
 
 {

@@ -19,7 +19,7 @@ using namespace op;
 extern "C" {
 #endif
 
-enum NnopbaseHcclServerType:uint32_t {
+enum NnopbaseHcclServerType : uint32_t {
     NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
     NNOPBASE_HCCL_SERVER_TYPE_MTE,
     NNOPBASE_HCCL_SERVER_TYPE_END
@@ -34,7 +34,7 @@ extern aclnnStatus aclnnInnerElasticReceivableInfoCollect(void *workspace, uint6
 extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // check nullptr
-static bool CheckNullStatus(const aclTensor* y, const char* group)
+static bool CheckNullStatus(const aclTensor *y, const char *group)
 {
     // 检查必选入参出参为非空
     OP_CHECK_NULL(y, return false);
@@ -47,13 +47,13 @@ static bool CheckNullStatus(const aclTensor* y, const char* group)
 }
 
 // 入参校验
-static aclnnStatus CheckParams(const aclTensor* y, const char* group)
+static aclnnStatus CheckParams(const aclTensor *y, const char *group)
 {
     CHECK_RET(CheckNullStatus(y, group), ACLNN_ERR_PARAM_NULLPTR);
     auto groupStrnLen = strnlen(group, HCCL_GROUP_NAME_MAX);
     if ((groupStrnLen >= HCCL_GROUP_NAME_MAX) || (groupStrnLen == 0)) {
-        OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required group name length in range (0, HCCL_GROUP_NAME_MAX), but it's %zu.", 
-            strnlen(group, HCCL_GROUP_NAME_MAX));
+        OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required group name length in range (0, HCCL_GROUP_NAME_MAX), but it's %zu.",
+                strnlen(group, HCCL_GROUP_NAME_MAX));
         return ACLNN_ERR_PARAM_INVALID;
     }
 
@@ -68,7 +68,8 @@ aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char *group,
     return aclnnInnerElasticReceivableInfoCollectGetWorkspaceSize(group, worldSize, y, workspaceSize, executor);
 }
 
-aclnnStatus aclnnElasticReceivableInfoCollect(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)
+aclnnStatus aclnnElasticReceivableInfoCollect(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor,
+                                              aclrtStream stream)
 {
     if (NnopbaseSetHcclServerType) {
         NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);

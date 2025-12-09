@@ -37,7 +37,7 @@ extern "C" {
  * @return aclnnStatus: 返回状态码
  */
 ACLNN_API aclnnStatus aclnnMoeDistributeBufferResetGetWorkspaceSize(const aclTensor *elasticInfo, const char *groupEp,
-                                                                    int32_t epWorldSize, int32_t needSync,
+                                                                    int64_t epWorldSize, int64_t needSync,
                                                                     uint64_t *workspaceSize, aclOpExecutor **executor);
 
 /**
@@ -55,4 +55,4 @@ ACLNN_API aclnnStatus aclnnMoeDistributeBufferReset(void *workspace, uint64_t wo
 }
 #endif
 
-#endif  // OP_API_INC_MOE_DISTRIBUTE_BUFFER_RESET_
+#endif // OP_API_INC_MOE_DISTRIBUTE_BUFFER_RESET_
