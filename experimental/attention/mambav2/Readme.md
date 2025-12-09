@@ -70,4 +70,4 @@ python test_causal_conv1d.py
 
 **单融合算子性能加速比 (每个算子tests下测试脚本在910B3的profile结果)：**
 
-<img src="image.png" width="500">
+<img src="https://raw.gitcode.com/user-images/assets/7673863/4d4b226f-cce2-4c93-bb01-fdaade6fff7e/image.png" height="200">
