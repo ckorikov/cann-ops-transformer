@@ -66,7 +66,7 @@ static void PrintTilingDataInfo(const char *nodeName, ElasticReceivableInfoColle
     OP_LOGD(nodeName, "totalUbSize is %lu.", tilingData.elasticReceivableInfoCollectInfo.totalUbSize);
 }
 
-static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName)
+static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName)
 {
     auto attrs = context->GetAttrs();
     auto worldSizePtr = attrs->GetAttrPointer<int>(ATTR_WORLD_SIZE_INDEX);
@@ -202,16 +202,6 @@ ge::graphStatus ElasticReceivableInfoCollectTilingFunc(gert::TilingContext* cont
     return ge::GRAPH_SUCCESS;
 }
 
-struct ElasticReceivableInfoCollectCompileInfo {};
-ge::graphStatus TilingParseForElasticReceivableInfoCollect(gert::TilingParseContext *context) { 
-    const gert::TilingParseContext* const_context = context;
-    //避免未使用变量警告
-    (void)const_context;
-    (void)context;
-	return ge::GRAPH_SUCCESS; 
-}
-
 IMPL_OP_OPTILING(ElasticReceivableInfoCollect)
-    .Tiling(ElasticReceivableInfoCollectTilingFunc)
-    .TilingParse<ElasticReceivableInfoCollectCompileInfo>(TilingParseForElasticReceivableInfoCollect);
-}  // end of namespace optiling
+    .Tiling(ElasticReceivableInfoCollectTilingFunc);
+} // end of namespace optiling

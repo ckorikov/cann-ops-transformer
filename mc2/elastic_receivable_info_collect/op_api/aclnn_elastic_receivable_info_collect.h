@@ -32,7 +32,7 @@ extern "C" {
  *
  */
 ACLNN_API aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char* group, int64_t worldSize,
-    aclTensor* y, uint64_t* workspaceSize, aclOpExecutor** executor);
+    const aclTensor* y, uint64_t* workspaceSize, aclOpExecutor** executor);
 
 /**
  * @brief aclnnElasticReceivableInfoCollect的第二段接口，用于执行计算。
