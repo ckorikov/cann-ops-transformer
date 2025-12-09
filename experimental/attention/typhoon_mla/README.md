@@ -5,6 +5,7 @@ TyphoonMLA is a mixed naive-absorb MLA kernel for shared prefix. For more techni
 
 
 ### Folder structure
+```
 typhoon_mla/
 ├── src/                    # Source code
 │   ├── python_extension/   # Python bindings
@@ -22,12 +23,13 @@ typhoon_mla/
 ├── setup.py                # Setup for python package
 ├── README.md
 └── .gitignore
+```
 
 ### Requirements
-* CATLASS 1.0
+* CATLASS v1.0.0
 * CANN toolkit 
 * CANN-NNAL (required for torch_npu absorb baseline)
-* Pytorch & torch_npu
+* Torch & torch_npu
 
 ### Build & compile
 
@@ -40,7 +42,14 @@ export CATLASS_DIR=$(pwd)
 cd ..
 ```
 
-2. Compile kernel and python extension
+2. Set CANN environment
+```
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+source /usr/local/Ascend/driver/bin/setenv.bash 
+source /usr/local/Ascend/nnal/atb/set_env.sh # Required for the torch_npu absorb baseline
+```
+
+3. Compile kernel and python extension
 ```
 cd src
 bash install.sh
@@ -61,6 +70,14 @@ pytest tests
 ```
 python bench.py
 ```
+Following benchmark results are obtained in an Ascend 910B2 NPU:
+```
+bsz: 64    shared_kv_seqlen: 4096  nonshared_kv_seqlen: 128   | TyphoonMLA (TBT): 1.70 ms   TorchNPU-Absorb (TBT): 1.32 ms
+bsz: 128   shared_kv_seqlen: 4096  nonshared_kv_seqlen: 128   | TyphoonMLA (TBT): 1.78 ms   TorchNPU-Absorb (TBT): 2.00 ms
+bsz: 256   shared_kv_seqlen: 4096  nonshared_kv_seqlen: 128   | TyphoonMLA (TBT): 2.14 ms   TorchNPU-Absorb (TBT): 3.44 ms
+bsz: 512   shared_kv_seqlen: 4096  nonshared_kv_seqlen: 128   | TyphoonMLA (TBT): 3.21 ms   TorchNPU-Absorb (TBT): 6.20 ms
+```
+
 
 ### Tested on
 ```
