@@ -551,7 +551,9 @@ __aicore__ inline void GMMCompute<mmType, sync>::MMCompute(uint32_t groupIdx, MN
         mm.template IterateAll<false>(yGm[outOffset], 0, false, true);
         mmWaitStatus = true;
     #else
-        mm.template IterateAll<sync>(yGm[outOffset], 0);
+        // mm.template IterateAll<sync>(yGm[outOffset], 0);
+        mm.Iterate();
+        mm.GetTensorC(yGm[outOffset], 0, true);
     #endif
 }
 
