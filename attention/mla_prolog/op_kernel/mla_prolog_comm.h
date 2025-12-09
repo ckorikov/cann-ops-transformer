@@ -63,9 +63,7 @@ enum class QUANT_MODE : std::uint8_t {
     FULL_QUANT_KV_NO_QUANT = static_cast<std::uint8_t>(3),
     FULL_QUANT_KV_QUANT_PER_TENSOR = static_cast<std::uint8_t>(4),
     PARTIAL_QUANT_KV_QUANT_PERTILE = static_cast<std::uint8_t>(5),
-    FULL_QUANT_KV_QUANT_PERTILE = static_cast<std::uint8_t>(6),
-    MXFP8_FULL_QUANT_KV_NO_QUANT = static_cast<std::uint8_t>(7),
-    MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR = static_cast<std::uint8_t>(8)
+    FULL_QUANT_KV_QUANT_PERTILE = static_cast<std::uint8_t>(6)
 };
 
 enum class EMPTY_TENSOR_MODE : std::uint8_t {
@@ -98,7 +96,6 @@ constexpr uint32_t QC_CORE_NUM = 8; // 算力分组方案QC占用8核
 constexpr uint32_t QR_CORE_NUM = 4; // 算力分组方案QR占用4核
 constexpr uint32_t INT8_AFULLLOAD_MAX_MSIZE = 64; // 计算mmQcQr时，int8类型的A矩阵在msize小于等于64可以全载L1
 constexpr uint32_t BF16_AFULLLOAD_MAX_MSIZE = 32; // 计算mmQcQr时，bf16类型的A矩阵在msize小于等于32可以全载L1
-constexpr uint32_t DEQUANT_SCALES_CQ_SIZE = 48; // RmsNormCq输出的动态量化系数大小
 
 constexpr int SYNC_MODE_ALL_CUBE = 0x0;
 constexpr int SYNC_MODE_CUBE_VEC = 0x2;
@@ -123,14 +120,6 @@ constexpr int FINISH_MM_QN_SPLIT_N = 0X6;
 #define DO_DUMP_DATA(srcTensor, id, len) AscendC::DumpTensor(srcTensor, id, len)
 #else
 #define DO_DUMP_DATA(srcTensor, id, len)
-#endif
-
-class NoneType {};
-
-#if __CCE_AICORE__ == 310
-  using FP8E4M3 = fp8_e4m3fn_t;
-#else
-  using FP8E4M3 = NoneType;
 #endif
 
 // mte2 <> mte1
@@ -225,41 +214,6 @@ struct MLAPType {
         bfloat16_t, C_T>::type;        // krcache的类型
     using dequantScaleQNopeType = float;      // dequantScaleQNope的类型
     using dequantScaleQNormType = float;      // dequantScaleQNope的类型
-    using dequantScaleType = float;
-
-    static constexpr CACHE_MODE cacheMode = C_M;
-    static constexpr bool enableDequantOpt = ENABLE_DEQUANT_OPT;
-    static constexpr bool enableGroupComputeOpt = ENABLE_GROUP_COMPUTE_OPT;
-    static constexpr EMPTY_TENSOR_MODE emptyMode = EMPTY_MODE;
-    static constexpr ACTUAL_SEQ_MODE actualSeqMode = SEQ_MODE;
-    static constexpr bool isPertile = IS_PERTILE;
-    static constexpr uint32_t cvRatio = CV_RATIO; // 默认C:V 1:2
-};
-
-// 类模板特化，支持fp8全量化
-template <typename C_T, CACHE_MODE C_M, bool ENABLE_DEQUANT_OPT,bool ENABLE_GROUP_COMPUTE_OPT,
-          EMPTY_TENSOR_MODE EMPTY_MODE, ACTUAL_SEQ_MODE SEQ_MODE, bool IS_PERTILE, uint32_t CV_RATIO, typename... Args>
-struct MLAPType<FP8E4M3, FP8E4M3, C_T, C_M, ENABLE_DEQUANT_OPT,
-                ENABLE_GROUP_COMPUTE_OPT, EMPTY_MODE, SEQ_MODE, IS_PERTILE, CV_RATIO, Args...> {
-    using mmInputType = FP8E4M3;           // tokenX的类型与weight的类型一致
-    using mmQcQrInputType = FP8E4M3;
-    using mmQnInputType = bfloat16_t;         // matmul计算Qn的输入类型
-    using mmCqOutputType = float; // matmul计算Cq的输出类型
-    using mmCkvKrOutputType = float; // matmul计算CkvKr的输出类型
-    using mmQcQrOutputType = float; // matmul计算QcQr的输出类型
-    using mmQnOutputType = bfloat16_t;        // matmul计算Qn的输出类型
-    using rmsNormGammaType = bfloat16_t;      // gamma的输入类型
-    using rmsNormComputType = float;
-    using rmsNormCqOutputType = FP8E4M3;
-    using rmsNormCkvOutputType = C_T;
-    using ropeSinCosType = bfloat16_t;        // sin cos的输入类型
-    using ropeComputType = float;
-    using ropeOutputType = bfloat16_t;
-    using kvCacheType = C_T;           // kvcache的类型
-    using krCacheType = bfloat16_t;        // krcache的类型
-    using dequantScaleQNopeType = float;      // dequantScaleQNope的类型
-    using dequantScaleQNormType = float;      // dequantScaleQNope的类型
-    using dequantScaleType = fp8_e8m0_t;
 
     static constexpr CACHE_MODE cacheMode = C_M;
     static constexpr bool enableDequantOpt = ENABLE_DEQUANT_OPT;

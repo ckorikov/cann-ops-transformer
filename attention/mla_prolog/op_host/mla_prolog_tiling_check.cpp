@@ -167,43 +167,15 @@ ge::graphStatus MlaPrologTilingCheck::CheckAttrs() const
 
 ge::graphStatus MlaPrologTilingCheck::CheckDims() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        OP_CHECK_IF(context_.tokenX.shape->GetStorageShape().GetDimNum() != MLA_PROLOG_DIM_NUM_3,
-            OP_LOGE(context_.opName, "TokenX shape dim num allows only %u, got %zu.",
-                MLA_PROLOG_DIM_NUM_3, context_.tokenX.shape->GetStorageShape().GetDimNum()),
-            return ge::GRAPH_FAILED);
-        OP_CHECK_IF(scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT && scenarioInfo_.quantMode_ != QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR &&
-            scenarioInfo_.quantMode_ != QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT,
-            OP_LOGE(context_.opName, "QUANT_MODE allows only %u, %u, %u, got %u.",
-                QUANT_MODE::NO_QUANT, QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR, QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT, scenarioInfo_.quantMode_),
-            return ge::GRAPH_FAILED);
-    }
     OP_CHECK_IF(baseShapeInfo_.bSize > MAX_B_SIZE,
         OP_LOGE(context_.opName, "B should not be greater than %u, got %u.",
             MAX_B_SIZE, baseShapeInfo_.bSize),
         return ge::GRAPH_FAILED);
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        OP_CHECK_IF(baseShapeInfo_.s1Size != 1 && baseShapeInfo_.s1Size != 0,
-            OP_LOGE(context_.opName, "S allows only {0, 1}, got %u.", baseShapeInfo_.s1Size),
-            return ge::GRAPH_FAILED);
-    }
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        const std::set<uint32_t> supportedHeSize {7168U};
-        OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
-            OP_LOGE(context_.opName, "He allows only %s, got %u.",
-                ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
-            return ge::GRAPH_FAILED);
-    } else {
-        const std::set<uint32_t> supportedHeSize {1024U, 2048U, 3072U, 4096U, 5120U, 6144U, 7168U, 7680U, 8192U};
-        OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
-            OP_LOGE(context_.opName, "He allows only %s, got %u.",
-                ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
-            return ge::GRAPH_FAILED);
-    }
+    const std::set<uint32_t> supportedHeSize {1024U, 2048U, 3072U, 4096U, 5120U, 6144U, 7168U, 7680U, 8192U};
+    OP_CHECK_IF(supportedHeSize.find(baseShapeInfo_.heSize) == supportedHeSize.end(),
+        OP_LOGE(context_.opName, "He allows only %s, got %u.",
+            ConvertContainerToString(supportedHeSize).c_str(), baseShapeInfo_.heSize),
+        return ge::GRAPH_FAILED);
     OP_CHECK_IF(baseShapeInfo_.hcqSize != HCQ_SIZE,
         OP_LOGE(context_.opName, "Hcq allows only %u, got %u.",
             HCQ_SIZE, baseShapeInfo_.hcqSize),
@@ -363,8 +335,7 @@ void MlaPrologTilingCheck::FillOptionalOutputParamShapeWithDims()
     }
 
     if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) == 0) {
-        if (scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TENSOR ||
-            scenarioInfo_.quantMode_ == QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR) {
+        if (scenarioInfo_.quantMode_ == QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TENSOR) {
             expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.nSize, 1});
         } else {
             expectedParamInfo_.emplace(DEQUANT_SCALE_Q_NOPE_NAME, std::vector<uint32_t>{0});
@@ -423,12 +394,6 @@ void MlaPrologTilingCheck::FillScenarioParamInfo()
             break;
         case QUANT_MODE::FULL_QUANT_KV_QUANT_PER_TILE:
             FillFullKVPertileQuantParamInfo();
-            break;
-        case QUANT_MODE::MXFP8_FULL_QUANT_KV_NO_QUANT:
-            FillMxfp8FullQuantParamInfo();
-            break;
-        case QUANT_MODE::MXFP8_FULL_QUANT_KV_QUANT_PER_TENSOR:
-            FillMxfp8FullKVQuantParamInfo();
             break;
         default:
             break;
@@ -536,39 +501,6 @@ void MlaPrologTilingCheck::FillFullKVPertileQuantParamInfo()
     expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[KV_CACHE_OUT_NAME].dtype = ge::DT_INT8;
     expectedParamInfo_[K_NOPE_CLIP_ALPHA_NAME].dtype = ge::DT_FLOAT;
-}
-
-void MlaPrologTilingCheck::FillMxfp8FullQuantParamInfo()
-{
-    FillFullQuantParamInfo();
-
-    expectedParamInfo_.emplace(DEQUANT_SCALE_X_NAME, std::vector<uint32_t>{baseShapeInfo_.tSize, baseShapeInfo_.heSize / 32});
-    expectedParamInfo_.emplace(DEQUANT_SCALE_W_DQ_NAME, std::vector<uint32_t>{baseShapeInfo_.hcqSize, baseShapeInfo_.heSize / 32});
-    expectedParamInfo_.emplace(DEQUANT_SCALE_W_UQ_QR_NAME, std::vector<uint32_t>{baseShapeInfo_.headSizeUqQr, baseShapeInfo_.hcqSize / 32});
-    expectedParamInfo_.emplace(DEQUANT_SCALE_W_DKV_KR_NAME,
-        std::vector<uint32_t>{baseShapeInfo_.hckvSize + baseShapeInfo_.drSize, baseShapeInfo_.heSize / 32});
-
-    expectedParamInfo_[TOKEN_X_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
-    expectedParamInfo_[WEIGHT_DQ_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
-    expectedParamInfo_[WEIGHT_UQ_QR_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
-    expectedParamInfo_[WEIGHT_DKV_KR_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
-    expectedParamInfo_[DEQUANT_SCALE_X_NAME].dtype = ge::DT_FLOAT8_E8M0;
-    expectedParamInfo_[DEQUANT_SCALE_W_DQ_NAME].dtype = ge::DT_FLOAT8_E8M0;
-    expectedParamInfo_[DEQUANT_SCALE_W_UQ_QR_NAME].dtype = ge::DT_FLOAT8_E8M0;
-    expectedParamInfo_[DEQUANT_SCALE_W_DKV_KR_NAME].dtype = ge::DT_FLOAT8_E8M0;
-
-    expectedParamInfo_.erase(SMOOTH_SCALES_CQ_NAME);
-}
-
-void MlaPrologTilingCheck::FillMxfp8FullKVQuantParamInfo()
-{
-    FillMxfp8FullQuantParamInfo();
-
-    expectedParamInfo_.emplace(QUANT_SCALE_CKV_NAME, std::vector<uint32_t>{1, baseShapeInfo_.hckvSize});
-
-    expectedParamInfo_[KV_CACHE_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
-    expectedParamInfo_[QUANT_SCALE_CKV_NAME].dtype = ge::DT_FLOAT;
-    expectedParamInfo_[QUERY_NAME].dtype = ge::DT_FLOAT8_E4M3FN;
 }
 
 void MlaPrologTilingCheck::GenActualParamInfo()
@@ -762,73 +694,30 @@ ge::graphStatus MlaPrologTilingCheck::CheckSingleRequiredParam() const
 
 bool MlaPrologTilingCheck::CheckTokenX() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
-    } else {
-        return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
-    }
+    return IsSingleParamValid(context_.tokenX, TOKEN_X_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {2, 3});
 }
 
 bool MlaPrologTilingCheck::CheckWDq() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_FRACTAL_NZ},
-                                {2, 4});
-    } else {
-        return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
-                                {2, 4});
-    }
+    return IsSingleParamValid(context_.weightDq, WEIGHT_DQ_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
+                            {2, 4});
 }
 
 bool MlaPrologTilingCheck::CheckWUqQr() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_FRACTAL_NZ},
-                                {2, 4});
-    } else {
-        return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
-                                {2, 4});
-    }
+    return IsSingleParamValid(context_.weightUqQr, WEIGHT_UQ_QR_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_FRACTAL_NZ},
+                            {2, 4});
 }
 
 bool MlaPrologTilingCheck::CheckWUk() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
-    } else {
-        return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
-    }
+    return IsSingleParamValid(context_.weightUk, WEIGHT_UK_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3});
 }
 
 bool MlaPrologTilingCheck::CheckWDkvKr() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN},
-                                {ge::FORMAT_FRACTAL_NZ}, {2, 4});
-    } else {
-        return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8},
-                                {ge::FORMAT_FRACTAL_NZ}, {2, 4});
-    }
+    return IsSingleParamValid(context_.weightDkvKr, WEIGHT_DKV_KR_NAME, {ge::DT_BF16, ge::DT_INT8},
+                            {ge::FORMAT_FRACTAL_NZ}, {2, 4});
 }
 
 bool MlaPrologTilingCheck::CheckRmsnormGammaCq() const
@@ -860,15 +749,7 @@ bool MlaPrologTilingCheck::CheckCacheIndex() const
 
 bool MlaPrologTilingCheck::CheckKvCache() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8, ge::DT_FLOAT8_E4M3FN}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
-    } else {
-        return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
-    }
+    return IsSingleParamValid(context_.kvCache, KV_CACHE_NAME, {ge::DT_BF16, ge::DT_INT8}, {ge::FORMAT_ND, ge::FORMAT_NCHW}, {3, 4});
 }
 
 bool MlaPrologTilingCheck::CheckKrCache() const
@@ -926,45 +807,33 @@ bool MlaPrologTilingCheck::CheckCacheModeParamShape() const
 
 ge::graphStatus MlaPrologTilingCheck::CheckCacheMode() const
 {
-    OP_CHECK_IF(context_.platformInfo == nullptr,
-        OP_LOGE(context_.opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
-    auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_.platformInfo);
-    auto socShortName = ascendcPlatform.GetSocVersion();
-    if (socShortName == platform_ascendc::SocVersion::ASCEND910_95) {
-        if ((std::strcmp(context_.cacheMode, CACHE_MODE_PA_BSND) == 0)) {
-            return ge::GRAPH_SUCCESS;
-        }
-        OP_LOGE(context_.opName, "Only support cacheMode {PA_BSND}, actually is %s.", context_.cacheMode);
+    if ((std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) != 0) &&
+        (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) != 0) &&
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BSND, CACHE_MODE_LEN) != 0) &&
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) != 0) &&
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) != 0) &&
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) != 0)) {
+        OP_LOGE(context_.opName,
+            "Only support cacheMode {BSND, TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
+            context_.cacheMode);
         return ge::GRAPH_FAILED;
-    } else {
-        if ((std::strncmp(context_.cacheMode, CACHE_MODE_BSND, CACHE_MODE_LEN) != 0) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_TND, CACHE_MODE_LEN) != 0) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BSND, CACHE_MODE_LEN) != 0) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) != 0) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) != 0) &&
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) != 0)) {
-            OP_LOGE(context_.opName,
-                "Only support cacheMode {BSND, TND, PA_BSND, PA_NZ, PA_BLK_BSND, PA_BLK_NZ}, actually is %s.",
-                context_.cacheMode);
-            return ge::GRAPH_FAILED;
-        }
-        if (!CheckCacheModeParamShape()) {
-            return ge::GRAPH_FAILED;
-        }
-        if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0) {
-            return ge::GRAPH_SUCCESS;
-        }
-        if (*(context_.kvQuantMode) != static_cast<int>(KV_QUANT_MODE::PER_TILE)) {
-            return ge::GRAPH_SUCCESS;
-        }
-        if ((std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) ||
-            (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0))  {
-            OP_LOGE(context_.opName, "Not support both cacheMode {PA_NZ, PA_BLK_BSND, PA_BLK_NZ} and pertile effective.");
-            return ge::GRAPH_FAILED;
-        }        
+    }
+    if (!CheckCacheModeParamShape()) {
+        return ge::GRAPH_FAILED;
+    }
+    if (std::strncmp(context_.opType, V3_OP_NAME, OP_NAME_LEN) != 0) {
         return ge::GRAPH_SUCCESS;
     }
+    if (*(context_.kvQuantMode) != static_cast<int>(KV_QUANT_MODE::PER_TILE)) {
+        return ge::GRAPH_SUCCESS;
+    }
+    if ((std::strncmp(context_.cacheMode, CACHE_MODE_PA_NZ, CACHE_MODE_LEN) == 0) ||
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_BSND, CACHE_MODE_LEN) == 0) ||
+        (std::strncmp(context_.cacheMode, CACHE_MODE_PA_BLK_NZ, CACHE_MODE_LEN) == 0))  {
+        OP_LOGE(context_.opName, "Not support both cacheMode {PA_NZ, PA_BLK_BSND, PA_BLK_NZ} and pertile effective.");
+        return ge::GRAPH_FAILED;
+    }        
+    return ge::GRAPH_SUCCESS;
 }
 
 // ==================================单参数校验==================================

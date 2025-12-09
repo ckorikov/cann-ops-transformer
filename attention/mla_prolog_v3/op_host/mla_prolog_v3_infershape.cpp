@@ -43,8 +43,7 @@ ge::graphStatus SetMlaPrologV3ShapeDim(const MlaPrologProtoShapeParam &shapePara
     auto dequantScaleQNopeShape = context->GetOutputShape(DEQUANT_SCALE_Q_NOPE_INDEX);
     OP_CHECK_NULL_WITH_CONTEXT(context, dequantScaleQNopeShape);
 
-    if ((weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR) ||
-        (weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR)) {
+    if (weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR) {
         dequantScaleQNopeShape->SetDimNum(DIM_NUM_3);                   // (B*S, N, 1) | (T, N, 1)
         dequantScaleQNopeShape->SetDim(DIM_INDEX_0, shapeParam.isBsMerge ? shapeParam.T : shapeParam.B * shapeParam.S);
         dequantScaleQNopeShape->SetDim(DIM_INDEX_1, shapeParam.N);
@@ -115,48 +114,28 @@ ge::graphStatus InferDataTypeMlaPrologV3(gert::InferDataTypeContext *context)
 {
     OP_LOGI(context->GetNodeName(), "Enter MlaPrologV3 infershape impl.");
 
-    auto attrs = context->GetAttrs();
-    OP_CHECK_NULL_WITH_CONTEXT(context, attrs);
+    context->SetOutputDataType(QUERY_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
+    context->SetOutputDataType(QUERY_ROPE_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
+    context->SetOutputDataType(KV_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KV_CACHE_INDEX_V3));
+    context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));
 
-    // Get attribute pointers and dereference once
-    const int *weightQuantModePtr = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
+    // full quant
+    auto attrs = context->GetAttrs();
+    auto weightQuantModePtr = attrs->GetAttrPointer<int>(ATTR_WEIGHT_QUANT_MODE_FLAG_INDEX);
     const int weightQuantMode = (weightQuantModePtr == nullptr) ? 0 : *weightQuantModePtr;
-    const int *kvQuantModePtr = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
+    auto kvQuantModePtr = attrs->GetAttrPointer<int>(ATTR_KV_QUANT_MODE_FLAG_INDEX);
     const int kvQuantMode = (kvQuantModePtr == nullptr) ? 0 : *kvQuantModePtr;
 
-    // mxfp8 quant
-    if (weightQuantMode == WEIGHT_QUANT_MODE_MXFP8_FULL_QUANT) {
-        bool isMxfp8FullQuant = (context->GetRequiredInputDataType(TOKEN_X_INDEX) == ge::DT_FLOAT8_E4M3FN &&
-            context->GetOptionalInputDataType(QUANT_SCALE_CKV_INDEX) != ge::DT_UNDEFINED);
+    bool isQuantQuery = (weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR);
 
-        context->SetOutputDataType(QUERY_INDEX, (isMxfp8FullQuant) ? context->GetRequiredInputDataType(WEIGHT_DKV_KR_INDEX) : context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
-        context->SetOutputDataType(QUERY_ROPE_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
-        context->SetOutputDataType(KV_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KV_CACHE_INDEX_V3));
-        context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));
-        context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
-        context->SetOutputDataType(QUERY_NORM_INDEX, context->GetRequiredInputDataType(WEIGHT_UQ_QR_INDEX));
-        context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
-    } else {
-        context->SetOutputDataType(QUERY_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
-        context->SetOutputDataType(QUERY_ROPE_INDEX, context->GetRequiredInputDataType(WEIGHT_UK_INDEX));
-        context->SetOutputDataType(KV_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KV_CACHE_INDEX_V3));
-        context->SetOutputDataType(KR_CACHE_OUT_INDEX, context->GetRequiredInputDataType(KR_CACHE_INDEX_V3));
+    context->SetOutputDataType(QUERY_INDEX, isQuantQuery ? ge::DT_INT8 : ge::DT_BF16);
+    context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
 
-        // full quant
-        bool isQuantQuery = (weightQuantMode == WEIGHT_QUANT_MODE_FULL_QUANT && kvQuantMode == KV_QUANT_MODE_PER_TENSOR);
+    context->SetOutputDataType(QUERY_NORM_INDEX, (
+        context->GetInputDataType(WEIGHT_UQ_QR_INDEX) == ge::DT_INT8) ? ge::DT_INT8 : ge::DT_BF16);
+    context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
 
-        context->SetOutputDataType(QUERY_INDEX, isQuantQuery ? ge::DT_INT8 : ge::DT_BF16);
-        context->SetOutputDataType(DEQUANT_SCALE_Q_NOPE_INDEX, ge::DT_FLOAT);
-
-        if (weightQuantMode == WEIGHT_QUANT_MODE_NO_QUANT) {
-            context->SetOutputDataType(QUERY_NORM_INDEX, ge::DT_BF16);
-        } else {
-            context->SetOutputDataType(QUERY_NORM_INDEX, ge::DT_INT8);
-        }
-        context->SetOutputDataType(DEQUANT_SCALE_Q_NORM_INDEX, ge::DT_FLOAT);
-    }
-
-  return GRAPH_SUCCESS;
+    return GRAPH_SUCCESS;
 }
 
 IMPL_OP_INFERSHAPE(MlaPrologV3).InferShape(InferShapeMlaPrologV3).InferDataType(InferDataTypeMlaPrologV3);

@@ -145,47 +145,6 @@ template <typename T, bool enTranspose = false>
 __aicore__ inline void LoadDataL0K3DPro(const LocalTensor<T> &l0Tensor, const LocalTensor<T> &l1Tensor,
                                         const uint32_t mSize, const uint32_t kSize, const uint32_t l1StepSize = 0)
 {
-#if __CCE_AICORE__ == 310
-    LocalTensor<T> srcTensor = l1Tensor;
-    constexpr int DIV_UNIT_FOR_FP16 = 16; // for data type:fp16
-    constexpr int ROUND_UP_UNIT = 15; // for round up
-    constexpr int SHIFTS_UNIT = 4; // for move left or right
-    if constexpr (enTranspose) { // B
-        LoadData2DParamsV2 loadData2DV2;
-        loadData2DV2.mStartPosition = 0;
-        loadData2DV2.kStartPosition = 0;
-        loadData2DV2.mStep = ((mSize + ROUND_UP_UNIT) >> SHIFTS_UNIT << SHIFTS_UNIT) / DIV_UNIT_FOR_FP16;
-        loadData2DV2.kStep = ((kSize + ROUND_UP_UNIT) >> SHIFTS_UNIT << SHIFTS_UNIT) / DIV_UNIT_FOR_FP16;
-        loadData2DV2.srcStride = ((l1StepSize + ROUND_UP_UNIT) >> SHIFTS_UNIT << SHIFTS_UNIT) / DIV_UNIT_FOR_FP16;
-        loadData2DV2.dstStride = ((kSize + ROUND_UP_UNIT) >> SHIFTS_UNIT << SHIFTS_UNIT) / DIV_UNIT_FOR_FP16;
-        loadData2DV2.ifTranspose = true;
-        LoadData<T>(l0Tensor, srcTensor, loadData2DV2);
-    } else { // A
-        LoadData3DParamsV2<T> loadData3DParamsV2;
-        loadData3DParamsV2.l1W = 1;
-        loadData3DParamsV2.l1H = mSize;
-        loadData3DParamsV2.channelSize = kSize;
-        loadData3DParamsV2.kExtension = kSize;
-        loadData3DParamsV2.mExtension = mSize;
-        loadData3DParamsV2.kStartPt = 0;
-        loadData3DParamsV2.mStartPt = 0;
-        loadData3DParamsV2.strideW = 1;
-        loadData3DParamsV2.strideH = 1;
-        loadData3DParamsV2.filterW = 1;
-        loadData3DParamsV2.filterH = 1;
-        loadData3DParamsV2.dilationFilterW = 1;
-        loadData3DParamsV2.dilationFilterH = 1;
-        loadData3DParamsV2.enTranspose = false;
-        loadData3DParamsV2.enSmallK = false;
-        loadData3DParamsV2.padValue = 0;
-        loadData3DParamsV2.filterSizeW = 0;
-        loadData3DParamsV2.filterSizeH = 0;
-        loadData3DParamsV2.fMatrixCtrl = false;
-        uint16_t dstStride = DivCeil(mSize, DIV_UNIT_FOR_FP16);
-        SetLoadDataRepeat({0,1,0,dstStride});
-        LoadData<T>(l0Tensor, srcTensor, loadData3DParamsV2);
-    }
-#else
     constexpr uint32_t FMATRIX_HEIGHT_UNIT = 16;
     constexpr int EXTCONFIG_SHIFT_0 = 48;
     constexpr int EXTCONFIG_SHIFT_1 = 32;
@@ -208,7 +167,6 @@ __aicore__ inline void LoadDataL0K3DPro(const LocalTensor<T> &l0Tensor, const Lo
                              ((uint64_t)mSize << EXTCONFIG_SHIFT_MSIZE) | (uint64_t)kSize;
 
     LoadData<T>(l0Tensor, srcTensor, loadData3DV2);
-#endif
 }
 
 template <typename T>
