@@ -481,8 +481,12 @@ ge::graphStatus MoeGatingTopKTilingBase::DoLibApiTiling()
 
 ge::graphStatus MoeGatingTopKTilingBase::GetWorkspaceSize()
 {
+    auto platformInfo = context_->GetPlatformInfo();
+    OP_CHECK_IF(platformInfo == nullptr, OP_LOGE(context_, "fail to get platform info"), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
+    auto coreNum = ascendcPlatform.GetCoreNumAiv();
     // 计算workspace大小
-    workspaceSize_ = DEFAULT_WORKSPACE_SIZE;
+    workspaceSize_ = DEFAULT_WORKSPACE_SIZE + coreNum * 32;
     return ge::GRAPH_SUCCESS;
 }
 

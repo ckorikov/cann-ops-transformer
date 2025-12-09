@@ -19,8 +19,8 @@
 namespace MoeGatingTopK {
 using namespace AscendC;
 
+const static int64_t DEFAULT_WORKSPACE_SIZE = 16777216;
 constexpr uint32_t FakerFp32RealFp16Multi = 2;
-constexpr uint32_t FakerFp32RealFp16Up = FakerFp32RealFp16Multi - 1;
 
 template <typename T>
 __aicore__ inline void GatherV100(const LocalTensor<T>& dst, const LocalTensor<T>& src,
@@ -58,6 +58,7 @@ public:
     __aicore__ inline void Process();
 
 private:
+    __aicore__ inline void ClearGMForAtomicAdd();
     __aicore__ inline void CopyInBias();
     __aicore__ inline void CopyInX(int64_t progress);
     __aicore__ inline void ComputeX();
@@ -91,6 +92,7 @@ private:
     TQue<QuePosition::VECOUT, 1> expertIdxOutQueue_;
     TQue<QuePosition::VECOUT, 1> outOutQueue_;
 
+    TBuf<TPosition::VECCALC> syncTmpSpaceBuffer_;
     LocalTensor<half> indexTensor_;
     LocalTensor<half> gropedSortedScore_;
     LocalTensor<half> top2ScoreSumPerGroup_;
@@ -99,12 +101,14 @@ private:
     LocalTensor<half> finalSortTemp_;
     LocalTensor<uint8_t> sharedTmpBuffer_;
 
+    GlobalTensor<int32_t> syncTmpSpaceGm_;
     GlobalTensor<T> yGm_;
     GlobalTensor<float> yGmFp32_;
     GlobalTensor<int32_t> expertIdxGm_;
     GlobalTensor<T> outGm_;
 
     int64_t blockIdx_;
+    int64_t rowCount_;
     int64_t perCoreRowCount_;
     int64_t curCoreRowCount_;
     int64_t expertCount_;
@@ -127,9 +131,25 @@ private:
     uint32_t pRsortBufferPerRepeat_;
     uint32_t pRsoetExBuffer_;
     uint32_t regionProposalSize_ = 16;
+    uint32_t sync_len_;
 
     const MoeGatingTopKTilingData *tilingData_;
 };
+
+template <typename T>
+__aicore__ inline void MoeGatingTopKEKFullload<T>::ClearGMForAtomicAdd() {
+
+    // support curCoreRowCount_ < 16384 when k_ == 8
+    int64_t dataBytes = (curCoreRowCount_ * k_ * sizeof(half) + 31) / 32 * 32;
+    LocalTensor<half> tempTensor = sharedTmpBuffer_.template ReinterpretCast<half>();
+    Duplicate(tempTensor, (half)0, dataBytes / sizeof(half));
+    
+    DataCopy(yGm_, tempTensor, {static_cast<uint16_t>(1),
+                                static_cast<uint16_t>(dataBytes / 32),
+                                static_cast<uint16_t>(0),
+                                static_cast<uint16_t>(1)});
+    PipeBarrier<PIPE_ALL>();
+}
 
 template <typename T>
 __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyInBias()
@@ -428,9 +448,11 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::CopyOut(int64_t row)
     PipeBarrier<PIPE_MTE2>();
 
     LocalTensor<float> yOutTensorFp32 = yOutTensor.template ReinterpretCast<float>();
+    SetAtomicAdd<float>();
     DataCopy(yGmFp32_[row * k_ / FakerFp32RealFp16Multi],
                       yOutTensorFp32,
                       ((k_ / FakerFp32RealFp16Multi) + 7) / 8 * 8);
+    SetAtomicNone();
     DataCopy(expertIdxGm_[row * k_], expertIdxTensor, (k_ + 7) / 8 * 8);
     PipeBarrier<PIPE_MTE2>();
     xSigmoidQueue_.FreeTensor(xSigmoidTensor);
@@ -443,9 +465,11 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
                                                         GM_ADDR out, GM_ADDR workspace,
                                                         const MoeGatingTopKTilingData *tilingData, TPipe *tPipe)
 {
+    sync_len_ = 30 * 32 / sizeof(int32_t);
     tilingData_ = tilingData;
     pipe_ = tPipe;
     blockIdx_ = GetBlockIdx();
+    rowCount_ = tilingData_->rowCount;
     perCoreRowCount_ = tilingData_->perCoreRowCount;
     if (blockIdx_ == GetBlockNum() - 1) {
         curCoreRowCount_ = tilingData_->lastCoreRowCount;
@@ -468,20 +492,16 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
     // init output gm buf
     // bias
     biasGm_.SetGlobalBuffer((__gm__ T *)bias, expertCount_);
-    pipe_->InitBuffer(biasInBuffer_, expertCountAlign_ * sizeof(float));
-
-    // x
     xGm_.SetGlobalBuffer((__gm__ T *)x + perCoreRowCount_ * expertCount_ * blockIdx_, expertCount_);
-
     yGm_.SetGlobalBuffer((__gm__ T *)y + perCoreRowCount_ * k_ * blockIdx_, k_);
-    // 当选取的专家个数k_是奇数时，这里会出问题，所以当前仅支持取k_为偶数
-    // TODO 待确认这个偏移对不对
+
     yGmFp32_.SetGlobalBuffer((__gm__ float *)y + (perCoreRowCount_ * k_ * blockIdx_) / FakerFp32RealFp16Multi, k_);
     expertIdxGm_.SetGlobalBuffer((__gm__ int32_t *)expertIdx + perCoreRowCount_ * k_ * blockIdx_, k_);
     outGm_.SetGlobalBuffer((__gm__ T *)out + perCoreRowCount_ * expertCount_ * blockIdx_, expertCount_);
 
+    pipe_->InitBuffer(syncTmpSpaceBuffer_, sync_len_ * sizeof(int32_t));
+    pipe_->InitBuffer(biasInBuffer_, expertCountAlign_ * sizeof(float));
     pipe_->InitBuffer(xInQueue_, 2, expertCountAlign_ * sizeof(T));
-
     pipe_->InitBuffer(xSigmoidQueue_, 1, expertCountAlign_ * (sizeof(float) + sizeof(T)));
     pipe_->InitBuffer(xSigmoidAddBiasQueue_, 1, expertCountAlign_ * sizeof(float));
 
@@ -491,13 +511,12 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
 
     // 组排序结果
     pipe_->InitBuffer(sortedInGroupQueue_, 1, pRsortBufferToatalSize_);
-
     pipe_->InitBuffer(yOutQueue_, 2, kAlign_ * sizeof(T));
     pipe_->InitBuffer(expertIdxOutQueue_, 2, AlignBytes(k_, sizeof(int32_t)));
     pipe_->InitBuffer(outOutQueue_, 2, AlignBytes(expertCount_, sizeof(float)));
-
     pipe_->InitBuffer(sortedGroupQueue_, 1, regionProposalSize_ * 4);
     pipe_->InitBuffer(calcTmpBuffer_, 128 * 1024);
+
     indexTensor_ = calcTmpBuffer_.Get<half>();
     // gropedSortedScore_ 这个可以并入sharedTmpBuffer
     gropedSortedScore_ = indexTensor_[expertCount_];
@@ -507,12 +526,26 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Init(GM_ADDR x, GM_ADDR bias,
     reduceSumBuffer_ = sortOutGroupBuffer_[ONE_REPEAT_SORT_NUM * regionProposalSize_ / sizeof(half)];
     finalSortTemp_ = reduceSumBuffer_[(k_ + 127) / 128 * 128 * 2];
     sharedTmpBuffer_ = finalSortTemp_[4 * perGroupExpertCount_ * 8 * 2].template ReinterpretCast<uint8_t>();
+
+    // sync
+    syncTmpSpaceGm_.SetGlobalBuffer((__gm__ int32_t *)workspace + 32 * 1024, 30 * 32 / sizeof(int32_t));
+
+    LocalTensor<int32_t> syncLocal = syncTmpSpaceBuffer_.Get<int32_t>();
+    Duplicate<int32_t>(syncLocal, (int32_t)0, sync_len_);
+    PipeBarrier<PIPE_ALL>();
+    DataCopy(syncTmpSpaceGm_, syncLocal, sync_len_);
+    PipeBarrier<PIPE_ALL>();
 }
 
 template <typename T>
 __aicore__ inline void MoeGatingTopKEKFullload<T>::Process()
 {
-    SetAtomicAdd<float>();
+
+    ClearGMForAtomicAdd();
+
+    LocalTensor<int32_t> syncLocal = syncTmpSpaceBuffer_.Get<int32_t>();
+    AscendC::SyncAll(syncTmpSpaceGm_, syncLocal, GetBlockNum());
+
     CopyInBias();
     for (int64_t row = 0; row < curCoreRowCount_; row++) {
         PipeBarrier<PIPE_V>();
@@ -530,7 +563,7 @@ __aicore__ inline void MoeGatingTopKEKFullload<T>::Process()
         SelectTopKExpertScore();
         CopyOut(row);
     }
-    SetAtomicNone();
+
 }
 } // namespace MoeGatingTopK
 #endif // MOE_GATING_TOP_K_E_K_FULLLOAD_H
