@@ -38,10 +38,10 @@ if __name__ == '__main__':
     
     device = torch.device("npu:0")
 
-    tensor_at = torch.randn([H], dtype=torch.float32, device=device) * 0.5
-    tensor_dt = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.5
-    tensor_dtbias = torch.randn([H], dtype=torch.float16, device=device) * 0.5
-    tensor_dtmask = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.5
+    tensor_at = torch.randn([H], dtype=torch.float32, device=device) * 0.2
+    tensor_dt = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.2
+    tensor_dtbias = torch.randn([H], dtype=torch.float16, device=device) * 0.2
+    tensor_dtmask = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.2
     
     inputs = [tensor_at, tensor_dt, tensor_dtbias, tensor_dtmask]
     dtout, dacs, dacs_chunk = profiling(mamba2_chunk_cumsum_forward, inputs, 'TORCH')
