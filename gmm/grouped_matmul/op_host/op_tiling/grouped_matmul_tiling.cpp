@@ -1233,7 +1233,8 @@ ge::graphStatus GMMTiling::GMMSetMMTiling(const gert::TilingContext* context, co
   uint32_t mmDepthA1 = mmStepKa * DOUBLE_BUFFER_STEPKA_STEPKB * stepM;
   uint32_t mmDepthB1 = mmStepKb * DOUBLE_BUFFER_STEPKA_STEPKB * stepN;
   tilingData.mmTilingData.set_shareMode(0);
-  if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND310P) {
+  if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND310P ||
+      compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910) {
     tilingData.mmTilingData.set_shareUbSize(0);
     tilingData.mmTilingData.set_transLength(131072);  // 131072: 128KB size
   }

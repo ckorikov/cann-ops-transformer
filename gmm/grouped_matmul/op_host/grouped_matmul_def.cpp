@@ -224,31 +224,31 @@ public:
         OpAICoreConfig config910;
         config910.Input("x")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_INT8})
+            .DataType({ge::DT_INT8, ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.Input("weight")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_INT8})
-            .Format({ge::FORMAT_FRACTAL_NZ});
+            .DataType({ge::DT_INT8, ge::DT_FLOAT16})
+            .FormatList({ge::FORMAT_FRACTAL_NZ});
         config910.Input("bias")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_INT32})
+            .DataType({ge::DT_INT32, ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.Input("scale")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_FLOAT})
+            .DataType({ge::DT_FLOAT, ge::DT_UINT64})
             .FormatList({ge::FORMAT_ND});
         config910.Input("offset")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_FLOAT})
+            .DataTypeList({ge::DT_FLOAT})
             .FormatList({ge::FORMAT_ND});
         config910.Input("antiquant_scale")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_FLOAT16})
+            .DataTypeList({ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.Input("antiquant_offset")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_FLOAT16})
+            .DataTypeList({ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.Input("group_list")
             .ParamType(OPTIONAL)
@@ -256,11 +256,11 @@ public:
             .FormatList({ge::FORMAT_ND});
         config910.Input("per_token_scale")
             .ParamType(OPTIONAL)
-            .DataType({ge::DT_FLOAT})
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.Output("y")
             .ParamType(DYNAMIC)
-            .DataType({ge::DT_FLOAT16})
+            .DataTypeList({ge::DT_FLOAT16})
             .FormatList({ge::FORMAT_ND});
         config910.DynamicCompileStaticFlag(true)
             .DynamicFormatFlag(true)

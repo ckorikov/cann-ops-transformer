@@ -467,11 +467,15 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
     GM_ADDR user1 = GetUserWorkspace(workspace);
 
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
-
+#if defined(GMM_QUANT_FLOAT16)
     if constexpr (D_T_A == GMM_TPL_INT8 && D_T_B == GMM_TPL_INT8 && TRANS_B == 1) {
         GMM_IMPL_A100(GMMQuantCompute, GMMProcess, false, true, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
     }
-
+#elif defined(GMM_FLOAT)
+    if constexpr (D_T_A == GMM_TPL_FLOAT16 && D_T_B == GMM_TPL_FLOAT16 && TRANS_B == 1) {
+        GMM_CUBE_IMPL_A100(false, true, false, NZ_CFG_MDL);
+    }
+#endif
 #else
 
     AscendCUtils::SetOverflow(1);
