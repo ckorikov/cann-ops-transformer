@@ -27,13 +27,46 @@ using std::pair;
 using namespace ge;
 using namespace AscendC;
 namespace optiling {
+ge::graphStatus FiaTilingCheck::CheckFeatureHeadDim() const
+{
+    if (opParamInfo_.queryRope.tensor != nullptr && opParamInfo_.keyRope.tensor != nullptr) {
+        if (qkHeadDim_ == vHeadDim_) { // rope spilt
+            OP_CHECK_IF((qkHeadDim_ != 128U || vHeadDim_ != 128U) && (qkHeadDim_ != 512U || vHeadDim_ != 512U),
+                OP_LOGE(opName_,
+                    "In %s situation, qkHeadDim = vHeadDim and rope exits, headDim only support 512 and 128, but got %u",
+                    QuantModeToSerialString(quantMode_).c_str(), vHeadDim_),
+                return ge::GRAPH_FAILED);
+
+            OP_CHECK_IF(ropeHeadDim_ != 64U,
+                OP_LOGE(opName_,
+                    "In %s situation, qkHeadDim = vHeadDim and rope exits, rope's headDim only suppory 64, but got %u",
+                    QuantModeToSerialString(quantMode_).c_str(), ropeHeadDim_),
+                return ge::GRAPH_FAILED);
+        } else {
+            OP_LOGE(opName_, "In %s situation, rope exsists, qkHeadDim(%u) should be equal to vHeadDim(%u)",
+                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_);
+            return ge::GRAPH_FAILED;
+        }
+    } else {
+        if (qkHeadDim_ == vHeadDim_) { // no rope
+            OP_CHECK_IF((qkHeadDim_ != 128U || vHeadDim_ != 128U) && (qkHeadDim_ != 64U || vHeadDim_ != 64U),
+                OP_LOGE(opName_,
+                    "In %s situation, qkHeadDim = vHeadDim and rope not exits, headDim only support 128 and 64, but got %u",
+                    QuantModeToSerialString(quantMode_).c_str(), vHeadDim_),
+                return ge::GRAPH_FAILED);
+        } else { // rope combine
+            OP_CHECK_IF(qkHeadDim_ != 192U || vHeadDim_ != 128U,
+                OP_LOGE(opName_,
+                    "In %s situation, qkHeadDim != vHeadDim and rope not exits, qkHeadDim(%u) only support 192, vHeadDim(%u) only support 128.",
+                    QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_),
+                return ge::GRAPH_FAILED);
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
 {
-    OP_CHECK_IF(qkHeadDim_ != 512U && qkHeadDim_ != 128U,
-        OP_LOGE(opName_, "In %s situation, rope exsists, the K/V's head dim only support 128 and 512, but got %u",
-            QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_),
-        return ge::GRAPH_FAILED);
-
     if (vHeadDim_ == 512U) {
         OP_CHECK_IF(opParamInfo_.keyRope.tensor->GetStorageShape().GetShapeSize() == 0,
             OP_LOGE(opName_, "In %s situation, %s tensor should not be empty",
@@ -54,15 +87,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantShape() const
         OP_CHECK_IF(std::find(gSizeSupportList.begin(), gSizeSupportList.end(), gSize_) == gSizeSupportList.end(),
             OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, group num should be in 1, 2, 4, 8, 16, 32, 64, 128, but got %u",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, gSize_), return ge::GRAPH_FAILED);
-
-        OP_CHECK_IF(qkHeadDim_ != vHeadDim_,
-            OP_LOGE(opName_, "In %s situation, rope exsists, the Q/K's head dim(%u) should be equal to the value's head dim(%u)",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, vHeadDim_), return ge::GRAPH_FAILED);
-
-        OP_CHECK_IF(ropeHeadDim_ != 64,
-            OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, the rope's head dim should be 64, but got %u",
-                QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, ropeHeadDim_), return ge::GRAPH_FAILED);
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoQuantShape();
     }
 
@@ -80,7 +105,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoQuantLayout() const
             OP_LOGE(opName_, "In %s situation, rope exsists and Q/K head dim = %u, layout only supports BSH, BSND, BNSD, TND, BSH_NBSD, BSND_NBSD, BNSD_NBSD, TND_NTD, but got %s",
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, layout.c_str()),
             return ge::GRAPH_FAILED);
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoQuantLayout();
     }
 
@@ -181,7 +206,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantMask() const
                         QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_, QUERY_NAME.c_str(), ATTEN_MASK_NAME.c_str()),
                 return ge::GRAPH_FAILED);
         }
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoquantMask();
     }
     return ge::GRAPH_SUCCESS;
@@ -244,7 +269,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquantUnsupported() const
                 QuantModeToSerialString(quantMode_).c_str(), qkHeadDim_);
             return ge::GRAPH_FAILED;
         }
-    } else if (vHeadDim_ == 128U) {
+    } else {
         return CheckFeatureGqaNoquantUnsupported();
     }
 
@@ -257,7 +282,8 @@ ge::graphStatus FiaTilingCheck::CheckFeatureMlaNoquant()
         OP_LOGE(opName_, "In %s %s situation, Ascend310P is not supported",
             RopeModeToSerialString(ropeMode_).c_str(), QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
-    if (ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantUnsupported() ||
+    if (ge::GRAPH_SUCCESS != CheckFeatureHeadDim() ||
+        ge::GRAPH_SUCCESS != CheckFeatureMlaNoquantUnsupported() ||
         ge::GRAPH_SUCCESS != CheckFeatureNoquantBlockSize() ||
         ge::GRAPH_SUCCESS != CheckFeatureInOutDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens() ||
@@ -373,48 +399,48 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantLayout() const
     };
     std::string layout = opParamInfo_.layOut;
     OP_CHECK_IF(std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end(),
-        OP_LOGE(opName_, "In %s situation, layout only supports BSH, BSND, BNSD, TND, NTD, BSH_BNSD, BSND_BNSD, BNSD_BSND and NTD_TND, but got %s",
-            QuantModeToSerialString(quantMode_).c_str(), layout.c_str()),
+        OP_LOGE(opName_, "In %s %s situation, layout only supports BSH, BSND, BNSD, TND, NTD, BSH_BNSD, BSND_BNSD, BNSD_BSND and NTD_TND, but got %s",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), layout.c_str()),
         return ge::GRAPH_FAILED);
 
     if (kvStorageMode_ == KvStorageMode::BATCH_CONTINUOUS) {
         OP_CHECK_IF(kvLayout_ != FiaLayout::BSH && kvLayout_ != FiaLayout::BSND && kvLayout_ != FiaLayout::BNSD &&
             kvLayout_ != FiaLayout::TND && kvLayout_ != FiaLayout::NTD,
-            OP_LOGE(opName_, "In %s situation, K/V's layout only support BSH, BSND, BNSD, TND and NTD in batch continuous scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, key/value's layout only support BSH, BSND, BNSD, TND and NTD in batch continuous scene, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ != qLayout_,
-            OP_LOGE(opName_, "In %s situation, K/V's layout and query's layout should be same in batch continuous scene.",
-                QuantModeToSerialString(quantMode_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, key/value's layout and query's layout should be same in batch continuous scene.",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str()),
             return ge::GRAPH_FAILED);
     } else if (kvStorageMode_ == KvStorageMode::TENSOR_LIST) {
         OP_CHECK_IF(kvLayout_ != FiaLayout::BSH && kvLayout_ != FiaLayout::BSND && kvLayout_ != FiaLayout::BNSD,
-            OP_LOGE(opName_, "In %s situation, K/V's layout only support BSH, BSND and BNSD in tensor list scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, key/value's layout only support BSH, BSND and BNSD in tensor list scene, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), LayoutToSerialString(kvLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ != qLayout_,
-            OP_LOGE(opName_, "In %s situation, K/V's layout and query's layout should be same in tensor list scene.",
-            QuantModeToSerialString(quantMode_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, key/value's layout and query's layout should be same in tensor list scene.",
+            QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str()),
             return ge::GRAPH_FAILED);
     } else if (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION) {
         OP_CHECK_IF(kvLayout_ == FiaLayout::BnBsH && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnBsH, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, the key/value's layout is BnBsH, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ == FiaLayout::BnNBsD && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, the key/value's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
 
         OP_CHECK_IF(kvLayout_ == FiaLayout::NZ && (qLayout_ != FiaLayout::BSH && qLayout_ != FiaLayout::BSND &&
                         qLayout_ != FiaLayout::BNSD && qLayout_ != FiaLayout::TND && qLayout_ != FiaLayout::NTD),
-            OP_LOGE(opName_, "In %s situation, the K/V's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
-                QuantModeToSerialString(quantMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
+            OP_LOGE(opName_, "In %s %s situation, the key/value's layout is BnNBsD, %s layout must be BSH, BSND, BNSD TND and TND in page attention scene, but got %s",
+                QuantModeToSerialString(quantMode_).c_str(), SituationToSerialString(ropeMode_).c_str(), QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str()),
             return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
@@ -451,7 +477,8 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant()
         OP_LOGE(opName_, "In %s %s situation, Ascend310P is not supported",
             RopeModeToSerialString(ropeMode_).c_str(), QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
-    if (ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantUnsupported() ||
+    if (ge::GRAPH_SUCCESS != CheckFeatureHeadDim() ||
+        ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantUnsupported() ||
         ge::GRAPH_SUCCESS != CheckFeatureNoquantBlockSize() ||
         ge::GRAPH_SUCCESS != CheckFeatureInOutDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureActualSeqLens() ||
@@ -495,7 +522,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensExistence() const
                 ACTUAL_SEQ_Q_LEN_NAME.c_str()),
             return ge::GRAPH_FAILED);
         OP_CHECK_IF(opParamInfo_.actualSeqLengths.tensor == nullptr,
-            OP_LOGE(opName_, "when %s's layout is %s, %s should not be null.", QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+            OP_LOGE(opName_, "when %s's layout is %s, %s should not be null.", KEY_NAME.c_str(), LayoutToSerialString(kvLayout_).c_str(),
                 ACTUAL_SEQ_KV_LEN_NAME.c_str()),
             return ge::GRAPH_FAILED);
 
@@ -505,7 +532,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensExistence() const
                     ACTUAL_SEQ_Q_LEN_NAME.c_str()),
                 return ge::GRAPH_FAILED);
             OP_CHECK_IF(opParamInfo_.actualSeqLengths.tensor->GetData<int64_t>() == nullptr,
-                OP_LOGE(opName_, "when %s's layout is %s, %s data should not be null.", QUERY_NAME.c_str(), LayoutToSerialString(qLayout_).c_str(),
+                OP_LOGE(opName_, "when %s's layout is %s, %s data should not be null.", KEY_NAME.c_str(), LayoutToSerialString(kvLayout_).c_str(),
                     ACTUAL_SEQ_KV_LEN_NAME.c_str()),
                 return ge::GRAPH_FAILED);
         }
@@ -626,14 +653,14 @@ ge::graphStatus FiaTilingCheck::CheckFeatureActualSeqLensKvData()
                 OP_LOGE(opName_, "when kv's layout is %s, %s[%u] should not be a negative number, but got %ld.",
                     LayoutToSerialString(kvLayout_).c_str(),
                     ACTUAL_SEQ_KV_LEN_NAME.c_str(), i, actualSeq[i]),
-                    return ge::GRAPH_FAILED);
+                return ge::GRAPH_FAILED);
 
             OP_CHECK_IF(i > 0U && (actualSeq[i] < actualSeq[i - 1U]),
                 OP_LOGE(opName_, "when kv's layout is %s, %s[%u](%ld) should not be less than %s[%u](%ld).",
                     LayoutToSerialString(kvLayout_).c_str(),
                     ACTUAL_SEQ_KV_LEN_NAME.c_str(), i, actualSeq[i],
                     ACTUAL_SEQ_KV_LEN_NAME.c_str(), (i - 1U), actualSeq[i - 1U]),
-                    return ge::GRAPH_FAILED);
+                return ge::GRAPH_FAILED);
 
             tmpS2 = (i == 0U) ? actualSeq[0] : (actualSeq[i] - actualSeq[i - 1U]);
         } else {

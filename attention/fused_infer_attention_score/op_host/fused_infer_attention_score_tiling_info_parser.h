@@ -72,7 +72,7 @@ public:
     ge::graphStatus GetN1Size();
     ge::graphStatus GetN2Size();
     ge::graphStatus GetGSize();
-    ge::graphStatus GetSparseMode();
+    ge::graphStatus GetUpdateInfo();
     ge::graphStatus GetAttenMaskInfo();
     ge::graphStatus GetPaddingSizeFlag();
     ge::graphStatus GetActualSeqInfo();
