@@ -26,7 +26,7 @@ enum NnopbaseHcclServerType:uint32_t {
 };
 
 
-extern aclnnStatus aclnnInnerElasticReceivableTestGetWorkspaceSize(const aclTensor* dstRank, const char* group, int64_t worldSize, int64_t rank_num,
+extern aclnnStatus aclnnInnerElasticReceivableTestGetWorkspaceSize(const aclTensor* dstRank, const char* group, int64_t worldSize, int64_t rankNum,
                                                    uint64_t* workspaceSize, aclOpExecutor** executor);
 extern aclnnStatus aclnnInnerElasticReceivableTest(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream);
 extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
@@ -58,13 +58,13 @@ static aclnnStatus CheckParams(const aclTensor* dstRank, const char* group)
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnElasticReceivableTestGetWorkspaceSize(aclTensor* dstRank, const char* group, int64_t worldSize, int64_t rank_num,
+aclnnStatus aclnnElasticReceivableTestGetWorkspaceSize(const aclTensor* dstRank, const char* group, int64_t worldSize, int64_t rankNum,
                                                    uint64_t* workspaceSize, aclOpExecutor** executor)
 
 {
     auto retParam = CheckParams(dstRank, group);
     CHECK_RET(retParam == ACLNN_SUCCESS, retParam);
-    return aclnnInnerElasticReceivableTestGetWorkspaceSize(dstRank, group, worldSize, rank_num, workspaceSize, executor);
+    return aclnnInnerElasticReceivableTestGetWorkspaceSize(dstRank, group, worldSize, rankNum, workspaceSize, executor);
 }
 
 aclnnStatus aclnnElasticReceivableTest(void *workspace, uint64_t workspaceSize, aclOpExecutor *executor, aclrtStream stream)

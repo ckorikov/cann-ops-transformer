@@ -29,7 +29,6 @@
 #include "tiling/mc2_tiling_utils.h"
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "mc2_log.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
 #include "platform/platform_infos_def.h"
@@ -208,16 +207,6 @@ ge::graphStatus ElasticReceivableTestTilingFunc(gert::TilingContext* context)
     return ge::GRAPH_SUCCESS;
 }
 
-struct ElasticReceivableTestCompileInfo {};
-ge::graphStatus TilingParseForElasticReceivableTest(gert::TilingParseContext *context) { 
-    const gert::TilingParseContext* const_context = context;
-    //避免未使用变量警告
-    (void)const_context;
-    (void)context;
-	return ge::GRAPH_SUCCESS; 
-}
-
 IMPL_OP_OPTILING(ElasticReceivableTest)
-    .Tiling(ElasticReceivableTestTilingFunc)
-    .TilingParse<ElasticReceivableTestCompileInfo>(TilingParseForElasticReceivableTest);
-}  // end of namespace optiling
+    .Tiling(ElasticReceivableTestTilingFunc);
+} // end of namespace optiling

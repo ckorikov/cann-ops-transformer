@@ -45,7 +45,7 @@ static bool CheckNullStatus(const aclTensor* y, const char* group)
 }
 
 // 入参校验
-static aclnnStatus CheckParams(aclTensor* y, const char* group)
+static aclnnStatus CheckParams(const aclTensor* y, const char* group)
 {
     CHECK_RET(CheckNullStatus(y, group), ACLNN_ERR_PARAM_NULLPTR);
     auto groupStrnLen = strnlen(group, HCCL_GROUP_NAME_MAX);
@@ -58,7 +58,7 @@ static aclnnStatus CheckParams(aclTensor* y, const char* group)
     return ACLNN_SUCCESS;
 }
 
-aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char* group, int64_t worldSize, aclTensor* y,
+aclnnStatus aclnnElasticReceivableInfoCollectGetWorkspaceSize(const char* group, int64_t worldSize, const aclTensor* y,
                                                    uint64_t* workspaceSize, aclOpExecutor** executor)
 {
     auto retParam = CheckParams(y, group);

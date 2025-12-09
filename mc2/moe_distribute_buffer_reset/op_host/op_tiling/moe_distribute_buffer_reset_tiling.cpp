@@ -23,7 +23,6 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
-#include "mc2_log.h"
 #include "mc2_hcom_topo_info.h"
 #include "graph/utils/type_utils.h"
 #include "register/op_def_registry.h"
@@ -182,16 +181,6 @@ ge::graphStatus MoeDistributeBufferResetTilingFunc(gert::TilingContext* context)
     return ge::GRAPH_SUCCESS;
 }
 
-struct MoeDistributeBufferResetCompileInfo {};
-ge::graphStatus TilingParseForMoeDistributeBufferReset(gert::TilingParseContext *context) { 
-    const gert::TilingParseContext* const_context = context;
-    //避免未使用变量警告
-    (void)const_context;
-    (void)context;
-	return ge::GRAPH_SUCCESS; 
-}
-
 IMPL_OP_OPTILING(MoeDistributeBufferReset)
-    .Tiling(MoeDistributeBufferResetTilingFunc)
-    .TilingParse<MoeDistributeBufferResetCompileInfo>(TilingParseForMoeDistributeBufferReset);
-}  // end of namespace optiling
+    .Tiling(MoeDistributeBufferResetTilingFunc);
+} // end of namespace optiling
