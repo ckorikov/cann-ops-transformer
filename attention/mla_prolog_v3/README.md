@@ -3,7 +3,6 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      ×     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
 |<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
@@ -124,7 +123,7 @@
 -   shape约束
     -   若token_x的维度采用BS合轴，即(T, He)
         - rope_sin和rope_cos的shape为(T, Dr)
-        - cache_index的shape为(T,)
+        - cache_index的shape为(T)
         - dequant_scale_x的shape为(T, 1)
         - query的shape为(T, N, Hckv)
         - query_rope的shape为(T, N, Dr)
