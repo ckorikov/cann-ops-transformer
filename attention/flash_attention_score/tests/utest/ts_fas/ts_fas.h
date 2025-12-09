@@ -25,7 +25,6 @@ class Ts_Fas : public Ts<FasCase> {};
 class Ts_Fas_Ascend910B1 : public Ts_Ascend910B1<FasCase> {};
 class Ts_Fas_Ascend910B2 : public Ts_Ascend910B2<FasCase> {};
 class Ts_Fas_Ascend910B3 : public Ts_Ascend910B3<FasCase> {};
-class Ts_Fas_Ascend910_9591 : public Ts_Ascend910_9591<FasCase> {};
 
 class Ts_Fas_WithParam : public Ts_WithParam<FasCase> {};
 class Ts_Fas_WithParam_Ascend910B1 : public Ts_WithParam_Ascend910B1<FasCase> {};

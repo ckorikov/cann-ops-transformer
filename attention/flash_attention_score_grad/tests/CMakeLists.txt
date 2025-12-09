@@ -38,10 +38,6 @@ file(GLOB _Src3 "${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_
 file(GLOB _Src4 "${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling*.cpp")
 list(APPEND _FA_OpTilingSourcesExt ${_Src1} ${_Src2} ${_Src3} ${_Src4})
 
-set(_FA_OpTilingPrivateIncludesExt
-        ${OPS_TRANSFORMER_DIR}/attention/common/op_kernel/arch35
-)
-
 file(GLOB _FAG_OpKernelTilingDataDefH_def "${OPS_TRANSFORMER_DIR}/attention/flash_attention_score_grad/op_host/flash_attention_score_grad_tiling*_def.h")
 set(_FA_OpKernelTilingDataDefH
         # 公共
