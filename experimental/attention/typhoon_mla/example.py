@@ -1,0 +1,64 @@
+import torch 
+import torch_npu
+import numpy as np
+
+from src.typhoon_mla import typhoon_mla_prepare, typhoon_mla_run
+
+if __name__=="__main__":
+    n_heads = 128 # number of attention heads
+    qk_nope_head_dim = 128 # noPE head dim
+    qk_rope_head_dim = 64 # RoPE head dim
+    kv_lora_rank = 512 # KV lora rank
+    v_head_dim = 128 # V head dim
+    softmax_scale = 1/np.sqrt(128) # Softmax scale
+
+    device = torch.device("npu:0") 
+    dtype = torch.bfloat16
+
+    block_size = 128 # Block size for paged KV-cache
+
+    bsz = 4 # Batch size
+
+    shared_seqlen = 4096 # Length of shared sequence (e.g., number of tokens in the system prompt)
+    
+    nonshared_seqlen = 128 # Length of non-shared sequence (e.g., number of tokens in each prompt + generated tokens)
+
+    # Sequence lengths assuming each request has equal number of non-shared tokens. 
+    # Each request can have a variable seqlen, too.
+    seqlens = [shared_seqlen] + [nonshared_seqlen] * bsz 
+
+    # query vectors
+    q_nope = torch.randn(size=[bsz, n_heads, qk_nope_head_dim], device=device, dtype=dtype)
+    q_rope = torch.randn(size=[bsz, n_heads, qk_rope_head_dim], device=device, dtype=dtype)
+    q = torch.cat([q_nope, q_rope], dim=-1)
+
+    # KV up-scaling projection matrix
+    wkv_b = torch.randn(size=[n_heads * (qk_nope_head_dim + v_head_dim), kv_lora_rank], dtype=dtype, device=device)
+    wkv_b1, wkv_b2 = wkv_b.view(n_heads, (qk_nope_head_dim + v_head_dim), kv_lora_rank).split([qk_nope_head_dim, v_head_dim], dim=1)
+
+    # KV-cache for the shared sequence (in naive formulation)
+    naive_k_cache = torch.randn(size=(seqlens[0], n_heads, qk_nope_head_dim+qk_rope_head_dim), dtype=dtype, device=device)
+    naive_v_cache = torch.randn(size=(seqlens[0], n_heads, qk_nope_head_dim), dtype=dtype, device=device)
+
+    # KV and PE cache for the non-shared sequence (in absorb formulation)
+    absorb_kv_cache = torch.randn((sum(seqlens[1:]) // block_size, block_size, 1, kv_lora_rank), dtype=dtype, device=device)
+    absorb_pe_cache = torch.randn((sum(seqlens[1:]) // block_size, block_size, 1, qk_rope_head_dim), dtype=dtype, device=device)
+
+    # Allocate memory required for CATLASS kernel
+    catlass_ctx = typhoon_mla_prepare(bsz, seqlens[1:], n_heads, kv_lora_rank, qk_rope_head_dim, block_size, device, dtype)
+
+    # Run the TyphoonMLA kernel with random input
+    out = typhoon_mla_run(q, q_nope, q_rope, 
+                naive_k_cache, 
+                naive_v_cache, 
+                absorb_kv_cache, 
+                absorb_pe_cache, 
+                wkv_b1, wkv_b2, 
+                catlass_ctx, 
+                seqlens, 
+                softmax_scale, 
+    )
+
+    print("--- Output ---")
+    print(out)
+    print(out.shape)
