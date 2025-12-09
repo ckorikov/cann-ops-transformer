@@ -30,7 +30,6 @@
 #include "ops_error.h"
 #include "mc2_gen_task_moe.h"
 #include "mc2_gen_task_utils.h"
-#include "mc2_a5_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #include "register/op_ext_gentask_registry.h"
 #endif
@@ -80,14 +79,8 @@ IMPL_OP(MoeDistributeCombineV2)
     .CalcOpParam(MoeDistributeCombineV2CalcParamFunc)
     .GenerateTask(MoeDistributeCombineV2GenTaskFunc);
 #else // mc2 gen task utils
-static const size_t ATTR_INDEX_COMM_ALG = 14;
 ge::Status MoeDistributeCombineV2CalcParamFunc(gert::ExeResGenerationContext *context)
 {
-    if ((Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) &&
-        (Mc2A5GenTaskUtils::GetCommAlg(context, ATTR_INDEX_COMM_ALG) != COMM_ALG_MTE)) {
-        OPS_LOG_D(context->GetNodeName(), "Do A5 ccu calc param.");
-        return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "ccu server", "ccu_stream");
-    }
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
@@ -99,20 +92,7 @@ ge::Status MoeDistributeCombineV2GenTaskFunc(const gert::ExeResGenerationContext
     const char *nodeName = context->GetNodeName();
     if (IsPlatform910B(nodeName)) {
         return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallback);
-    } else if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
-        const std::string commAlg = Mc2A5GenTaskUtils::GetCommAlg(context, ATTR_INDEX_COMM_ALG);
-        if (commAlg == COMM_ALG_MTE) {
-            OPS_LOG_D(context->GetNodeName(), "Do A5 mte gen task.");
-            return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallbackV2);
-        } else if (commAlg == COMM_ALG_CCU) {
-            OPS_LOG_D(context->GetNodeName(), "Do A5 CCU gen task.");
-            return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2A5GenTaskUtils::Mc2GenTaskCallBack910A5);
-        } else {
-            OPS_LOG_E(context->GetNodeName(), "Got unsupported commAlg %s.", commAlg.c_str());
-            return ge::GRAPH_FAILED;
-        }
     }
-    OPS_LOG_D(context->GetNodeName(), "Do A3 gen task.");
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallbackV2);
 }
 

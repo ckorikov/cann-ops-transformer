@@ -45,8 +45,6 @@ constexpr uint32_t ONE_DIM = 1U;
 class MoeDistributeCombineTilingHelper {
 public:
     static ge::graphStatus TilingCheckMoeDistributeCombine(gert::TilingContext *context, const char *nodeName);
-    static ge::graphStatus TilingCheckMoeDistributeCombineA5(gert::TilingContext *context, const char *nodeName,
-                                                             const uint32_t isTokenMask);
 
 protected:
     static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName);

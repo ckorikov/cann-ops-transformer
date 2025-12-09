@@ -30,7 +30,6 @@
 #include "ops_error.h"
 #include "mc2_gen_task_moe.h"
 #include "mc2_gen_task_utils.h"
-#include "mc2_a5_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #include "register/op_ext_gentask_registry.h"
 #endif
@@ -82,10 +81,6 @@ IMPL_OP(MoeDistributeDispatch)
 #else // mc2 gen task utils
 ge::Status MoeDistributeDispatchCalcParamFunc(gert::ExeResGenerationContext *context)
 {
-    if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
-        OPS_LOG_D(context->GetNodeName(), "Do A5 ccu calc param");
-        return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "ccu server", "ccu_stream");
-    }
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
@@ -97,9 +92,6 @@ ge::Status MoeDistributeDispatchGenTaskFunc(const gert::ExeResGenerationContext 
     const char *nodeName = context->GetNodeName();
     if (IsPlatform910B(nodeName)) {
         return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallback);
-    } else if (Mc2A5GenTaskUtils::IsTargetPlatform(nodeName, PLATFORM_A5)) {
-        OPS_LOG_D(context->GetNodeName(), "Do A5 ccu gen task");
-        return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2A5GenTaskUtils::Mc2GenTaskCallBack910A5);
     }
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskMoe::Mc2MoeGenTaskCallbackV2);
 }
