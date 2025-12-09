@@ -202,7 +202,6 @@
       aclTensor* dequantScaleWDkvKr = nullptr;
       aclTensor* quantScaleCkv = nullptr;
       aclTensor* smoothScalesCq = nullptr;
-      bool queryNormFlag = false;
       int64_t weightQuantMode = 2;
       int64_t kvQuantMode = 1;
       int64_t queryQuantMode = 1;
@@ -295,7 +294,7 @@
       // 调用aclnnMlaPrologV3WeightNz第一段接口
       ret = aclnnMlaPrologV3WeightNzGetWorkspaceSize(tokenX, weightDq, weightUqQr, weightUk, weightDkvKr, rmsnormGammaCq, rmsnormGammaCkv, ropeSin, ropeCos, kvCache, krCache, cacheIndex,
         dequantScaleX, dequantScaleWDq, dequantScaleWUqQr, dequantScaleWDkvKr, quantScaleCkv, nullptr, smoothScalesCq, nullptr, nullptr, rmsnormEpsilonCq, rmsnormEpsilonCkv, cacheMode,
-        queryNormFlag, weightQuantMode, kvQuantMode, queryQuantMode, ckvkrRepoMode, quantScaleRepoMode, tileSize, qcQrScale, kcScale,
+        weightQuantMode, kvQuantMode, queryQuantMode, ckvkrRepoMode, quantScaleRepoMode, tileSize, qcQrScale, kcScale,
         query, queryRope, dequantScaleQNope, nullptr, nullptr, &workspaceSize, &executor);
       CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnMlaPrologV3WeightNzGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
       // 根据第一段接口计算出的workspaceSize申请device内存
