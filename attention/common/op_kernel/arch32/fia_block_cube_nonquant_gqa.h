@@ -1041,7 +1041,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm1(const R
                         }
                         Mmad(cL0Tensor[cL0BufId], aL0Tensor[aL0BufId], bL0Tensor[bL0BufId], mmadParams);
                         if (likely(! isLastK)) {
-                            PipeBarrier<PIPE_M>();
+                            AscendC::PipeBarrier<PIPE_M>();
                         }
                         SetFlag<HardEvent::M_MTE1>(L0A_EVENT0 + aL0BufId);
                         SetFlag<HardEvent::M_MTE1>(L0B_EVENT0 + bL0BufId);
@@ -1117,7 +1117,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm2(const R
                 }
                 Mmad(cL0Tensor[cL0BufId], aL0Tensor[aL0BufId], bL0Tensor[bL0BufId], mmadParams);
                 if (likely(! isLastK)) {
-                    PipeBarrier<PIPE_M>();
+                    AscendC::PipeBarrier<PIPE_M>();
                 }
                 SetFlag<HardEvent::M_MTE1>(L0A_EVENT0 + aL0BufId);
                 SetFlag<HardEvent::M_MTE1>(L0B_EVENT0 + bL0BufId);

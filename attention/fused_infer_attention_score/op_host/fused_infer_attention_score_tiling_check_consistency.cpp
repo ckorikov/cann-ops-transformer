@@ -262,9 +262,8 @@ ge::graphStatus FiaTilingCheck::CheckKVShapeForPageAttention() const
     }
 
     // key
-    int64_t blockNum = keyShapeCmp_->shape_.GetDim(0);
     FiaTilingShapeCompareParam shapeParams;
-    shapeParams.Bn = static_cast<int64_t>(blockNum);
+    shapeParams.Bn = static_cast<int64_t>(fiaInfo_.totalBlockNum);
     shapeParams.N = static_cast<int64_t>(n2Size_);
     shapeParams.Bs = static_cast<int64_t>(blockSize_);
     shapeParams.D = static_cast<int64_t>(qkHeadDim_);

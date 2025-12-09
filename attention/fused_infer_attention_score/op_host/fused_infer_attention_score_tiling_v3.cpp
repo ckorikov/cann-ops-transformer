@@ -279,6 +279,45 @@ bool CheckGqaFeatureSupport(gert::TilingContext *context)
     return true;
 }
 
+bool isNotLegacyGQA(gert::TilingContext *context)
+{
+    const std::string inputLayoutStr = std::string(context->GetAttrs()->GetAttrPointer<char>(ATTR_INPUT_LAYOUT_INDEX));
+    if (inputLayoutStr != "BSH" &&
+        inputLayoutStr != "BSND" &&
+        inputLayoutStr != "BNSD" &&
+        inputLayoutStr != "BNSD_BSND" &&
+        inputLayoutStr != "TND" &&
+        inputLayoutStr != "NSD") {
+        return true;
+    }
+
+    auto queryRope = context->GetOptionalInputTensor(QUERY_ROPE_INDEX);
+    auto keyRope = context->GetOptionalInputTensor(KEY_ROPE_INDEX);
+    int64_t queryD = 0;
+    int64_t queryRopeD = 0;
+    int64_t valueD = 0;
+    if (GetQkvD(context, queryD, queryRopeD, valueD) != true) {
+        return false;
+    }
+
+    if (queryD != valueD || queryRope != nullptr || keyRope != nullptr) {
+        return true;
+    }
+
+    if (inputLayoutStr == "TND" && valueD == HEAD_DIM_192) {
+        return false;
+    }
+
+    uint32_t keyDimNum = context->GetInputShape(KEY_INDEX)->GetStorageShape().GetDimNum();
+    uint32_t valueDimNum = context->GetInputShape(VALUE_INDEX)->GetStorageShape().GetDimNum();
+    if ((keyDimNum != DIM_NUM_3 && keyDimNum != DIM_NUM_4) ||
+        (valueDimNum != DIM_NUM_3 && valueDimNum != DIM_NUM_4)) {
+        return true;
+    }
+
+    return false;
+}
+
 bool CheckGqaConstrain(gert::TilingContext *context)
 {
     return false;
