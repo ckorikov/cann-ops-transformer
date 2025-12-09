@@ -113,7 +113,6 @@ ge::graphStatus FiaInfoParser::GetLegacyIfaFlag()
             return ge::GRAPH_FAILED;
         }
         querySize = static_cast<uint32_t>(queryShape_->GetS());
-
         if (querySize == 1U &&
             qkHeadDim_ == vHeadDim_ &&
             opParamInfo_.queryRope.tensor == nullptr &&
