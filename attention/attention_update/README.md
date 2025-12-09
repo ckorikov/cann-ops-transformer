@@ -9,31 +9,31 @@
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-0lax">昇腾910_95 AI处理器</td>
+    <td class="tg-0lax"><term>昇腾910_95 AI处理器</term></td>
     <td class="tg-0lax">√</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas A3 训练系列产品/Atlas A3 推理系列产品</td>
+    <td class="tg-0lax"><term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term></td>
     <td class="tg-0lax">√</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</td>
+    <td class="tg-0lax"><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term></td>
     <td class="tg-0lax">√</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas 200I/500 A2 推理产品</td>
+    <td class="tg-0lax"><term>Atlas 200I/500 A2 推理产品</term></td>
     <td class="tg-0lax">x</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas 推理系列产品</td>
+    <td class="tg-0lax"><term>Atlas 推理系列产品</term></td>
     <td class="tg-0lax">x</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas 训练系列产品</td>
+    <td class="tg-0lax"><term>Atlas 训练系列产品</term></td>
     <td class="tg-0lax">x</td>
   </tr>
   <tr>
-    <td class="tg-0lax">Atlas 200/300/500 推理产品</td>
+    <td class="tg-0lax"><term>Atlas 200/300/500 推理产品</term></td>
     <td class="tg-0lax">x</td>
   </tr>
 </tbody>
@@ -103,7 +103,8 @@ $$
 
 ## 约束说明
 
-* Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件、Atlas A3 训练系列产品/Atlas A3 推理系列产品支持FLOAT32的Oi和O，昇腾910_95 AI处理器支持FLOAT32，FLOAT16，BFLOAT16的Oi和O，且Oi和O数据类型相同。
+* <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持FLOAT32的Oi和O。
+* <term>昇腾910_95 AI处理器</term>：支持FLOAT32，FLOAT16，BFLOAT16的Oi和O，且Oi和O数据类型相同。
 * 序列并行的并行度sp取值范围[1, 16]。
 * headDim取值范围[8, 512]且是8的倍数。
 * 不支持非连续的Tensor。
