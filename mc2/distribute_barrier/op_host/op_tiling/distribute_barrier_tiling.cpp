@@ -67,52 +67,9 @@ static void PrintTilingDataInfo(DistributeBarrierTilingData &tilingData) {
             tilingData.distributeBarrierInfo.aivNum);
   OPS_LOG_D(A_INNER_DEBUG_BARRIER, "totalUbSize is %lu.",
             tilingData.distributeBarrierInfo.totalUbSize);
-  OPS_LOG_D(A_INNER_DEBUG_BARRIER, "isInputTimeOut is %u.",
-            tilingData.distributeBarrierInfo.isInputTimeOut);
-  OPS_LOG_D(A_INNER_DEBUG_BARRIER, "isInputElasticInfo is %u.",
-            tilingData.distributeBarrierInfo.isInputElasticInfo);
-}
-static bool CheckTimeOut(const gert::TilingContext *context) {
-  const char *nodeName = context->GetNodeName();
-  const gert::StorageShape *timeOutStorageShape = context->GetOptionalInputShape(TIME_OUT_INDEX);
-  OP_TILING_CHECK(timeOutStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-                  OP_LOGE(nodeName, "timeOut dim must be 1, but current dim num is %lu.",
-                  timeOutStorageShape->GetStorageShape().GetDimNum()), return false);    
-  auto timeOutDesc = context->GetOptionalInputDesc(TIME_OUT_INDEX);
-  OP_TILING_CHECK(timeOutDesc == nullptr, OP_LOGE(nodeName, "timeOutDesc is null."), return false);
-  OP_TILING_CHECK(timeOutDesc->GetDataType() != ge::DT_INT32, OP_LOGE(nodeName,
-                  "timeOutDesc dataType is invalid, dataType should be int32, but is %s.",
-                  Ops::Base::ToString(timeOutDesc->GetDataType()).c_str()), return false);    
-  OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(timeOutDesc->GetStorageFormat())) ==
-                  ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "timeOut format is invalid."), return false);
-  const int64_t timeOutDim0 = timeOutStorageShape->GetStorageShape().GetDim(0);
-  OP_TILING_CHECK(timeOutDim0 != 1,
-                  OP_LOGE(nodeName, "timeOut's dim0 should be 1, current timeOut's dim0 is %ld.",
-                  timeOutDim0), return false);
-  return true;
-}
-static bool CheckElasticInfo(const gert::TilingContext *context, const uint32_t worldsize) {
-  const char *nodeName = context->GetNodeName();
-  const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
-  OP_TILING_CHECK(elasticInfoStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-                  OP_LOGE(nodeName, "elasticInfo dim must be 1, but current dim num is %lu.",
-                  elasticInfoStorageShape->GetStorageShape().GetDimNum()), return false);    
-  auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
-  OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
-  OP_TILING_CHECK(elasticInfoDesc->GetDataType() != ge::DT_INT32, OP_LOGE(nodeName,
-                  "elasticInfoDesc dataType is invalid, dataType should be int32, but is %s.",
-                  Ops::Base::ToString(elasticInfoDesc->GetDataType()).c_str()), return false);    
-  OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(elasticInfoDesc->GetStorageFormat())) ==
-                  ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "elasticInfo format is invalid."), return false);
-  const int64_t elasticInfoDim0 = elasticInfoStorageShape->GetStorageShape().GetDim(0);
-  OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * worldsize),
-                  OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
-                  "elasticInfo's dim0 is %ld, epWorldSize is %u.",
-                  elasticInfoDim0, worldsize), return false);       
-  return true;                              
-}                                                        
+}                                                  
 static bool CheckAndSetAttrs(const gert::TilingContext *context, DistributeBarrierTilingData &tilingData,
-                             std::string &group, bool isInputTimeOut, bool isInputElasticInfo) {
+                             std::string &group) {
   auto attrs = context->GetAttrs();
   OP_TILING_CHECK(attrs == nullptr, OPS_LOG_E(A_INNER_DEBUG_BARRIER, "GetAttrs returned nullptr!"), return false);
 
@@ -135,17 +92,6 @@ static bool CheckAndSetAttrs(const gert::TilingContext *context, DistributeBarri
 
   OPS_LOG_D(A_INNER_DEBUG_BARRIER, "group = %s", groupPtr);
   group = string(groupPtr);
-  if (isInputTimeOut) {
-    OP_TILING_CHECK(CheckTimeOut(context) == false,
-                    OPS_LOG_E(A_INNER_DEBUG_BARRIER, "timeOut is invalid!"),
-                    return false);
-  }
-  if (isInputElasticInfo) {     
-    OP_TILING_CHECK(CheckElasticInfo(context, *worldSizePtr) == false,
-                    OPS_LOG_E(A_INNER_DEBUG_BARRIER, "elasticInfo is invalid!"),
-                    return false);
-  }
-
   return true;
 }
 
@@ -180,18 +126,10 @@ ge::graphStatus DistributeBarrierTilingFunc(gert::TilingContext *context) {
                   OPS_LOG_E(nodeName, "tilingData is nullptr."),
                   return ge::GRAPH_FAILED);
   std::string group = "";
-  bool isInputTimeOut = false;
-  bool isInputElasticInfo = false;
-  const gert::StorageShape *timeOutStorageShape = context->GetOptionalInputShape(TIME_OUT_INDEX);
-  const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
-  isInputTimeOut = (timeOutStorageShape != nullptr);
-  isInputElasticInfo = (elasticInfoStorageShape != nullptr);
-  tilingData->distributeBarrierInfo.isInputTimeOut = isInputTimeOut;
-  tilingData->distributeBarrierInfo.isInputElasticInfo = isInputElasticInfo;
 
   // Function that get check and set Attrs
   OP_TILING_CHECK(
-      !CheckAndSetAttrs(context, *tilingData, group, isInputTimeOut, isInputElasticInfo),
+      !CheckAndSetAttrs(context, *tilingData, group),
       OPS_LOG_E(A_INNER_DEBUG_BARRIER, "Check and set attributes failed!"),
       return ge::GRAPH_FAILED);
 
