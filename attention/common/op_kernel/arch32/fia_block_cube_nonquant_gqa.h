@@ -968,6 +968,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm1(const R
                 reuseQBuf = false;
             }
             if (unlikely(!reuseQBuf)) {
+                SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + this->qL1BufId);
                 WaitFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + this->qL1BufId);
                 CopyQToL1(this->qL1BufId, info, mL1.start, mL1.sizeAct);
 
@@ -1020,7 +1021,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm1(const R
                 }
             }
             if (unlikely(!reuseQBuf)) {
-                SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + this->qL1BufId);
                 this->qL1BufId = (this->qL1BufId + 1)% L1_Q_BUFCNT;
                 reuseQBuf = true;
             }
