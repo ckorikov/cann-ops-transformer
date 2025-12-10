@@ -31,7 +31,7 @@ public:
 
 private:
     __aicore__ inline void HcclPrepare();
-    __aicore__ inline void AddPrepare(int32_t commTurn);
+    __aicore__ inline void CalcAddGmAddr(int32_t commTurn);
     __aicore__ inline void CopyIn(int32_t progress);
     __aicore__ inline void CopyOut(int32_t progress);
     __aicore__ inline void Compute();
@@ -133,14 +133,15 @@ __aicore__ inline void AllGatherAdd::HcclFinalize()
     hccl_.Finalize();
 }
 
-__aicore__ inline void AllGatherAdd::AddPrepare(int32_t commTurn)
+__aicore__ inline void AllGatherAdd::CalcAddGmAddr(int32_t commTurn)
 {
     // 根据通信轮次和rankSize计算本核需要处理数据的起始地址
     uint32_t commOffset = commTurn * tilingData_->gatherTileElemNum;
     uint32_t blockOffset = blockIdx_ / tilingData_->coresPerRank * strideCount_;
-    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM_ + commOffset + blockOffset + (blockIdx_ % tilingData_->coresPerRank) * blockElemNum_, blockElemNum_);
-    inputBGM.SetGlobalBuffer((__gm__ half*)bGM_ + commOffset + blockOffset + (blockIdx_ % tilingData_->coresPerRank) * blockElemNum_, blockElemNum_);
-    outputCGM.SetGlobalBuffer((__gm__ half*)cGM_ + commOffset + blockOffset + (blockIdx_ % tilingData_->coresPerRank) * blockElemNum_, blockElemNum_);
+    uint32_t totalOffset = commOffset + blockOffset + (blockIdx_ % tilingData_->coresPerRank) * blockElemNum_;
+    gatherOutGM.SetGlobalBuffer((__gm__ half*)gatherGM_ + totalOffset, blockElemNum_);
+    inputBGM.SetGlobalBuffer((__gm__ half*)bGM_ + totalOffset, blockElemNum_);
+    outputCGM.SetGlobalBuffer((__gm__ half*)cGM_ + totalOffset, blockElemNum_);
 }
 
 __aicore__ inline void AllGatherAdd::Process()
@@ -149,7 +150,7 @@ __aicore__ inline void AllGatherAdd::Process()
     int addLoop = tileNum_ * ADD_BUFFER_NUM;
     for (int i = 0; i < tilingData_->commTurn; i++) {
         hccl_.Wait(handleId_);
-        AddPrepare(i);
+        CalcAddGmAddr(i);
         // 对前一轮的通信结果进行Add计算
         for (int j = 0; j < addLoop; j++) {
             CopyIn(j);
