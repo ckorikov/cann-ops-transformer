@@ -661,15 +661,9 @@ static bool CheckCommAlgAttrs(const char *nodeName,
 {
     uint32_t tpWorldSize = tilingData.moeDistributeDispatchV2Info.tpWorldSize;
     uint32_t hasElasticInfo = tilingData.moeDistributeDispatchV2Info.hasElasticInfo;
-    int32_t zeroComputeExpertNum = tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum;
 
+    // 校验动态缩容和FullMesh_v2不能同时启用
     OP_TILING_CHECK((isSetCommAlg && hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo when comm_alg = fullmesh_v2"), 
-        return false);
-    // 校验特殊专家和FullMesh_v2不能同时启用
-    OP_TILING_CHECK((isSetCommAlg && (zeroComputeExpertNum > 0)), OP_LOGE(nodeName, "Cannot support zeroComputeExpert when comm_alg = fullmesh_v2"), 
-        return false);
-    // 校验ActiveMask和FullMesh_v2不能同时启用
-    OP_TILING_CHECK((isSetCommAlg && isActiveMask), OP_LOGE(nodeName, "Cannot support xActiveMask when comm_alg = fullmesh_v2"), 
         return false);
     // 检查comm_alg和tpWorldSize是否冲突
     OP_TILING_CHECK(isSetCommAlg && (tpWorldSize == TP_WORLD_SIZE_TWO), OP_LOGE(nodeName, "When comm_alg is fullmesh_v2, tp_world_size cannot be 2."),

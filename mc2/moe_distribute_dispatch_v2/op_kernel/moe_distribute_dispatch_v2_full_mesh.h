@@ -72,6 +72,14 @@ public:
     __aicore__ inline void Process();
 
 private:
+    __aicore__ inline void activeMaskProc();
+    __aicore__ inline void TokenActiveMaskCal();
+    __aicore__ inline void ExpertActiveMaskCal();
+    __aicore__ inline void CalValidBSCnt(LocalTensor<bool> maskStrideTensor);
+    __aicore__ inline void CalValidExpIdx(LocalTensor<bool> maskInputTensor);
+    __aicore__ inline void GenerateGatherMaskTensor(uint32_t maskCnt);
+    __aicore__ inline void MaskZeroComputeExpert(uint32_t maskCnt);
+    __aicore__ inline void ZeroComputeExpertMaskCal();
     __aicore__ inline void SetDataStatus();
     __aicore__ inline void SetTilingDataAndCal(const MoeDistributeDispatchV2TilingData *tilingData);
     __aicore__ inline void SendToSharedExpert(TQue<QuePosition::VECIN, 1> inQueue, TBuf<> outBuf);
@@ -132,6 +140,7 @@ private:
     GlobalTensor<int32_t> elasticInfoGMTensor_;
 
     LocalTensor<int32_t> expertIdsTensor_;
+    LocalTensor<uint32_t> gatherMaskTensor_;
     LocalTensor<int32_t> statusTensor_;
     LocalTensor<int32_t> dstExpIdTensor_;
     LocalTensor<int32_t> subExpIdTensor_;
@@ -162,10 +171,18 @@ private:
     LocalTensor<uint64_t> flagCompResultLtU64_;
     LocalTensor<uint32_t> flagRecvGatherMask_;
     LocalTensor<ExpandXOutType> xTmpTensor_;
+    LocalTensor<int32_t> validBsIndexTensor_;
 
     LocalTensor<float> flagGatherOutTensor_;
     LocalTensor<float> flagRecvTensor_;
 
+    TBuf<> dstExpBuf_;
+    TBuf<> subExpBuf_;
+    TBuf<> gatherMaskTBuf_;
+    TBuf<> expertIdsBuf_;
+    TBuf<> validExpertIndexBuf_;
+    TBuf<> validBsIndexTBuf_;
+ 
     GM_ADDR expandXOutGM_;
     GM_ADDR sendCountsOutGM_;
     GM_ADDR sendTpCountOutGM_;
@@ -203,6 +220,8 @@ private:
     uint32_t tBufRealSize_{0};
     uint64_t winDataSizeOffset_{0};
     uint64_t expertPerSizeOnWin_{0};
+    uint64_t activeMaskBsCnt_{0};
+    uint64_t sendToMoeExpTokenCnt_{0};
     uint64_t flagPadOffset_{0};
     bool isTokenMaskFlag_ = false;
     bool isExpertMaskFlag_ = false;
@@ -495,7 +514,7 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Sen
     PipeBarrier<PIPE_V>();
     // 分核
     uint32_t startTokenId, endTokenId, sendTokenNum;
-    uint32_t curSendCnt = axisBS_ * sharedExpertNum_; // 参数 validBsCnt_、sharedExpertNum_、sharedUsedAivNum_
+    uint32_t curSendCnt = activeMaskBsCnt_ * sharedExpertNum_; // 参数 validBsCnt_、sharedExpertNum_、sharedUsedAivNum_
     isFront_ = false;
     SplitToCore(curSendCnt, sharedUsedAivNum_, startTokenId, endTokenId, sendTokenNum);
     if (startTokenId >= curSendCnt) {return;}
@@ -503,12 +522,15 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Sen
     GlobalTensor<ExpandXOutType> dstWinGMTensor;
     uint32_t idInSharedGroup = epRankId_ % rankNumPerSharedExpert_;  // 计算目的共享专家卡在其所在共享专家组的id
     for (uint32_t virtualTokenIndex = startTokenId; virtualTokenIndex < endTokenId; ++virtualTokenIndex) {
-        uint32_t sendTokenIndex = virtualTokenIndex % axisBS_;
-        uint32_t toSharedExpertIndex = virtualTokenIndex / axisBS_;
+        uint32_t sendTokenIndex = virtualTokenIndex % activeMaskBsCnt_;
+        uint32_t toSharedExpertIndex = virtualTokenIndex / activeMaskBsCnt_;
         int32_t toRankId = idInSharedGroup + toSharedExpertIndex * rankNumPerSharedExpert_;
         dstWinGMTensor.SetGlobalBuffer(
             (__gm__ ExpandXOutType*)(GetWindAddrByRankId(toRankId) + expertPerSizeOnWin_ * epRankId_ + sendTokenIndex * hCommuSize_));
         uint32_t srcTokenIndex = sendTokenIndex;
+        if (isExpertMaskFlag_) {
+            srcTokenIndex = validBsIndexTensor_.GetValue(sendTokenIndex);
+        }
         if constexpr (DynamicQuant || StaticQuant) {
             uint32_t fillExpertIdx = axisK_ + toSharedExpertIndex;
             uint32_t quantExpertIdx = toSharedExpertIndex;
@@ -623,6 +645,9 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Sen
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::AlltoAllDispatch()
 {
+    if (activeMaskBsCnt_ == 0) {
+        return;
+    }
     // 使用的全局参数
     TQue<QuePosition::VECIN, 1> inQueue;
     TBuf<> tempBuf, outBuf, expertIdsBuf, expertMaskBuf;
@@ -646,24 +671,21 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::All
     if (isSendShared) {
         SendToSharedExpert(inQueue, outBuf);
     } else {
+
         uint32_t expertIdCntAlign256 = Ceil(expertIdsCnt_, SIZE_ALIGN_256) * SIZE_ALIGN_256;
         maskSizePerExpert_ = expertIdCntAlign256 / 8; // 8 is 1byte->8bit
-        expertIdsBufSize_ = Ceil(expertIdsCnt_ * sizeof(int32_t), SIZE_ALIGN_256) * SIZE_ALIGN_256; // 支持compareScalar
+        
         uint32_t expertMaskBufSize = maskSizePerExpert_ * Ceil(moeExpertNum_, moeUsedAivNum_);
-        tpipe_->InitBuffer(expertIdsBuf, expertIdsBufSize_);
+        
         tpipe_->InitBuffer(expertMaskBuf, expertMaskBufSize);
         tpipe_->InitBuffer(tokenNumToExpertBuf, Ceil(moeExpertNum_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN);
-        validExpertIdsTensor_ = expertIdsBuf.Get<int32_t>();
+
         tokenNumToExpertTensor_ = tokenNumToExpertBuf.Get<int32_t>();
         LocalTensor<int32_t> expertMaskTensor = expertMaskBuf.Get<int32_t>();
-        Duplicate<int32_t>(validExpertIdsTensor_, moeExpertNum_, int32_t(expertIdsBufSize_ / sizeof(int32_t)));
+
         Duplicate<int32_t>(expertMaskTensor, 0, int32_t(expertMaskBufSize / sizeof(int32_t)));
-        SyncFunc<AscendC::HardEvent::V_MTE2>();
-        uint32_t expertIdsAlignCnt = Ceil(expertIdsCnt_, 8) * 8; // 8 = UB_ALIGN / sizeof(int32_t)
-        DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{true, 0U, uint8_t(expertIdsAlignCnt - expertIdsCnt_), uint8_t(moeExpertNum_)};
-        DataCopyExtParams expertIdsCntParams{1U, static_cast<uint32_t>(expertIdsCnt_ * sizeof(uint32_t)), 0U, 0U, 0U};
-        DataCopyPad(validExpertIdsTensor_, expertIdsGMTensor_, expertIdsCntParams, expertIdsCntCopyPadParams);
-        SyncFunc<AscendC::HardEvent::MTE2_S>();
+        PipeBarrier<PIPE_V>();
+        SyncFunc<AscendC::HardEvent::V_S>();
         SendToMoeExpert(inQueue, expertMaskBuf, outBuf);
     }
 }
@@ -673,7 +695,7 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Cal
 {
     Duplicate<int32_t>(dstExpIdTensor_, dstExpertId, calCnt);
     PipeBarrier<PIPE_V>();
-    Sub(subExpIdTensor_, expertIdsTensor_, dstExpIdTensor_, calCnt);
+    Sub(subExpIdTensor_, validExpertIdsTensor_, dstExpIdTensor_, calCnt);
     PipeBarrier<PIPE_V>();
     LocalTensor<float> tmpFp32 = subExpIdTensor_.ReinterpretCast<float>();
     LocalTensor<float> tmpoutFp32 = dstExpIdTensor_.ReinterpretCast<float>();
@@ -694,9 +716,6 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Cal
 template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::CalAndSendCnt()
 {
-    DataCopyExtParams expertIdsCntParams{1U, static_cast<uint32_t>(expertIdsCnt_ * sizeof(uint32_t)), 0U, 0U, 0U};
-    DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{false, 0U, 0U, 0U};
-    DataCopyPad(expertIdsTensor_, expertIdsGMTensor_, expertIdsCntParams, expertIdsCntCopyPadParams);
     uint64_t mask[2] = { 0x101010101010101, 0 }; // 一次性操作256字节，也是64个int32_t，每8个数将首个设置为0x3F800000
     Duplicate<int32_t>(statusTensor_, 0, statusCntAlign_ * 8);  // 8 = UB_ALIGN / sizeof(int32_t)
     PipeBarrier<PIPE_V>();
@@ -707,11 +726,11 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Cal
     for (uint32_t curExpertId = 0; curExpertId < totalExpertNum_; ++curExpertId) {
         int32_t curExpertCnt = 0;
         int32_t cntPosIndex = curExpertId * 8 + 1;                 // 一个block有8个int32的元素，第一个元素为flag位，第二个为发送token数
-        if ((curExpertId < sharedExpertRankNum_) && (axisBS_ > 0)) {     // 当前处理专家id为共享专家
+        if ((curExpertId < sharedExpertRankNum_) && (activeMaskBsCnt_ > 0)) {     // 当前处理专家id为共享专家
             if (curExpertId % rankNumPerSharedExpert_ == epRankId_ % rankNumPerSharedExpert_) {
-                curExpertCnt = axisBS_;
+                curExpertCnt = activeMaskBsCnt_;
             }
-        } else if (expertIdsCnt_ > 0) {                              // 当前处理卡为moe专家卡
+        } else if (sendToMoeExpTokenCnt_ > 0) {                              // 当前处理卡为moe专家卡
             int32_t curMoeExpertId = curExpertId - sharedExpertRankNum_;
             CalTokenSendExpertCnt(curMoeExpertId, expertIdsCnt_, curExpertCnt);
         }
@@ -813,18 +832,10 @@ template <TemplateMC2TypeClass>
 __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::CalCumSum()
 {
     // 统计当前卡上发送给各专家的token总数发送
-    TBuf<> statusBuf, dstExpBuf, subExpBuf, expertIdsBuf, gatherMaskTBuf;
-    uint32_t expertIdsSize = expertIdsCnt_ * sizeof(int32_t);
+    TBuf<> statusBuf;
     tpipe_->InitBuffer(statusBuf, statusCntAlign_ * UB_ALIGN);
-    tpipe_->InitBuffer(dstExpBuf, expertIdsSize);           // BS * K * 4
-    tpipe_->InitBuffer(subExpBuf, expertIdsSize);           // BS * K * 4
-    tpipe_->InitBuffer(gatherMaskTBuf, expertIdsSize);      // BS * K * 4
-    tpipe_->InitBuffer(expertIdsBuf, expertIdsSize);
+    workLocalTensor_ = gatherMaskTBuf_.Get<float>();
     statusTensor_ = statusBuf.Get<int32_t>();
-    dstExpIdTensor_ = dstExpBuf.Get<int32_t>();
-    subExpIdTensor_ = subExpBuf.Get<int32_t>();
-    workLocalTensor_ = gatherMaskTBuf.Get<float>();
-    expertIdsTensor_ = expertIdsBuf.Get<int32_t>();
     CalAndSendCnt();
 
     // 接收发给当前卡上专家的token数
@@ -1078,9 +1089,245 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Loc
 }
 
 template <TemplateMC2TypeClass>
-__aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Process()
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::TokenActiveMaskCal()
+{
+    // 搬运x_active_mask, 当前仅用于计算有效token总数
+    LocalTensor<half> maskTmpTensor;
+    LocalTensor<half> sumOutTensor;
+    LocalTensor<bool> maskInputTensor;
+    uint32_t axisBsAlignSize = Ceil(axisBS_ * sizeof(bool), UB_ALIGN) * UB_ALIGN;
+    maskInputTensor = dstExpBuf_.Get<bool>();
+    maskTmpTensor = subExpBuf_.Get<half>();
+    sumOutTensor = gatherMaskTBuf_.Get<half>();
+    DataCopyExtParams maskParams = {1U, static_cast<uint32_t>(axisBS_ * sizeof(bool)), 0U, 0U, 0U};
+    DataCopyPadExtParams<bool> maskCopyPadParams{false, 0U, 0U, 0U};
+    DataCopyPad(maskInputTensor, xActiveMaskGMTensor_, maskParams, maskCopyPadParams);
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
+    LocalTensor<int8_t> maskInputInt8Tensor = maskInputTensor.ReinterpretCast<int8_t>();
+    Cast(maskTmpTensor, maskInputInt8Tensor, RoundMode::CAST_NONE, axisBS_);
+    PipeBarrier<PIPE_V>();
+    SumParams params{1, axisBsAlignSize, axisBS_};
+    Sum(sumOutTensor, maskTmpTensor, params);
+    SyncFunc<AscendC::HardEvent::V_S>();
+    activeMaskBsCnt_ = static_cast<int32_t>(sumOutTensor.GetValue(0));
+    sendToMoeExpTokenCnt_ = activeMaskBsCnt_ * axisK_;
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::CalValidExpIdx(LocalTensor<bool> maskInputTensor)
+{
+    uint32_t mask = expertIdsCnt_;
+    uint32_t curMaskCnt = axisBS_ * axisK_;
+    uint32_t calCnt = Ceil(curMaskCnt * sizeof(half), SIZE_ALIGN_256) * SIZE_ALIGN_256 / sizeof(half);
+    LocalTensor<half> tempTensor = subExpBuf_.Get<half>();
+    LocalTensor<uint8_t> gatherMaskTensorInt8 = gatherMaskTBuf_.Get<uint8_t>();
+    LocalTensor<int32_t> expertsIndexTensor = expertIdsBuf_.Get<int32_t>();
+ 
+    Duplicate<half>(tempTensor, (half)0, calCnt);
+    PipeBarrier<PIPE_V>();
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
+    LocalTensor<int8_t> maskInputInt8Tensor = maskInputTensor.ReinterpretCast<int8_t>();
+    Cast(tempTensor, maskInputInt8Tensor, RoundMode::CAST_NONE, curMaskCnt);
+    PipeBarrier<PIPE_V>();
+    Duplicate<uint32_t>(gatherMaskTensor_, 0, Ceil(expertIdsCnt_ * sizeof(int32_t), SIZE_ALIGN_256) * SIZE_ALIGN_256 / sizeof(uint32_t));
+    PipeBarrier<PIPE_V>();
+    CompareScalar(gatherMaskTensorInt8, tempTensor, static_cast<half>(1), AscendC::CMPMODE::EQ, calCnt);
+    PipeBarrier<PIPE_V>();
+    GatherMask(expertsIndexTensor, expertsIndexTensor, gatherMaskTensor_, true, mask, {1, 1, 0, 0}, sendToMoeExpTokenCnt_);
+}
+ 
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::CalValidBSCnt(LocalTensor<bool> maskStrideTensor)
+{
+    uint64_t rsvdCnt = 0;
+    uint32_t mask = axisBS_;
+    uint32_t activeMaskAlignSize = axisBS_ * (Ceil(axisK_ * sizeof(bool), UB_ALIGN) * UB_ALIGN);
+    uint32_t calCnt = Ceil(axisBS_ * sizeof(half), SIZE_ALIGN_256) * SIZE_ALIGN_256 / sizeof(half);
+    uint32_t innerAlign = Ceil(axisK_ * sizeof(half), UB_ALIGN) * UB_ALIGN / sizeof(half) * BUFFER_NUM;
+    LocalTensor<half> tempTensor = validExpertIndexBuf_.Get<half>();
+    LocalTensor<half> maskTempTensor = expertIdsBuf_.Get<half>();
+    LocalTensor<half> tokenTargetTensor = validBsIndexTBuf_.Get<half>();
+    LocalTensor<uint8_t> maskTensor = gatherMaskTBuf_.Get<uint8_t>();
+    LocalTensor<int32_t> bsIndexTensor = subExpBuf_.Get<int32_t>();
+    LocalTensor<uint32_t> maskTensorInt32 = gatherMaskTBuf_.Get<uint32_t>();
+    SumParams axisKSumParams{axisBS_, innerAlign, axisK_};
+    SumParams axisBsSumParams{1, static_cast<uint32_t>(Ceil(axisBS_ * sizeof(half), UB_ALIGN) * UB_ALIGN / sizeof(half)), axisBS_};
+
+    Duplicate<half>(maskTempTensor, (half)0, calCnt);
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
+    LocalTensor<int8_t> maskStrideInt8Tensor = maskStrideTensor.ReinterpretCast<int8_t>();
+    Cast(tempTensor, maskStrideInt8Tensor, RoundMode::CAST_NONE, activeMaskAlignSize);
+    PipeBarrier<PIPE_V>();
+    Sum(tokenTargetTensor, tempTensor, axisKSumParams);
+    PipeBarrier<PIPE_V>();
+    Mins(maskTempTensor, tokenTargetTensor, static_cast<half>(1), axisBS_);
+    PipeBarrier<PIPE_V>();
+    CompareScalar(maskTensor, maskTempTensor, static_cast<half>(1), AscendC::CMPMODE::EQ, calCnt);
+    CreateVecIndex(bsIndexTensor, 0, axisBS_);
+    PipeBarrier<PIPE_V>();
+    GatherMask(validBsIndexTensor_, bsIndexTensor, maskTensorInt32, true, mask, {1, 1, 0, 0}, activeMaskBsCnt_);
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::ExpertActiveMaskCal()
+{
+    // 计算当前有效bs数量, stride搬入xActiveMask进行sum计算, 用于moe专家发送
+    LocalTensor<bool> maskStrideTensor = dstExpBuf_.Get<bool>();
+    DataCopyPadExtParams<bool> maskStrideCopyPadParams{true, 0U, static_cast<uint8_t>(UB_ALIGN - axisK_), 0U};
+    DataCopyExtParams maskStrideParams{
+        static_cast<uint16_t>(axisBS_), static_cast<uint32_t>(axisK_ * sizeof(bool)), 0U, 0U, 0U};
+    DataCopyPad(maskStrideTensor, xActiveMaskGMTensor_, maskStrideParams, maskStrideCopyPadParams);
+    CalValidBSCnt(maskStrideTensor);
+    // 计算validExpIndexTensor, 连续搬入xActiveMask进行GatherMask计算, 用于moe专家的发送
+    LocalTensor<bool> maskInputTensor = dstExpBuf_.Get<bool>();
+    DataCopyPadExtParams<bool> maskCopyPadParams{false, 0U, 0U, 0U};
+    DataCopyExtParams maskParams{1U, static_cast<uint32_t>(expertIdsCnt_ * sizeof(bool)), 0U, 0U, 0U};
+    DataCopyPad(maskInputTensor, xActiveMaskGMTensor_, maskParams, maskCopyPadParams);
+    CalValidExpIdx(maskInputTensor);
+    SyncFunc<AscendC::HardEvent::V_S>();
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::MaskZeroComputeExpert(uint32_t maskCnt)
+{
+    int32_t maskTensorInt16Cnt = Ceil(expertIdsCnt_, UB_ALIGN / 2);
+    LocalTensor<uint8_t> maskTensorInt8 = validExpertIndexBuf_.Get<uint8_t>(); // bs*k*1
+    LocalTensor<uint32_t> maskTensorInt32 = validExpertIndexBuf_.Get<uint32_t>(); // bs*k*1
+    LocalTensor<half> expertIdsTensorCast = subExpBuf_.Get<half>(); // bs*k*4
+    int32_t moeExpertNumInt32 = static_cast<int32_t>(moeExpertNum_);
+
+    DataCopyExtParams expertIdsCntParams = {1U, static_cast<uint32_t>(expertIdsCnt_ * sizeof(uint32_t)), 0U, 0U, 0U};
+    DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{false, 0U, 0U, 0U};
+    DataCopyPad(expertIdsTensor_, expertIdsGMTensor_, expertIdsCntParams, expertIdsCntCopyPadParams);
+    SyncFunc<AscendC::HardEvent::MTE2_V>();
+    PipeBarrier<PIPE_V>();
+    SetDeqScale((half)1.000000e+00f);
+    PipeBarrier<PIPE_V>();
+    Cast(expertIdsTensorCast, expertIdsTensor_, RoundMode::CAST_NONE, expertIdsCnt_);
+    PipeBarrier<PIPE_V>();
+    Duplicate<uint32_t>(maskTensorInt32, 0, Ceil(expertIdsCnt_, UB_ALIGN));
+    PipeBarrier<PIPE_V>();
+    uint32_t calcCnt = Ceil(expertIdsCnt_ * sizeof(half), SIZE_ALIGN_256) * SIZE_ALIGN_256 / sizeof(half);
+    // 逐元素比较一个tensor中的元素和另一个Scalar的大小，如果比较后的结果为真，则输出结果的对应比特位为1，否则为0。筛掉零计算量专家
+    CompareScalar(maskTensorInt8, expertIdsTensorCast, static_cast<half>(moeExpertNumInt32), AscendC::CMPMODE::LT, calcCnt);
+    PipeBarrier<PIPE_V>();
+    LocalTensor<uint16_t> maskTensorInt16 = validExpertIndexBuf_.Get<uint16_t>(); // 空间bs*k*1
+    LocalTensor<uint16_t> gatherMaskTensorint16 = gatherMaskTBuf_.Get<uint16_t>(); // 空间bs*k*4
+    /* 特殊专家的maskTensorInt16和之前的gatherMaskTensor_结果按位相与，AND 支持uint16， gatherMaskTensor_和gatherMaskTensorint16是同一个地址 */
+    And(gatherMaskTensorint16, gatherMaskTensorint16, maskTensorInt16, maskTensorInt16Cnt);
+    PipeBarrier<PIPE_V>();
+    PipeBarrier<PIPE_V>();
+    GatherMask(expertIdsTensor_, expertIdsTensor_, gatherMaskTensor_, true, maskCnt, {1, 1, 0, 0}, sendToMoeExpTokenCnt_);
+    SyncFunc<AscendC::HardEvent::V_S>();
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::GenerateGatherMaskTensor(uint32_t maskCnt)
+{
+    Duplicate<uint32_t>(gatherMaskTensor_, 0, Ceil(expertIdsCnt_, UB_ALIGN));
+    PipeBarrier<PIPE_V>();
+    uint32_t cnt = maskCnt / UB_ALIGN;
+    uint32_t remain = maskCnt % UB_ALIGN;
+    if (cnt != 0) {
+        Duplicate<uint32_t>(gatherMaskTensor_, 0xFFFFFFFF, cnt);
+    }
+
+    if (remain != 0) {
+        gatherMaskTensor_(cnt) = (0xffffffff) >> (UB_ALIGN - remain);
+    }
+    PipeBarrier<PIPE_V>();
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::ZeroComputeExpertMaskCal()
+{
+    uint32_t maskCnt = expertIdsCnt_;
+    if (isTokenMaskFlag_) { // 一维
+        maskCnt = activeMaskBsCnt_ * axisK_;
+    }
+
+    if (!isExpertMaskFlag_) { // 非二维要生成gatherMaskTensor_
+        GenerateGatherMaskTensor(maskCnt);
+    }
+
+    // 零计算量专家剪枝
+    MaskZeroComputeExpert(maskCnt);
+}
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::activeMaskProc()
+{
+    uint32_t expertIdsSize = expertIdsCnt_ * sizeof(int32_t);
+    expertIdsSize = Ceil(expertIdsSize, UB_ALIGN) * UB_ALIGN;
+    expertIdsBufSize_ = Ceil(expertIdsCnt_ * sizeof(int32_t), SIZE_ALIGN_256) * SIZE_ALIGN_256; // 支持compareScalar
+    tpipe_->InitBuffer(dstExpBuf_, expertIdsBufSize_);           // BS * K * 4
+    tpipe_->InitBuffer(subExpBuf_, expertIdsBufSize_);           // BS * K * 4
+    tpipe_->InitBuffer(gatherMaskTBuf_, expertIdsBufSize_);      // BS * K * 4 
+    tpipe_->InitBuffer(expertIdsBuf_, expertIdsBufSize_);
+    dstExpIdTensor_ = dstExpBuf_.Get<int32_t>();
+    subExpIdTensor_ = subExpBuf_.Get<int32_t>();
+    gatherMaskTensor_ = gatherMaskTBuf_.Get<uint32_t>();
+    LocalTensor<uint8_t> gatherMaskTensorInt8 = gatherMaskTBuf_.Get<uint8_t>();
+    expertIdsTensor_ = expertIdsBuf_.Get<int32_t>();
+    validExpertIdsTensor_ = expertIdsBuf_.Get<int32_t>();
+    if (isExpertMaskFlag_ || (zeroComputeExpertNum_ != 0)) {
+        uint32_t axisBSAlign = Ceil(axisBS_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN;
+        tpipe_->InitBuffer(validBsIndexTBuf_, axisBSAlign);
+        validBsIndexTensor_ = validBsIndexTBuf_.Get<int32_t>();
+        tpipe_->InitBuffer(validExpertIndexBuf_, expertIdsSize); // BS * K * 4
+    }
+    activeMaskBsCnt_ = axisBS_;
+    sendToMoeExpTokenCnt_ = axisBS_ * axisK_;
+
+    if (isTokenMaskFlag_) {
+        TokenActiveMaskCal();
+    }
+
+    if (isExpertMaskFlag_) {
+        ExpertActiveMaskCal();
+    }
+
+    if (zeroComputeExpertNum_ != 0) {
+        ZeroComputeExpertMaskCal();
+        isExpertMaskFlag_ = true;
+    }
+
+    Duplicate<int32_t>(validExpertIdsTensor_, -1, int32_t(expertIdsBufSize_ / sizeof(int32_t))); // 0x3F800000为float的1,0xBF800000 为float的1
+    PipeBarrier<PIPE_V>();
+    if (isExpertMaskFlag_) {
+        LocalTensor<int32_t> tmpExpertIdsTensor = subExpBuf_.Get<int32_t>();
+        LocalTensor<float> tmpExpertIdsTensorFloat = subExpBuf_.Get<float>();
+        DataCopyExtParams expertIdsCntParams1 = {1U, static_cast<uint32_t>(expertIdsCnt_ * sizeof(uint32_t)), 0U, 0U, 0U};
+        DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams1{false, 0U, 0U, 0U};
+        DataCopyPad(tmpExpertIdsTensor, expertIdsGMTensor_, expertIdsCntParams1, expertIdsCntCopyPadParams1);
+        SyncFunc<AscendC::HardEvent::MTE2_V>();
+        LocalTensor<float> validExpertIdsFloat = expertIdsBuf_.Get<float>();
+        Select(validExpertIdsFloat, gatherMaskTensorInt8, tmpExpertIdsTensorFloat, static_cast<float>(-1), SELMODE::VSEL_TENSOR_SCALAR_MODE, expertIdsBufSize_);
+    } else {
+        if (activeMaskBsCnt_ == 0) { // DataCopyPad不能拷贝0个
+            return;
+        }
+        uint32_t expertIdsAlignCnt = Ceil(expertIdsCnt_, 8) * 8; // 8 = UB_ALIGN / sizeof(int32_t)
+        uint32_t rightPadding = expertIdsAlignCnt - (activeMaskBsCnt_ * axisK_);
+        if (rightPadding > 8) {
+            rightPadding = rightPadding % 8;
+        }
+
+        // DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{true, 0U, uint8_t(expertIdsAlignCnt - expertIdsCnt_), -1};
+        DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{true, 0U, uint8_t(rightPadding), -1}; // rightPadding字节数不能超过32，不能超过8个u32
+        DataCopyExtParams expertIdsCntParams{1U, static_cast<uint32_t>(activeMaskBsCnt_ * axisK_ * sizeof(uint32_t)), 0U, 0U, 0U}; // 第二个参数blockLen 范围[1，2097151] 不能为0
+        // 拷贝bs*k个专家id 到local  补齐到32字节对齐   bs*k = 3*3 =9  expertIdsAlignCnt = 16 补7个 填充moeExpertNum_
+        DataCopyPad(validExpertIdsTensor_, expertIdsGMTensor_, expertIdsCntParams, expertIdsCntCopyPadParams);
+        SyncFunc<AscendC::HardEvent::MTE2_S>();
+    }
+}
+
+
+template <TemplateMC2TypeClass>
+__aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::Process()
 {
     if ASCEND_IS_AIV {          // 全aiv处理
+        activeMaskProc();
         if (aivId_ == lastCore_) {
             CalCumSum();        // 最后一个核发送当前卡给每个专家的tokenCnt，输出epRecvCnt/exportTokenNums
         } else {
