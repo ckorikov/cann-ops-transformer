@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "../../op_kernel/distribute_barrier_tiling.h"
+#include "../../op_kernel/distribute_barrier_tiling_key.h"
 // #include "graph/utils/op_desc_utils.h"   // 依赖 ge
 #include "graph/utils/type_utils.h"
 #include "mc2_hcom_topo_info.h"
@@ -36,6 +37,7 @@
 
 using namespace AscendC;
 using namespace ge;
+using namespace Mc2Tiling;
 
 namespace optiling {
 constexpr uint64_t INIT_TILINGKEY = 10000UL;
@@ -205,7 +207,7 @@ ge::graphStatus DistributeBarrierTilingFunc(gert::TilingContext *context) {
   SetHcommCfg(context, tilingData, group);
 
   // Set TilingKey
-  uint64_t tilingKey = INIT_TILINGKEY;
+  uint64_t tilingKey = GET_TPL_TILING_KEY(static_cast<bool>(false));
   OPS_LOG_D(A_INNER_DEBUG_BARRIER, "cur case tilingKey is %lu", tilingKey);
   context->SetTilingKey(tilingKey);
 

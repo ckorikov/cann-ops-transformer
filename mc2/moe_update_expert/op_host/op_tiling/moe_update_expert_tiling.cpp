@@ -21,6 +21,7 @@
 #include "register/op_def_registry.h"
 #include "register/op_impl_registry.h"
 #include "../../op_kernel/moe_update_expert_tiling.h"
+#include "../../op_kernel/moe_update_expert_tiling_key.h"
 
 using namespace ge;
 using namespace AscendC;

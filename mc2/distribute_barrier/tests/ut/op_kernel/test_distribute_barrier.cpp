@@ -8,9 +8,6 @@
 #include "distribute_barrier_tiling_def.h"
 #include "../../../op_kernel/moe_distribute_base.h"
 
-extern "C" __global__ __aicore__ void distribute_barrier(GM_ADDR xRef, GM_ADDR timeOut, GM_ADDR elasticInfo,
-                                                         GM_ADDR xRefOut, GM_ADDR workspaceGM, GM_ADDR tilingGM);
-
 extern uint8_t* g_hcclContextReserved[2];
 
 class distribute_barrier_test : public testing::Test {
@@ -29,7 +26,7 @@ protected:
     }
 };
 
-TEST_F(distribute_barrier_test, distribute_barrier_test_10000) {
+TEST_F(distribute_barrier_test, distribute_barrier_test_compile) {
     AscendC::SetKernelMode(KernelMode::MIX_MODE);
     size_t sysWorkspaceSize = 16 * 1024 * 1024;
     size_t usrWorkspaceSize = 0;
@@ -50,7 +47,12 @@ TEST_F(distribute_barrier_test, distribute_barrier_test_10000) {
     uint8_t *xRefOut = (uint8_t *)AscendC::GmAlloc(1024 * sizeof(uint16_t));
 
     ICPU_SET_TILING_KEY(100000);
-    ICPU_RUN_KF(distribute_barrier, 48, xRef, nullptr, nullptr, xRefOut, workspace, tiling);
+    auto distribute_barrier_wrapper = [](GM_ADDR xRef, GM_ADDR timeOut, GM_ADDR elasticInfo, 
+                                         GM_ADDR xRefOut, GM_ADDR workspaceGM, GM_ADDR tilingGM) {
+        // moe算子手写同步在UT中无法验证，所以目前使用不存在的模板以跑完算子的cpp，用以验证编译
+        distribute_barrier<true>(xRef, timeOut, elasticInfo, xRefOut, workspaceGM, tilingGM);
+    };
+    ICPU_RUN_KF(distribute_barrier_wrapper, 48, xRef, nullptr, nullptr, xRefOut, workspace, tiling);
 
     AscendC::GmFree((void*)workspace);
     AscendC::GmFree((void*)tiling);

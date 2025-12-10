@@ -37,7 +37,7 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling)
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 10000UL;
+    uint64_t expectTilingKey = 0UL;
     std::string expectTilingData = "8 16 20 196352 0 0 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
@@ -88,7 +88,7 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out)
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 10000UL;
+    uint64_t expectTilingKey = 0UL;
     std::string expectTilingData = "8 16 20 196352 0 1 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
@@ -111,7 +111,7 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_elastic_info)
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 10000UL;
+    uint64_t expectTilingKey = 0UL;
     std::string expectTilingData = "8 16 20 196352 0 256 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
@@ -134,7 +134,7 @@ TEST_F(DistributeBarrierTiling, distribute_barrier_test_tiling_time_out_elastic_
         {{"group", Ops::Transformer::AnyValue::CreateFrom<std::string>("group")},
          {"world_size", Ops::Transformer::AnyValue::CreateFrom<int64_t>(16)}},
         &compileInfo, "Ascend910_93", coreNum, ubSize);
-    uint64_t expectTilingKey = 10000UL;
+    uint64_t expectTilingKey = 0UL;
     std::string expectTilingData = "8 16 20 196352 0 257 ";
     std::vector<size_t> expectWorkspaces = {16777216};
     uint64_t mc2TilingDataReservedLen = 42;
