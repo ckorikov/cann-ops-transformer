@@ -662,16 +662,8 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::InitBuffers(TPipe 
 template <typename FIAT, typename Config>
 __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::AllocEventID()
 {
-    for (uint32_t i = 0; i < L1_Q_BUFCNT; ++i) {
-        SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + i);
-    }
-
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         SetFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
-    }
-
-    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
-        SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
     }
 
     SetFlag<HardEvent::M_MTE1>(L0AB_EVENT0);
@@ -684,16 +676,8 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::AllocEventID()
 template <typename FIAT, typename Config>
 __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::FreeEventID()
 {
-    for (uint32_t i = 0; i < L1_Q_BUFCNT; ++i) {
-        WaitFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + i);
-    }
-
     for (uint32_t i = 0; i < L1_KP_BUFCNT; ++i) {
         WaitFlag<HardEvent::MTE1_MTE2>(KP_EVENT0 + i);
-    }
-
-    for (uint32_t i = 0; i < L1_V_BUFCNT; ++i) {
-        WaitFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + i);
     }
 
     WaitFlag<HardEvent::M_MTE1>(L0AB_EVENT0);
@@ -982,6 +966,9 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm1(const R
             uint32_t qBufId;
             if (unlikely(!reuseQBuf)) {
                 qBufId = this->qL1BufId;
+                // 在需要搬入Q前才去Set MTE1->MTE2事件，而不是在L0算完后就去Set，是考虑到buf的生命周期可能跨越多轮MM1计算,
+                // 如果前一次MM1计算还未完成，还在复用Q_L1 buf，后一个MM1计算就开始搬入，就会覆盖前一次计算的数据
+                SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + qBufId);
                 WaitFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + qBufId);
                 CopyQToL1(qBufId, info, mL1.start, mL1.sizeAct);
 
@@ -1035,7 +1022,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm1(const R
                 }
             }
             if (unlikely(!reuseQBuf)) {
-                SetFlag<HardEvent::MTE1_MTE2>(Q_EVENT0 + qBufId);
                 this->qL1BufId = (this->qL1BufId + 1) % L1_Q_BUFCNT;
                 reuseQBuf = canFullLoadQ;
             }
@@ -1104,6 +1090,8 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm2(const R
             uint32_t vBufId;
             if (unlikely(!reuseVBuf)) {
                 vBufId = this->vL1BufId;
+                // V_L1 buf的生命周期跨越整个mL1的迭代，理论上应该在mL1迭代完成时Set MTE1->MTE2事件。为简化代码实现，在下一次需要搬入V时才去Set
+                SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + vBufId);
                 WaitFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + vBufId);
                 CopyVToL1(vBufId, info, kL1.start, kL1.sizeAct);
 
@@ -1146,7 +1134,6 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::ComputeMm2(const R
             }
 
             if (unlikely(!reuseVBuf)) {
-                SetFlag<HardEvent::MTE1_MTE2>(V_EVENT0 + vBufId);
                 this->vL1BufId = (this->vL1BufId + 1) % L1_V_BUFCNT;
                 reuseVBuf = canFullLoadV;
             }
