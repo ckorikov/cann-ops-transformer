@@ -184,19 +184,19 @@ std::string SFALayoutToSerialString(SFALayout layout)
     }
 }
 
-ge::graphStatus SFAMlaTiling::SetBlockDim(uint32_t blockDim)
+ge::graphStatus SFAMlaTiling::SetBlockDim(uint32_t blockDim) const
 {
     context_->SetBlockDim(blockDim);
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus SFAMlaTiling::SetTilingKey(uint64_t tilingKey)
+ge::graphStatus SFAMlaTiling::SetTilingKey(uint64_t tilingKey) const
 {
     context_->SetTilingKey(tilingKey);
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus SFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize)
+ge::graphStatus SFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize) const
 {
     OP_CHECK_IF(context_->GetWorkspaceSizes(1) == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "workSpaceSize got from ge is nullptr"),
@@ -206,7 +206,7 @@ ge::graphStatus SFAMlaTiling::SetWorkspaceSize(uint64_t workspaceSize)
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus SFAMlaTiling::SetTilingData(TilingDef &tilingData)
+ge::graphStatus SFAMlaTiling::SetTilingData(TilingDef &tilingData) const
 {
     OP_CHECK_IF(context_->GetRawTilingData() == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(context_->GetNodeName(), "RawTilingData got from GE context is nullptr."),
@@ -247,7 +247,7 @@ void SFAMlaTiling::GenTilingKey()
     OP_LOGI(sfaInfo_->opName, "SFA tilingKey_: %lu.", tilingKey_);
 }
 
-void SFAMlaTiling::ZeroTensorProcess()
+void SFAMlaTiling::ZeroTensorProcess()  const
 {
     if (sfaInfo_->s2Size == 0) {
         /*
@@ -385,7 +385,7 @@ void SFAMlaTiling::FillTiling()
     FillTilingSingleCoreTensorSizeMla();
 }
 
-uint32_t SFAMlaTiling::CalcBalanceFDParamNums(const uint32_t actCoreNum)
+uint32_t SFAMlaTiling::CalcBalanceFDParamNums(const uint32_t actCoreNum)  const
 {
     return actCoreNum * 2 * sfaInfo_->n2Size * mBaseSize_; // 2:每个核可能有头规约和尾规约，一共两份规约信息
 }
@@ -490,7 +490,7 @@ ge::graphStatus TilingSparseFlashAttention(gert::TilingContext *context)
     return tiling.DoOpTiling(&sfaInfo);
 }
 
-ge::graphStatus TilingPrepareForSparseFlashAttention(gert::TilingParseContext *context)
+ge::graphStatus TilingPrepareForSparseFlashAttention(gert::TilingParseContext* const context)
 {
     (void)context;
     return ge::GRAPH_SUCCESS;
@@ -508,10 +508,6 @@ ge::graphStatus SFATilingCheck::GetExpectedShape(gert::Shape &shapeExpected,
     } else {
         OP_LOGE(opName_, "layout %s is unsupported", SFALayoutToSerialString(layout).c_str());
         return ge::GRAPH_FAILED;
-    }
-    if(shapeExpected.GetDim(0) == 0){
-        OP_LOGE(opName_, "expected shape is %s, the first dim should not be 0.", GetShapeStr(shapeExpected).c_str());
-        return ge::GRAPH_PARAM_INVALID;
     }
     return ge::GRAPH_SUCCESS;
 }
@@ -699,11 +695,10 @@ ge::graphStatus SFATilingCheck::CheckSingleParaSparseMode() const
 
 ge::graphStatus SFATilingCheck::CheckSingleParaSparseBlockSize() const
 {
-    OP_CHECK_IF((*opParamInfo_.sparseBlockSize <= 0),
-        OP_LOGE(opName_, "sparseBlockSize should be greater than 0, but got: %ld.", *opParamInfo_.sparseBlockSize),
-        return ge::GRAPH_FAILED);
-    OP_CHECK_IF((*opParamInfo_.sparseBlockSize > 128),
-        OP_LOGE(opName_, "sparseBlockSize should not be greater than 128, but got: %ld.", *opParamInfo_.sparseBlockSize),
+    OP_CHECK_IF((*opParamInfo_.sparseBlockSize <= 0 || *opParamInfo_.sparseBlockSize > 128 ||
+        (static_cast<uint64_t>(*opParamInfo_.sparseBlockSize) & static_cast<uint64_t>(*opParamInfo_.sparseBlockSize - 1L)) != 0UL),
+        OP_LOGE(opName_, "sparseBlockSize should be be in range [1, 128] and be a power of 2, but got: %ld.",
+            *opParamInfo_.sparseBlockSize),
         return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -876,11 +871,11 @@ ge::graphStatus SFATilingCheck::CheckParaExistence()
 }
 
 ge::graphStatus SFATilingCheck::GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-    const SFALayout &layoutQuery, const std::string &name)
+    const SFALayout &layout, const std::string &name) const
 {
     if (tensor == nullptr) {
         OP_LOGE(opName_, "when layout of query is %s, %s must be provided.",
-            SFALayoutToSerialString(layoutQuery).c_str(), name.c_str());
+            SFALayoutToSerialString(layout).c_str(), name.c_str());
         return ge::GRAPH_FAILED;
     }
     int64_t shapeSize = tensor->GetShapeSize();
@@ -1445,7 +1440,7 @@ ge::graphStatus SFAInfoParser::CheckRequiredParaExistence() const
 }
 
 ge::graphStatus SFAInfoParser::GetActualSeqLenSize(uint32_t &size, const gert::Tensor *tensor,
-    SFALayout &layout, const std::string &name)
+    SFALayout &layout, const std::string &name) const
 {
     if ((tensor == nullptr)) {
         OP_LOGE(opName_, "when layout of query is %s, %s must be provided.",
@@ -1491,7 +1486,7 @@ ge::graphStatus SFAInfoParser::GetNpuInfo()
 
     socVersion_ = ascendcPlatform.GetSocVersion();
     if (socVersion_ != platform_ascendc::SocVersion::ASCEND910B) {
-        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", (int32_t)socVersion_);
+        OPS_REPORT_VECTOR_INNER_ERR(opName_, "SOC Version[%d] is not support.", static_cast<int32_t>(socVersion_));
         return GRAPH_FAILED;
     }
 
@@ -1743,6 +1738,11 @@ ge::graphStatus SFAInfoParser::GetValueHeadDim()
 
 ge::graphStatus SFAInfoParser::GetRopeHeadDim()
 {
+    if (queryShape_.GetDimNum() != queryRopeShape_.GetDimNum()) {
+        OP_LOGE(opName_, "The dimensions of query and query_rope should be equal, but query has dimension %zu while query_rope has dimension %zu.",
+                queryShape_.GetDimNum(), queryRopeShape_.GetDimNum());
+        return ge::GRAPH_PARAM_INVALID;
+    }
     ropeHeadDim_ = GetAxisNum(queryRopeShape_, SFAAxis::D, qLayout_);
     return ge::GRAPH_SUCCESS;
 }
