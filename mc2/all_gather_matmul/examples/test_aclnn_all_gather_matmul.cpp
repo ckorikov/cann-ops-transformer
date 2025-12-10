@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     }
     for (int i = 0; i < DEV_NUM; i++) {
         auto hcclRet = HcclCommDestroy(comms[i]);
-        CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", ret); return    -1);
+        CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", hcclRet); return    -1);
     }
     aclFinalize();
     return 0;

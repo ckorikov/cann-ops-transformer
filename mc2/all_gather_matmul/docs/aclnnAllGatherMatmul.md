@@ -76,7 +76,7 @@ aclnnStatus aclnnAllGatherMatmul(
           <td>x1</td>
           <td>输入</td>
           <td>Device侧的aclTensor，即计算公式中的x1。</td>
-          <td><li>支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持两维shape输入，且仅支持不转置场景。</li></td>
+          <td><li>不支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持两维shape输入，且仅支持不转置场景。</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -86,7 +86,7 @@ aclnnStatus aclnnAllGatherMatmul(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
+          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -264,7 +264,7 @@ aclnnStatus aclnnAllGatherMatmul(
     - m为空，k不为空，n不为空；
     - m不为空，k不为空，n为空；
     - m为空，k不为空，n为空。
-- 输出为2维，其shape为(m*rank_size, n), rank_size为卡数。
+- 输出为2维，其shape为(m*rank_size，n)，rank_size为卡数。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持2、4、8卡，并且仅支持hccs链路all mesh组网。
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持hccs链路double ring组网。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
@@ -474,7 +474,7 @@ aclnnStatus aclnnAllGatherMatmul(
         }
         for (int i = 0; i < DEV_NUM; i++) {
             auto hcclRet = HcclCommDestroy(comms[i]);
-            CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", ret); return    -1);
+            CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", hcclRet); return    -1);
         }
         aclFinalize();
         return 0;
