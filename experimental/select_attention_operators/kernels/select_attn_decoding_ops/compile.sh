@@ -15,7 +15,7 @@ fi
 
 # to place the .so library there
 mkdir -p lib
-rm -f lib/quest_block_select.so
+rm -f lib/libquest_block_select_paged.so
 
 # normal compilation
 bisheng -fPIC -shared -xcce -O2 -std=c++17 \
@@ -24,12 +24,4 @@ bisheng -fPIC -shared -xcce -O2 -std=c++17 \
     -I${ASCEND_TOOLKIT_HOME}/compiler/tikcpp/tikcfw/impl \
     -I${ASCEND_TOOLKIT_HOME}/compiler/tikcpp/tikcfw/interface \
     -I${ASCEND_TOOLKIT_HOME}/include \
-    -o lib/libquest_block_select.so quest_block_select_paged.cpp
-
-bisheng -fPIC -shared -xcce -O2 -std=c++17 \
-    --cce-soc-version=$SOC_VERSION --cce-soc-core-type=VecCore \
-    -I${ASCEND_TOOLKIT_HOME}/compiler/tikcpp/tikcfw \
-    -I${ASCEND_TOOLKIT_HOME}/compiler/tikcpp/tikcfw/impl \
-    -I${ASCEND_TOOLKIT_HOME}/compiler/tikcpp/tikcfw/interface \
-    -I${ASCEND_TOOLKIT_HOME}/include \
-    -o lib/libquest_block_select_paged.so quest_block_select.cpp
+    -o lib/libquest_block_select_paged.so quest_block_select_paged.cpp

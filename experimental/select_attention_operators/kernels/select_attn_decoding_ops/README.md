@@ -1,15 +1,10 @@
 # Decoding Operators Python Library
 
-Two variations of operator `quest_block_select` are implemented in this directory. The operator allows to predict the top k important KV-blocks based on their metadata (maxblock and minblock) and the incoming query. The implementation is a vector-only kernel that follows the [Quest ICML2024 paper](https://arxiv.org/abs/2406.10774). We extend the original implementation with GQA support: query heads are grouped and averaged such that the prediction of the importnat k blocks are returned per KV-head and not per attention head. 
-- variation 1 - quest_block_select_paged() - allows passing arbitrary number of tokens
-- variation 2 - quest_block_select() - simplified - single metadatablock (16k tokens support) but a but faster.
-
+Operator `quest_block_select_paged` is implemented in this directory. The operator allows to predict the top k important KV-blocks based on their metadata (maxblock and minblock) and the incoming query. The implementation is a vector-only kernel that follows the [Quest ICML2024 paper](https://arxiv.org/abs/2406.10774). We extend the original implementation with GQA support: query heads are grouped and averaged such that the prediction of the importnat k blocks are returned per KV-head and not per attention head. 
 
 ![image info](images/quest_block_diagram_emphasize_block_select.png) 
 
-## 1 - Quest Block Select Paged (predictor) operator - VLLM compatible
-
-This operator extends the `quest_block_select` functionality to work with arbitrary number of metadata blocks, which is essential for handling variable-length sequences efficiently in attention mechanisms. The metadaa is managed in VLLM-compatible metadata blocks, which can be stored in the same blocks as the KV-cache.
+This operator supports arbitrary number of metadata blocks, which is essential for handling variable-length sequences efficiently in attention mechanisms. The metadaa is managed in VLLM-compatible metadata blocks, which can be stored in the same blocks as the KV-cache.
 
 ```text
 Input:
@@ -108,83 +103,6 @@ ids = quest_block_select_paged(query, maxblocks, minblocks, metadata_block_table
 1. improve bf16 performance by tiling across block size dimension - to not allocate huge 64KB buffers for maxblock and minblock, and to enable full double buffering when loading the minblocks and the maxblocks
 2. add "sink_size" and "local_window_size" parameters to allow forcing first and last blocks to be included in the selected top-k blocks
 
-## 2 - Quest Block Selection (predictor) operator - single block support
-
-
-```text
-Input:
-    query - fp16 tensor of shape (B,H,D)
-    maxblock - fp16 tensor of shape (B,N,BLOCK_SIZE,D) - for every batch,kvhead - the BLOCK_SIZE per-page max-metadata vectors
-    minblock - fp16 tensor of shape (B,N,BLOCK_SIZE,D) - for every batch,kvhead - the BLOCK_SIZE per-page mix-metadata vectors
-    k - integer specifying how many block-indices to return for each kv-head
-
-Algorithm steps:
-1. For every batch, reduce-mean the query tensor across H dimension 
-    such that every group of H/N vectors of shape D are reduced to one vector
-    of shape D denotes as "grouped_query[b,n]".
-2. For each batch b and KV-head h:
-    2.1. product_max, product_min = Elementwise-multiply grouped_query[b,n] with each maxblock[b,n] and minblock[b,n] vector
-    2.2. channel_max_product = Elementwise-max between the two products (product_min, product_max)
-    2.3. block_scores = Reduce-sum the last dimension of approx_attention (D to 1)
-    2.4. selected_values, selected_indices = Find the top-k indices in the last dimension out of the BLOCK_SIZE numbers 
-3. Return selected_indices
-```
-The operator prototype is as follows.  
-```c++
-/** @brief Interface the `quest` kernel.
- *
- * @param [in] query Pointer to the query vector [B,H,D]
- * @param [in] maxblock Pointer to the quet metadata with the maximum vectors of every K block [B,N,BLOCK_SIZE,D]
- * @param [in] minblock Pointer to the quet metadata with the minimum vectors of every K block [B,N,BLOCK_SIZE,D]
- * @param [in] k number of highest indices to return for every KV head
- * @param [out] selected_indices Pointer to output indices vector. [B,N,k] 
- */
-at::Tensor quest_block_select(at::Tensor query,
-                              at::Tensor maxblock,
-                              at::Tensor minblock,
-                              int k
-)
-```
-
-Operator sizing parameters are:
- - `B` - batch size
- - `N` - number of KV heads
- - `H` - number of attention (aka query) heads, must be a multiple of N
- - `BLOCK_SIZE` - number of tokens that fits in one maxblock and one minblock (default: 128)
- - `D` - head dimension (default: 128)
- - `k` - number of important block indices to return for each KV head (top-k, default:8)
- 
-
-### Build the operators and their torch extension
-
-```bash
-./build.sh
-```
-
-### Usage
-Once the operator was built, it can be used in your python code as follows:
-```python
-import torch
-import torch_npu
-from select_attn_decoding_ops import quest_block_select
-
-# create dummy inputs
-B, H, N, BLOCK_SIZE, D, k = 20, 32, 8, 128, 128, 8
-dtype = torch.float16
-device="npu:0"
-query = torch.empty(B, H, D, dtype=dtype).uniform_(-1, 1).to(device).contiguous()
-maxblock = torch.empty(B, N, BLOCK_SIZE, D, dtype=dtype).uniform_(-1, 1).to(device).contiguous()
-minblock = torch.empty(B, N, BLOCK_SIZE, D, dtype=dtype).uniform_(-1, 1).to(device).contiguous()
-
-# run the quest operator
-ids = quest_block_select(query, maxblock, minblock, k)  # ([B, N, k], [B, N, k])
-
-```
-
-### TODOs
-
-1. Support bf16 - or rely on the user to maintain the metadata in float16 (half)
-
 ## Good practices
-1. If you only modify the operator files `quest_block_select.cpp` or `quest_block_select_paged.cpp`, you need to only re-run compile.sh to start observing the effect.
+1. If you only modify the operator file `quest_block_select_paged.cpp`, you need to only re-run compile.sh to start observing the effect.
 2. If you modify the `torch_interface.cpp`, you need to rebuild the select_attn_decoding_ops python package using build.sh.
