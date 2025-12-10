@@ -420,6 +420,10 @@ ge::graphStatus FiaTilingCheck::CheckFeaturePSE() const
             OP_LOGE(opName_, "when pse_shift exists, query_rope and key_rope should be not exist and the head_dim(D) "
                              "dimension of query and key should be equal to the head_dim(D) dimension of value."),
             return ge::GRAPH_FAILED);
+            
+        OP_CHECK_IF(kvLayout_ == FiaLayout::NZ,
+            OP_LOGE(opName_, "when pse_shift exists and Page Attention enabled, the dim of key/value's layout can't be 5."),
+            return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
 }
