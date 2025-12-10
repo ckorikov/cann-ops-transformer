@@ -1313,7 +1313,7 @@ __aicore__ inline void MoeDistributeDispatchV2<TemplateMC2TypeFunc>::activeMaskP
             rightPadding = rightPadding % 8;
         }
 
-        // DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{true, 0U, uint8_t(expertIdsAlignCnt - expertIdsCnt_), -1};
+
         DataCopyPadExtParams<int32_t> expertIdsCntCopyPadParams{true, 0U, uint8_t(rightPadding), -1}; // rightPadding字节数不能超过32，不能超过8个u32
         DataCopyExtParams expertIdsCntParams{1U, static_cast<uint32_t>(activeMaskBsCnt_ * axisK_ * sizeof(uint32_t)), 0U, 0U, 0U}; // 第二个参数blockLen 范围[1，2097151] 不能为0
         // 拷贝bs*k个专家id 到local  补齐到32字节对齐   bs*k = 3*3 =9  expertIdsAlignCnt = 16 补7个 填充moeExpertNum_
