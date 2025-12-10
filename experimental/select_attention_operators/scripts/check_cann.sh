@@ -1,0 +1,47 @@
+#!/bin/bash
+# This script checks that the SOC version and the NUM_CORES is properly 
+# configured for the compilation of the kernels and of the torch interfaces.
+
+check_cann_environment() {
+    # Check if first argument is "true" for 
+    local verbose=false
+    if [[ "$1" == "true" ]]; then
+        verbose=true
+    fi
+
+    # Check if NumCoresMap is declared (indicates init_cann.sh was sourced)
+    if ! declare -p NumCoresMap &>/dev/null; then
+        echo "Error: NumCoresMap is not declared"
+        echo "Please run: source init_cann.sh [SOC_VERSION] first"
+        return 1
+    fi
+
+    # Check if SOC_VERSION is set and valid
+    if [ -z "$SOC_VERSION" ]; then
+        echo "Error: SOC_VERSION environment variable is not set"
+        echo "Please run: source init_cann.sh [SOC_VERSION]"
+        echo "Valid SOC_VERSION values: ${!NumCoresMap[@]}"
+        return 1
+    fi
+
+    if [[ ! -v NumCoresMap["$SOC_VERSION"] ]]; then
+        echo "Error: Invalid SOC_VERSION '$SOC_VERSION'"
+        echo "Valid values: ${!NumCoresMap[@]}"
+        return 1
+    fi
+
+    # Check if NUM_CORES is set
+    if [ -z "$NUM_CORES" ]; then
+        echo "Error: NUM_CORES environment variable is not set"
+        echo "Please run: source init_cann.sh [SOC_VERSION] first"
+        return 1
+    fi
+
+    if [[ "$verbose" == "true" ]]; then
+        echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
+        echo "SOC_VERSION=$SOC_VERSION"
+        echo "NUM_CORES=$NUM_CORES"
+    fi
+
+    return 0
+}

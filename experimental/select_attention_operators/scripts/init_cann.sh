@@ -1,0 +1,36 @@
+#!/bin/bash
+# This script sets up the required paths in order to use CANN libraries
+# in the compilation and running of th's project's kernels.
+# Usage: source init_cann.sh [SOC_VERSION]
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# number of davinci cores in a single Ascend NPU device
+source $script_dir/num_cores_map.sh
+if [ $# -ne 1 ]; then
+    echo "Usage: source $0 [SOC_VERSION]"
+    echo "Valid SOC_VERSION values: ${!NumCoresMap[@]}"
+    return 1 2>/dev/null || exit 1
+fi
+
+SOC_VERSION=$1
+
+# Validate SOC_VERSION input
+if [[ ! -v NumCoresMap["$SOC_VERSION"] ]]; then
+    echo "Error: Invalid SOC_VERSION '$SOC_VERSION'"
+    echo "Valid values: ${!NumCoresMap[@]}"
+    return 1 2>/dev/null || exit 1
+fi
+
+source $CONDA_HOME/bin/activate sa
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+export LD_LIBRARY_PATH=/usr/local/Ascend/driver/lib64/driver:$LD_LIBRARY_PATH
+
+# Export SOC_VERSION and NUM_CORES environment variables
+export SOC_VERSION="$SOC_VERSION"
+export NUM_CORES="${NumCoresMap[$SOC_VERSION]}"
+
+# Verify that everything is correctly set:
+source $script_dir/check_cann.sh
+check_cann_environment true
+
