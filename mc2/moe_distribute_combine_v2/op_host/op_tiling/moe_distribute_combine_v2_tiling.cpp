@@ -165,7 +165,6 @@ static void PrintTilingDataInfo(const char *nodeName, MoeDistributeCombineV2Tili
     OP_LOGD(nodeName, "totalUbSize is %lu.", tilingData.moeDistributeCombineV2Info.totalUbSize);
     OP_LOGD(nodeName, "totalWinSizeEP is %lu.", tilingData.moeDistributeCombineV2Info.totalWinSizeEp);
     OP_LOGD(nodeName, "totalWinSizeTP is %lu.", tilingData.moeDistributeCombineV2Info.totalWinSizeTp);
-    OP_LOGD(nodeName, "hasElastic is %d.", tilingData.moeDistributeCombineV2Info.hasElasticInfo);
 }
 
 static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *context,
@@ -336,7 +335,7 @@ static bool CheckInputTensorDim(const gert::TilingContext *context, const char *
 }
 
 static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, const char *nodeName,
-    const bool isActiveMask, const bool hasElasticInfo)
+    const bool isActiveMask)
 {
     const gert::StorageShape* oriXStorageShape = context->GetOptionalInputShape(ORI_X_INDEX);
     if (oriXStorageShape != nullptr) {
@@ -395,15 +394,6 @@ static bool CheckOptionalInputTensorDim(const gert::TilingContext *context, cons
             OP_LOGE(nodeName, "xActiveMask must be 1-dimension or 2-dimension, but got %ld dim",
             xActiveMaskDimNums), return false);
     }
-    if (hasElasticInfo) {
-        const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
-        OP_TILING_CHECK(elasticInfoStorageShape == nullptr, OP_LOGE(nodeName, "elasticInfo is null."), return false);
-        OP_TILING_CHECK(elasticInfoStorageShape->GetStorageShape().GetDimNum() != ONE_DIM,
-            OP_LOGE(nodeName, "elasticInfo dim must be 1, but current dim num is %lu.",
-            elasticInfoStorageShape->GetStorageShape().GetDimNum()), return false);
-        OP_LOGD(nodeName, "elasticInfo dim0 = %ld", elasticInfoStorageShape->GetStorageShape().GetDim(0));
-    }
-
     const gert::StorageShape *activationScaleStorageShape = context->GetOptionalInputShape(ACTIVATION_SCALE_INDEX);
     OP_TILING_CHECK(activationScaleStorageShape != nullptr, OP_LOGE(nodeName, "activationScale is not null."), return false);
 
@@ -441,12 +431,12 @@ static bool CheckOutputTensorDim(const gert::TilingContext *context, const char 
     return true;
 }
 
-static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName, const bool isActiveMask, const bool hasElasticInfo)
+static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName, const bool isActiveMask)
 {
     OP_TILING_CHECK(!CheckInputTensorDim(context, nodeName),
         OP_LOGE(nodeName, "param shape of input tensor is invalid"), return false);
 
-    OP_TILING_CHECK(!CheckOptionalInputTensorDim(context, nodeName, isActiveMask, hasElasticInfo),
+    OP_TILING_CHECK(!CheckOptionalInputTensorDim(context, nodeName, isActiveMask),
         OP_LOGE(nodeName, "param shape of optional input tensor is invalid"), return false);
 
     OP_TILING_CHECK(!CheckOutputTensorDim(context, nodeName),
@@ -456,7 +446,7 @@ static bool CheckTensorDim(gert::TilingContext *context, const char *nodeName, c
 }
 
 // 校验数据类型
-static bool CheckTensorDataType(const gert::TilingContext *context, const char *nodeName, const bool isActiveMask, const bool hasElasticInfo)
+static bool CheckTensorDataType(const gert::TilingContext *context, const char *nodeName, const bool isActiveMask)
 {
     auto expandXDesc = context->GetInputDesc(EXPAND_X_INDEX);
     OP_TILING_CHECK(expandXDesc == nullptr, OP_LOGE(nodeName, "expandxDesc is null."), return false);
@@ -532,13 +522,6 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
         OP_TILING_CHECK(xActiveMaskDesc->GetDataType() != ge::DT_BOOL, OP_LOGE(nodeName, "xActiveMask dataType is invalid,"
             " dataType should be bool, but is %s.", Ops::Base::ToString(xActiveMaskDesc->GetDataType()).c_str()), return false);
     }
-    if (hasElasticInfo) {
-        auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
-        OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
-        OP_TILING_CHECK(elasticInfoDesc->GetDataType() != ge::DT_INT32, OP_LOGE(nodeName,
-            "elasticInfoDesc dataType is invalid, dataType should be int32, but is %s.",
-            Ops::Base::ToString(elasticInfoDesc->GetDataType()).c_str()), return false);
-    }
     auto sharedExpertXDesc = context->GetOptionalInputDesc(SHARED_EXPERT_X_INDEX);
     if (sharedExpertXDesc != nullptr) {
         OP_TILING_CHECK(sharedExpertXDesc->GetDataType() != expandXDesc->GetDataType(),
@@ -560,7 +543,7 @@ static bool CheckTensorDataType(const gert::TilingContext *context, const char *
     return true;
 }
 
-static bool CheckTensorFormat(const gert::TilingContext *context, const char *nodeName, const bool isActiveMask, const bool hasElasticInfo)
+static bool CheckTensorFormat(const gert::TilingContext *context, const char *nodeName, const bool isActiveMask)
 {
     auto oriXDesc = context->GetOptionalInputDesc(ORI_X_INDEX);
     if (oriXDesc != nullptr) {
@@ -628,12 +611,6 @@ static bool CheckTensorFormat(const gert::TilingContext *context, const char *no
         OP_TILING_CHECK(xActiveMaskDesc == nullptr, OP_LOGE(nodeName, "xActiveMaskDesc is null."), return false);
         OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(xActiveMaskDesc->GetStorageFormat())) ==
             ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "xActiveMaskFormat is invalid."), return false);
-    }
-    if (hasElasticInfo) {
-        auto elasticInfoDesc = context->GetOptionalInputDesc(ELASTIC_INFO_INDEX);
-        OP_TILING_CHECK(elasticInfoDesc == nullptr, OP_LOGE(nodeName, "elasticInfoDesc is null."), return false);
-        OP_TILING_CHECK(static_cast<ge::Format>(ge::GetPrimaryFormat(elasticInfoDesc->GetStorageFormat())) ==
-            ge::FORMAT_FRACTAL_NZ, OP_LOGE(nodeName, "elasticInfo format is invalid."), return false);
     }
 
     auto sharedExpertXDesc = context->GetOptionalInputDesc(SHARED_EXPERT_X_INDEX);
@@ -812,7 +789,6 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
     uint32_t maxSharedGroupNum = 0;
     uint32_t localMoeExpertNum = tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum;
     int64_t tpWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.tpWorldSize);
-    bool hasElasticInfo = tilingData.moeDistributeCombineV2Info.hasElasticInfo;
 
     if ((sharedExpertNum != 0U) && (sharedExpertRankNum != 0U)) { // 除零保护
         rankNumPerSharedExpert = sharedExpertRankNum / sharedExpertNum;
@@ -824,14 +800,6 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
     A = isShared ? (maxBs * maxSharedGroupNum) : (globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
 
     const int64_t epWorldSize = static_cast<int64_t>(tilingData.moeDistributeCombineV2Info.epWorldSize);
-    if (hasElasticInfo) {
-        const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
-        const int64_t elasticInfoDim0 = elasticInfoStorageShape->GetStorageShape().GetDim(0);
-        OP_TILING_CHECK(elasticInfoDim0 != (ELASTIC_METAINFO_OFFSET + RANK_LIST_NUM * epWorldSize),
-            OP_LOGE(nodeName, "elasticInfo's dim0 not equal to 4 + 2 * epWorldSize, "
-            "elasticInfo's dim0 is %ld, epWorldSize is %ld.", elasticInfoDim0, epWorldSize), return false);
-        A = std::max( static_cast<int64_t>(maxBs * maxSharedGroupNum) , globalBs * std::min(static_cast<int64_t>(localMoeExpertNum), expertIdsDim1));
-    }
     tilingData.moeDistributeCombineV2Info.a = A;
     // 校验assistInfo的维度
     const gert::StorageShape *assistInfoStorageShape = context->GetInputShape(ASSIST_INFO_INDEX);
@@ -848,9 +816,6 @@ static bool CheckGroupInfoShape(const gert::TilingContext *context, MoeDistribut
     const int64_t tpSendCountDim0 = tpSendCountStorageShape->GetStorageShape().GetDim(0);
     int64_t localEpSendCountSize = (isShared) ? epWorldSize : epWorldSize * moeExpertPerRankNum;
 
-    if (hasElasticInfo) {
-        localEpSendCountSize = std::max(epWorldSize,epWorldSize * moeExpertPerRankNum);
-    }
     OP_TILING_CHECK(epSendCountDim0 < localEpSendCountSize * tpWorldSize, OP_LOGE(nodeName,
         "epSendCount's dim0 not greater than or equal to localEpSendCountSize * tpWorldSize, "
         "epSendCount's dim0 is %ld, localEpSendCountSize is %ld, tpWorldSize is %ld.", epSendCountDim0, localEpSendCountSize, tpWorldSize), return false);
@@ -980,8 +945,6 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
     OP_TILING_CHECK((localMoeExpertNum > 1) && (tpWorldSize > 1),
         OP_LOGE(nodeName, "Cannot support multi-moeExpert %u in a rank when tpWorldSize = %u > 1",
         localMoeExpertNum, tpWorldSize), return false);
-    OP_TILING_CHECK((tpWorldSize > 1) && (tilingData.moeDistributeCombineV2Info.hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo "
-        "when tpWorldSize = %u > 1", tpWorldSize), return false);
     tilingData.moeDistributeCombineV2Info.moeExpertPerRankNum = localMoeExpertNum;
 
     // 校验xDim0和globalBS
@@ -1006,16 +969,16 @@ static bool CheckAttrs(const gert::TilingContext *context, MoeDistributeCombineV
 }
 
 static ge::graphStatus TilingCheckMoeDistributeCombine(gert::TilingContext *context, const char *nodeName,
-    const bool isActiveMask, const bool hasElasticInfo)
+    const bool isActiveMask)
 {
     // 检查参数shape信息
-    OP_TILING_CHECK(!CheckTensorDim(context, nodeName, isActiveMask, hasElasticInfo),
+    OP_TILING_CHECK(!CheckTensorDim(context, nodeName, isActiveMask),
                     OP_LOGE(nodeName, "param shape is invalid"), return ge::GRAPH_FAILED);
     // 检查参数dataType信息
-    OP_TILING_CHECK(!CheckTensorDataType(context, nodeName, isActiveMask, hasElasticInfo),
+    OP_TILING_CHECK(!CheckTensorDataType(context, nodeName, isActiveMask),
                     OP_LOGE(nodeName, "param dataType is invalid"), return ge::GRAPH_FAILED);
     // 检查参数format信息
-    OP_TILING_CHECK(!CheckTensorFormat(context, nodeName, isActiveMask, hasElasticInfo),
+    OP_TILING_CHECK(!CheckTensorFormat(context, nodeName, isActiveMask),
                     OP_LOGE(nodeName, "param Format is invalid"), return ge::GRAPH_FAILED);
     return ge::GRAPH_SUCCESS;
 }
@@ -1146,7 +1109,6 @@ static ge::graphStatus MoeDistributeCombineA3TilingFuncImpl(gert::TilingContext*
     uint32_t localMoeExpertNum = 1;
     bool isActiveMask = false;
     uint32_t commQuantMode = 0U;
-    bool hasElasticInfo = false;
 
     // 获取入参属性
     OP_TILING_CHECK(GetAttrAndSetTilingData(context, *tilingData, nodeName, groupEp, groupTp, commQuantMode) == ge::GRAPH_FAILED,
@@ -1161,11 +1123,9 @@ static ge::graphStatus MoeDistributeCombineA3TilingFuncImpl(gert::TilingContext*
 
     // 获取elasticInfo
     const gert::StorageShape *elasticInfoStorageShape = context->GetOptionalInputShape(ELASTIC_INFO_INDEX);
-    hasElasticInfo = (elasticInfoStorageShape != nullptr);
-    tilingData->moeDistributeCombineV2Info.hasElasticInfo = hasElasticInfo;
 
     // 检查输入输出的dim、format、dataType
-    OP_TILING_CHECK(TilingCheckMoeDistributeCombine(context, nodeName, isActiveMask, hasElasticInfo) != ge::GRAPH_SUCCESS,
+    OP_TILING_CHECK(TilingCheckMoeDistributeCombine(context, nodeName, isActiveMask) != ge::GRAPH_SUCCESS,
                     OP_LOGE(nodeName, "Tiling check params failed"), return ge::GRAPH_FAILED);
 
     // 检查属性的取值是否合法
