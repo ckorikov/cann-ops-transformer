@@ -53,10 +53,13 @@ if __name__ == '__main__':
     tensor_dtbias = torch.randn([H], dtype=torch.float16, device=device) * 0.2
     tensor_dtmask = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.2
     
-    inputs = [tensor_at, tensor_dt, tensor_dtbias, tensor_dtmask]
-    dtout, dacs, dacs_chunk = profiling(mamba2_chunk_cumsum_forward, inputs, 'TORCH')
-    npu_dtout, npu_dacs, npu_dacs_chunk = profiling(torch.ops.npu_ops_transformer_ext.mambav2_chunk_cumsum, inputs, 'NPU_KERNEL')
+    dtout, dacs, dacs_chunk = mamba2_chunk_cumsum_forward(tensor_at, tensor_dt, tensor_dtbias, tensor_dtmask)
+    npu_dtout, npu_dacs, npu_dacs_chunk = torch.ops.npu_ops_transformer_ext.mambav2_chunk_cumsum(tensor_at, tensor_dt, tensor_dtbias, tensor_dtmask)
     
     check_diff(dtout.cpu(), npu_dtout.cpu())
     check_diff(dacs.cpu(), npu_dacs.cpu())
     check_diff(dacs_chunk.cpu(), npu_dacs_chunk.cpu())
+
+    inputs = [tensor_at, tensor_dt, tensor_dtbias, tensor_dtmask]
+    profiling(mamba2_chunk_cumsum_forward, inputs, 'TORCH')
+    profiling(torch.ops.npu_ops_transformer_ext.mambav2_chunk_cumsum, inputs, 'NPU_KERNEL')
