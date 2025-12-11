@@ -40,7 +40,7 @@ protected:
 
     __aicore__ inline void ComputeEachCore(uint32_t coreIdx);
 
-    __aicore__ inline void ComputeSoftmax(LocalTensor<mm1OutputType>& mmResUb, bool isInnerLoopStart);
+    __aicore__ inline void ComputeSoftmax(LocalTensor<mm1OutputType>& mmResUb, bool isInnerLoopStart, int32_t endIndex);
 };
 
 template<typename PFAT>
@@ -63,15 +63,15 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::SInnerLoopFunc(in
 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeSoftmax(LocalTensor<mm1OutputType>& mmResUb,
-    bool isInnerLoopStart) {
+    bool isInnerLoopStart, int32_t endIndex) {
     LocalTensor<uint8_t> sharedTmpUb = this->tmpSoftmaxFlashV2Ub_.template Get<uint8_t>(this->softMaxV2Size_);
 
     struct SoftMaxShapeInfo softmaxShapeInfo;
     softmaxShapeInfo.srcM = this->isOuterTail_ ? this->singleProcessSOuterSizeTailAlign : this->singleProcessSOuterSize;
-    softmaxShapeInfo.srcK = this->isInnerLoopLast_? this->singleProcessSInnerSizeTailAlign : this->singleProcessSInnerSize;
+    softmaxShapeInfo.srcK = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes) ? this->singleProcessSInnerSizeTailAlign : this->singleProcessSInnerSize;
 
     softmaxShapeInfo.oriSrcM = this->isOuterTail_ ? this->singleProcessSOuterSizeTail : this->singleProcessSOuterSize;
-    softmaxShapeInfo.oriSrcK = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
+    softmaxShapeInfo.oriSrcK = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes) ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
 
     if (!this->isHighPrecision_){
         LocalTensor<mmOutputType> tmpResUb = mmResUb.template ReinterpretCast<mmOutputType>();
@@ -104,18 +104,21 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
     this->a1Local_ = this->a1Buf_.template Get<mmInputType>();
     this->b1Local_ = this->b1Buf_.template Get<mmInputType>();
     int32_t outerSize, innerSize;
+    uint32_t maskOuterSize, maskInnerSize;
     /* step 1 fetch and compute bmm1*/
     if (this->isOuterLoopStart_) {
-        if (this->needCalMask_) {
-            this->AttenMaskCopyIn(this->attenMaskCoreOffset, this->singleProcessSInnerSize, 0);
-        }
+        this->isInnerLoopLast_ = (startIndex == endIndex - 1);
+        innerSize = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes) ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
         outerSize = this->isOuterTail_ ? this->singleProcessSOuterSizeTail : this->singleProcessSOuterSize;
+        if (this->needCalMask_) {
+            maskOuterSize = this->isOuterTail_ ? this->singleProcessSOuterSizeTailAlign : this->singleProcessSOuterSize;
+            maskInnerSize = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes)? this->singleProcessSInnerSizeTailAlign : this->singleProcessSInnerSize;
+            this->AttenMaskCopyIn(this->attenMaskCoreOffset, maskOuterSize, maskInnerSize, 0);
+        }
         this->fetchOuterSize_ = outerSize; // fetch outersize
         // L1 residency SetTensorA to Obtain L1
         this->CopyND2NZOnTheFly(this->a1Local_, this->queryGm[this->tensorACoreOffset], outerSize, 
             this->tilingData->promptAttentionBaseParams.headSize, this->queryStride, true);
-        this->isInnerLoopLast_ = (startIndex == endIndex - 1);
-        innerSize = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
         this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBCoreOffset], innerSize, 
             this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);
         if constexpr (PFAT::isMLAScence) {
@@ -128,7 +131,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             qkDstOffset = calcQKWidth * calcHeightAlign * AscendC::CUBE_MAX_SIZE;
             this->CopyND2NZOnTheFly(this->b1Local_[qkDstOffset], this->keyRopeGM[this->tensorKRopeCoreOffset], innerSize, 
                 this->tilingData->promptAttentionBaseParams.ropeHeadSize, this->kRopeStride, true);
-        }       
+        }
         this->Bmm1Compute(this->a1Local_, this->b1Local_, outerSize, innerSize,
                           this->tilingData->promptAttentionBaseParams.headSize +
                           this->tilingData->promptAttentionBaseParams.ropeHeadSize);
@@ -146,14 +149,15 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
 
         /*step 2 muls scale*/
         outerSize = this->isOuterTail_ ? this->singleProcessSOuterSizeTail : this->singleProcessSOuterSize;
-        innerSize = this->isInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
-        this->ElewiseCompute310P(mmResUb, this->singleProcessSInnerSize, this->singleProcessSOuterSize);
+        innerSize = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes) ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
+        maskOuterSize = this->isOuterTail_ ? this->singleProcessSOuterSizeTailAlign : this->singleProcessSOuterSize;
+        maskInnerSize = (this->isInnerLoopLast_ && endIndex == this->maxInnerLoopTimes)? this->singleProcessSInnerSizeTailAlign : this->singleProcessSInnerSize;
+        this->ElewiseCompute310P(mmResUb, maskInnerSize, maskOuterSize);
         PipeBarrier<PIPE_V>();
         /* softmax compute*/
         bool isInnerLoopStart = sInnerLoopIdx == startIndex;
         this->ComputeOffset(sInnerLoopIdx, this->isInnerLoopLast_);
-        this->ComputeSoftmax(mmResUb, isInnerLoopStart);
-     
+        this->ComputeSoftmax(mmResUb, isInnerLoopStart, endIndex);
         LocalTensor<mmOutputType> bmm2ResUb;
         if (isInnerLoopStart) {
             bmm2ResUb = this->tempBmm2Ub.template Get<mmOutputType>(this->bmm2ResUbSize);
@@ -165,7 +169,9 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             if (this->needCalMask_) {
                 SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
                 WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
-                this->AttenMaskCopyIn(this->attenMaskOffset, this->singleProcessSInnerSize, 0);
+                maskOuterSize = ((this->isNextOuterLoopLast_ && this->isInnerLoopLast_) || this->isOuterLoopLast_) ? this->singleProcessSOuterSizeTailAlign : this->singleProcessSOuterSize;
+                maskInnerSize = (this->isNextInnerLoopLast_ && endIndex == this->maxInnerLoopTimes)? this->singleProcessSInnerSizeTailAlign : this->singleProcessSInnerSize;
+                this->AttenMaskCopyIn(this->attenMaskOffset, maskOuterSize, maskInnerSize, 0);
             }           
         }
         event_t eventID = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));
@@ -184,12 +190,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
             PipeBarrier<PIPE_V>();
             SetFlag<HardEvent::V_MTE1>(eventIDV_MTE1);
             WaitFlag<HardEvent::V_MTE1>(eventIDV_MTE1);
-            this->Bmm2Compute(tmpSoftmaxResUb);
+            this->Bmm2Compute(tmpSoftmaxResUb, endIndex);
             event_t eventIDMTE1_MTE3= static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE1_MTE3));
             SetFlag<HardEvent::MTE1_MTE3>(eventIDMTE1_MTE3);
             WaitFlag<HardEvent::MTE1_MTE3>(eventIDMTE1_MTE3);
         } else{
-            this->Bmm2Compute(mmResUb);
+            this->Bmm2Compute(mmResUb, endIndex);
         }
         this->bmm2.template Iterate<false>();
         this->bmm2.template GetTensorC<false>(bmm2ResUb, false, true);
@@ -218,7 +224,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310<PFAT>::ComputeEachCoreSI
         }
         /*pre compute mm1 right matrix if not the tile*/
         if (!(this->isInnerLoopLast_ && this->isOuterLoopLast_)) {
-            innerSize = this->isNextInnerLoopLast_ ? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
+            innerSize = (this->isNextInnerLoopLast_  && endIndex == this->maxInnerLoopTimes)? this->singleProcessSInnerSizeTail : this->singleProcessSInnerSize;
             this->CopyND2NZOnTheFly(this->b1Local_, this->keyGm[this->tensorBOffset], innerSize, 
                 this->tilingData->promptAttentionBaseParams.headSize, this->keyValueStride, true);
             if constexpr (PFAT::isMLAScence) {

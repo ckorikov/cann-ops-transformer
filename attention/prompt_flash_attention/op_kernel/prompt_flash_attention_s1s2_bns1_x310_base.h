@@ -270,9 +270,9 @@ protected:
 
     __aicore__ inline void ElewiseCompute310P(LocalTensor<mm1OutputType>& mmResUb, uint32_t SInnerSize, uint32_t SOuterSize);
 
-    __aicore__ inline void AttenMaskCopyIn(uint64_t offset, uint32_t sinnerSize, uint32_t sInnerIdx);
+    __aicore__ inline void AttenMaskCopyIn(uint64_t offset, uint32_t souterSize, uint32_t sinnerSize, uint32_t sInnerIdx);
 
-    __aicore__ inline void AttenMaskTransND2NZ(uint32_t SInnerSize, uint32_t SOuterSize);
+    __aicore__ inline void AttenMaskTransND2NZ(uint32_t sInnerSize, uint32_t sOuterSize, uint32_t sInnerSizeAlign32, uint32_t sOuterSizeAlign32);
 
     __aicore__ inline void SoftmaxBasicComputeFirstTail(LocalTensor<mm1OutputType>& mmResUb,
                                                           LocalTensor<float>& softmaxMaxUb, LocalTensor<float>& softmaxSumUb,
@@ -301,7 +301,7 @@ protected:
     __aicore__ inline void Bmm2UpdateDivNoTail310PTmp(LocalTensor<mmOutputType>& bmm2ResPreUb,
                                                LocalTensor<mmOutputType>& softmaxSumUb, LocalTensor<softmaxType>& softmaxExpUb);
 
-    __aicore__ inline void Bmm2Compute(LocalTensor<mmOutputType>& bmm2ResL1);
+    __aicore__ inline void Bmm2Compute(LocalTensor<mmOutputType>& bmm2ResL1, int32_t endIndex);
 
     __aicore__ inline void UpdateVmul(LocalTensor<softmaxType>& softmaxExpUb);
 
@@ -569,64 +569,70 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::InitTensorSiz
 }
 
 template<typename PFAT>
-__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::AttenMaskCopyIn(uint64_t offset,
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::AttenMaskCopyIn(uint64_t offset, uint32_t souterSize,
                                                                                              uint32_t sinnerSize,
                                                                                              uint32_t sInnerLoopIdx) {
-    LocalTensor<U> attenMaskUb = this->attenMaskUb_.template Get<U>(this->attenMaskUbSize);
-    attenMaskUb.SetSize(this->singleProcessSOuterSize * sinnerSize);
+    uint32_t maskTypeByteNum = UB_ALIGN_NZ / sizeof(U);
+    uint32_t sInnerSizeAlign32 = (sinnerSize + maskTypeByteNum - 1) / maskTypeByteNum * maskTypeByteNum;
+    uint32_t sOuterSizeAlign32 = (souterSize + maskTypeByteNum - 1) / maskTypeByteNum * maskTypeByteNum;
+    uint32_t seqInnerSizeAlign32 = (this->tilingData->promptAttentionBaseParams.seqInnerSize + maskTypeByteNum - 1) /
+                                   maskTypeByteNum * maskTypeByteNum;
+    LocalTensor<U> attenMaskUb = this->attenMaskUb_.template Get<U>(sInnerSizeAlign32 * sOuterSizeAlign32);
+    attenMaskUb.SetSize(sInnerSizeAlign32 * sOuterSizeAlign32);
     DataCopyParams intriParams;
-    intriParams.blockCount = this->singleProcessSOuterSize;
-    intriParams.blockLen = sinnerSize / this->maskTypeByteNum;
-    intriParams.srcStride = (this->tilingData->promptAttentionBaseParams.seqInnerSize - sinnerSize) /
-                            this->maskTypeByteNum;
+    intriParams.blockCount = sOuterSizeAlign32;
+    intriParams.blockLen = sInnerSizeAlign32 / this->maskTypeByteNum;
+    intriParams.srcStride = (seqInnerSizeAlign32 - sInnerSizeAlign32) / this->maskTypeByteNum;
     intriParams.dstStride = 0;
-
     DataCopy(attenMaskUb, this->attenMaskGm[offset], intriParams);
-    SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
-    WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
-    this->AttenMaskTransND2NZ(this->singleProcessSInnerSize, this->singleProcessSOuterSize);
+    this->AttenMaskTransND2NZ(sinnerSize, souterSize, sInnerSizeAlign32, sOuterSizeAlign32);
 }
 
 template<typename PFAT>
-__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::AttenMaskTransND2NZ(uint32_t SInnerSize, uint32_t SOuterSize)
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::AttenMaskTransND2NZ(uint32_t sInnerSize,
+                                                                                       uint32_t sOuterSize,
+                                                                                       uint32_t sInnerSizeAlign32,
+                                                                                       uint32_t sOuterSizeAlign32)
 {
     struct DataCopyParams dataCopyParams;
-    LocalTensor<int8_t> tmpUb2 = this->attenMaskUb_.template Get<int8_t>(this->attenMaskUbSize);
-    LocalTensor<mmOutputType> tmpUb = this->tmpSoftmaxFlashV2Ub_.template Get<mmOutputType>(this->attenMaskUbSize);
+    LocalTensor<U> tmpUb2 = this->attenMaskUb_.template Get<U>(sInnerSizeAlign32 * sOuterSizeAlign32);
+    LocalTensor<mmOutputType> tmpUb = this->tmpSoftmaxFlashV2Ub_.template Get<mmOutputType>(sInnerSize * sOuterSize);
     SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
-    Cast(tmpUb, tmpUb2, RoundMode::CAST_NONE, tmpUb.GetSize());
+    uint8_t dstRepStride = static_cast<uint8_t>(sInnerSize * sizeof(mmOutputType) / UB_ALIGN_NZ);
+    uint8_t srcRepStride = static_cast<uint8_t>(sInnerSizeAlign32 * sizeof(U) / UB_ALIGN_NZ);
+    // dstBlkStride, srcBlkStride = 1, no gap between blocks in one repeat
+    Cast(tmpUb, tmpUb2, RoundMode::CAST_NONE, sInnerSize, sOuterSize, {1, 1, dstRepStride, srcRepStride});
     PipeBarrier<PIPE_V>();
-    int32_t calHigh = (SOuterSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
-    dataCopyParams.blockCount = SOuterSize;
+    int32_t calWidth = (sInnerSize + BLOCK_CUBE - 1) / BLOCK_CUBE;
+    dataCopyParams.blockCount = sOuterSize;
     dataCopyParams.blockLen = 1;
-    dataCopyParams.srcStride = SInnerSize / BLOCK_CUBE - 1;
+    dataCopyParams.srcStride = sInnerSize / BLOCK_CUBE - 1;
     dataCopyParams.dstStride = 0;
-    LocalTensor<mmOutputType> attenMaskUb = this->attenMaskUb_.template Get<mmOutputType>(this->attenMaskUbSize);
-    for(int i = 0; i < calHigh; i++) {
-        DataCopy(attenMaskUb[i * BLOCK_CUBE * singleProcessSOuterSize], tmpUb[i * BLOCK_CUBE], dataCopyParams);
+    LocalTensor<mmOutputType> attenMaskUb = this->attenMaskUb_.template Get<mmOutputType>(sInnerSize * sOuterSize);
+    for(int i = 0; i < calWidth; i++) {
+        DataCopy(attenMaskUb[i * BLOCK_CUBE * sOuterSize], tmpUb[i * BLOCK_CUBE], dataCopyParams);
     }
     PipeBarrier<PIPE_V>();
-    Muls(attenMaskUb, attenMaskUb, static_cast<mmOutputType>(-10000.0), SOuterSize * SInnerSize);
+    Muls(attenMaskUb, attenMaskUb, static_cast<mmOutputType>(-10000.0), sOuterSize * sInnerSize);
 }
 
 template<typename PFAT>
-__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ElewiseCompute310P(LocalTensor<mm1OutputType>& mmResUb, uint32_t SInnerSize, uint32_t SOuterSize) {
-    uint32_t computeSize = SInnerSize * SOuterSize;
-    
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ElewiseCompute310P(LocalTensor<mm1OutputType>& mmResUb, uint32_t sInnerSize, uint32_t sOuterSize) {
+    uint32_t computeSize = sInnerSize * sOuterSize;
     Muls(mmResUb, mmResUb, static_cast<mm1OutputType>(tilingData->promptAttentionBaseParams.scaleValue), computeSize);
     PipeBarrier<PIPE_V>();
     if (needCalMask_) {
         if constexpr (IsSameType<mm1OutputType, float>::value) {
-            LocalTensor<mmOutputType> attenMaskUb = this->attenMaskUb_.template Get<mmOutputType>(this->attenMaskUbSize);
-            LocalTensor<mm1OutputType> tmpUb = this->tmpSoftmaxFlashV2Ub_.template Get<mm1OutputType>(this->attenMaskUbSize);
+            LocalTensor<mmOutputType> attenMaskUb = this->attenMaskUb_.template Get<mmOutputType>(sInnerSize * sOuterSize);
+            LocalTensor<mm1OutputType> tmpUb = this->tmpSoftmaxFlashV2Ub_.template Get<mm1OutputType>(sInnerSize * sOuterSize);
             Cast(tmpUb, attenMaskUb, RoundMode::CAST_NONE, tmpUb.GetSize());
             PipeBarrier<PIPE_V>();
             Add(mmResUb, mmResUb, tmpUb, computeSize);
             PipeBarrier<PIPE_V>();     
         }
         else{
-            LocalTensor<mmOutputType> tmpUb = this->attenMaskUb_.template Get<mmOutputType>(this->attenMaskUbSize);
+            LocalTensor<mmOutputType> tmpUb = this->attenMaskUb_.template Get<mmOutputType>(sInnerSize * sOuterSize);
             Add(mmResUb, mmResUb, tmpUb, computeSize);
             PipeBarrier<PIPE_V>();
         }   
@@ -790,14 +796,13 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2UpdateDiv
 }
 
 template<typename PFAT>
-__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2Compute(LocalTensor<mmOutputType>& bmm2ResL1) {
+__aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::Bmm2Compute(LocalTensor<mmOutputType>& bmm2ResL1, int32_t endIndex) {
     bmm2.SetTensorA(bmm2ResL1);
     bmm2.SetTensorB(c1Local_);
 
     int32_t singleM = isOuterTail_ ? singleProcessSOuterSizeTailAlign : singleProcessSOuterSize;
     int32_t singleN = tilingData->promptAttentionBaseParams.headSize;
-    int32_t singleK = isInnerLoopLast_ ? singleProcessSInnerSizeTailAlign : singleProcessSInnerSize;
-
+    int32_t singleK = (isInnerLoopLast_ && endIndex == maxInnerLoopTimes) ? singleProcessSInnerSizeTailAlign : singleProcessSInnerSize;
     bmm2.SetOrgShape(singleM, singleN, singleK);
     bmm2.SetTail(singleM, singleN, singleK);
 }
@@ -847,12 +852,12 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::UpdateVmul(Lo
 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X310Base<PFAT>::ComputeAttenMaskOffset(uint32_t sInnerLoopIdx, bool isLast) {
-    int32_t attenMaskOffsetDateSize = 0;
-    if (!isLast) {
-        attenMaskOffsetDateSize = (sInnerLoopIdx + 1) * singleProcessSInnerSize;
-        attenMaskOffset = attenMaskCoreOffset + (uint64_t)attenMaskOffsetDateSize;
+    uint64_t attenMaskOffsetDateSize = 0;
+    if (!isOuterLoopLast_ && isInnerLoopLast_) {
+        attenMaskOffset = attenMaskCoreOffset + singleProcessSOuterSize * (uint64_t)tilingData->promptAttentionBaseParams.maskKVsSize;
     } else {
-        attenMaskOffset = attenMaskCoreOffset + this->singleProcessSOuterSize * (uint64_t)tilingData->promptAttentionBaseParams.maskKVsSize;
+        attenMaskOffsetDateSize = (sInnerLoopIdx + 1) * singleProcessSInnerSize;
+        attenMaskOffset = attenMaskCoreOffset + (sInnerLoopIdx + 1) * singleProcessSInnerSize;
     }
 }
 
