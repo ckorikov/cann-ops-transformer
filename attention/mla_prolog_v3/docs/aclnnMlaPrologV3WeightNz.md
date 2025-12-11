@@ -162,7 +162,7 @@ aclnnStatus aclnnMlaPrologV3WeightNz(
   | kNopeClipAlphaOptional     | 输入      | 表示对kvCache做clip操作时的缩放因子，Device侧的aclTensor。  | - 不支持空Tensor | FLOAT  | ND | (1)    |×   |
   | rmsnormEpsilonCq           | 输入      | 计算$c^Q$的RmsNorm公式中的$\epsilon$参数，Host侧参数。        | - 用户未特意指定时，建议传入1e-05 - 仅支持double类型 | DOUBLE         | -          | - |-   |
   | rmsnormEpsilonCkv          | 输入      | 计算$c^{KV}$的RmsNorm公式中的$\epsilon$参数，Host侧参数。   | - 用户未特意指定时，建议传入1e-05 - 仅支持double类型   | DOUBLE         | -          | -  |-   |
-  | cacheModeOptional          | 输入      | 表示kvCache的模式，Host侧参数。| - 用户未特意指定时，建议传入"PA_BSND" <br> - 仅支持char*类型 <br> - 可选值为："PA_BSND"、"PA_NZ"、"PA_BLK_BSND"、"PA_BLK_NZ"、"BSND"、"TND" | CHAR*          | -          | - |-   |
+  | cacheModeOptional          | 输入      | 表示kvCache的模式，Host侧参数。| - 用户未特意指定时，建议传入"PA_BSND" <br> - 仅支持char*类型 <br> - 可选值为： "PA_BSND"、"PA_NZ"、"PA_BLK_BSND"、"PA_BLK_NZ"、"BSND"、"TND" | CHAR*          | -          | - |-   |
   | queryNormFlag     | 输入      | 表示是否输出query_norm，Host侧参数。  | - False表示不输出query_norm，true表示输出queryNormOptional，默认值为false | BOOL  | -- | --    |-   |
   | weightQuantMode     | 输入      | 表示weight_dq、weight_uq_qr、weight_uk、weight_dkv_kr的量化模式，Host侧参数。  | - 0表示非量化，1表示weight_uq_qr量化，2表示weight_dq、weight_uq_qr、weight_dkv_kr量化，默认值为0 | INT  | -- | --    |-   |
   | kvCacheQuantMode     | 输入      | 表示kv_cache的量化模式，Host侧参数。  | - 0表示非量化，1表示per-tensor量化，2表示per-channel量化，3-表示per-tile量化，默认值为0| INT64  | -- | --    |-   |
