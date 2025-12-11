@@ -34,7 +34,8 @@ def mamba2_chunk_state_forward(dtout, dacs, bt, xt, num_repeats):
     
     bt_repeated_tensor = torch.repeat_interleave(bt, num_repeats, dim=3).float()
     dab = bt_repeated_tensor * torch.reshape(da, (B, C, L, H, 1))   
-    out = dab.permute(0,1,3,4,2) @ xt.to(torch.float32).permute(0, 1, 3, 2, 4)
+    dab = dab.permute(0,1,3,4,2).to(torch.float16)
+    out = dab.to(torch.float32) @ xt.to(torch.float32).permute(0, 1, 3, 2, 4)
     
     return out
     
