@@ -134,7 +134,7 @@ macro(add_modules_sources)
     message(STATUS "skip add_modules_sources...")
 endmacro()
 
-set(PARENT_DIRS attention attention/mambav2 ffn gmm mc2 moe posembedding)
+set(PARENT_DIRS attention mamba ffn gmm mc2 moe posembedding)
 set(OPERATOR_TARGETS "")
 
 foreach(DIR_NAME ${PARENT_DIRS})
