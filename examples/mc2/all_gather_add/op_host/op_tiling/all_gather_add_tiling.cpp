@@ -77,7 +77,7 @@ static ge::graphStatus AllGatherAddTilingFunc(gert::TilingContext *context) {
     tilingData->blockElemNum = tilingData->totalElemNum / tilingData->commTurn / context->GetBlockDim(); // 每次Add计算只处理前一次通信结果长度的数据
     tilingData->addTileElemNum = tilingData->blockElemNum / tilingData->tileNum;
     uint32_t rankSize = *context->GetAttrs()->GetAttrPointer<uint32_t>(static_cast<int>(1));
-    tilingData->coresPerRank = context->GetBlockDim() / rankSize;
+    tilingData->addCoresPerRank = context->GetBlockDim() / rankSize;
     tilingData->gatherTileElemNum = tilingData->totalElemNum / rankSize / tilingData->commTurn;
     
     // 设置workspaceSize gather out需要额外的临时内存，大小与b输入一致
