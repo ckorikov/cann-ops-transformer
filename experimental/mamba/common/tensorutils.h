@@ -11,35 +11,21 @@
 #pragma once
 #include "kernel_operator.h"
 
-
-
-#ifdef JUSTFORHINTER
-// just for type hinting.
-#undef __aicore__
-#define __aicore__
-#include "stub_fun.h"
-#endif 
-
-namespace npu_ops_transformer_ext {
-namespace Mambav2Rmsnormgated {
-
+namespace npu_ops_transformer_ext{
 using namespace AscendC;
-
 #define PIPE_FIX (pipe_t)10
 
-#define ALLCUBE_READY(iiii) CrossCoreSetFlag<0x0, PIPE_FIX>(iiii)
+#define ALLCUBE_READY(iiii, append_to_pipe) CrossCoreSetFlag<0x0, append_to_pipe>(iiii)
 #define ALLCUBE_WAIT(iiii) CrossCoreWaitFlag(iiii)
-#define ALLVEC_READY(iiii) CrossCoreSetFlag<0x0, PIPE_MTE3>(iiii)
+#define ALLVEC_READY(iiii, append_to_pipe) CrossCoreSetFlag<0x0, append_to_pipe>(iiii)
 #define ALLVEC_WAIT(iiii) CrossCoreWaitFlag(iiii)
-#define CUBE_READY(iiii) CrossCoreSetFlag<0x2, PIPE_FIX>(iiii)
+#define CUBE_READY(iiii, append_to_pipe) CrossCoreSetFlag<0x2, append_to_pipe>(iiii)
 #define WAIT_CUBE(iiii) CrossCoreWaitFlag(iiii)
-#define VEC_READY(iiii) CrossCoreSetFlag<0x2, PIPE_MTE3>(iiii)
+#define VEC_READY(iiii, append_to_pipe) CrossCoreSetFlag<0x2, append_to_pipe>(iiii)
 #define WAIT_VEC(iiii) CrossCoreWaitFlag(iiii)
 
+constexpr uint64_t VECTORFULLMASK[2] = {(uint64_t)-1, (uint64_t)-1};
 
-#ifdef __DAV_C310__
-constexpr FixpipeConfig CFG_ROW_MAJOR_UB = {CO2Layout::ROW_MAJOR, true};
-#endif 
 
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){
@@ -90,7 +76,6 @@ __aicore__ inline void OccupyMMTE1Events(){
     }
 }
 
-
 __aicore__ constexpr int Align16B(int x){
     return (x + 15) / 16 * 16;
 }
@@ -126,7 +111,6 @@ __aicore__ inline T1 shiftAddr(T1 base, uint64_t size, T2 &offset){
     return res;
 }
 
-
 /* ------------- Tensor ------------- */ 
 template <TPosition pos, typename T>
 __aicore__ inline void AllocateLocalTensor(LocalTensor<T> &tsr, int len){
@@ -136,11 +120,7 @@ __aicore__ inline void AllocateLocalTensor(LocalTensor<T> &tsr, int len){
     tsr = tbuf.template Get<T>();
 }
 
-/* ------------- Tensor ------------- */ 
-
-
 /* ------------- Double Buffer ------------- */ 
-
 template <typename T, TPosition pos>
 class DBuff{
 public:
@@ -164,12 +144,37 @@ private:
     TBuf<pos> buf1, buf2;
     LocalTensor<T> tsr1, tsr2;
 };
-/* ------------- Double Buffer ------------- */ 
 
-
+/* ------------- Triple Buffer ------------- */ 
+template <typename T, TPosition pos>
+class TBuff{
+public:
+    __aicore__ inline TBuff(){}
+    __aicore__ inline void Init(int len){
+        TPipe* ptr = GetTPipePtr();
+        ptr->InitBuffer(buf1, len * sizeof(T));
+        ptr->InitBuffer(buf2, len * sizeof(T));
+        ptr->InitBuffer(buf3, len * sizeof(T));
+        tsr1 = buf1.template Get<T>();
+        tsr2 = buf2.template Get<T>();
+        tsr3 = buf3.template Get<T>();
+    }
+    
+    __aicore__ inline LocalTensor<T> get(int i){
+        if (i%3==0){
+            return tsr1;
+        }else if (i%3==1){
+            return tsr2;
+        }else{
+            return tsr3;
+        }
+    }
+private:
+    TBuf<pos> buf1, buf2, buf3;
+    LocalTensor<T> tsr1, tsr2, tsr3;
+};
 
 /* ------------- Events ------------- */ 
-
 template <pipe_t p1, pipe_t p2>
 class SEvent{
 public:
@@ -194,8 +199,6 @@ public:
 private:
     event_t id1;
 };
-
-
 
 template <pipe_t p1, pipe_t p2>
 class DEvent{
@@ -238,18 +241,16 @@ private:
     int set_cnt = 0;
 };
 
-
-
 /* ------------- Funcs -------------- */
 template<typename T>
-__aicore__ inline void L1ND2NZ(LocalTensor<T> dst, GlobalTensor<T> src, int h, int w, int W){
+__aicore__ inline void L1ND2NZ(LocalTensor<T> dst, GlobalTensor<T> src, int h, int w, int W, int Hdst){
     Nd2NzParams param;
     param.ndNum = 1;
     param.nValue = h;
     param.dValue = w;
     param.srcNdMatrixStride = 0;
     param.srcDValue = W;
-    param.dstNzC0Stride = (h + 32/sizeof(T) - 1) / (32 / sizeof(T)) * (32 / sizeof(T));
+    param.dstNzC0Stride = (Hdst + 15) / 16 * 16;
     param.dstNzNStride = 1;
     param.dstNzMatrixStride = 0;
     DataCopy(dst, src, param);
@@ -267,118 +268,57 @@ __aicore__ inline void GM2L1(LocalTensor<T> dst, GlobalTensor<T> src, int nBurst
 
 template <typename T>
 __aicore__ inline void L0NZ2ZZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-#ifdef __DAV_C220__
     LoadData2DParams param;
     param.repeatTimes = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
     param.srcStride = (msrc+15)/16;
 
     for (int i=0; i<(mdst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((ndst+15)/16*16)].ptr(), src[i*16*16].ptr(), 0, (ndst+15)/16, (msrc+15)/16, 0, 0, false, (addr_cal_mode_t)0);
         LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
     }
-#elif __DAV_C310__
-    LoadData2DParamsV2 param;
-    param.mStep = 1;
-    param.kStep = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
-    param.dstStride = 1;
-    for (int i=0; i<(mdst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((ndst+15)/16*16)].ptr(), src[i*16*16].ptr(), 0, (ndst+15)/16, (msrc+15)/16, 0, 0, false, (addr_cal_mode_t)0);
-        LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
-    }
-#endif
 }
-
 
 template<typename T> 
 __aicore__ inline void L0NZ2ZN(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-#ifdef __DAV_C220__
     LoadData2DParams param;
     param.repeatTimes = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
     param.srcStride = (msrc+15)/16;
     param.ifTranspose = true;
 
     for (int i=0; i<(mdst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((ndst+15)/16*16)].ptr(), src[i*16*16].ptr(), 0, (ndst+15)/16, (msrc+15)/16, 0, 0, true, (addr_cal_mode_t)0);
         LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
     }
-#elif __DAV_C310__
-    LoadData2DParamsV2 param;
-    param.mStep = 1;
-    param.kStep = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
-    param.dstStride = 1;
-    param.ifTranspose = true;
-    for (int i=0; i<(mdst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((ndst+15)/16*16)].ptr(), src[i*16*16].ptr(), 0, (ndst+15)/16, (msrc+15)/16, 0, 0, false, (addr_cal_mode_t)0);
-        LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
-    }
-#endif 
 }
 
 template<typename T> 
 __aicore__ inline void L0NZ2NZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-#ifdef __DAV_C220__
     LoadData2DParams param;
     param.repeatTimes = (mdst+15)/16;
     param.srcStride = 1;
 
     for (int i=0; i<(ndst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((mdst+15)/16*16)].ptr(), src[16*i*((msrc+15)/16*16)].ptr(), 0, (mdst+15)/16, 1, 0, 0, false, (addr_cal_mode_t)0);
         LoadData(dst[16*i*((mdst+15)/16*16)], src[16*i*((msrc+15)/16*16)], param);
     }
-#elif __DAV_C310__
-    LoadData2DParamsV2 param;
-    param.mStep = (mdst+15)/16;
-    param.kStep = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
-    param.dstStride = (mdst+15)/16;
-    LoadData(dst, src, param);
-#endif 
 }
-
 
 template<typename T> 
 __aicore__ inline void L0NZ2NN(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-#ifdef __DAV_C220__
     LoadData2DParams param;
     param.repeatTimes = (mdst+15)/16;
     param.srcStride = 1;
     param.ifTranspose = true;
 
     for (int i=0; i<(ndst+15)/16; ++i){
-        // load_cbuf_to_ca(dst[16*i*((mdst+15)/16*16)].ptr(), src[16*i*((msrc+15)/16*16)].ptr(), 0, (mdst+15)/16, 1, 0, 0, false, (addr_cal_mode_t)0);
         LoadData(dst[16*i*((mdst+15)/16*16)], src[16*i*((msrc+15)/16*16)], param);
     }
-#elif __DAV_C310__
-    LoadData2DParamsV2 param;
-    param.mStep = (mdst+15)/16;
-    param.kStep = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
-    param.dstStride = (mdst+15)/16;
-    param.ifTranspose = true;
-    LoadData(dst, src, param);
-#endif 
 }
-
 
 template<typename T> 
 __aicore__ inline void LOADL0(LocalTensor<T> dst, LocalTensor<T> src, int m, int n){
-#ifdef __DAV_C220__
     LoadData2DParams param;
     param.repeatTimes = m*n*sizeof(T)/32/16;
     param.srcStride = 1;
     LoadData(dst, src, param);
-#elif __DAV_C310__
-    LoadData2DParamsV2 param;
-    param.mStep = 1;
-    param.kStep = m*n*sizeof(T)/32/16;
-    param.srcStride = 1;
-    param.dstStride = 1;
-    LoadData(dst, src, param);
-#endif 
 }
-
 
 template<typename T>
 __aicore__ inline void GM2UB(LocalTensor<T> dst, GlobalTensor<T> src, int nBurst, int burstLen, int srcStride, int dstStride){
@@ -401,33 +341,38 @@ __aicore__ inline void UB2GM(GlobalTensor<T> dst, LocalTensor<T> src, int nBurst
 }
 
 template<typename T>
+__aicore__ inline void GM2UBPad(LocalTensor<T> dst, GlobalTensor<T> src, int nBurst, int burstLen, int srcStride, int dstStride, bool isPad, int leftPadding, int rightPadding, uint64_t paddingValue){
+    DataCopyParams param;
+    DataCopyPadParams paramPad;
+    param.blockCount = nBurst;
+    param.blockLen = burstLen;
+    param.srcStride = srcStride;
+    param.dstStride = dstStride;
+
+    paramPad.isPad = isPad;
+    paramPad.leftPadding = leftPadding;
+    paramPad.rightPadding = rightPadding;
+    paramPad.paddingValue = paddingValue;
+    DataCopyPad(dst, src, param, paramPad);
+}
+
+template<typename T>
+__aicore__ inline void UB2GMPad(GlobalTensor<T> dst, LocalTensor<T> src, int nBurst, int burstLen, int srcStride, int dstStride){
+    DataCopyParams param;
+    param.blockCount = nBurst;
+    param.blockLen = burstLen;
+    param.srcStride = srcStride;
+    param.dstStride = dstStride;
+    DataCopyPad(dst, src, param);
+}
+
+template<typename T>
 __aicore__ inline void UB2UB(LocalTensor<T> dst, LocalTensor<T> src, int nBurst, int burstLen, int srcStride, int dstStride){
     DataCopyParams param;
     param.blockCount = nBurst;
     param.blockLen = burstLen;
     param.srcStride = srcStride;
     param.dstStride = dstStride;
-    DataCopy(dst, src, param);
-}
-
-template<typename T>
-__aicore__ inline void UB2L1(LocalTensor<T> dst, LocalTensor<T> src, int nBurst, int burstLen, int srcStride, int dstStride){
-    DataCopyParams param;
-    param.blockCount = nBurst;
-    param.blockLen = burstLen;
-    param.srcStride = srcStride;
-    param.dstStride = dstStride;
-    DataCopy(dst, src, param);
-}
-
-template<typename T>
-__aicore__ inline void UB2L1_NZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-    const int C0 = 32 / sizeof(T);
-    DataCopyParams param;
-    param.blockCount = (nsrc + C0 - 1) / C0;
-    param.blockLen = msrc;
-    param.srcStride = 0;
-    param.dstStride = (mdst + 15) / 16 * 16 - msrc;
     DataCopy(dst, src, param);
 }
 
@@ -457,24 +402,18 @@ __aicore__ inline void UB2UB_ND2NZ_COMPACT(LocalTensor<T> dst, LocalTensor<T> sr
     }
 }
 
-
 template <typename T, typename T2>
 __aicore__ inline void L0C2GM_NZ2ND(GlobalTensor<T> dst, LocalTensor<T2> src, int m, int n, int N, int nz_M, uint8_t uflag){
     QuantMode_t q;
     if constexpr(std::is_same<T, float>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, NoQuant, 0, false, true);
         q = NoQuant; 
     }else if constexpr(std::is_same<T, half>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, F322F16, 0, false, true);
         q = F322F16;
     }else if constexpr(std::is_same<T, bfloat16_t>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, F322BF16, 0, false, true);
         q = F322BF16;
     }else{
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, NoQuant, 0, false, true);
         q = NoQuant;
     }
-#ifdef __DAV_C220__
     FixpipeParamsV220 fixpipeParams;
     fixpipeParams.nSize = n;
     fixpipeParams.mSize = m;
@@ -485,15 +424,6 @@ __aicore__ inline void L0C2GM_NZ2ND(GlobalTensor<T> dst, LocalTensor<T2> src, in
     fixpipeParams.dstNdStride = 1;
     fixpipeParams.quantPre = q;
     Fixpipe(dst, src, fixpipeParams);
-#elif __DAV_C310__
-    FixpipeParamsC310 fixpipeParams;
-    fixpipeParams.nSize = n;
-    fixpipeParams.mSize = m;
-    fixpipeParams.srcStride = (nz_M+15)/16*16;
-    fixpipeParams.dstStride = N;
-    fixpipeParams.quantPre = q;
-    Fixpipe(dst, src, fixpipeParams);
-#endif
 }
 
 
@@ -501,31 +431,15 @@ template <typename T, typename T2>
 __aicore__ inline void L0C2UB_NZ2ND(LocalTensor<T> dst, LocalTensor<T2> src, int m, int n, int N, int nz_M, int dualMode, bool subBlkId){
     QuantMode_t q;
     if constexpr(std::is_same<T, float>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, NoQuant, 0, false, true);
         q = NoQuant; 
     }else if constexpr(std::is_same<T, half>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, F322F16, 0, false, true);
         q = F322F16;
     }else if constexpr(std::is_same<T, bfloat16_t>::value && std::is_same<T2, float>::value){
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, F322BF16, 0, false, true);
         q = F322BF16;
     }else{
-        // copy_matrix_cc_to_gm(dst.ptr(), src.ptr(), 0, n, m, N, (nz_M+15)/16*16, uflag, NoQuant, 0, false, true);
         q = NoQuant;
     }
-#ifdef __DAV_C310__
-    FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams;
-    fixpipeParams.nSize = n;
-    fixpipeParams.mSize = m;
-    fixpipeParams.srcStride = (nz_M+15)/16*16;
-    fixpipeParams.dstStride = N;
-    fixpipeParams.quantPre = q;
-    fixpipeParams.dualDstCtl = dualMode;
-    fixpipeParams.subBlockId = subBlkId;
-    Fixpipe<T, T2, CFG_ROW_MAJOR_UB>(dst, src, fixpipeParams);
-#endif
 }
-
 
 template <typename T1, typename T2, typename T3>
 __aicore__ inline void MMAD(LocalTensor<T1> dst, LocalTensor<T2> src0, LocalTensor<T3> src1, uint16_t m, uint16_t k, uint16_t n, bool cmatrixInitVal, uint8_t unitFlag){
@@ -534,9 +448,7 @@ __aicore__ inline void MMAD(LocalTensor<T1> dst, LocalTensor<T2> src0, LocalTens
     param.n = n;
     param.k = k;
     param.cmatrixInitVal = cmatrixInitVal;
-    // param.unitFlag = unitFlag;
     Mmad(dst, src0, src1, param);
 } 
 
-}
 }
