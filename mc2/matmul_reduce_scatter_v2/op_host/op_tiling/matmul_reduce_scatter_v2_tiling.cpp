@@ -13,13 +13,8 @@
  * \brief
  */
 #include <queue>
-#include <dlfcn.h>
-#include <fcntl.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -75,7 +70,7 @@ void MatmulReduceScatterV2Tiling::PrintAllTilingData()
         PrintMc2MsgData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->msg);
         OP_LOGD(opName_, "MutableMC2MmV3TileTilingData matmulTiling");
         PrintMMV3TilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->mC2Mmv3TileTilingData);
-        if (matmulReduceScatterV2TilingData_->param.tailM) {
+        if (matmulReduceScatterV2TilingData_->param.tailM > 0) {
             OP_LOGD(opName_, "MutableMC2MmV3TileTilingData matmulTiling");
             PrintMMV3TilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->mC2Mmv3TailTilingData);
         }
@@ -95,7 +90,7 @@ ge::graphStatus MatmulReduceScatterV2Tiling::CheckInput()
     return ge::GRAPH_SUCCESS;
 }
 
-void MatmulReduceScatterV2Tiling::SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg)
+void MatmulReduceScatterV2Tiling::SetMc2Hcomm()
 {
     matmulReduceScatterV2TilingData_->hcommCfg.opType = (
         static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_REDUCE_SCATTER));
@@ -167,7 +162,7 @@ ge::graphStatus MatmulReduceScatterV2Tiling::DoAllMatmulTiling()
 ge::graphStatus MatmulReduceScatterV2Tiling::DoOpTiling()
 {
     GE_ASSERT_GRAPH_SUCCESS(CheckInput());
-    SetMc2Hcomm(matmulReduceScatterV2TilingData_->param);
+    SetMc2Hcomm();
     SetRcsTilingData(matmulReduceScatterV2TilingData_->param);
     DoSplitMTiling(matmulReduceScatterV2TilingData_->param);
     GE_ASSERT_GRAPH_SUCCESS(DoAllMatmulTiling());

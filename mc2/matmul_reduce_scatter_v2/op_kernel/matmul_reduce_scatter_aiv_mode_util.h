@@ -46,6 +46,9 @@ constexpr int32_t USED_UB_SIZE = 160 * 1024;
 constexpr int32_t AIC_WAIT_AIV_FINISH_ALIGN_FLAG_ID = 12;
 constexpr uint32_t SYSTEM_NEED_WORKSPACE = 16 * 1024 * 1024;
 constexpr uint32_t BLOCK_SIZE_16 = 16;
+constexpr uint32_t BASE_BLOCK_SIZE_32 = 32;
+constexpr uint32_t BASE_BLOCK_SIZE_256 = 256;
+constexpr uint32_t BASE_BLOCK_SIZE_512 = 512;
 constexpr uint32_t TILE_SHAPE_64 = 64;
 constexpr uint32_t TILE_SHAPE_128 = 128;
 constexpr uint32_t TILE_SHAPE_256 = 256;
@@ -78,13 +81,13 @@ struct BaseBlock {
 };
 
 template <typename T>
-using Block32B = BaseBlock<T, 32>;
+using Block32B = BaseBlock<T, BASE_BLOCK_SIZE_32>;
 
 template <typename T>
-using Block256B = BaseBlock<T, 256>;
+using Block256B = BaseBlock<T, BASE_BLOCK_SIZE_256>;
 
 template <typename T>
-using Block512B = BaseBlock<T, 512>;
+using Block512B = BaseBlock<T, BASE_BLOCK_SIZE_512>;
 
 __aicore__ inline int32_t CeilDev(int32_t num, int32_t div)
 {

@@ -120,7 +120,7 @@ const std::map<ge::DataType, int64_t> D_TYPE_SIZE_MAP =
 
 static uint32_t AlignUp(uint32_t len, uint32_t size)
 {
-    return static_cast<uint32_t>((static_cast<int64_t>(len) + size - 1) & ~(size - 1));
+    return static_cast<uint32_t>((static_cast<uint64_t>(len) + size - 1) & ~(size - 1));
 }
 
 static bool IsMatrixAligned(const uint32_t &m, const uint32_t &n, const bool &transpose, const uint32_t &nElemAlign)
@@ -247,7 +247,7 @@ void GetUsrWorkSpaceSize(uint32_t elementSize, uint32_t blockDim, uint64_t &user
     }
 }
 
-static bool CheckDtype_X1(gert::TilingContext *context)
+static bool CheckDtype_X1(const gert::TilingContext *context)
 {
     const gert::Tensor* x1Scale = context->GetInputTensor(X1_SCALE_INDEX);
     if (x1Scale == nullptr) {
@@ -260,7 +260,7 @@ static bool CheckDtype_X1(gert::TilingContext *context)
     return true;
 }
 
-static bool CheckDtype_X2(gert::TilingContext *context, MatmulReduceScatterV2AivModeInfo &info, ge::DataType cType)
+static bool CheckDtype_X2(const gert::TilingContext *context, MatmulReduceScatterV2AivModeInfo &info, ge::DataType cType)
 {
     const gert::Tensor* x2Scale = context->GetInputTensor(X2_SCALE_INDEX);
     if (x2Scale == nullptr) {
