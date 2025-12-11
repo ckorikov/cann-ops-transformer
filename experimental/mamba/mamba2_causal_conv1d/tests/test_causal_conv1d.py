@@ -72,13 +72,17 @@ if __name__ == '__main__':
     tensor_wmtx = torch.randn([D, 1, W], dtype=torch.float16, device=device) * 0.2
     tensor_bias = torch.randn([D], dtype=torch.float16, device=device) * 0.2
 
-    outmtx = profiling(causal_conv1d_fwd,
-                       [tensor_xmtx, tensor_wmtx, tensor_bias, B, D, S, W],
-                       'TORCH')
-    npu_out = profiling(mamba_causal_conv1d_npu,
-                        [tensor_xmtx, tensor_wmtx, tensor_bias],
-                        'NPU_KERNEL')
+    outmtx = causal_conv1d_fwd(tensor_xmtx, tensor_wmtx, tensor_bias, B, D, S, W)
+    npu_out = mamba_causal_conv1d_npu(tensor_xmtx, tensor_wmtx, tensor_bias)
     check_diff(outmtx, npu_out)
+
+    profiling(causal_conv1d_fwd,
+                [tensor_xmtx, tensor_wmtx, tensor_bias, B, D, S, W],
+                'TORCH')
+    profiling(mamba_causal_conv1d_npu,
+                [tensor_xmtx, tensor_wmtx, tensor_bias],
+                'NPU_KERNEL')
+    
 
 
 
