@@ -10,7 +10,7 @@
 # ----------------------------------------------------------------------------
 
 if (BUILD_TORCH_OPS)
-    set(OPERATOR_NAME "mambav2_chunk_cumsum")
+    set(OPERATOR_NAME "mambav2_rmsnormgated")
     message(STATUS "BUILD_TORCH_OPS ON in ${OPERATOR_NAME}")
 
     set(OPERATOR_TARGET "${OPERATOR_NAME}_objects")
@@ -25,6 +25,9 @@ if (BUILD_TORCH_OPS)
         COMPILE_FLAGS "--npu-arch=dav-2201 -xasc -ltiling_api -lplatform -lregister"
     )
 
+    include_directories($(CMAKE_CURRENT_SOURCE_DIR)/op_kernel)
+    include_directories($(CMAKE_CURRENT_SOURCE_DIR)/../common)
+    
     add_library(${OPERATOR_TARGET} OBJECT ${OPERATOR_SOURCES})
 
     target_compile_options(${OPERATOR_TARGET} PRIVATE ${COMMON_COMPILE_OPTIONS})
