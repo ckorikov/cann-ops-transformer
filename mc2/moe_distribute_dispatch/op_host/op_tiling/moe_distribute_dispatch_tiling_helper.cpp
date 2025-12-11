@@ -458,7 +458,7 @@ ge::graphStatus MoeDistributeDispatchTilingHelper::TilingCheckMoeDistributeDispa
         OP_LOGE(nodeName, "params dataType is invalid."), return ge::GRAPH_FAILED);
     OP_TILING_CHECK(!CheckTensorFormat(context, nodeName, isScales, quantMode),
         OP_LOGE(nodeName, "params format is invalid."), return ge::GRAPH_FAILED);
-    if ((opVersion != OP_VERSION_1) && isTokenMask) {
+    if ((opVersion != OP_VERSION_1) && (isTokenMask != 0)) {
         OP_TILING_CHECK(!CheckTokenMask(context, nodeName), OP_LOGE(nodeName, "xActiveMask is invalid."), return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
