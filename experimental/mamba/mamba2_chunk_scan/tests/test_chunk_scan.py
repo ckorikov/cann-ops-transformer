@@ -113,7 +113,7 @@ if __name__ == '__main__':
                 tensor_dacs,
                 tensor_dtout  
             )
-    check_diff(out_y.cpu().numpy(), npu_y.cpu().numpy())
+    check_diff(out_y.cpu(), npu_y.cpu())
 
     profiling(mamba2_chunkscan_custom_fwd,
               [tensor_cmtx, tensor_bmtx, tensor_dacs, tensor_dtout, mask, tensor_xmtx, tensor_outa, tensor_dmtx, L],

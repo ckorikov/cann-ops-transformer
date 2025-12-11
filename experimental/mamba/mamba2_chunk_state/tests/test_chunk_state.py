@@ -67,7 +67,7 @@ if __name__ == '__main__':
     check_diff(outmtx.cpu(), npu_out.cpu())
 
     profiling(mamba2_chunk_state_forward,
-              [tensor_dtout, tensor_dacs, tensor_bt, tensor_xt, H//G]，
+              [tensor_dtout, tensor_dacs, tensor_bt, tensor_xt, H//G],
               'TORCH')
     profiling(torch.ops.npu_ops_transformer_ext.mambav2_chunk_state,
               [tensor_dtout, tensor_dacs, tensor_bt, tensor_xt],

@@ -14,13 +14,13 @@ import time
 
 
 def check_diff(x, y):
-    diff = np.abs(x - y)
+    diff = torch.abs(x - y)
     rel_diff = diff.max() / torch.abs(x.max())
     print(f'Max diff: {diff.max():.04f} | Relative max diff: {rel_diff:.05f}')
 
 def profiling(model, inputs, type):
     repeat = 10
-    experimental_config = torch_npu.profiler._ExperimentalConfig(profiler_level=torch_npu.profiler.ProfilerLeval.Level2)
+    experimental_config = torch_npu.profiler._ExperimentalConfig(profiler_level=torch_npu.profiler.ProfilerLevel.Level2)
     with torch_npu.profiler.profile(
         activities=[
             torch_npu.profiler.ProfilerActivity.CPU,
@@ -39,7 +39,7 @@ def profiling(model, inputs, type):
         for _ in range(repeat):
             outputs = model(*inputs)
         t2.record()
-        elapsed = t1.elapsed_time(2)
+        elapsed = t1.elapsed_time(t2)
 
         print(f'>>>> {type} IMPL TIME ELAPSED: {(elapsed/repeat*1000):.1f} us')
 
