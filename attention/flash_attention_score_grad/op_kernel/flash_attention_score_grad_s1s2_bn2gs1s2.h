@@ -2042,12 +2042,13 @@ FlashAttentionScoreGradS1s2Bn2gs1s2<T1, T2, IS_ATTEN_MASK, IS_PSE, IS_DROP, MM_O
     ///////////////////////////////////////////////////////////////
     {
         int64_t dpseWSGmOffset =
-            ((static_cast<uint16_t>(n2DimIdx) * g + gDimIdx) * s1 * s2 +
+            ((static_cast<uint16_t>(n2DimIdx) * g + gDimIdx) * s1 +
             s1oDimIdx * s1CvInner + curS1Idx * s1VecSize) * s2 +
             preS2CvBegin + curS2Idx * s2VecSize;
+        uint16_t srcStride = static_cast<uint16_t>((s2ExtendAlign - s2Extend) / 8);
         SetAtomicAdd<float>();
         DataCopyPad(dpseWorkSpaceGm[dpseWSGmOffset], vecClc2Buffer,
-            {static_cast<uint16_t>(s1ExtendSubGraph), static_cast<uint16_t>(s2Extend * sizeof(float)), 0,
+            {static_cast<uint16_t>(s1ExtendSubGraph), static_cast<uint16_t>(s2Extend * sizeof(float)), srcStride,
             static_cast<uint16_t>((s2 - s2Extend) * sizeof(float))});
         SetAtomicNone();
     }
