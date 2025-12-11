@@ -167,7 +167,7 @@ static void PrintTilingDataInfo(const char *nodeName, MoeDistributeDispatchV2Til
     OP_LOGD(nodeName, "totalWinSizeTP is %lu.", tilingData.moeDistributeDispatchV2Info.totalWinSizeTp);
     OP_LOGD(nodeName, "hasElastic is %d.", tilingData.moeDistributeDispatchV2Info.hasElasticInfo);
     OP_LOGD(nodeName, "zeroComputeExpertNum is %d", tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum);
-    OP_LOGD(nodeName, "CumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
+    OP_LOGD(nodeName, "cumSumUBMinValue is %d", tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue);
 }
 
 static bool CheckTensorDim(const gert::TilingContext *context, const char *nodeName,
@@ -577,12 +577,12 @@ static ge::graphStatus GetAttrAndSetTilingData(const gert::TilingContext *contex
     uint32_t lastDim = localMoeExpertNum * static_cast<uint32_t>(epWorldSize);
     std::vector<int64_t> srcShapeDim = {1, lastDim};	
     auto srcShape = ge::Shape(srcShapeDim);
-    uint32_t CumSumUBMaxValue = 0;
-    uint32_t CumSumUBMinValue = 0;
-    AscendC::GetCumSumMaxMinTmpSize(srcShape, sizeof(float), true, true, CumSumUBMaxValue, CumSumUBMinValue);
-    tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue = static_cast<uint32_t>(CumSumUBMinValue);    
-    OP_LOGD(nodeName, "lastDim = %d, MoeDistributeDispatchV2 CumSumUBMinValue = %d\n", lastDim,
-        tilingData.moeDistributeDispatchV2Info.CumSumUBMinValue);
+    uint32_t cumSumUBMaxValue = 0;
+    uint32_t cumSumUBMinValue = 0;
+    AscendC::GetCumSumMaxMinTmpSize(srcShape, sizeof(float), true, true, cumSumUBMaxValue, cumSumUBMinValue);
+    tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue = static_cast<uint32_t>(cumSumUBMinValue);    
+    OP_LOGD(nodeName, "lastDim = %d, MoeDistributeDispatchV2 cumSumUBMinValue = %d\n", lastDim,
+        tilingData.moeDistributeDispatchV2Info.cumSumUBMinValue);
     return ge::GRAPH_SUCCESS;
 }
 

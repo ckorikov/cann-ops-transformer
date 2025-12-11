@@ -249,7 +249,7 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Set
     isExpertMaskFlag_ = tilingData->moeDistributeDispatchV2Info.isExpertMask;
     axisK_ = tilingData->moeDistributeDispatchV2Info.k;
     aivNum_ = tilingData->moeDistributeDispatchV2Info.aivNum;
-    cumSumUBMinValue_ = tilingData->moeDistributeDispatchV2Info.CumSumUBMinValue;
+    cumSumUBMinValue_ = tilingData->moeDistributeDispatchV2Info.cumSumUBMinValue;
     isShareExpertRankFlag_ = (epRankId_ < sharedExpertRankNum_);
     if (sharedExpertNum_ > 0) {
         rankNumPerSharedExpert_ = sharedExpertRankNum_ / sharedExpertNum_;
@@ -411,7 +411,7 @@ __aicore__ inline void MoeDistributeDispatchV2FullMesh<TemplateMC2TypeFunc>::Qua
 
     PipeBarrier<PIPE_V>();
     Cast(tempTensor_, halfLocalTemp, RoundMode::CAST_TRUNC, axisH_);
-
+    PipeBarrier<PIPE_V>();
     LocalTensor<float> floatTempTensor = tempTensor_.template ReinterpretCast<float>();
     floatTempTensor.SetValue(tokenQuantAlign_, float(1.0) / dynamicScale);
 }
