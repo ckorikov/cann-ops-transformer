@@ -27,9 +27,18 @@ using namespace AscendC;
 constexpr uint64_t VECTORFULLMASK[2] = {(uint64_t)-1, (uint64_t)-1};
 constexpr int TWO = 2;
 constexpr int THREE = 3;
+constexpr int FOUR = 4;
+constexpr int FIVE = 5;
+constexpr int EIGHT = 8;
+
 constexpr int M_BLK_SIZE = 16;
 constexpr int N_BLK_SIZE = 32;
 constexpr int BLK_SIZE = 64;
+
+constexpr int MTE_FLOAT = 8;
+constexpr int MTE_HALF = 16;
+constexpr int VEC_FLOAT = 64;
+constexpr int VEC_HALF = 128;
 
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){
