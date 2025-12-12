@@ -9,7 +9,6 @@
  */
 
 #include "moe_token_permute_with_routing_map_grad.h"
-#include "level0/inplace_index_add.h"
 #include "aclnn_kernels/contiguous.h"
 #include "aclnn_kernels/reshape.h"
 #include "aclnn_kernels/transpose.h"
@@ -26,7 +25,13 @@
 #include "aclnn_moe_token_permute_with_routing_map_grad.h"
 #include "level0/sort.h"
 #include "level0/zero_op.h"
-#include "level0/masked_scatter.h"
+#ifdef BUILD_OPEN_PROJECT_API
+    #include "../../../moe/3rd/moe_masked_scatter/op_host/op_api/moe_masked_scatter.h"
+    #include "../../../moe/3rd/moe_inplace_index_add_with_sorted/op_host/op_api/moe_inplace_index_add.h"
+#else
+    #include "level0/masked_scatter.h"
+    #include "level0/inplace_index_add.h"
+#endif
 
 using namespace op;
 #ifdef __cplusplus
@@ -282,8 +287,13 @@ aclnnStatus ProcessNonDropAndPadGradients(
         CHECK_RET(zeroPermutedProbsOutputGrad != nullptr, ACLNN_ERR_INNER_NULLPTR);
         maskBool = l0op::Transpose(maskBool, perm, executor);
         CHECK_RET(maskBool != nullptr, ACLNN_ERR_INNER_NULLPTR);
-        auto maskedScatterOpOut = l0op::MaskedScatter(
-            zeroPermutedProbsOutputGrad, maskBool, permutedProbsOutputGradOptionalContiguous, executor);
+        #ifdef BUILD_OPEN_PROJECT_API 
+            auto maskedScatterOpOut = l0op::MoeMaskedScatter(
+                zeroPermutedProbsOutputGrad, maskBool, permutedProbsOutputGradOptionalContiguous, executor);
+        #else
+            auto maskedScatterOpOut = l0op::MaskedScatter(
+                zeroPermutedProbsOutputGrad, maskBool, permutedProbsOutputGradOptionalContiguous, executor);
+        #endif
         CHECK_RET(maskedScatterOpOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
         maskedScatterOpOut = l0op::Transpose(maskedScatterOpOut, perm, executor);
         CHECK_RET(maskedScatterOpOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
@@ -331,32 +341,51 @@ aclnnStatus ProcessDropAndPadTokensGrad(
                     tokensNum < MAX_SORT_SHAPE_DIM &&
                     (zeroTokensGradOut->GetDataType() == op::DataType::DT_BF16 ||
                      zeroTokensGradOut->GetDataType() == op::DataType::DT_FLOAT16);
-    if (useNewOp) {
-        const aclTensor* indicesViewFloat =
-            executor->CreateView(sortedIndicesContiguous, sortedIndicesContiguous->GetViewShape(), 0);
-        ViewDataType(indicesViewFloat, op::DataType::DT_FLOAT);
-        auto sortResult = l0op::Sort(indicesViewFloat, -1, descending, stable, op::DataType::DT_INT32, executor);
-        auto sortValues = std::get<0>(sortResult);
-        auto sortIndex = std::get<1>(sortResult);
-        CHECK_RET(sortValues != nullptr && sortIndex != nullptr, ACLNN_ERR_INNER_NULLPTR);
+    #ifdef BUILD_OPEN_PROJECT_API
+        if (useNewOp) {
+            const aclTensor* indicesViewFloat =
+                executor->CreateView(sortedIndicesContiguous, sortedIndicesContiguous->GetViewShape(), 0);
+            ViewDataType(indicesViewFloat, op::DataType::DT_FLOAT);
+            auto sortResult = l0op::Sort(indicesViewFloat, -1, descending, stable, op::DataType::DT_INT32, executor);
+            auto sortValues = std::get<0>(sortResult);
+            auto sortIndex = std::get<1>(sortResult);
+            CHECK_RET(sortValues != nullptr && sortIndex != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
-        auto sortValuesI32 = executor->CreateView(
-            sortValues, sortedIndicesContiguous->GetViewShape(), sortValues->GetViewOffset());
-        ViewDataType(sortValuesI32, op::DataType::DT_INT32);
-        // inplace index add
-        indexAddOut = l0op::InplaceIndexAddWithSorted(
-            zeroTokensGradOut, 0, sortValuesI32, sortIndex, permutedTokenOutputGradContiguous, nullptr,
-            executor);
-    } else if (IsAICoreSupport(zeroTokensGradOut)) {
-        indexAddOut = l0op::InplaceIndexAddAiCore(
-            zeroTokensGradOut, 0, sortedIndicesContiguous, permutedTokenOutputGradContiguous, nullptr,
-            executor);
-    } else {
-        indexAddOut = l0op::InplaceIndexAddAiCpu(
-            zeroTokensGradOut, 0, sortedIndicesContiguous, permutedTokenOutputGradContiguous, nullptr,
-            executor);
-    }
+            auto sortValuesI32 = executor->CreateView(
+                sortValues, sortedIndicesContiguous->GetViewShape(), sortValues->GetViewOffset());
+            ViewDataType(sortValuesI32, op::DataType::DT_INT32);
+            // inplace index add
+            indexAddOut = l0op::MoeInplaceIndexAddWithSorted(
+                zeroTokensGradOut, 0, sortValuesI32, sortIndex, permutedTokenOutputGradContiguous, nullptr,
+                executor);
+        } else {
+            indexAddOut = l0op::MoeInplaceIndexAddAiCore(
+                zeroTokensGradOut, 0, sortedIndicesContiguous, permutedTokenOutputGradContiguous, nullptr,
+                executor);
+        }
+    #else
+        if (useNewOp) {
+            const aclTensor* indicesViewFloat =
+                executor->CreateView(sortedIndicesContiguous, sortedIndicesContiguous->GetViewShape(), 0);
+            ViewDataType(indicesViewFloat, op::DataType::DT_FLOAT);
+            auto sortResult = l0op::Sort(indicesViewFloat, -1, descending, stable, op::DataType::DT_INT32, executor);
+            auto sortValues = std::get<0>(sortResult);
+            auto sortIndex = std::get<1>(sortResult);
+            CHECK_RET(sortValues != nullptr && sortIndex != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
+            auto sortValuesI32 = executor->CreateView(
+                sortValues, sortedIndicesContiguous->GetViewShape(), sortValues->GetViewOffset());
+            ViewDataType(sortValuesI32, op::DataType::DT_INT32);
+            // inplace index add
+            indexAddOut = l0op::InplaceIndexAddWithSorted(
+                zeroTokensGradOut, 0, sortValuesI32, sortIndex, permutedTokenOutputGradContiguous, nullptr,
+                executor);
+        } else {
+            indexAddOut = l0op::InplaceIndexAddAiCore(
+                zeroTokensGradOut, 0, sortedIndicesContiguous, permutedTokenOutputGradContiguous, nullptr,
+                executor);
+        }
+    #endif
     CHECK_RET(indexAddOut != nullptr, ACLNN_ERR_INNER_NULLPTR);
     auto tokensGradOutResult = l0op::ViewCopy(indexAddOut, tokensGradOut, executor);
     CHECK_RET(tokensGradOutResult != nullptr, ACLNN_ERR_INNER_NULLPTR);
