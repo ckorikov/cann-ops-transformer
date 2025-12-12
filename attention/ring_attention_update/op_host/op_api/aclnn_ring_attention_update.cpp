@@ -106,6 +106,55 @@ static aclnnStatus InputDtypeCheck(const aclTensor *prevAttnOut, const aclTensor
     return ACLNN_SUCCESS;
 }
 
+static aclnnStatus InputFormatCheck(const aclTensor *prevAttnOut, const aclTensor *prevSoftmaxMax, const aclTensor *prevSoftmaxSum,
+                                    const aclTensor *curAttnOut, const aclTensor *curSoftmaxMax, const aclTensor *curSoftmaxSum,
+                                    const aclTensor *attnOutOut, const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut,
+                                    const aclTensor *actualSeqQlenOptional, const char *inputLayoutOptional)
+{
+    std::string inputLayoutStr = op::ToString(inputLayoutOptional).GetString();
+    bool formatValid = prevAttnOut->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       prevSoftmaxMax->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       prevSoftmaxSum->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       curAttnOut->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       curSoftmaxMax->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       curSoftmaxSum->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       attnOutOut->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       softmaxMaxOut->GetStorageFormat() == op::Format::FORMAT_ND &&
+                       softmaxSumOut->GetStorageFormat() == op::Format::FORMAT_ND;
+    if (!formatValid) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Input and output format only support [ND]. Actual: prevAttnOut:[%s], prevSoftmaxMax:[%s], prevSoftmaxSum:[%s], curAttnOut:[%s], curSoftmaxMax:[%s], curSoftmaxSum:[%s], attnOutOut:[%s], softmaxMaxOut:[%s], softmaxSumOut:[%s].",
+            op::ToString(prevAttnOut->GetStorageFormat()).GetString(), op::ToString(prevSoftmaxMax->GetStorageFormat()).GetString(),
+            op::ToString(prevSoftmaxSum->GetStorageFormat()).GetString(), op::ToString(curAttnOut->GetStorageFormat()).GetString(),
+            op::ToString(curSoftmaxMax->GetStorageFormat()).GetString(), op::ToString(curSoftmaxSum->GetStorageFormat()).GetString(),
+            op::ToString(attnOutOut->GetStorageFormat()).GetString(), op::ToString(softmaxMaxOut->GetStorageFormat()).GetString(),
+            op::ToString(softmaxSumOut->GetStorageFormat()).GetString());
+        return ACLNN_ERR_PARAM_INVALID;
+    }
+    if (inputLayoutStr == "TND") {
+        formatValid = (formatValid && actualSeqQlenOptional->GetStorageFormat() == op::Format::FORMAT_ND);
+    }
+    if (!formatValid) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Input and output format only support [ND]. Actual: actualSeqQlenOptional:[%s].",
+            op::ToString(actualSeqQlenOptional->GetStorageFormat()).GetString());
+        return ACLNN_ERR_PARAM_INVALID;
+    }
+
+    return ACLNN_SUCCESS;
+}
+
+static bool CheckNullTensor(const Shape checkShape)
+{
+    size_t shapeSize = checkShape.GetDimNum();
+    for (size_t dimIndex = 0; dimIndex < shapeSize; ++dimIndex) {
+        if (checkShape.GetDim(dimIndex) == 0) {
+            OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Input tensor shape dim(%ld) is 0, the shape is not supported.",
+                    dimIndex);
+            return false;
+        }
+    }
+    return true;
+}
+
 static aclnnStatus AnalysisAxis(const aclTensor *prevAttnOut, const aclTensor *prevSoftmaxMax, const aclTensor *prevSoftmaxSum,
                                 const aclTensor *curAttnOut, const aclTensor *curSoftmaxMax, const aclTensor *curSoftmaxSum,
                                 const char *inputLayout)
@@ -117,6 +166,13 @@ static aclnnStatus AnalysisAxis(const aclTensor *prevAttnOut, const aclTensor *p
     Shape cMaxShape = curSoftmaxMax->GetViewShape();
     Shape cSumShape = curSoftmaxSum->GetViewShape();
     std::string inputLayoutStr = op::ToString(inputLayout).GetString();
+
+    CHECK_RET(CheckNullTensor(paShape), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckNullTensor(pMaxShape), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckNullTensor(pSumShape), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckNullTensor(caShape), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckNullTensor(cMaxShape), ACLNN_ERR_PARAM_INVALID);
+    CHECK_RET(CheckNullTensor(cSumShape), ACLNN_ERR_PARAM_INVALID);
 
     if (paShape.GetDimNum() != DIM_NUM_3 || caShape.GetDimNum() != DIM_NUM_3) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "the shape of prevAttnOut(%ld) or curAttnOut(%ld) is not supported.",
@@ -152,8 +208,9 @@ static aclnnStatus AnalysisAxis(const aclTensor *prevAttnOut, const aclTensor *p
 
 static aclnnStatus Contiguous(const aclTensor *&prevAttnOut, const aclTensor *&prevSoftmaxMax, const aclTensor *&prevSoftmaxSum,
                               const aclTensor *&curAttnOut, const aclTensor *&curSoftmaxMax, const aclTensor *&curSoftmaxSum,
-                              const aclTensor *&actualSeqQlenOptional, aclOpExecutor *executor)
+                              const aclTensor *&actualSeqQlenOptional, const char *inputLayoutOptional, aclOpExecutor *executor)
 {
+    std::string inputLayoutStr = op::ToString(inputLayoutOptional).GetString();
     prevAttnOut = l0op::Contiguous(prevAttnOut, executor);
     CHECK_RET(prevAttnOut != nullptr, ACLNN_ERR_PARAM_NULLPTR);
     prevSoftmaxMax = l0op::Contiguous(prevSoftmaxMax, executor);
@@ -166,7 +223,7 @@ static aclnnStatus Contiguous(const aclTensor *&prevAttnOut, const aclTensor *&p
     CHECK_RET(curSoftmaxMax != nullptr, ACLNN_ERR_PARAM_NULLPTR);
     curSoftmaxSum = l0op::Contiguous(curSoftmaxSum, executor);
     CHECK_RET(curSoftmaxSum != nullptr, ACLNN_ERR_PARAM_NULLPTR);
-    if (actualSeqQlenOptional) {
+    if (inputLayoutStr == "TND") {
         actualSeqQlenOptional = l0op::Contiguous(actualSeqQlenOptional, executor);
         CHECK_RET(actualSeqQlenOptional != nullptr, ACLNN_ERR_PARAM_NULLPTR);
     }
@@ -206,7 +263,11 @@ aclnnStatus aclnnRingAttentionUpdateGetWorkspaceSize(
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
     CHECK_RET(Contiguous(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
-                         actualSeqQlenOptional, l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
+                         actualSeqQlenOptional, inputLayoutOptional, l0Executor) == ACLNN_SUCCESS,
+                         ACLNN_ERR_PARAM_NULLPTR);
+    CHECK_RET(InputFormatCheck(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
+                               attnOutOut, softmaxMaxOut, softmaxSumOut, actualSeqQlenOptional,
+                               inputLayoutOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     auto l0RingAttentionUpdateOuts = l0op::RingAttentionUpdate(
         prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
@@ -277,7 +338,11 @@ aclnnStatus aclnnRingAttentionUpdateV2GetWorkspaceSize(
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
     CHECK_RET(Contiguous(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
-                         actualSeqQlenOptional, l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
+                         actualSeqQlenOptional, inputLayoutOptional, l0Executor) == ACLNN_SUCCESS,
+                         ACLNN_ERR_PARAM_NULLPTR);
+    CHECK_RET(InputFormatCheck(prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
+                               attnOutOut, softmaxMaxOut, softmaxSumOut, actualSeqQlenOptional,
+                               inputLayoutOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     auto l0RingAttentionUpdateOuts = l0op::RingAttentionUpdate(
         prevAttnOut, prevSoftmaxMax, prevSoftmaxSum, curAttnOut, curSoftmaxMax, curSoftmaxSum,
