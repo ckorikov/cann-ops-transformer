@@ -102,12 +102,12 @@ public:
     __aicore__ inline void Compute(){
         in_empty.setall();
         out_empty.setall();
-        int cnt1 = 0;
-        int cnt2 = 0;
-        int v1_cnt1 = 0;
-        int v1_cnt2 = 0;
-        int v1_bc = 0;
-        int v1_h = 0;
+        cnt1 = 0;
+        cnt2 = 0;
+        v1_cnt1 = 0;
+        v1_cnt2 = 0;
+        bc_now = v1_bc_now = 0;
+        h_now = v1_h_now = 0;
         LocalTensor<uint32_t> tmptsr_0 = maskdiagbuf.ReinterpretCast<uint32_t>();
         Duplicate<uint32_t, false>(tmptsr_0, (uint32_t)0, MASK_PLACEHOLDER, CBASEM, 1, MTE_FLOAT);
         PipeBarrier<PIPE_V>();
@@ -126,11 +126,11 @@ public:
         VEC_READY(THREE, PIPE_MTE3);
         VEC_READY(THREE, PIPE_MTE3);
         for (int bch=shape.BCH1; bch<(shape.BCH2 + 1); bch+=1){
-            int bc = ((int)bch / (int)shape.H);
-            int h = (bch % shape.H);
-            int g = ((int)h / (int)shape.HPERG);
+            bc_now = ((int)bch / (int)shape.H);
+            h_now = (bch % shape.H);
+            int g = ((int)h_now / (int)shape.HPERG);
             if ((bch < shape.BCH2)){
-                if ((((h % shape.HPERG) == 0) || (bch == shape.BCH1))){
+                if ((((h_now % shape.HPERG) == 0) || (bch == shape.BCH1))){
                     WAIT_CUBE(0);
                 }
                 WAIT_CUBE(THREE);
@@ -138,8 +138,8 @@ public:
                 VEC_READY(0, PIPE_MTE3);
             }
             if ((bch > shape.BCH1)){
-                v1_bc = ((int)(bch - 1) / (int)shape.H);
-                v1_h = ((bch - 1) % shape.H);
+                v1_bc_now = ((int)(bch - 1) / (int)shape.H);
+                v1_h_now = ((bch - 1) % shape.H);
                 WAIT_CUBE(1);
                 Process_out();
                 VEC_READY(THREE, PIPE_MTE3);
@@ -171,11 +171,11 @@ public:
                 in_empty.wait();
                 tensor_in_empty.wait();
                 if ((m2 == 0)){
-                    GM2UB(dacs_buf1.get(cnt1), dacsmtx[(((bc * (shape.H * shape.L)) + (h * shape.L)) + ((m1 * CBASEM) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
+                    GM2UB(dacs_buf1.get(cnt1), dacsmtx[(((bc_now * (shape.H * shape.L)) + (h_now * shape.L)) + ((m1 * CBASEM) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
                 }
                 if ((m2 <= m1)){
-                    GM2UB(dacs_buf2.get(cnt2), dacsmtx[(((bc * (shape.H * shape.L)) + (h * shape.L)) + ((m2 * BLK_K) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
-                    GM2UB(dtout_buf.get(cnt2), dtoutmtx[(((bc * (shape.H * shape.L)) + (h * shape.L)) + ((m2 * BLK_K) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
+                    GM2UB(dacs_buf2.get(cnt2), dacsmtx[(((bc_now * (shape.H * shape.L)) + (h_now * shape.L)) + ((m2 * BLK_K) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
+                    GM2UB(dtout_buf.get(cnt2), dtoutmtx[(((bc_now * (shape.H * shape.L)) + (h_now * shape.L)) + ((m2 * BLK_K) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
                     GM2UB(cb_buf, cb_ws[(((get_block_idx() * (shape.L * shape.L)) + ((m1 * CBASEM) * shape.L)) + ((m2 * BLK_K) * 1))], shape.BASEL, ((int)shape.BASEL / (int)MTE_FLOAT), ((int)(shape.L - shape.BASEL) / (int)MTE_FLOAT), 0);
                 }
                 in_ready.set();
@@ -219,7 +219,7 @@ public:
                 tensor_in_empty.set();
                 out_ready.wait();
                 tensor_out_ready.wait();
-                UB2GM(mmtx[((((bc * ((shape.H * shape.L) * shape.L)) + (h * (shape.L * shape.L))) + ((m1 * CBASEM) * shape.L)) + ((m2 * BLK_K) * 1))], da_out_half, shape.BASEL, ((int)shape.BASEL / (int)MTE_HALF), 0, ((int)(shape.L - shape.BASEL) / (int)MTE_HALF));
+                UB2GM(mmtx[((((bc_now * ((shape.H * shape.L) * shape.L)) + (h_now * (shape.L * shape.L))) + ((m1 * CBASEM) * shape.L)) + ((m2 * BLK_K) * 1))], da_out_half, shape.BASEL, ((int)shape.BASEL / (int)MTE_HALF), 0, ((int)(shape.L - shape.BASEL) / (int)MTE_HALF));
                 out_empty.set();
                 tensor_out_empty.set();
                 cnt2 = (cnt2 + 1);
@@ -230,7 +230,7 @@ public:
 
     __aicore__ inline void Process_out(){
         half d_scale_half = 0;
-        d_scale_half = (half) dmtx[v1_h].GetValue(0);
+        d_scale_half = (half) dmtx[v1_h_now].GetValue(0);
         float d_scale = 0;
         d_scale = ((float)d_scale_half);
         int mstart = 0;
@@ -248,10 +248,10 @@ public:
             m = (m2_raw % FOUR);
             in_empty.wait();
             tensor_in_empty.wait();
-            GM2UB(scalea.get(v1_cnt1), dacsmtx[(((v1_bc * (shape.H * shape.L)) + (v1_h * shape.L)) + ((m * CBASEM) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
-            GM2UB(states, statesmtx[(((v1_bc * ((shape.H * shape.L) * shape.P)) + (v1_h * (shape.L * shape.P))) + ((m * CBASEM) * shape.P))], 1, ((int)(shape.BASEL * shape.P) / (int)MTE_FLOAT), 0, 0);
-            GM2UB(out_b.get(v1_cnt2), outmtx[(((v1_bc * ((shape.H * shape.L) * shape.P)) + (v1_h * (shape.L * shape.P))) + ((m * CBASEM) * shape.P))], 1, ((int)(shape.BASEL * shape.P) / (int)MTE_FLOAT), 0, 0);
-            GM2UB(x_half.get(v1_cnt2), xmtx[(((v1_bc * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h * shape.P))], shape.BASEL, ((int)shape.P / (int)MTE_HALF), ((int)((shape.H - 1) * shape.P) / (int)MTE_HALF), 0);
+            GM2UB(scalea.get(v1_cnt1), dacsmtx[(((v1_bc_now * (shape.H * shape.L)) + (v1_h_now * shape.L)) + ((m * CBASEM) * 1))], 1, ((int)shape.BASEL / (int)MTE_FLOAT), 0, 0);
+            GM2UB(states, statesmtx[(((v1_bc_now * ((shape.H * shape.L) * shape.P)) + (v1_h_now * (shape.L * shape.P))) + ((m * CBASEM) * shape.P))], 1, ((int)(shape.BASEL * shape.P) / (int)MTE_FLOAT), 0, 0);
+            GM2UB(out_b.get(v1_cnt2), outmtx[(((v1_bc_now * ((shape.H * shape.L) * shape.P)) + (v1_h_now * (shape.L * shape.P))) + ((m * CBASEM) * shape.P))], 1, ((int)(shape.BASEL * shape.P) / (int)MTE_FLOAT), 0, 0);
+            GM2UB(x_half.get(v1_cnt2), xmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], shape.BASEL, ((int)shape.P / (int)MTE_HALF), ((int)((shape.H - 1) * shape.P) / (int)MTE_HALF), 0);
             in_ready.set();
             tensor_in_ready.set();
             out_empty.wait();
@@ -280,7 +280,7 @@ public:
             tensor_in_empty.set();
             out_ready.wait();
             tensor_out_ready.wait();
-            UB2GM(sumoutmtx[(((v1_bc * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h * shape.P))], sumout.get(v1_cnt2), shape.BASEL, ((int)shape.P / (int)MTE_FLOAT), 0, ((int)((shape.H - 1) * shape.P) / (int)MTE_FLOAT));
+            UB2GM(sumoutmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], sumout.get(v1_cnt2), shape.BASEL, ((int)shape.P / (int)MTE_FLOAT), 0, ((int)((shape.H - 1) * shape.P) / (int)MTE_FLOAT));
             out_empty.set();
             tensor_out_empty.set();
             v1_cnt1 = (v1_cnt1 + 1);
@@ -290,6 +290,15 @@ public:
     
 private:
     CustVecShapeInfo shape;
+    // Global Params
+    int cnt1;
+    int cnt2;
+    int v1_cnt1;
+    int v1_cnt2;
+    int bc_now;
+    int h_now;
+    int v1_bc_now;
+    int v1_h_now;
     // Global Tensors
     GlobalTensor<float> cb_ws;
     GlobalTensor<float> dacsmtx;
