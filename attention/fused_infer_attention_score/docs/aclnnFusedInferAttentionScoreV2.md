@@ -207,8 +207,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td><ul><li>不指定序列长度可传入nullptr。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li><ul></td>
         <td>INT64</td>
-        <td>TND</td>
-        <td>1</td>
+        <td>-</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -219,8 +219,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>限制：该入参中每个batch的有效Sequence Length应该不大于key/value中对应batch的Sequence Length。seqlenKv的传入长度为1时，每个Batch使用相同seqlenKv；传入长度大于等于Batch时取seqlenKv的前Batch个数。其他长度不支持。</li>
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
-        <td>TND</td>
-        <td>1</td>
+        <td>-</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -272,7 +272,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
              <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT32、BFLOAT16</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
       <tr>
@@ -285,7 +285,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
              <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT32、BFLOAT16</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
       <tr>
@@ -298,7 +298,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
         <tr>
@@ -312,7 +312,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr> 
     <tr>
@@ -323,7 +323,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <li>不使用该功能时可传入nullptr。</li></ul></td>
         <td>INT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>2</td>
         <td>-</td>
       </tr>
       <tr> 
@@ -358,7 +358,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
         <tr> 
@@ -371,7 +371,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
          <tr> 
@@ -384,7 +384,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>
          <tr> 
@@ -397,7 +397,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、FLOAT32</td>
         <td>ND</td>
-        <td>1</td>
+        <td>1-4</td>
         <td>-</td>
       </tr>        
        <tr> 
@@ -410,7 +410,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、INT8</td>
         <td>ND</td>
-        <td>1</td>
+        <td>3-4</td>
         <td>-</td>
       </tr>
        <tr> 
@@ -423,7 +423,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>FLOAT16、BFLOAT16、INT8</td>
         <td>ND</td>
-        <td>1</td>
+        <td>3-4</td>
         <td>-</td>
     </tr>
       <tr> 
@@ -434,8 +434,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
          <li>该入参中的有效Sequence Length应该不大于keySharedPrefix/valueSharedPrefix中的Sequence Length。</li>
          <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
-        <td>ND</td>
-        <td>1</td>
+        <td>-</td>
+        <td>-</td>
         <td>-</td>
       </tr>       
       <tr>
@@ -444,8 +444,8 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>query的head个数。</td>
         <td>在BNSD场景下，需要与shape中的query的N轴shape值相同，否则执行异常。</td>
         <td>INT64</td>
-        <td>ND</td>
-        <td>1</td>
+        <td>-</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -456,7 +456,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>用户不特意指定时建议传入1.0。 </li></ul></td>
         <td>DOUBLE</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -467,7 +467,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
               <li>Q_S为1时该参数无效。</li></ul></td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td></td>
       </tr>      
       <tr>
@@ -478,7 +478,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             <li>Q_S为1时该参数无效。</li></ul></td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -510,7 +510,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>综合约束请见<a href="#约束说明">约束说明</a>。</td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -520,7 +520,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>综合约束请见<a href="#约束说明">约束说明</a>。</td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -530,7 +530,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>仅支持取值为0。</td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -543,7 +543,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
               <li>Q_S等于1时，传入0和1之外的其他值会执行异常。Q_S大于等于2时该参数无效。</li></ul></td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -554,7 +554,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
               <li>用户不特意指定时建议传入false。</li></td>
         <td>BOOL</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>        
       <tr>
@@ -567,7 +567,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
             </ul></td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -579,7 +579,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
                <li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>        
       <tr>
@@ -599,7 +599,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>综合约束请见<a href="#约束说明">约束说明</a>。</td>
         <td>FLOAT32</td>
         <td>ND</td>
-        <td>3-4</td>
+        <td>4</td>
         <td>-</td>
       </tr>
       <tr>        
@@ -610,7 +610,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>-</td>
         <td>-</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
       <tr>
@@ -620,7 +620,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV2(
         <td>-</td>
         <td>-</td>
         <td>-</td>
-        <td>1</td>
+        <td>-</td>
         <td>-</td>
       </tr>
     </tbody></table>
