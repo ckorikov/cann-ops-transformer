@@ -25,7 +25,11 @@ using namespace AscendC;
 #define WAIT_VEC(iiii) CrossCoreWaitFlag(iiii)
 
 constexpr uint64_t VECTORFULLMASK[2] = {(uint64_t)-1, (uint64_t)-1};
-
+constexpr int TWO = 2;
+constexpr int THREE = 3;
+constexpr int M_BLK_SIZE = 16;
+constexpr int N_BLK_SIZE = 32;
+constexpr int BLK_SIZE = 64;
 
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){
@@ -77,27 +81,15 @@ __aicore__ inline void OccupyMMTE1Events(){
 }
 
 __aicore__ constexpr int Align16B(int x){
-    return (x + 15) / 16 * 16;
+    return (x + (M_BLK_SIZE - 1)) / M_BLK_SIZE * M_BLK_SIZE;
 }
 
 __aicore__ constexpr int Align32B(int x){
-    return (x + 31) / 32 * 32;
+    return (x + (N_BLK_SIZE - 1)) / N_BLK_SIZE * N_BLK_SIZE;
 }
 
 __aicore__ constexpr int Align64B(int x){
-    return (x + 63) / 64 * 64;
-}
-
-__aicore__ constexpr int Align128B(int x){
-    return (x + 127) / 128 * 128;
-}
-
-__aicore__ constexpr int Align256B(int x){
-    return (x + 255) / 256 * 256;
-}
-
-__aicore__ constexpr int Align512B(int x){
-    return (x + 511) / 512 * 512;
+    return (x + (BLK_SIZE - 1)) / BLK_SIZE * BLK_SIZE;
 }
 
 __aicore__ inline int CeilDiv(int a, int b){
@@ -134,7 +126,7 @@ public:
     }
     
     __aicore__ inline LocalTensor<T> get(int i){
-        if (i%2==0){
+        if (i%TWO==0){
             return tsr1;
         }else{
             return tsr2;
@@ -161,9 +153,9 @@ public:
     }
     
     __aicore__ inline LocalTensor<T> get(int i){
-        if (i%3==0){
+        if (i%THREE==0){
             return tsr1;
-        }else if (i%3==1){
+        }else if (i%THREE==1){
             return tsr2;
         }else{
             return tsr3;
@@ -210,7 +202,7 @@ public:
         id2 = (event_t)pipe_ptr->AllocEventID<GetHardEventByPipe(p1, p2)>();
     }
     __aicore__ inline void wait(){
-        if (wait_cnt%2==0){
+        if (wait_cnt%TWO==0){
             wait_flag(p1, p2, id1);
         }else{
             wait_flag(p1, p2, id2);
@@ -218,7 +210,7 @@ public:
         wait_cnt ++;
     }
     __aicore__ inline void set(){
-        if (set_cnt%2==0){
+        if (set_cnt%TWO==0){
             set_flag(p1, p2, id1);
         }else{
             set_flag(p1, p2, id2);
@@ -250,7 +242,7 @@ __aicore__ inline void L1ND2NZ(LocalTensor<T> dst, GlobalTensor<T> src, int h, i
     param.dValue = w;
     param.srcNdMatrixStride = 0;
     param.srcDValue = W;
-    param.dstNzC0Stride = (Hdst + 15) / 16 * 16;
+    param.dstNzC0Stride = (Hdst + (M_BLK_SIZE - 1)) / M_BLK_SIZE * M_BLK_SIZE;
     param.dstNzNStride = 1;
     param.dstNzMatrixStride = 0;
     DataCopy(dst, src, param);
@@ -269,53 +261,53 @@ __aicore__ inline void GM2L1(LocalTensor<T> dst, GlobalTensor<T> src, int nBurst
 template <typename T>
 __aicore__ inline void L0NZ2ZZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
     LoadData2DParams param;
-    param.repeatTimes = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
+    param.repeatTimes = (ndst+N_BLK_SIZE/sizeof(T)-1)/(N_BLK_SIZE/sizeof(T));
+    param.srcStride = (msrc+M_BLK_SIZE-1)/M_BLK_SIZE;
 
-    for (int i=0; i<(mdst+15)/16; ++i){
-        LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
+    for (int i=0; i<(mdst+M_BLK_SIZE-1)/M_BLK_SIZE; ++i){
+        LoadData(dst[M_BLK_SIZE*i*((ndst+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], src[i*M_BLK_SIZE*M_BLK_SIZE], param);
     }
 }
 
 template<typename T> 
 __aicore__ inline void L0NZ2ZN(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
     LoadData2DParams param;
-    param.repeatTimes = (ndst+32/sizeof(T)-1)/(32/sizeof(T));
-    param.srcStride = (msrc+15)/16;
+    param.repeatTimes = (ndst+N_BLK_SIZE/sizeof(T)-1)/(N_BLK_SIZE/sizeof(T));
+    param.srcStride = (msrc+M_BLK_SIZE-1)/M_BLK_SIZE;
     param.ifTranspose = true;
 
-    for (int i=0; i<(mdst+15)/16; ++i){
-        LoadData(dst[16*i*((ndst+15)/16*16)], src[i*16*16], param);
+    for (int i=0; i<(mdst+M_BLK_SIZE-1)/M_BLK_SIZE; ++i){
+        LoadData(dst[M_BLK_SIZE*i*((ndst+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], src[i*M_BLK_SIZE*M_BLK_SIZE], param);
     }
 }
 
 template<typename T> 
 __aicore__ inline void L0NZ2NZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
     LoadData2DParams param;
-    param.repeatTimes = (mdst+15)/16;
+    param.repeatTimes = (mdst+M_BLK_SIZE-1)/M_BLK_SIZE;
     param.srcStride = 1;
 
-    for (int i=0; i<(ndst+15)/16; ++i){
-        LoadData(dst[16*i*((mdst+15)/16*16)], src[16*i*((msrc+15)/16*16)], param);
+    for (int i=0; i<(ndst+M_BLK_SIZE-1)/M_BLK_SIZE; ++i){
+        LoadData(dst[M_BLK_SIZE*i*((mdst+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], src[M_BLK_SIZE*i*((msrc+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], param);
     }
 }
 
 template<typename T> 
 __aicore__ inline void L0NZ2NN(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
     LoadData2DParams param;
-    param.repeatTimes = (mdst+15)/16;
+    param.repeatTimes = (mdst+M_BLK_SIZE-1)/M_BLK_SIZE;
     param.srcStride = 1;
     param.ifTranspose = true;
 
-    for (int i=0; i<(ndst+15)/16; ++i){
-        LoadData(dst[16*i*((mdst+15)/16*16)], src[16*i*((msrc+15)/16*16)], param);
+    for (int i=0; i<(ndst+M_BLK_SIZE-1)/M_BLK_SIZE; ++i){
+        LoadData(dst[M_BLK_SIZE*i*((mdst+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], src[M_BLK_SIZE*i*((msrc+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE)], param);
     }
 }
 
 template<typename T> 
 __aicore__ inline void LOADL0(LocalTensor<T> dst, LocalTensor<T> src, int m, int n){
     LoadData2DParams param;
-    param.repeatTimes = m*n*sizeof(T)/32/16;
+    param.repeatTimes = m*n*sizeof(T)/N_BLK_SIZE/M_BLK_SIZE;
     param.srcStride = 1;
     LoadData(dst, src, param);
 }
@@ -378,12 +370,12 @@ __aicore__ inline void UB2UB(LocalTensor<T> dst, LocalTensor<T> src, int nBurst,
 
 template<typename T>
 __aicore__ inline void UB2UB_ND2NZ(LocalTensor<T> dst, LocalTensor<T> src, int mdst, int ndst, int msrc, int nsrc){
-    const int C0 = 32 / sizeof(T);
+    const int C0 = N_BLK_SIZE / sizeof(T);
     DataCopyParams param;
     param.blockCount = (nsrc + C0 - 1) / C0;
     param.blockLen = 1;
     param.srcStride = 0;
-    param.dstStride = (mdst + 15) / 16 * 16 - 1;
+    param.dstStride = (mdst + M_BLK_SIZE-1) / M_BLK_SIZE * M_BLK_SIZE - 1;
     for (int i=0; i<msrc; ++i){
         DataCopy(dst[i*C0], src[i*nsrc], param);
     }
@@ -391,7 +383,7 @@ __aicore__ inline void UB2UB_ND2NZ(LocalTensor<T> dst, LocalTensor<T> src, int m
 
 template<typename T>
 __aicore__ inline void UB2UB_ND2NZ_COMPACT(LocalTensor<T> dst, LocalTensor<T> src, int m, int n){
-    const int C0 = 32 / sizeof(T);
+    const int C0 = N_BLK_SIZE / sizeof(T);
     DataCopyParams param;
     param.blockCount = (n + C0 - 1) / C0;
     param.blockLen = 1;
@@ -417,7 +409,7 @@ __aicore__ inline void L0C2GM_NZ2ND(GlobalTensor<T> dst, LocalTensor<T2> src, in
     FixpipeParamsV220 fixpipeParams;
     fixpipeParams.nSize = n;
     fixpipeParams.mSize = m;
-    fixpipeParams.srcStride = (nz_M+15)/16*16;
+    fixpipeParams.srcStride = (nz_M+M_BLK_SIZE-1)/M_BLK_SIZE*M_BLK_SIZE;
     fixpipeParams.dstStride = N;
     fixpipeParams.ndNum = 1;
     fixpipeParams.srcNdStride = 1;
