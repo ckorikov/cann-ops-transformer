@@ -102,7 +102,7 @@ static ge::graphStatus MoeCopyShapeInput2OutputWithIdx(gert::InferShapeContext *
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckInputShapes(gert::InferShapeContext *context, size_t offset)
+static ge::graphStatus CheckInputShapes(const gert::InferShapeContext *context, const size_t offset)
 {
     const gert::Shape *expandedPermutedRowsInputShape = context->GetInputShape(INDEX_IN_EXPAND_PERMUTED_ROWS);
     OP_CHECK_NULL_WITH_CONTEXT(context, expandedPermutedRowsInputShape);
@@ -148,7 +148,7 @@ static ge::graphStatus CheckInputShapes(gert::InferShapeContext *context, size_t
     return ge::GRAPH_SUCCESS;
 }
 
-static ge::graphStatus CheckInputDims(gert::InferShapeContext *context, size_t offset)
+static ge::graphStatus CheckInputDims(const gert::InferShapeContext *context, const size_t offset)
 {
     const gert::Shape *scalesInputShape = context->GetInputShape(INDEX_IN_SCALES - offset);
     const gert::Shape *expertForSourceRowInputShape = context->GetInputShape(INDEX_IN_EXPERT_FOR_SOURCE_ROW - offset);

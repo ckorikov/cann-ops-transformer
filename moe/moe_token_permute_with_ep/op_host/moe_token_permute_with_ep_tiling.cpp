@@ -237,9 +237,9 @@ private:
 	void CalculateCoreParams(CoreParams& coreParams, int64_t tokenNums);
 	void CalculateUBParams(UBParams& ubParams, int64_t topK, int64_t cols);
 	void CalculateLoopParams(LoopParams& loopParams, const CoreParams& coreParams, int64_t onceIndicesTokenNums,
-		int64_t onceUbTokenNums);
+		int64_t onceUbTokenNums) const;
 	void SetTilingDataFinalParams(IndexMixCopyComputeTilingData* tilingData, const CoreParams& coreParams,
-		const UBParams& ubParams, const LoopParams& loopParams);
+		const UBParams& ubParams, const LoopParams& loopParams) const;
     int64_t aivNum = 0;
     int64_t realCoreNumAiv = 0;
     int64_t inputDimNum = 0;
@@ -776,7 +776,7 @@ void MoeTokenPermuteWithEpTilingBase::CalculateUBParams(
 void MoeTokenPermuteWithEpTilingBase::CalculateLoopParams(
 	MoeTokenPermuteWithEpTilingBase::LoopParams& loopParams,
 	const MoeTokenPermuteWithEpTilingBase::CoreParams& coreParams,
-	int64_t onceIndicesTokenNums, int64_t onceUbTokenNums)
+	int64_t onceIndicesTokenNums, int64_t onceUbTokenNums) const 
 {
     loopParams.frontCoreLoop = GetCeilInt(coreParams.coreCalcNum, onceIndicesTokenNums);
     loopParams.frontCoreLastTokenNums = coreParams.coreCalcNum - (loopParams.frontCoreLoop - 1) * onceIndicesTokenNums;
@@ -794,7 +794,7 @@ void MoeTokenPermuteWithEpTilingBase::CalculateLoopParams(
 void MoeTokenPermuteWithEpTilingBase::SetTilingDataFinalParams(IndexMixCopyComputeTilingData* tilingData,
 	const MoeTokenPermuteWithEpTilingBase::CoreParams& coreParams,
 	const MoeTokenPermuteWithEpTilingBase::UBParams& ubParams,
-	const MoeTokenPermuteWithEpTilingBase::LoopParams& loopParams)
+	const MoeTokenPermuteWithEpTilingBase::LoopParams& loopParams) const
 {
     tilingData->set_tokenUB(ubParams.tokenUB);
     tilingData->set_indicesUB(ubParams.indicesUB);

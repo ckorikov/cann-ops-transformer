@@ -358,15 +358,15 @@ static bool SetStartEndInfoForTiling4MoeTokenUnpermuteWithEpGrad(gert::TilingCon
             epRangePtr->GetSize() != EP_RANGE_SIZE,
             OP_LOGE(context->GetNodeName(), "the size of range only support 2"),
             return ge::GRAPH_FAILED);
-        const int64_t* epRangeList = reinterpret_cast<const int64_t*>(epRangePtr->GetData());
+        const int64_t* epRangeList = static_cast<const int64_t*>(epRangePtr->GetData());
         start = epRangeList[0];
         end = epRangeList[1];
         end = (end < 0) ? end + totalNum : end;
         start = (start < 0) ? start + totalNum : start;
         end = std::min(end, totalNum);
-        end = std::max(end, (int64_t)0);
+        end = std::max(end, static_cast<int64_t>(0));
         start = std::min(start, totalNum);
-        start = std::max(start, (int64_t)0);
+        start = std::max(start, static_cast<int64_t>(0));
         if (end < start) {
             return false;
         }

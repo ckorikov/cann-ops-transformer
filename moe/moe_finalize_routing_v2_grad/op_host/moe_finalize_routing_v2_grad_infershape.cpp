@@ -53,8 +53,8 @@ static ge::graphStatus HandleUnknownRank(const gert::Shape* gradYShape, const ge
     return ge::GRAPH_FAILED;
 }
 
-static ge::graphStatus SetOutputShapes(gert::InferShapeContext* context, const gert::Shape* gradYShape, 
-                                       const gert::Shape* expandedRowIdxShape,  gert::Shape* gradExpandedXShape,
+static ge::graphStatus SetOutputShapes(const gert::InferShapeContext* context, const gert::Shape* gradYShape, 
+                                       const gert::Shape* expandedRowIdxShape, gert::Shape* gradExpandedXShape,
                                        gert::Shape* gradScalesShape)
 {
     int64_t dropPadMode = 0;
