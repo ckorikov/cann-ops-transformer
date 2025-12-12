@@ -234,7 +234,7 @@ protected:
     void DivideUbAndSetWorkspaceAntiquant(size_t *workspaces, const uint32_t &aicNum, uint32_t &ubSize);
     ge::graphStatus CalcStepKaKb(const gert::TilingContext *context, const GMMCompileInfo *compileInfoPtr,
                                  int64_t mInMM, uint32_t &mmStepKa, uint32_t &mmStepKb);
-    ge::graphStatus SetBias(const gert::TilingContext *context, matmul_tiling::MultiCoreMatmulTiling &mm) const;
+    ge::graphStatus SetBias(const gert::TilingContext *context, matmul_tiling::MultiCoreMatmulTiling &mm);
     int32_t FindBestSingleNPertoken(const uint32_t aicNum) const;
     void FindBestUsedCoreNumOneGroup(const uint32_t aicNum);
     ge::graphStatus SetWorkspscesPerTokenQuant(const uint32_t aicNum, size_t *workspaces);
@@ -256,6 +256,10 @@ protected:
                         GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
     bool CheckCubeBufferSizeDequant(uint32_t baseM, uint32_t baseN, uint32_t baseK,
                                     GMMTilingData& tilingData, const GMMCompileInfo* compileInfoPtr);
+    void GetBankConflictSize(int32_t baseM, int32_t baseK, int32_t baseN,
+                             int32_t& length, bool isAMatrix);
+    int32_t GetTransLength(int32_t baseM, int32_t baseK, int32_t baseN, int32_t& transLength);
+    void FixTilingByUb();
 private:
     int32_t mList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
     int32_t kList_[GroupedMatmul::MAX_TENSOR_CONT] = {0};
@@ -301,6 +305,7 @@ private:
     ge::DataType weightDtype_ = ge::DT_UNDEFINED;
     ge::DataType scaleDtype_ = ge::DT_UNDEFINED;
     ge::DataType yDtype_ = ge::DT_UNDEFINED;
+    ge::DataType biasDtype_ = ge::DT_UNDEFINED;
     bool isA8W8_ = false;
     // in quant case, it indicates pertoken flag; in antiquant case, it represents pergroup size
     uint32_t perTokenOrPerGroupSize_ = 0;

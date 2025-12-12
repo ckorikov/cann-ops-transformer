@@ -439,9 +439,14 @@ __aicore__ inline void GMMCompute<mmType, sync>::Init(GM_ADDR x, GM_ADDR weight,
 #if defined(GMM_QUANT_INT8)
     scaleTensorPtr = scale;
 #endif
-#if defined(__CCE_AICORE__) && (__CCE_AICORE__ == 200 || (__CCE_AICORE__ == 100 && defined(GMM_FLOAT)))
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 200
     TBuf<> ubBuf;
     pipe->InitBuffer(ubBuf, TOTAL_UB_SIZE / 2);
+    LocalTensor<uint8_t> buf = ubBuf.template Get<uint8_t>();
+    mm.SetLocalWorkspace(buf);
+#elif defined(__CCE_AICORE__) && __CCE_AICORE__ == 100 && defined(GMM_FLOAT)
+    TBuf<> ubBuf;
+    pipe->InitBuffer(ubBuf, mmTilingData->transLength);
     LocalTensor<uint8_t> buf = ubBuf.template Get<uint8_t>();
     mm.SetLocalWorkspace(buf);
 #endif
@@ -553,7 +558,7 @@ __aicore__ inline void GMMCompute<mmType, sync>::MMCompute(uint32_t groupIdx, MN
     #else
         // mm.template IterateAll<sync>(yGm[outOffset], 0);
         mm.Iterate();
-        mm.GetTensorC(yGm[outOffset], 0, true);
+        mm.GetTensorC(yGm[outOffset], 0);
     #endif
 }
 

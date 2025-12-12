@@ -19,6 +19,8 @@
 #include "tiling_base/tiling_templates_registry.h"
 #include "err/ops_err.h"
 #include "../../op_kernel/grouped_matmul_tiling_key.h"
+#include "lib/matmul/matmul_tiling_base.h"
+
 using namespace Ops::Transformer::OpTiling;
 using namespace ge;
 using namespace AscendC;
@@ -724,6 +726,92 @@ bool GMMTiling::CheckTilingMatchStaticValue() {
   return false;
 }
 
+void GMMTiling::GetBankConflictSize(int32_t baseM, int32_t baseK, int32_t baseN,
+    int32_t& length, bool isAMatrix)
+{
+
+    constexpr int blockSize = 32;
+    constexpr int bankLen = 512;
+    bool isBankConflict = false;
+    int bankConflictSize = 0;
+
+    if (isAMatrix) {
+        if (transposeX_) {
+            isBankConflict = baseM % bankLen == 0;
+            bankConflictSize = baseK * matmul_tiling::C0_BYTE_SIZE;
+        } else {
+            isBankConflict = baseK % bankLen == 0;
+            bankConflictSize = baseM * matmul_tiling::C0_BYTE_SIZE;
+        }
+    } else {
+        if (transposeWeight_) {
+            isBankConflict = baseK % bankLen == 0;
+            bankConflictSize = baseN * matmul_tiling::C0_BYTE_SIZE;
+        } else {
+            isBankConflict = baseN % bankLen == 0;
+            bankConflictSize = baseK * matmul_tiling::C0_BYTE_SIZE;
+        }
+    }
+    if (isBankConflict) {
+        length = length + bankConflictSize;
+    }
+}
+
+int32_t GMMTiling::GetTransLength(int32_t baseM, int32_t baseK, int32_t baseN,
+                               int32_t& transLength) {
+    int32_t a1Length = 0;
+    int32_t b1Length = 0;
+    int32_t c1Length = 0;
+    int32_t biasLength = 0;
+    int32_t dataSize = 2;
+    // A matrix ND2NZ
+    a1Length = baseM * baseK * dataSize;
+    // bank conflict
+    GetBankConflictSize(baseM, baseK, baseN, a1Length, true);
+
+    // B matrix ND2NZ
+    if (wFormat_ == matmul_tiling::CubeFormat::ND) {
+        b1Length = baseN * baseK * dataSize;
+        // bank conflict
+        GetBankConflictSize(baseM, baseK, baseN, b1Length, false);
+    }
+    // C matrix NZ2ND
+    c1Length = baseN * baseM * sizeof(float);
+
+    // Bias
+    if (hasBias_) {
+      int32_t biasDataSize = 2;
+      if (biasDtype_ == ge::DT_FLOAT) {
+        biasDataSize = 4;
+      }
+      biasLength = baseN * biasDataSize;
+    }
+
+    transLength = std::max(std::max(a1Length, b1Length), std::max(c1Length, biasLength));
+    return transLength;
+}
+
+
+void GMMTiling::FixTilingByUb() {
+  int32_t baseM = tilingData.mmTilingData.get_baseM();
+  int32_t baseK = tilingData.mmTilingData.get_baseK();
+  int32_t baseN = tilingData.mmTilingData.get_baseN();
+  int32_t transLength = 0;
+  while (GetTransLength(baseM, baseK, baseN, transLength) * 2 > ubSize_) {
+    if (baseM > baseN) {
+      baseM /= 2;
+    } else {
+      baseN /= 2;
+    }
+  }
+
+  tilingData.mmTilingData.set_baseM(baseM);
+  tilingData.mmTilingData.set_baseN(baseN);
+  tilingData.mmTilingData.set_singleCoreM(baseM);
+  tilingData.mmTilingData.set_singleCoreN(baseN);
+  tilingData.mmTilingData.set_transLength(transLength);
+}
+
 ge::graphStatus GMMTiling::RunFusionKernelTiling(gert::TilingContext* context) {
   OP_LOGI(context->GetNodeName(), "Begin Run GMM Tiling");
   auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
@@ -757,6 +845,10 @@ ge::graphStatus GMMTiling::RunFusionKernelTiling(gert::TilingContext* context) {
   OP_CHECK_IF(DynamicTilingSingleN(context, usedCoreNum_, compileInfoPtr) != ge::GRAPH_SUCCESS,
              OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "GMM DynamicTilingSingleN failed"),
              return ge::GRAPH_FAILED);
+  if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910 &&
+      (xDType_ == ge::DT_FLOAT16)) {
+    FixTilingByUb();
+  }
   tilingData.gmmBaseParams.set_workspaceSize(workspacesSize_);
   tilingData.mmTilingData.set_usedCoreNum(usedCoreNum_);  // usedCoreNum is ai_core num
   tilingData.gmmBaseParams.set_coreNum(usedCoreNum_);  // ai cube number
@@ -1104,7 +1196,7 @@ ge::graphStatus GMMTiling::GMMSetUbDivideBlk() {
   return ge::GRAPH_FAILED;
 }
 
-ge::graphStatus GMMTiling::SetBias(const gert::TilingContext* context, matmul_tiling::MultiCoreMatmulTiling& mm) const {
+ge::graphStatus GMMTiling::SetBias(const gert::TilingContext* context, matmul_tiling::MultiCoreMatmulTiling& mm) {
   if (!hasBias_ || isA16W8Msd_ || isA4W4_) {
     mm.SetBias(false);
   } else {
@@ -1113,6 +1205,7 @@ ge::graphStatus GMMTiling::SetBias(const gert::TilingContext* context, matmul_ti
     OP_CHECK_IF(biasTensor == nullptr,
                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "Get bias tensor failed."),
                return ge::GRAPH_FAILED);
+    biasDtype_ = biasTensor->GetDataType();
     mm.SetBiasType(matmul_tiling::TPosition::GM, matmul_tiling::CubeFormat::ND,
                    static_cast<matmul_tiling::DataType>(biasTensor->GetDataType()));
   }
