@@ -949,37 +949,37 @@ mc2:
       options:
         - matmul_reduce_scatter_v2
 
-    quant_all_reduce:
-      module: True
-      src:
-        - mc2/quant_all_reduce
-        - mc2/common
-        - mc2/3rd
-      exclude:
-        - mc2/quant_all_reduce/docs
-        - mc2/quant_all_reduce/README.md
-      ut_cov_exclude:
-        - mc2/quant_all_reduce
-      test:
-        examples: False
-      options:
-        - quant_all_reduce
+    # quant_all_reduce:
+    #   module: True
+    #   src:
+    #     - mc2/quant_all_reduce
+    #     - mc2/common
+    #     - mc2/3rd
+    #   exclude:
+    #     - mc2/quant_all_reduce/docs
+    #     - mc2/quant_all_reduce/README.md
+    #   ut_cov_exclude:
+    #     - mc2/quant_all_reduce
+    #   test:
+    #     examples: False
+    #   options:
+    #     - quant_all_reduce
 
-    quant_reduce_scatter:
-      module: True
-      src:
-        - mc2/quant_reduce_scatter
-        - mc2/common
-        - mc2/3rd
-      exclude:
-        - mc2/quant_reduce_scatter/docs
-        - mc2/quant_reduce_scatter/README.md
-      ut_cov_exclude:
-        - mc2/quant_reduce_scatter
-      test:
-        examples: False
-      options:
-        - quant_reduce_scatter
+    # quant_reduce_scatter:
+    #   module: True
+    #   src:
+    #     - mc2/quant_reduce_scatter
+    #     - mc2/common
+    #     - mc2/3rd
+    #   exclude:
+    #     - mc2/quant_reduce_scatter/docs
+    #     - mc2/quant_reduce_scatter/README.md
+    #   ut_cov_exclude:
+    #     - mc2/quant_reduce_scatter
+    #   test:
+    #     examples: False
+    #   options:
+    #     - quant_reduce_scatter
 
   moe_distribute:
     distribute_barrier:
