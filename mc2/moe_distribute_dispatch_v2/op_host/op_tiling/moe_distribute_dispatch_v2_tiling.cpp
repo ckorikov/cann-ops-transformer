@@ -96,6 +96,7 @@ namespace {
     constexpr int64_t EP_RESTRICT_8 = 8;
     constexpr int64_t MAX_TP_WORLD_SIZE = 2;
     constexpr int64_t BS_UPPER_BOUND = 512;
+    constexpr int64_t FULLMESH_BS_UPPER_BOUND = 256;
 
     constexpr uint64_t NUM_10 = 10ULL;
     constexpr uint32_t TILINGKEY_SCALES = 10;
@@ -107,6 +108,7 @@ namespace {
     constexpr int64_t MOE_EXPERT_MAX_NUM = 1024;
     constexpr int64_t LOCAL_EXPERT_MAX_SIZE = 2048;
     constexpr int64_t K_MAX = 16;
+    constexpr int64_t FULLMESH_K_MAX = 12;
     constexpr size_t SYSTEM_NEED_WORKSPACE = 16UL * 1024UL * 1024UL;
     constexpr uint32_t WORKSPACE_ELEMENT_OFFSET = 512;
     constexpr uint32_t RANK_LIST_NUM = 2;
@@ -656,25 +658,41 @@ static bool CheckSharedAttrs(const char *nodeName,
     return true;
 }
 
-static bool CheckCommAlgAttrs(const char *nodeName,
-    const MoeDistributeDispatchV2TilingData &tilingData, bool isActiveMask, bool isSetCommAlg)
+static bool CheckCommAlgAttrs(const gert::TilingContext *context, const char *nodeName,
+    const MoeDistributeDispatchV2TilingData &tilingData, bool isSetCommAlg)
 {
     uint32_t tpWorldSize = tilingData.moeDistributeDispatchV2Info.tpWorldSize;
-    uint32_t hasElasticInfo = tilingData.moeDistributeDispatchV2Info.hasElasticInfo;
+    bool hasElasticInfo = tilingData.moeDistributeDispatchV2Info.hasElasticInfo;
     int32_t zeroComputeExpertNum = tilingData.moeDistributeDispatchV2Info.zeroComputeExpertNum;
+    bool isExpertMask = tilingData.moeDistributeDispatchV2Info.isExpertMask;
+    // 获取bs
+    const gert::StorageShape *xStorageShape = context->GetInputShape(X_INDEX);
+    const int64_t xDim0 = xStorageShape->GetStorageShape().GetDim(0);
+    uint32_t bs = static_cast<uint32_t>(xDim0);
 
+    // 获取topk
+    const gert::StorageShape *expertIdStorageShape = context->GetInputShape(EXPERT_IDS_INDEX);
+    const int64_t expertIdsDim1 = expertIdStorageShape->GetStorageShape().GetDim(1);
+    uint32_t k = static_cast<uint32_t>(expertIdsDim1);
+
+    // 校验动态缩容和FullMesh_v2不能同时启用
     OP_TILING_CHECK((isSetCommAlg && hasElasticInfo), OP_LOGE(nodeName, "Cannot support elasticInfo when comm_alg = fullmesh_v2"), 
         return false);
     // 校验特殊专家和FullMesh_v2不能同时启用
     OP_TILING_CHECK((isSetCommAlg && (zeroComputeExpertNum > 0)), OP_LOGE(nodeName, "Cannot support zeroComputeExpert when comm_alg = fullmesh_v2"), 
         return false);
-    // 校验ActiveMask和FullMesh_v2不能同时启用
-    OP_TILING_CHECK((isSetCommAlg && isActiveMask), OP_LOGE(nodeName, "Cannot support xActiveMask when comm_alg = fullmesh_v2"), 
+    // 校验二维isExpertMask和FullMesh_v2不能同时启用
+    OP_TILING_CHECK((isSetCommAlg && isExpertMask), OP_LOGE(nodeName, "Cannot support ExpertMask when comm_alg = fullmesh_v2"), 
         return false);
     // 检查comm_alg和tpWorldSize是否冲突
     OP_TILING_CHECK(isSetCommAlg && (tpWorldSize == TP_WORLD_SIZE_TWO), OP_LOGE(nodeName, "When comm_alg is fullmesh_v2, tp_world_size cannot be 2."),
         return false);
-    
+    // 检查comm_alg和bs是否冲突
+    OP_TILING_CHECK(isSetCommAlg && (bs > FULLMESH_BS_UPPER_BOUND), OP_LOGE(nodeName, "When comm_alg is fullmesh_v2, bs should be between [1, %ld], but got %ld.", FULLMESH_BS_UPPER_BOUND, bs),
+        return false);
+    // 检查comm_alg和topK是否冲突
+    OP_TILING_CHECK(isSetCommAlg && (k > FULLMESH_K_MAX), OP_LOGE(nodeName, "When comm_alg is fullmesh_v2, topK should be between [1, %ld], but got %ld.", FULLMESH_K_MAX, k),
+        return false);
     return true;
 }
 
@@ -728,8 +746,8 @@ static ge::graphStatus CheckAttrs(const gert::TilingContext *context, MoeDistrib
 
     OP_TILING_CHECK(!CheckSharedAttrs(nodeName, tilingData),
         OP_LOGE(nodeName, "Check shared expert related attributes failed."), return ge::GRAPH_FAILED);
-    OP_TILING_CHECK(!CheckCommAlgAttrs(nodeName, tilingData, isActiveMask, isSetCommAlg),
-        OP_LOGE(nodeName, "Check comm_alg related attributes failed."), return ge::GRAPH_FAILED);
+        OP_TILING_CHECK(!CheckCommAlgAttrs(context, nodeName, tilingData, isSetCommAlg),
+            OP_LOGE(nodeName, "Check comm_alg related attributes failed."), return ge::GRAPH_FAILED);
 
     // 校验moe专家数量能否均分给多机
     localMoeExpertNum = moeExpertNum / (epWorldSize - sharedExpertRankNum);
