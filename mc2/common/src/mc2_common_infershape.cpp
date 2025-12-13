@@ -20,7 +20,7 @@ using namespace ge;
 namespace ops {
 // infershape 公共函数
 ge::graphStatus CommonParamCheck(
-    gert::InferShapeContext* context, const size_t isTransAIndex, const size_t isTransBIndex, CommParas& commParas)
+    const gert::InferShapeContext* context, const size_t isTransAIndex, const size_t isTransBIndex, CommParas& commParas)
 {
     commParas.x1MatrixShape = context->GetInputShape(0);
     OPS_CHECK_NULL_WITH_CONTEXT(context, commParas.x1MatrixShape);

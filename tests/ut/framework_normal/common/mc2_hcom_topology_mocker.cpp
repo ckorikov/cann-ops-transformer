@@ -88,27 +88,27 @@ MC2HcomTopology::MC2HcomTopology(const char *libPath)
 {
 }
 
-HcclResult MC2HcomTopology::CallHcomGetCommHandleByGroup(const char *group, HcclComm *commHandle)
+HcclResult MC2HcomTopology::CallHcomGetCommHandleByGroup(const char *group, HcclComm *commHandle) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetNetLayers(HcclComm comm, uint32_t **netLayers, uint32_t *netLayerNum)
+HcclResult MC2HcomTopology::CallCommGetNetLayers(HcclComm comm, uint32_t **netLayers, uint32_t *netLayerNum) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetInstTopoTypeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *topoType)
+HcclResult MC2HcomTopology::CallCommGetInstTopoTypeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *topoType) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetInstSizeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *rankNum)
+HcclResult MC2HcomTopology::CallCommGetInstSizeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *rankNum) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetCCLBufSizeCfg(HcclComm comm, uint64_t *cclBufferSize)
+HcclResult MC2HcomTopology::CallCommGetCCLBufSizeCfg(HcclComm comm, uint64_t *cclBufferSize) const
 {
     *cclBufferSize = MC2HcomTopologyMocker::GetInstance().GetValue("cclBufferSize", DEFAULT_CCL_BUFFER_SIZE);
     return HCCL_SUCCESS;

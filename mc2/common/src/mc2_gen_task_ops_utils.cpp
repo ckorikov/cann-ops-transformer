@@ -57,7 +57,7 @@ int64_t Mc2GenTaskOpsUtils::GetAttachStreamIdByContext(const gert::ExeResGenerat
     return stream_id;
 }
 
-ge::Status Mc2GenTaskOpsUtils::CommonKFCMc2CalcParamFunc(gert::ExeResGenerationContext *context,
+ge::Status Mc2GenTaskOpsUtils::CommonKFCMc2CalcParamFunc(const gert::ExeResGenerationContext *context,
                                                          const ge::AscendString &name,
                                                          const ge::AscendString &reuse_key)
 {
