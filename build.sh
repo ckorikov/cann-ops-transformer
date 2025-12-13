@@ -1203,7 +1203,7 @@ if [ "${COV}" == "true" ];then
 fi
 
 if [ "${OOM}" == "true" ];then
-    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OOM=true"
+    CUSTOM_OPTION="${CUSTOM_OPTION} -DENABLE_OOM=ON"
 fi
 
 if [ -n "${EXAMPLE}" ];then
