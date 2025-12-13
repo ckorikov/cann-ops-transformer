@@ -236,8 +236,11 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::In
     pipe->InitBuffer(inputBuff1, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K * 2); // 2:pingpong
     pipe->InitBuffer(inputBuff2, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_8K * 2);  // 2:pingpong
     pipe->InitBuffer(outputBuff1, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K);
-    pipe->InitBuffer(outputBuff2, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_4K);
-
+    if (cvRatio == 1) { // CV1:1场景，vecDealM 变大一倍，需要的buffer变大一倍
+        pipe->InitBuffer(outputBuff2, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_8K);
+    } else {
+        pipe->InitBuffer(outputBuff2, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_4K);
+    }
     // tmpBuff
     pipe->InitBuffer(tmpBuff1, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_32K);
     pipe->InitBuffer(attenMaskTmpBuff, AttentionCommon::ConstInfo::BUFFER_SIZE_BYTE_8K);
@@ -709,6 +712,10 @@ __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::ProcessVec1SingleBuf(const 
     if (mSplitSize > mSplitInfo.vecDealM) {
         mSplitSize = mSplitInfo.vecDealM;
     }
+
+    const uint32_t MAX_M_SPLIT_SIZE = 128U; // CV1:1场景，M轴方向最大支持128
+    mSplitSize = (cvRatio == 1 && mSplitSize > MAX_M_SPLIT_SIZE) ? MAX_M_SPLIT_SIZE : mSplitSize;
+
     uint32_t loopCount = (mSplitInfo.vecDealM + mSplitSize - 1) / mSplitSize;
     uint32_t tailSplitSize = mSplitInfo.vecDealM - (loopCount - 1) * mSplitSize;
     for (uint32_t i = 0, dealSize = mSplitSize; i < loopCount; i++) {
@@ -734,7 +741,9 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::Pr
         mSplitInfo.vecDealM = (mSplitInfo.nBufferDealM <= 16) ? mSplitInfo.nBufferDealM :
                                                                 (((mSplitInfo.nBufferDealM + 15) / 16 + 1) / 2 * 16);
         mSplitInfo.vecStartM = 0;
-        if (GetBlockIdx() % 2 == 1) {
+        if (cvRatio == 1) { // CV1:1
+            mSplitInfo.vecDealM = mSplitInfo.nBufferDealM;
+        } else if (GetBlockIdx() % 2 == 1) {
             mSplitInfo.vecStartM = mSplitInfo.vecDealM;
             mSplitInfo.vecDealM = mSplitInfo.nBufferDealM - mSplitInfo.vecDealM;
         }
@@ -818,7 +827,9 @@ template <typename FIAT> __aicore__ inline void FiaBlockVecNonQuantMla<FIAT>::Pr
         mSplitInfo.vecDealM = (mSplitInfo.nBufferDealM <= 16) ? mSplitInfo.nBufferDealM :
                                                                 (((mSplitInfo.nBufferDealM + 15) / 16 + 1) / 2 * 16);
         mSplitInfo.vecStartM = 0;
-        if (GetBlockIdx() % 2 == 1) {
+        if (cvRatio == 1) { // CV1:1
+            mSplitInfo.vecDealM = mSplitInfo.nBufferDealM;
+        } else if (GetBlockIdx() % 2 == 1) {
             mSplitInfo.vecStartM = mSplitInfo.vecDealM;
             mSplitInfo.vecDealM = mSplitInfo.nBufferDealM - mSplitInfo.vecDealM;
         }

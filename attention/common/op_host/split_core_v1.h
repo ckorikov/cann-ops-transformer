@@ -216,7 +216,7 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
 #endif
 
 
-static void SplitFD(SplitCoreRes &res, FlashDecodeParams fDParams, uint32_t coreNum)
+static void SplitFD(SplitCoreRes &res, FlashDecodeParams fDParams, uint32_t vecCoreNum)
 { 
     uint64_t totalFDLoad = 0;
     uint32_t totalFDHeadSplit = 0;
@@ -227,7 +227,7 @@ static void SplitFD(SplitCoreRes &res, FlashDecodeParams fDParams, uint32_t core
     }
 
     // 基于FA开核数量，计算每个Vector需要计算的FD数据量
-    uint32_t maxVectorNum = std::min(totalFDHeadSplit, coreNum * 2);  // FD均衡的最小单位为一个归约任务的一个split，所以最多占用totalFDHeadSplit个vector
+    uint32_t maxVectorNum = std::min(totalFDHeadSplit, vecCoreNum);  // FD均衡的最小单位为一个归约任务的一个split，所以最多占用totalFDHeadSplit个vector
     double loadThrOfVector = static_cast<double>(totalFDLoad) / static_cast<double>(maxVectorNum);  // 初始化vector的负载上限
     int64_t loadOfCurVector = 0;
     uint32_t curCoreIndex = 0;

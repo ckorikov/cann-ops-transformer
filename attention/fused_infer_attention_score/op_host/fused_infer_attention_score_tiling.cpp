@@ -622,6 +622,15 @@ static ge::graphStatus SetPlatformInfo(gert::TilingContext &context, PromptFlash
         compileInfoPtr.defaultSysWorkspaceSize = ascendcPlatform.GetLibApiWorkSpaceSize();
     } else {
         compileInfoPtr.defaultSysWorkspaceSize = 0U;
+
+        OP_CHECK_IF((compileInfoPtr.aivNum != compileInfoPtr.aicNum) && (compileInfoPtr.aivNum != compileInfoPtr.aicNum * 2U),
+            OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "aicNum(%u):aivNum(%u) only support 1:1 or 1:2.",
+                compileInfoPtr.aicNum, compileInfoPtr.aivNum), return GRAPH_FAILED);
+        OP_CHECK_IF(compileInfoPtr.aivNum == compileInfoPtr.aicNum,
+            OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), 
+                "when CV 1:1, only support MLA non-quantization(QKV type both are FP16 or BF16) "
+                "and MLA fully quantization(QKV type both are int8)"), 
+            return GRAPH_FAILED);
     }
 
     return ge::GRAPH_SUCCESS;

@@ -51,7 +51,7 @@ enum class FIA_LAYOUT : uint32_t
 template <typename Q_T, typename KV_T, typename OUT_T, typename ORIGIN_T, const bool PAGE_ATTENTION = false,
           const bool FLASH_DECODE = false, FIA_LAYOUT LAYOUT_T = FIA_LAYOUT::BSH, const uint8_t ANTIQUANT_MODE = 0,
           const bool SHARED_PREFIX = false, FIA_LAYOUT KV_LAYOUT_T = FIA_LAYOUT::BSH,
-          const bool SOFTMAX_WITH_BRC = false, typename... Args>
+          const bool SOFTMAX_WITH_BRC = false, const uint8_t CV_RATIO = 2, typename... Args>
 struct FIAType {
     using queryType = Q_T;
     using kvType = KV_T;
@@ -64,6 +64,7 @@ struct FIAType {
     static constexpr bool sharedPrefix = SHARED_PREFIX;
     static constexpr FIA_LAYOUT kvLayout = KV_LAYOUT_T;
     static constexpr bool softmaxWithBrc = SOFTMAX_WITH_BRC;
+    static constexpr uint8_t cvRatio = CV_RATIO;
 };
 
 struct FDparams {

@@ -263,13 +263,14 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
 {
     if (usedCoreNum != 0) {
         uint32_t initOutputEventId = 0U;
+        int32_t aivCoreNum = usedCoreNum * constInfo.subBlockNum;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
         if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
             tSize = qActSeqLensParser.GetTSize();
         }
         uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
-        uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
+        uint64_t singleCoreSize = (totalOutputSize + aivCoreNum - 1) / aivCoreNum;
         uint64_t tailSize = totalOutputSize - tmpBlockIdx * singleCoreSize;
         uint64_t singleInitOutputSize = tailSize < singleCoreSize ? tailSize : singleCoreSize;
         WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
@@ -279,7 +280,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         if (constInfo.softmaxLseFlag) {
             float lseInitValue = constInfo.FLOAT_INF;
             uint64_t totalLseSize = tSize * constInfo.qHeadNum;
-            uint64_t singleCoreLseSize = (totalLseSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2;
+            uint64_t singleCoreLseSize = (totalLseSize + aivCoreNum - 1) / aivCoreNum;
             uint64_t tailLseSize = totalLseSize - tmpBlockIdx * singleCoreLseSize;
             uint64_t singleInitOutputLseSize = tailLseSize < singleCoreLseSize ? tailLseSize : singleCoreLseSize;
             WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
@@ -308,7 +309,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
 {
     if ASCEND_IS_AIV {
         tmpBlockIdx = GetBlockIdx(); // vec:0-47
-        aiCoreIdx = tmpBlockIdx / 2;
+        aiCoreIdx = tmpBlockIdx / cvRatio;
     } else {
         tmpBlockIdx = GetBlockIdx(); // cube:0-23
         aiCoreIdx = tmpBlockIdx;

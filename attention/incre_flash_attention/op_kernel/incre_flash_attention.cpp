@@ -227,7 +227,7 @@ __aicore__ constexpr AMLAMODE get_amla_mode() {
 }
 
 template<uint8_t Q_T, uint8_t KV_T, uint16_t OUT_T, uint8_t PAGE_ATTENTIOND, uint16_t LAYOUT_T,  uint16_t KV_LAYOUT_T, uint16_t FLASH_DECODE,
-            uint8_t ENABLE_PREFIX, uint8_t M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, uint8_t M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T, uint8_t M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA,  uint16_t M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE, 
+            uint8_t ENABLE_PREFIX, uint8_t CV_RATIO, uint8_t M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, uint8_t M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T, uint8_t M_K_QUANTMODE_P_NEWTILINGFLAG_I_AMLA,  uint16_t M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE, 
             uint16_t M_FIAFLAG_P_MMTYPETMP_I_MODEVAL,   uint8_t M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG, uint8_t P_CVDIFF_MLA_FLAG,  uint8_t M_SOFTMAXBRCB_P_TEMPLATE_VERSION, uint8_t TEMPLATE_MODE>
 __global__ __aicore__ void incre_flash_attention_FIAS(
     __gm__ uint8_t *query, 
@@ -378,7 +378,7 @@ __global__ __aicore__ void incre_flash_attention_FIAS(
         using ORIGIN_TYPE = bfloat16_t;
         REGISTER_TILING_FOR_TILINGKEY("TRUE", IncreFlashAttentionTilingDataMla);
         INVOKE_IFA_NO_KFC_MLA_OP_IMPL(IncreFlashAttentionAttenPreloadMla, Q_TYPE, KV_TYPE, OUT_TYPE, ORIGIN_TYPE, PAGE_ATTENTIOND, FLASH_DECODE,
-                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, KV_LAYOUT_TYPE, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE);
+                                    LAYOUT_TYPE, M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, false, KV_LAYOUT_TYPE, AMLA_TYPE, M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE, CV_RATIO);
     } 
 #else
     REGISTER_TILING_DEFAULT(IncreFlashAttentionTilingData);

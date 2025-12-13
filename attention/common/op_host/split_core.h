@@ -134,7 +134,7 @@ void GetSqeSize(const BaseInfo &baseInfo, uint32_t &s1Size, uint32_t &s2Size, ui
 void CalSplitBatchInfo(const BaseInfo &baseInfo, const InnerSplitParams &innerSplitParams, SplitBatchInfo &splitBatchInfo, uint32_t coreNum);
 void GetPreNextTokenLeftUp(const BaseInfo &baseInfo, int64_t s1Size, int64_t s2Size,
                            int64_t &preTokenLeftUp, int64_t &nextTokenLeftUp);
-void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t coreNum);
+void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t vecCoreNum);
 void CalBasicCost(uint32_t basicM, uint32_t basicS2, uint32_t &cost);
 void AssignByRow(const SplitBatchInfo &splitBatchInfo, AssignInfo &assignInfo);
 bool IsSpaceEnough(uint32_t spaceLimit, uint32_t spaceOccupied, uint32_t spaceTolerance, uint32_t newOccupancy);
@@ -732,7 +732,7 @@ void SplitCoreOfBand(const BaseInfo &baseInfo, const InnerSplitParams &innerSpli
     res.usedCoreNum = currCoreIdx;
 }
 
-void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t coreNum)
+void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t vecCoreNum)
 { 
     uint32_t totalFDLoad = 0;
     uint32_t totalFDHeadSplit = 0;
@@ -743,7 +743,7 @@ void SplitFD(SplitCoreRes &res, FlashDecodeParams &fDParams, uint32_t coreNum)
     }
 
     // 基于FA开核数量，计算每个Vector需要计算的FD数据量
-    uint32_t maxVectorNum = std::min(totalFDHeadSplit, coreNum * 2U);  // FD均衡的最小单位为一个归约任务的一个split，所以最多占用totalFDHeadSplit个vector
+    uint32_t maxVectorNum = std::min(totalFDHeadSplit, vecCoreNum);  // FD均衡的最小单位为一个归约任务的一个split，所以最多占用totalFDHeadSplit个vector
     double loadThrOfVector = static_cast<double>(totalFDLoad) / static_cast<double>(maxVectorNum);  // 初始化vector的负载上限
     int64_t loadOfCurVector = 0;
     uint32_t curCoreIndex = 0;

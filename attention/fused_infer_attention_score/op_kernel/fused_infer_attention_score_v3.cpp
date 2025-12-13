@@ -66,7 +66,7 @@ using namespace AttentionCommon;
     GET_TILING_DATA_WITH_STRUCT(tilingDataStruct, tiling_data_in, tiling);                                             \
     const tilingDataStruct *__restrict tiling_data = &tiling_data_in;
 
-template<uint8_t Q_T, uint8_t KV_T, uint8_t OUT_T, uint8_t PAGE_ATTENTIOND, uint8_t LAYOUT_T, uint16_t KV_LAYOUT_T, uint16_t FLASH_DECODE, uint8_t ENABLE_PREFIX,
+template<uint8_t Q_T, uint8_t KV_T, uint8_t OUT_T, uint8_t PAGE_ATTENTIOND, uint8_t LAYOUT_T, uint16_t KV_LAYOUT_T, uint16_t FLASH_DECODE, uint8_t ENABLE_PREFIX, uint8_t CV_RATIO,
             uint8_t M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, uint8_t M_OUTLAYOUT_P_TAIL_MODE_I_ORIGIN_T, uint8_t M_K_QUANTMODE_P_NEWTILINGFLAH_I_AMLA, uint8_t M_V_QUANTMODE_P_PRECISION_MODE_I_BALANCE,
             uint8_t M_FIAFLAG_P_MMTYPETMP_I_MODEVAL, uint8_t M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG, uint8_t P_CVDIFF_MLA_FLAG, uint8_t M_SOFTMAXBRCB_P_TEMPLATE_VERSION, uint8_t TEMPLATE_MODE>
 __global__ __aicore__ void fused_infer_attention(
@@ -97,32 +97,32 @@ __global__ __aicore__ void fused_infer_attention(
 #if (ORIG_DTYPE_QUERY == DT_FLOAT16) && (ORIG_DTYPE_ATTENTION_OUT == DT_FLOAT16) && (ORIG_DTYPE_KEY == DT_FLOAT16)
     if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5 && LAYOUT_T != 2) {
         INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5 && LAYOUT_T == 2) {
         INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(3), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+                static_cast<FIA_LAYOUT>(3), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3 && M_SOFTMAXBRCB_P_TEMPLATE_VERSION == 0) {
         INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false);
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3 && M_SOFTMAXBRCB_P_TEMPLATE_VERSION == 4) {
         INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, half, half, half, half, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true);
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true, CV_RATIO);
     } 
 #endif
 
 #if (ORIG_DTYPE_QUERY == DT_BF16) && (ORIG_DTYPE_ATTENTION_OUT == DT_BF16) && (ORIG_DTYPE_KEY == DT_BF16)
     if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5 && LAYOUT_T != 2) {
         INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 5 && LAYOUT_T == 2) {
         INVOKE_FIA_NO_KFC_MLA_OP_IMPL(FiaKernelNonQuantMla, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(3), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T));
+                static_cast<FIA_LAYOUT>(3), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3 && M_SOFTMAXBRCB_P_TEMPLATE_VERSION == 0) {
         INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false);
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), false, CV_RATIO);
     } else if constexpr (M_TEMPLATE_TYPE_P_CVDIFF_BASE_FLAG == 3 && M_SOFTMAXBRCB_P_TEMPLATE_VERSION == 4) {
         INVOKE_FIA_GQA_NO_QUANT_OP_IMPL(FiaKernelNonQuant, bfloat16_t, bfloat16_t, bfloat16_t, bfloat16_t, PAGE_ATTENTIOND, FLASH_DECODE,
-                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true);
+                static_cast<FIA_LAYOUT>(LAYOUT_T), M_Q_QUANTMODE_P_MSD_MODE_I_ANTIQUANTMODE, ENABLE_PREFIX, static_cast<FIA_LAYOUT>(KV_LAYOUT_T), true, CV_RATIO);
     } 
 #endif
 

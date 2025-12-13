@@ -109,6 +109,7 @@ public:
     static constexpr LAYOUT KV_LAYOUT_T = IFAT::kvLayout;
     static constexpr AMLAMODE AMLA = IFAT::isAMla;
     static constexpr bool BALANCE = IFAT::isBalance;
+    static constexpr uint32_t cvRatio = IFAT::cvRatio;
 
     static constexpr bool QUANT = (IsSameType<Q_T, KV_T>::value && IsSameType<KV_T, int8_t>::value);
     static constexpr uint8_t PER_CHANNEL_MODE = 0; // 伪量化: K V per-channel
@@ -793,7 +794,7 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::Init(
 {
     if ASCEND_IS_AIV {
         tmpBlockIdx = GetBlockIdx(); // vec:0-47
-        aiCoreIdx = tmpBlockIdx / 2;
+        aiCoreIdx = tmpBlockIdx / cvRatio;
     } else {
         tmpBlockIdx = GetBlockIdx(); // cube:0-23
         aiCoreIdx = tmpBlockIdx;
@@ -3131,7 +3132,9 @@ __aicore__ inline void IncreFlashAttentionAttenPreloadMla<IFAT>::CalcParams(uint
             info.mSizeV = (info.mSize + 1) / 2;
         }
         info.mSizeVStart = 0;
-        if (tmpBlockIdx % 2 == 1) {
+        if (cvRatio == 1) { // CV1:1
+            info.mSizeV = info.mSize;
+        } else if (tmpBlockIdx % 2 == 1) {
             info.mSizeVStart = info.mSizeV;
             info.mSizeV = info.mSize - info.mSizeV;
         }

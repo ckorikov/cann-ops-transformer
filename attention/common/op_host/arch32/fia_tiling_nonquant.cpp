@@ -113,6 +113,15 @@ ge::graphStatus FiaTilingNonQuant::GetPlatformInfo()
     OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
+    // 设置CV1:1模式
+    cvRatio_ = aivNum_ / aicNum_;
+    OP_LOGI(fiaInfo_->opName, "FIA aicNum: %u, aivNum:%u, cvRatio:%u.", aicNum_, aivNum_, cvRatio_);
+        OP_CHECK_IF(cvRatio_ == 1,
+        OPS_REPORT_VECTOR_INNER_ERR(fiaInfo_->opName, 
+            "when CV 1:1, only support MLA non-quantization(QKV type both are FP16 or BF16) "
+            "and MLA fully quantization(QKV type both are int8)"), 
+            return GRAPH_FAILED);
+
     return ge::GRAPH_SUCCESS;
 }
 
@@ -378,7 +387,7 @@ void FiaTilingNonQuant::Split()
         splitKVFlag_ = true;
         kvSplit_++;
         kvSplitPart_ = res.maxS2SplitNum; // kvSplitPart_, 用于lse out workspace计算
-        SplitFD(res, fDParams, usedCoreNum_);
+        SplitFD(res, fDParams, usedCoreNum_ * cvRatio_);
         tilingData_->fdParams.set_usedVecNumOfFd(res.usedVecNumOfFd);
     }
     CalcMmResSize();

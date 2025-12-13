@@ -83,6 +83,7 @@ private:
     // platform info
     uint32_t aicNum_ = 0;
     uint32_t aivNum_ = 0;
+    uint32_t cvRatio_ = 0;
     size_t libapiSize_ = 0;
 
     // set info to context
