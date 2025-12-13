@@ -65,7 +65,7 @@ protected:
     uint32_t GetRankSize(const char* group) const;
     void Reset();
     bool ReduceScatterCheckShapeInfo();
-    bool CheckInputScale();
+    bool CheckInputScale() const;
     bool CheckGroupSize() const;
     bool CheckBias() const;
     bool CheckAttrInfoValid(uint64_t kValue);

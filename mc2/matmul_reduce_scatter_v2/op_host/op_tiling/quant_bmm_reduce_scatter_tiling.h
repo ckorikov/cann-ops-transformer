@@ -75,8 +75,8 @@ protected:
     DequantBmm::Mc2L2cacheTileParams &MutableTailTCubeTilingL2cache() const;
     DequantBmm::Mc2SlidingWindowParams &MutableTailTCubeTilingSlidingWindow() const;
 
-    Mc2Tiling::Mc2Msg &MutableMc2MsgDataA5() const;
-    Mc2Tiling::RCSTiling &MutableRCSTilingDataA5() const;
+    Mc2Tiling::Mc2Msg &MutableMc2MsgData() const;
+    Mc2Tiling::RCSTiling &MutableRCSTilingData() const;
 
     ge::graphStatus DoAdaptSlidWindowTiling();
     void SetMc2Hcomm();
@@ -101,7 +101,7 @@ private:
 class QuantBmmReduceScatterHelper : public Mc2AdaptiveSlidingWindowTiling {
 public:
     QuantBmmReduceScatterHelper(QuantBmmReduceScatterTiling &quantBmmReduceScatterTiling,
-                                DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams &out);
+                                DequantBmm::Mc2QuantBatchMatmulV3TilingDataParams &data);
     const gert::Shape GetX1Shape(const size_t index) override;
     const gert::Shape GetX2Shape(const size_t index) override;
     const gert::Shape &GetScaleShape(const size_t index) override;

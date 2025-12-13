@@ -12,9 +12,7 @@
  * \file matmul_reduce_scatter_v2_gen_task.cpp
  * \brief
  */
-#include <vector>
 
-#include "op_mc2.h"
 #include "platform/platform_info.h"
 
 #ifdef BUILD_OPEN_PROJECT
@@ -26,7 +24,6 @@
 #else
 #include "ops_error.h"
 #include "mc2_gen_task_utils.h"
-#include "mc2_a5_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #endif
 
@@ -51,25 +48,16 @@ static bool IsTargetPlatform(const char *nodeName, const std::set<std::string> &
 #ifdef BUILD_OPEN_PROJECT
 //待开源补充
 #else // mc2 gen task utils
-static const std::set<std::string> platform910_95 = {"Ascend910_95"};
 static ge::Status MatmulReduceScatterV2CalcOpParam(gert::ExeResGenerationContext *context)
 {
-    if (IsTargetPlatform(context->GetNodeName(), platform910_95)) {
-        OPS_LOG_D(context->GetNodeName(), "Do A5 CCU CalcParam");
-        return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "ccu server", "ccu_stream");
-    }
-    OPS_LOG_E(context->GetNodeName(), "Only support A5");
+    OPS_LOG_E(context->GetNodeName(), "Not support");
     return ge::GRAPH_FAILED;
 }
 
 static ge::Status MatmulReduceScatterV2GenTask(const gert::ExeResGenerationContext *context,
                                              std::vector<std::vector<uint8_t>> &tasks)
 {
-    if (IsTargetPlatform(context->GetNodeName(), platform910_95)) {
-        OPS_LOG_D(context->GetNodeName(), "Do A5 CCU GenTask");
-        return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2A5GenTaskUtils::Mc2GenTaskCallBack910A5);
-    }
-    OPS_LOG_E(context->GetNodeName(), "Only support A5");
+    OPS_LOG_E(context->GetNodeName(), "Not support");
     return ge::GRAPH_FAILED;
 }
 

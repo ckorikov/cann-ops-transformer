@@ -65,17 +65,6 @@ constexpr uint32_t TRANSPOSEB_INDEX = 3;
 
 bool QuantBmmReduceScatterTiling::IsCapable()
 {
-    if (socVersion_ != platform_ascendc::SocVersion::ASCEND910_95) {
-        OP_LOGI(opName_, "skip quantbmm reducescatter tiling when version is not 910_95.");
-        return false;
-    }
-    // geAType 和 geBType 为fp8e4m3/fp8e5m2/hif8时, 走该tiling流程
-    if (mc2tiling::CheckDataTypeVaild(args_.geAType, mc2tiling::FP8DTYPE_SUPPORT_LIST) &&
-        mc2tiling::CheckDataTypeVaild(args_.geBType, mc2tiling::FP8DTYPE_SUPPORT_LIST)) {
-        OP_LOGI(opName_, "start with quantbmm reducescatter tiling.");
-        return true;
-    }
-    OP_LOGI(opName_, "skip quantbmm reducescatter tiling as dtype not support");
     return false;
 }
 
@@ -415,20 +404,20 @@ ge::graphStatus QuantBmmReduceScatterTiling::DoOpTiling()
 {
     GE_ASSERT_GRAPH_SUCCESS(CheckInput());
     SetMc2Hcomm();
-    SetRcsTilingData(MutableRCSTilingDataA5());
+    SetRcsTilingData(MutableRCSTilingData());
 
     if ((quantMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) ||
         (quantMode_ == mc2tiling::Mc2QuantMode::MXFP_MODE) ||
         (quantMode_ == mc2tiling::Mc2QuantMode::PERBLOCK_MODE && CheckPerblockM())) {
-            GE_ASSERT_GRAPH_SUCCESS(DoSplitMTiling(MutableRCSTilingDataA5()));
+            GE_ASSERT_GRAPH_SUCCESS(DoSplitMTiling(MutableRCSTilingData()));
     }
     GE_ASSERT_GRAPH_SUCCESS(DoAdaptSlidWindowTiling());
-    if ((GetQuantMode() == mc2tiling::Mc2QuantMode::PERBLOCK_MODE) && (MutableRCSTilingDataA5().tileCnt == 0) 
-        && (MutableRCSTilingDataA5().tailCnt == 0)) {
-        MutableRCSTilingDataA5().tileCnt = 1;
+    if ((GetQuantMode() == mc2tiling::Mc2QuantMode::PERBLOCK_MODE) && (MutableRCSTilingData().tileCnt == 0) 
+        && (MutableRCSTilingData().tailCnt == 0)) {
+        MutableRCSTilingData().tileCnt = 1;
     }
-    SetTilingResult(MutableRCSTilingDataA5(), MutableTCubeTileTilingData(), MutableTCubeTailTilingData(),
-                    MutableMc2MsgDataA5());
+    SetTilingResult(MutableRCSTilingData(), MutableTCubeTileTilingData(), MutableTCubeTailTilingData(),
+                    MutableMc2MsgData());
     return ge::GRAPH_SUCCESS;
 }
 
@@ -473,7 +462,7 @@ uint64_t QuantBmmReduceScatterTiling::GetTilingKey() const
 
 ge::graphStatus QuantBmmReduceScatterTiling::GetWorkspaceSize()
 {
-    myWorkSpaceSize_ = myWorkSpaceSize_ + MutableRCSTilingDataA5().cToFloatLen;
+    myWorkSpaceSize_ = myWorkSpaceSize_ + MutableRCSTilingData().cToFloatLen;
     OP_LOGI(opName_, "set max workspace size %lu to context", myWorkSpaceSize_);
     size_t* workspaces = context_->GetWorkspaceSizes(1);
     if (workspaces == nullptr) {
@@ -550,14 +539,14 @@ ge::graphStatus QuantBmmReduceScatterTiling::PostTiling()
                     VECTOR_INNER_ERR_REPORT_TILING(opName_, "tiling data size[%zu] not aligned to 8",
                                                     sizeof(QuantBatchMatmulV3ReduceScatterTilingData)),
                     return ge::GRAPH_FAILED);
-    if (MutableRCSTilingDataA5().rankID == 0) {
-        PrintRCSTilingData(context_->GetNodeName(), MutableRCSTilingDataA5());
+    if (MutableRCSTilingData().rankID == 0) {
+        PrintRCSTilingData(context_->GetNodeName(), MutableRCSTilingData());
         PrintTCubeTilingData(context_->GetNodeName(), MutableTCubeTileTilingData());
-        PrintMc2MsgData(context_->GetNodeName(), MutableMc2MsgDataA5());
+        PrintMc2MsgData(context_->GetNodeName(), MutableMc2MsgData());
         PrintTCubeTilingParams(context_->GetNodeName(), MutableTCubeTilingParam());
         PrintTCubeTilingWindowParam(context_->GetNodeName(), MutableTCubeTilingSlidingWindow());
         PrintTCubeTilingL2cache(context_->GetNodeName(), MutableTCubeTilingL2cache());
-        if (MutableRCSTilingDataA5().tailM > 0) {
+        if (MutableRCSTilingData().tailM > 0) {
             OP_LOGD(opName_, "tail exist");
             PrintTCubeTilingData(context_->GetNodeName(), MutableTCubeTailTilingData());
             PrintTCubeTilingParams(context_->GetNodeName(), MutableTailTCubeTilingParam());
@@ -571,11 +560,11 @@ ge::graphStatus QuantBmmReduceScatterTiling::PostTiling()
     return ge::GRAPH_SUCCESS;
 }
 
-Mc2Tiling::Mc2Msg &QuantBmmReduceScatterTiling::MutableMc2MsgDataA5() const
+Mc2Tiling::Mc2Msg &QuantBmmReduceScatterTiling::MutableMc2MsgData() const
 {
     return quantBmmMatmulReducescatterTilingData_->msg;
 }
-Mc2Tiling::RCSTiling &QuantBmmReduceScatterTiling::MutableRCSTilingDataA5() const
+Mc2Tiling::RCSTiling &QuantBmmReduceScatterTiling::MutableRCSTilingData() const
 {
     return quantBmmMatmulReducescatterTilingData_->param;
 }
@@ -617,13 +606,13 @@ DequantBmm::Mc2SlidingWindowParams &QuantBmmReduceScatterTiling::MutableTailTCub
 ge::graphStatus QuantBmmReduceScatterTiling::DoAdaptSlidWindowTiling()
 {
     // 主块切分
-    uint32_t tempMValue = tileMValue_ == 0 ? MutableRCSTilingDataA5().rankM : tileMValue_;
+    uint32_t tempMValue = tileMValue_ == 0 ? MutableRCSTilingData().rankM : tileMValue_;
     args_.mValue = ((quantMode_ == mc2tiling::Mc2QuantMode::PERTENSOR_MODE) ||
                     (quantMode_ == mc2tiling::Mc2QuantMode::MXFP_MODE)) ? (tempMValue * args_.rankDim) : tempMValue;
 
     QuantBmmReduceScatterHelper mmTile(*this, quantBmmMatmulReducescatterTilingData_->quantBmmV3TileTiling);
     GE_ASSERT_GRAPH_SUCCESS(mmTile.DoTiling());
-    if (MutableRCSTilingDataA5().tailCnt == 0) {
+    if (MutableRCSTilingData().tailCnt == 0) {
         return ge::GRAPH_SUCCESS;
     }
 
@@ -686,7 +675,7 @@ const gert::StorageShape *QuantBmmReduceScatterHelper::GetBiasShape(const size_t
 const gert::StorageShape *QuantBmmReduceScatterHelper::GetOffsetShape(const size_t index) const
 {
     (void)index;
-    return (gert::StorageShape*)nullptr;
+    return static_cast<const gert::StorageShape*>(nullptr);
 }
 
 ge::graphStatus QuantBmmReduceScatterHelper::GetShapeAttrsInfo()

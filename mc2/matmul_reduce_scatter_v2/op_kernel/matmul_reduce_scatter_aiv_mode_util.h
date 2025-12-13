@@ -53,6 +53,8 @@ constexpr uint32_t TILE_SHAPE_64 = 64;
 constexpr uint32_t TILE_SHAPE_128 = 128;
 constexpr uint32_t TILE_SHAPE_256 = 256;
 constexpr uint32_t UB_BUFFER_NUM = 2;
+constexpr uint32_t AIV_CROSS_CORE_SYNC_MODE = 0;
+constexpr uint32_t AIC_CROSS_CORE_SYNC_MODE = 2;
 
 template <typename T, size_t SIZE>
 struct BaseBlock {
@@ -333,13 +335,13 @@ public:
 
     __aicore__ inline void SetAndWaitAivSync(uint64_t flag_idx, int32_t pipe_depth = 2)
     {
-        FFTSCrossCoreSync<PIPE_MTE3, 0>(flag_idx + pipe_depth);
+        FFTSCrossCoreSync<PIPE_MTE3, AIV_CROSS_CORE_SYNC_MODE>(flag_idx + pipe_depth);
         WaitEvent(flag_idx + pipe_depth);
     }
 
     __aicore__ inline void SetAicSync(uint64_t flag_idx)
     {
-        FFTSCrossCoreSync<PIPE_MTE3, 2>(flag_idx);
+        FFTSCrossCoreSync<PIPE_MTE3, AIC_CROSS_CORE_SYNC_MODE>(flag_idx);
     }
 
     __aicore__ inline void CrossRankSyncV1(int32_t flag_idx, int32_t flag_data)

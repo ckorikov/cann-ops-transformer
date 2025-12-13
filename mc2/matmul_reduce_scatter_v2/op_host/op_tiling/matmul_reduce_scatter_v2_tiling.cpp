@@ -39,12 +39,6 @@ constexpr uint32_t X2SCALE_INDEX = 4;
 // 新功能从这里开始
 bool MatmulReduceScatterV2Tiling::IsCapable()
 {
-    if ((socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) &&
-        ((args_.geAType == ge::DT_BF16) || (args_.geAType == ge::DT_FLOAT16))) {
-        OP_LOGI(opName_, "start with MatmulReduceScatterV2Tiling tiling.");
-        return true;
-    }
-
     OP_LOGI(opName_, "skip MatmulReduceScatterV2Tiling tiling when inutDatatype is not fp16 or bf16.");
     return false;
 }
@@ -63,7 +57,7 @@ void PrintMMV3TilingData(const std::string &opName, Mc2MatMulV3TilingData &tilin
     OP_LOGD(opName, " tiling.aswWindowLen %d", tiling.aswWindowLen);
 }
 
-void MatmulReduceScatterV2Tiling::PrintAllTilingData()
+void MatmulReduceScatterV2Tiling::PrintAllTilingData() const
 {
     if (matmulReduceScatterV2TilingData_->param.rankID == 0) {
         PrintRCSTilingData(context_->GetNodeName(), matmulReduceScatterV2TilingData_->param);
@@ -146,14 +140,14 @@ ge::graphStatus MatmulReduceScatterV2Tiling::DoAllMatmulTiling()
     // 获取tileTiling
     mmV3Args_.mValue = tileMValue_ * args_.rankDim;
     OP_LOGD(opName_, "Do Mc2MatMulV3 tile tiling!");
-    Mc2MatmulHelper::Mc2MatmulTilingCfg tileTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
-                                     reinterpret_cast<const void*>(&mmV3Args_), tileMValue_);
+    Mc2MatmulHelper::Mc2MatmulTilingCfg tileTilingCfg(static_cast<const void*>(&compileInfo_),
+                                     static_cast<const void*>(&mmV3Args_), tileMValue_);
     GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TileTilingData()));
     if (tailMValue_ != 0UL) {
         mmV3Args_.mValue = tailMValue_ * args_.rankDim;
         OP_LOGD(opName_, "Do Mc2MatMulV3 tail tiling!");
-        Mc2MatmulHelper::Mc2MatmulTilingCfg tailTilingCfg(reinterpret_cast<const void*>(&compileInfo_),
-                                         reinterpret_cast<const void*>(&mmV3Args_), tailMValue_);
+        Mc2MatmulHelper::Mc2MatmulTilingCfg tailTilingCfg(static_cast<const void*>(&compileInfo_),
+                                         static_cast<const void*>(&mmV3Args_), tailMValue_);
         GE_ASSERT_GRAPH_SUCCESS(DoMatmulV3Tiling(tileTilingCfg, registerCfg, MutableMC2MmV3TailTilingData()));
     }
     return ge::GRAPH_SUCCESS;

@@ -69,8 +69,7 @@ uint32_t MatmulReduceScatterTilingBase::ReduceScatterSpliteM(mc2tiling::TilingAr
 
 void MatmulReduceScatterTilingBase::DoFormulaticTiling(Mc2Tiling::RCSTiling &rcsCfg)
 {
-    SocVersion inputSocVersion =
-        (socVersion_ == platform_ascendc::SocVersion::ASCEND910_95) ? SocVersion::SOC910_95 : SocVersion::SOC910_B;
+    SocVersion inputSocVersion = SocVersion::SOC910_B;
     MMPlusReduceScatter scatterTilingHccl(args_, args_.rankDim, KernelType::REDUCE_SCATTER, inputSocVersion);
     scatterTilingHccl.GetTiling();
     CutResult mCutScatter = scatterTilingHccl.tilingM_.cutRes;
@@ -265,7 +264,7 @@ bool MatmulReduceScatterTilingBase::CheckGroupSize() const
     return CheckBias();
 }
 
-bool MatmulReduceScatterTilingBase::CheckInputScale()
+bool MatmulReduceScatterTilingBase::CheckInputScale() const
 {
     auto quantscaleShape = context_->GetOptionalInputShape(QUANT_SCALE);
     OP_TILING_CHECK((quantscaleShape != nullptr),

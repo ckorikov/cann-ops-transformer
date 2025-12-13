@@ -75,11 +75,6 @@ static aclTensor* CreateWinTensor(const int64_t* dims, uint64_t dimNum, aclDataT
     return aclCreateTensor(dims, dimNum, dataType, nullptr, 0, format, dims, dimNum, dataAddr);
 }
 
-static inline bool IsAscend910D(void)
-{
-    return op::GetCurrentPlatformInfo().GetSocVersion() == op::SocVersion::ASCEND910_95;
-}
-
 // 检查入参是否为nullptr
 static bool CheckNotNull(const aclTensor* x1, const aclTensor* x2, const aclTensor* output)
 {
@@ -432,10 +427,7 @@ aclnnStatus aclnnMatmulReduceScatterV2GetWorkspaceSize(const aclTensor* x1, cons
                                                        aclOpExecutor** executor)
 {
     aclnnStatus ret = ACLNN_SUCCESS;
-    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
-        ret = matmulReduceScatterV2GetWorkSpaceSizeCcuMode(x1, x2, bias, x1Scale, x2Scale, quantScale, blockSize, group, reduceOp, commTurn,
-                                                       streamMode, groupSize, commMode, output, amaxOutOptional, workspaceSize, executor);
-    } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B || GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_93) {
+    if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B || GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_93) {
         ret = matmulReduceScatterV2GetWorkSpaceSizeAivMode(x1, x2, bias, x1Scale, x2Scale, quantScale, blockSize, group, reduceOp, commTurn,
                                                        streamMode, groupSize, commMode, output, amaxOutOptional, workspaceSize, executor);
     }
@@ -453,8 +445,6 @@ aclnnStatus aclnnMatmulReduceScatterV2(void* workspace, uint64_t workspaceSize, 
     if (NnopbaseSetHcclServerType) {
         if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B || GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_93) {
             NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_MTE);
-        } else if (GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910_95) {
-            NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_CCU);
         }
     }
 
