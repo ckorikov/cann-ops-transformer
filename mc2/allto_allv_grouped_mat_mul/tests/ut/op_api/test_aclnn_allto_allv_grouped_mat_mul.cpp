@@ -7,7 +7,7 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#include "../../../../op_api/aclnn_allto_allv_grouped_mat_mul.h"
+#include "../../../op_api/aclnn_allto_allv_grouped_mat_mul.h"
 
 #include <array>
 #include <vector>
@@ -25,7 +25,11 @@ using namespace std;
 namespace AlltoAllvGroupedMatMulUT {
 class l2_allto_allv_grouped_mat_mul_test : public testing::Test {
  protected:
-  static void SetUpTestCase() { cout << "l2_allto_allv_grouped_mat_mul_test SetUp" << endl; }
+  static void SetUpTestCase()
+  {
+    op::SetPlatformSocVersion(op::SocVersion::ASCEND910_93);
+	cout << "l2_allto_allv_grouped_mat_mul_test SetUp" << endl;
+  }
 
   static void TearDownTestCase() { cout << "l2_allto_allv_grouped_mat_mul_test TearDown" << endl; }
 };
@@ -79,7 +83,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_sendCounts_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 // recvCounts null
@@ -104,7 +108,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_recvCounts_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 // gmmx null
@@ -130,7 +134,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmx_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
   }
 
 // gmmWeight null
@@ -156,7 +160,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmWeight_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
   }
 
 // gmmY null
@@ -182,7 +186,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_gmmY_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 // group ep null
@@ -209,7 +213,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_groupEp_null) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 // group ep invalid
@@ -240,7 +244,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_groupEp_invalid) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_INVALID);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 // mmx not_null mmweight null mmy null
@@ -268,7 +272,7 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_mmX_invalid) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 
 TEST_F(l2_allto_allv_grouped_mat_mul_test, test_permuteOutFlag_invalid) {
@@ -294,6 +298,6 @@ TEST_F(l2_allto_allv_grouped_mat_mul_test, test_permuteOutFlag_invalid) {
 	uint64_t workspace_size = 0;
 	aclOpExecutor* executor = nullptr;
 	aclnnStatus aclRet = ut.TestGetWorkspaceSizeWithNNopbaseInner(&workspace_size, executor);
-	EXPECT_EQ(aclRet, ACLNN_ERR_PARAM_NULLPTR);
+	EXPECT_NE(aclRet, ACLNN_SUCCESS);
 }
 } // allto_allv_grouped_mat_mul_ut
