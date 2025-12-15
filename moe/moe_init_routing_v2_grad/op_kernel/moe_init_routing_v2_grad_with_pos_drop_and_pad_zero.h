@@ -44,8 +44,8 @@ private:
     TPipe* pipe;
 
     int64_t perTokenUseBinBuffSize;
-    int64_t perTokenUseTmpBuffSize;
     int64_t binBufferSize;
+    int64_t perTokenUseTmpBuffSize;
     int64_t tmpBufferSize;
 
     GM_ADDR expandedRowIdxAddr;
@@ -65,8 +65,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::Init(
 
     this->perTokenUseBinBuffSize = this->binBufferNum * this->perBuffSize;
     this->perTokenUseTmpBuffSize = this->tmpBufferNum * this->perBuffSize;
-    this->binBufferSize = this->tokensFormer * this->perTokenUseBinBuffSize;
     this->tmpBufferSize = this->tokensFormer * this->perTokenUseTmpBuffSize;
+    this->binBufferSize = this->tokensFormer * this->perTokenUseBinBuffSize;
 
     pipe->InitBuffer(this->binBuff, this->binBufferSize);
     pipe->InitBuffer(this->tmpBuff, this->tmpBufferSize);
@@ -87,8 +87,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::GradProcessTo
         int64_t binBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * binIdx;
         int64_t tmpBuffOffset =
             (this->multiTmpBuff) ? (tokenTmpBuffSizeOffset + this->perBuffSize * binIdx) : tokenTmpBuffSizeOffset;
-        LocalTensor<float> xLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, binBuffOffset);
         LocalTensor<float> tmpLocal = this->tmpBuff.template GetWithOffset<float>(this->perCpyCols, tmpBuffOffset);
+        LocalTensor<float> xLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, binBuffOffset);
         LocalTensor<T> tmpLocalT =
             this->tmpBuff.template GetWithOffset<T>(this->perCpyCols, tmpBuffOffset + this->cpyOffset);
         this->BinaryAddWithMovIn((int64_t)xRow, xLocal, tmpLocal, tmpLocalT, colOffset, cpyCols);
@@ -110,8 +110,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::GradProcess(
     int64_t tokenIdx = tokenIdxStart;
     int64_t binIdx = 0;
     for (; tokenIdx < tokenIdxEnd && binIdx < this->binBufferNum; tokenIdx += this->baseStride, binIdx++) {
-        int32_t xRow = ((__gm__ int32_t*)expandedRowIdxAddr)[tokenIdx];
         int64_t binBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * binIdx;
+        int32_t xRow = ((__gm__ int32_t*)expandedRowIdxAddr)[tokenIdx];
         LocalTensor<float> xLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, binBuffOffset);
         LocalTensor<T> xLocalT =
             this->binBuff.template GetWithOffset<T>(this->perCpyCols, binBuffOffset + this->cpyOffset);
@@ -145,8 +145,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::GradProcess(
         stride *= (expIdx > 0) ? this->baseStride : 1;
         int64_t interval = stride * this->baseStride;
         for (int64_t j = stride; j < this->binBufferNum; j += interval) {
-            int64_t aBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * (j - stride);
             int64_t bBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * j;
+            int64_t aBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * (j - stride);
             LocalTensor<float> addALocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, aBuffOffset);
             LocalTensor<float> addBLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, bBuffOffset);
             this->GradAdd(addALocal, addBLocal, cpyCols);
@@ -172,8 +172,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::TokenLoopProc
     */
 
     for (int64_t tokenLoop = 0; tokenLoop < this->cpyLoops; tokenLoop++) {
-        int64_t cpyCols = (tokenLoop == this->cpyLoops - 1) ? this->tailCpyCols : this->perCpyCols;
         int64_t colOffset = tokenLoop * this->perCpyCols;
+        int64_t cpyCols = (tokenLoop == this->cpyLoops - 1) ? this->tailCpyCols : this->perCpyCols;
         int64_t outOffset = elementIdx * this->cols + colOffset;
         // element split loop
         GradProcess(elementIdx, tokenBinBuffSizeOffset, tokenTmpBuffSizeOffset, cpyCols, colOffset, outOffset);
@@ -188,8 +188,8 @@ __aicore__ inline void MoeInitRoutingV2GradPositionPad0Compute<T>::Process()
     }
 
     int64_t elementStartIdx = this->blockIdx * this->perCoreElements;
-    LocalTensor<float> xLocalGroup = this->binBuff.template Get<float>();
     LocalTensor<float> tmpLocalGroup = this->tmpBuff.template Get<float>();
+    LocalTensor<float> xLocalGroup = this->binBuff.template Get<float>();
 
     // token group loops
     for (int64_t tokenGroupIdx = 0; tokenGroupIdx < this->tokensLoop; tokenGroupIdx++) {

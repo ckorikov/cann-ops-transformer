@@ -102,9 +102,9 @@ __aicore__ inline void MoeInitRoutingV2GradDroplessCompute<T>::GradProcess(
     event_t eventVS = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));
 
     // S1: 先拷贝一定数量的被加数到buffer中
+    int64_t tokenIdx = tokenIdxStart;
     int64_t tokenIdxStart = elementIdx * this->k;
     int64_t tokenIdxEnd = tokenIdxStart + this->k;
-    int64_t tokenIdx = tokenIdxStart;
     int64_t binIdx = 0;
     for (; tokenIdx < tokenIdxEnd && binIdx < this->binBufferNum; tokenIdx += this->baseStride, binIdx++) {
         int32_t xRow = ((__gm__ int32_t*)expandedRowIdxAddr)[tokenIdx];

@@ -44,9 +44,9 @@ private:
     TPipe* pipe;
 
     int64_t perTokenUseBinBuffSize;
+    int64_t tmpBufferSize;
     int64_t perTokenUseTmpBuffSize;
     int64_t binBufferSize;
-    int64_t tmpBufferSize;
 
     GM_ADDR expandedRowIdxAddr;
 };
@@ -63,8 +63,8 @@ __aicore__ inline void MoeInitRoutingV2GradActivateCompute<T>::Init(
     this->gradXGm.SetGlobalBuffer((__gm__ T*)gradX, tilingData->n * this->cols);                   // output: {B*S, H}
     expandedRowIdxAddr = expandedRowIdx;
 
-    this->perTokenUseBinBuffSize = this->binBufferNum * this->perBuffSize;
     this->perTokenUseTmpBuffSize = this->tmpBufferNum * this->perBuffSize;
+    this->perTokenUseBinBuffSize = this->binBufferNum * this->perBuffSize;
     this->binBufferSize = this->tokensFormer * this->perTokenUseBinBuffSize;
     this->tmpBufferSize = this->tokensFormer * this->perTokenUseTmpBuffSize;
 
@@ -88,9 +88,9 @@ __aicore__ inline void MoeInitRoutingV2GradActivateCompute<T>::GradProcessTokenA
         int64_t tmpBuffOffset =
             (this->multiTmpBuff) ? (tokenTmpBuffSizeOffset + this->perBuffSize * binIdx) : tokenTmpBuffSizeOffset;
         LocalTensor<float> xLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, binBuffOffset);
-        LocalTensor<float> tmpLocal = this->tmpBuff.template GetWithOffset<float>(this->perCpyCols, tmpBuffOffset);
         LocalTensor<T> tmpLocalT =
             this->tmpBuff.template GetWithOffset<T>(this->perCpyCols, tmpBuffOffset + this->cpyOffset);
+        LocalTensor<float> tmpLocal = this->tmpBuff.template GetWithOffset<float>(this->perCpyCols, tmpBuffOffset);
         this->BinaryAddWithMovIn((int64_t)xRow, xLocal, tmpLocal, tmpLocalT, colOffset, cpyCols);
     }
 }
@@ -147,8 +147,8 @@ __aicore__ inline void MoeInitRoutingV2GradActivateCompute<T>::GradProcess(
         for (int64_t j = stride; j < this->binBufferNum; j += interval) {
             int64_t aBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * (j - stride);
             int64_t bBuffOffset = tokenBinBuffSizeOffset + this->perBuffSize * j;
-            LocalTensor<float> addALocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, aBuffOffset);
             LocalTensor<float> addBLocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, bBuffOffset);
+            LocalTensor<float> addALocal = this->binBuff.template GetWithOffset<float>(this->perCpyCols, aBuffOffset);
             this->GradAdd(addALocal, addBLocal, cpyCols);
         }
         PipeBarrier<PIPE_V>();
@@ -172,9 +172,9 @@ __aicore__ inline void MoeInitRoutingV2GradActivateCompute<T>::TokenLoopProcess(
     */
 
     for (int64_t tokenLoop = 0; tokenLoop < this->cpyLoops; tokenLoop++) {
-        int64_t cpyCols = (tokenLoop == this->cpyLoops - 1) ? this->tailCpyCols : this->perCpyCols;
         int64_t colOffset = tokenLoop * this->perCpyCols;
         int64_t outOffset = elementIdx * this->cols + colOffset;
+        int64_t cpyCols = (tokenLoop == this->cpyLoops - 1) ? this->tailCpyCols : this->perCpyCols;
         // element split loop
         GradProcess(elementIdx, tokenBinBuffSizeOffset, tokenTmpBuffSizeOffset, cpyCols, colOffset, outOffset);
     }
@@ -202,10 +202,10 @@ __aicore__ inline void MoeInitRoutingV2GradActivateCompute<T>::Process()
 
         // token elements loops
         for (int64_t elementLoop = 0; elementLoop < tokenGroupSize; elementLoop++) {
-            int64_t elementIdx = elementStartIdx + tokenGroupIdx * this->tokensFormer + elementLoop; // 绝对位置
             int64_t tokenBinBuffSizeOffset =
                 elementLoop *
                 this->perTokenUseBinBuffSize; // 当前处理token使用的二分buffer偏移地址，用于获取对应二分buffer
+            int64_t elementIdx = elementStartIdx + tokenGroupIdx * this->tokensFormer + elementLoop; // 绝对位置
             int64_t tokenTmpBuffSizeOffset =
                 elementLoop *
                 this->perTokenUseTmpBuffSize; // 当前处理token使用的临时buffer偏移地址，用于获取对应临时buffer
