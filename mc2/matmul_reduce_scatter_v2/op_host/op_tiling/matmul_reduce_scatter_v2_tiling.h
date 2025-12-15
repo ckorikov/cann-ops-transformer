@@ -15,7 +15,6 @@
 #ifndef __MATMUL_REDUCE_SCATTER_V2_TILING_H__
 #define __MATMUL_REDUCE_SCATTER_V2_TILING_H__
 
-#include "tiling/tiling_api.h"
 #include "mat_mul_v3/op_kernel/arch35/mat_mul_tiling_data.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 #include "matmul_reduce_scatter_tiling_base.h"
