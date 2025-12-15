@@ -35,6 +35,7 @@ protected:
     __aicore__ inline void CopyOutIdx();
     __aicore__ inline void CopyOutEmpty();
     __aicore__ inline void ComputeExpertTokenCountOrCumsum();
+    __aicore__ inline void DuplicateForRemainingElements(LocalTensor<float>& tensor, int duplicateIndex, int64_t duplicateNum);
 
 protected:
     const InnerMoeV2GatherOutComputeTilingData* gatherOutTilingData;
@@ -91,6 +92,16 @@ __aicore__ inline void MoeV2FullLoadQuantBase::CopyIn()
     sortDataCopyInQueue.EnQue(inLocal);
 }
 
+__aicore__ inline void MoeV2FullLoadQuantBase::DuplicateForRemainingElements(LocalTensor<float>& tensor, int duplicateIndex, int64_t duplicateNum)
+{
+    uint64_t mask0 = UINT64_MAX;
+    mask0 = mask0 << duplicateNum;
+    mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
+    uint64_t mask[2] = {mask0, 0};
+    Duplicate(tensor[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
+    PipeBarrier<PIPE_V>();
+}
+
 __aicore__ inline void MoeV2FullLoadQuantBase::SortCompute()
 {
     LocalTensor<int32_t> inLocal = sortDataCopyInQueue.DeQue<int32_t>();
@@ -103,12 +114,7 @@ __aicore__ inline void MoeV2FullLoadQuantBase::SortCompute()
     int64_t duplicateNum = this->totalLength % ONE_REPEAT_SORT_NUM;
     if (duplicateNum > 0) {
         int duplicateIndex = this->totalLength - duplicateNum;
-        uint64_t mask0 = UINT64_MAX;
-        mask0 = mask0 << duplicateNum;
-        mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
-        uint64_t mask[2] = {mask0, 0};
-        Duplicate(expertIdxLocalFp32[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
-        PipeBarrier<PIPE_V>();
+        DuplicateForRemainingElements(expertIdxLocalFp32, duplicateIndex, duplicateNum);
     }
     LocalTensor<float> concatLocal;
     LocalTensor<float> tempTensor = tempBuffer.Get<float>(GetSortLen<float>(this->sortNum));
@@ -143,12 +149,7 @@ __aicore__ inline void MoeV2FullLoadQuantBase::SortCompute()
     PipeBarrier<PIPE_V>();
     if (duplicateNum > 0) {
         int duplicateIndex = this->totalLength - duplicateNum;
-        uint64_t mask0 = UINT64_MAX;
-        mask0 = mask0 << duplicateNum;
-        mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
-        uint64_t mask[2] = {mask0, 0};
-        Duplicate(expandDstToSrcRowLocalFp32[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
-        PipeBarrier<PIPE_V>();
+        DuplicateForRemainingElements(expandDstToSrcRowLocalFp32, duplicateIndex, duplicateNum);
     }
     Concat(concatLocal, expandDstToSrcRowLocalFp32, tempTensor, this->sortNum / ONE_REPEAT_SORT_NUM);
     PipeBarrier<PIPE_V>();

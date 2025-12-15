@@ -40,6 +40,7 @@ private:
     __aicore__ inline void CopyOutXQuantEH();
     __aicore__ inline void ComputeExpertTokenCountOrCumsum();
     __aicore__ inline void Compute(LocalTensor<float>& smoothLocal);
+    __aicore__ inline void HandleDuplicateElements(LocalTensor<float>& tensor, int64_t totalLength);
 
 private:
     int64_t sortNum_;
@@ -81,6 +82,7 @@ private:
     int64_t expertTokensCountOrCumsumFlag = 0;
     int64_t expertTokensBeforeCapacityFlag = 0;
     int64_t dropPadMode = 0;
+    int64_t kvFactor = 2;
 
     LocalTensor<uint32_t> expandDstToSrcRowLocal;
     LocalTensor<int32_t> expandedExpertIdxLocal;
@@ -99,6 +101,21 @@ __aicore__ inline void MoeV2FullLoadDynamicQuant<T>::CopyIn()
 }
 
 template <typename T>
+__aicore__ inline void MoeV2FullLoadDynamicQuant<T>::HandleDuplicateElements(LocalTensor<float>& tensor, int64_t totalLength)
+{
+    int64_t duplicateNum = totalLength % ONE_REPEAT_SORT_NUM;
+    if (duplicateNum > 0) {
+        int duplicateIndex = totalLength - duplicateNum;
+        uint64_t mask0 = UINT64_MAX;
+        mask0 = mask0 << duplicateNum;
+        mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
+        uint64_t mask[2] = {mask0, 0};
+        Duplicate(tensor[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
+        PipeBarrier<PIPE_V>();
+    }
+}
+
+template <typename T>
 __aicore__ inline void MoeV2FullLoadDynamicQuant<T>::SortCompute()
 {
     LocalTensor<int32_t> inLocal = sortDataCopyInQueue.DeQue<int32_t>();
@@ -108,16 +125,9 @@ __aicore__ inline void MoeV2FullLoadDynamicQuant<T>::SortCompute()
     PipeBarrier<PIPE_V>();
     Muls(expertIdxLocalFp32, expertIdxLocalFp32, (float)-1, this->totalLength);
     PipeBarrier<PIPE_V>();
-    int64_t duplicateNum = this->totalLength % ONE_REPEAT_SORT_NUM;
-    if (duplicateNum > 0) {
-        int duplicateIndex = this->totalLength - duplicateNum;
-        uint64_t mask0 = UINT64_MAX;
-        mask0 = mask0 << duplicateNum;
-        mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
-        uint64_t mask[2] = {mask0, 0};
-        Duplicate(expertIdxLocalFp32[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
-        PipeBarrier<PIPE_V>();
-    }
+
+    HandleDuplicateElements(expertIdxLocalFp32, this->totalLength);
+
     LocalTensor<float> concatLocal;
     LocalTensor<float> tempTensor = tempBuffer.Get<float>(GetSortLen<float>(this->sortNum_));
     Concat(concatLocal, expertIdxLocalFp32, tempTensor, this->sortNum_ / ONE_REPEAT_SORT_NUM);
@@ -149,15 +159,9 @@ __aicore__ inline void MoeV2FullLoadDynamicQuant<T>::SortCompute()
     PipeBarrier<PIPE_V>();
     ArithProgression<int32_t>(inLocal[this->sortNum_], 0, 1, this->totalLength);
     PipeBarrier<PIPE_V>();
-    if (duplicateNum > 0) {
-        int duplicateIndex = this->totalLength - duplicateNum;
-        uint64_t mask0 = UINT64_MAX;
-        mask0 = mask0 << duplicateNum;
-        mask0 = mask0 & (UINT64_MAX >> ONE_REPEAT_SORT_NUM);
-        uint64_t mask[2] = {mask0, 0};
-        Duplicate(expandDstToSrcRowLocalFp32[duplicateIndex], MIN_FP32, mask, 1, DST_BLK_STRIDE, DST_REP_STRIDE);
-        PipeBarrier<PIPE_V>();
-    }
+    
+    HandleDuplicateElements(expertIdxLocalFp32, this->totalLength);
+
     Concat(concatLocal, expandDstToSrcRowLocalFp32, tempTensor, this->sortNum_ / ONE_REPEAT_SORT_NUM);
     PipeBarrier<PIPE_V>();
     Sort<float, true>(sortedLocal, concatLocal, rowIdxLocal, tempTensor, this->sortNum_ / ONE_REPEAT_SORT_NUM);
@@ -427,7 +431,6 @@ __aicore__ inline void MoeV2FullLoadDynamicQuant<T>::Init(
     quantSmoothGm.SetGlobalBuffer((__gm__ float*)quantSmooth);
     dynamicQuantScaleGm.SetGlobalBuffer((__gm__ float*)dynamicQuantScale);
 
-    int64_t kvFactor = 2;
     int64_t buffSize = this->sortNum_ * sizeof(int32_t);
 
     int64_t curRowsStart = this->blockIdx_ * this->perCoreRows_;
