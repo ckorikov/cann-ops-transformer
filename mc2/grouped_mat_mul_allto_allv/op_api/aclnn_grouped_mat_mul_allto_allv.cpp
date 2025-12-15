@@ -143,11 +143,6 @@ aclnnStatus aclnnGroupedMatMulAlltoAllvGetWorkspaceSize(
 aclnnStatus aclnnGroupedMatMulAlltoAllv(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor,
                                         aclrtStream stream)
 {
-    if (NnopbaseSetHcclServerType) {
-        if (op::GetCurrentPlatformInfo().GetSocVersion() == op::SocVersion::ASCEND910_95) {
-            NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_CCU);
-        }
-    }
     aclnnStatus ret = aclnnInnerGroupedMatMulAlltoAllv(workspace, workspaceSize, executor, stream);
     return ret;
 }
