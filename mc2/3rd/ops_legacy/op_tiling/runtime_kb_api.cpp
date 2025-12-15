@@ -9,12 +9,23 @@
  */
 
 #include "ops_legacy/op_tiling/runtime_kb_api.h"
+#include "legacy_common_manager.h"
+#include "log/log.h"
 
 namespace RuntimeKb {
 uint32_t QueryBank(
-    const void* /*src*/, size_t /*src_len*/, const std::string& /*op_type*/, const std::string& /*soc_version*/,
-    uint32_t /*core_num*/, tuningtiling::TuningTilingDefPtr& /*tiling*/)
+    const void* src, size_t src_len, const std::string& op_type, const std::string& soc_version, uint32_t core_num,
+    tuningtiling::TuningTilingDefPtr& tiling)
 {
-    return 0;
+    using FuncType = uint32_t (*)(
+        const void*, size_t, const std::string&, const std::string&, uint32_t, tuningtiling::TuningTilingDefPtr&);
+    const char* symbolName = "LegacyQueryBank";
+    static FuncType func = Ops::MC2::LegacyCommonMgr::GetInstance().GetFunc<FuncType>(symbolName);
+    if (func == nullptr) {
+        OP_LOGW("LegacyCommonMgr", "dest func %s pointer is null.", symbolName);
+        return 0xFFU;  // 0: succ, 1: kye not exists, 0xFFU: fail
+    } else {
+        return func(src, src_len, op_type, soc_version, core_num, tiling);
+    }
 }
 } // namespace RuntimeKb
