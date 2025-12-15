@@ -1129,7 +1129,7 @@ static void CalTilingKey(uint64_t &tilingKey, const uint64_t tpWorldSize, uint32
     }
 }
 
-static void SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombineV2TilingData *tiling,
+static ge::graphStatus SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombineV2TilingData *tiling,
     const std::string groupEp, const std::string groupTp, const uint32_t tpWorldSize)
 {
     const char* nodeName = context->GetNodeName();
@@ -1141,16 +1141,20 @@ static void SetHCommCfg(const gert::TilingContext *context, MoeDistributeCombine
 
     AscendC::Mc2CcTilingConfig mc2CcTilingConfig(groupEp, opType1, algConfigAllToAllStr);
     mc2CcTilingConfig.SetCommEngine(mc2tiling::AIV_ENGINE);   // 通过不拉起AICPU，提高算子退出性能
-    mc2CcTilingConfig.GetTiling(tiling->mc2InitTiling);
-    mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling1);
+    OP_TILING_CHECK(mc2CcTilingConfig.GetTiling(tiling->mc2InitTiling) != 0,
+            OP_LOGE(nodeName, "mc2CcTilingConfig mc2tiling GetTiling mc2InitTiling failed"), return ge::GRAPH_FAILED);
+    OP_TILING_CHECK(mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling1) != 0,
+            OP_LOGE(nodeName, "mc2CcTilingConfig mc2tiling GetTiling mc2CcTiling1 failed"), return ge::GRAPH_FAILED);
 
     if (tpWorldSize > 1) {
         OP_LOGD(nodeName, "MoeDistributeCombineV2 groupTp = %s", groupTp.c_str());
         mc2CcTilingConfig.SetGroupName(groupTp);
         mc2CcTilingConfig.SetOpType(opType2);
         mc2CcTilingConfig.SetAlgConfig(algConfigReduceScatterStr);
-        mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling2);
+        OP_TILING_CHECK(mc2CcTilingConfig.GetTiling(tiling->mc2CcTiling2) != 0,
+            OP_LOGE(nodeName, "mc2CcTilingConfig mc2tiling GetTiling mc2CcTiling2 failed"), return ge::GRAPH_FAILED);
     }
+    return ge::GRAPH_SUCCESS;
 }
 
 static ge::graphStatus GetCclBufferSize(const char* groupStr, uint64_t* cclBufferSize, const char* nodeName)
@@ -1278,7 +1282,8 @@ static ge::graphStatus MoeDistributeCombineAddRmsNormA3TilingFuncImpl(gert::Tili
                     return ge::GRAPH_FAILED);
 
     uint64_t tpWorldSize = static_cast<uint64_t>(tilingData->moeDistributeCombineV2Info.tpWorldSize);
-    SetHCommCfg(context, tilingData, groupEp, groupTp, tpWorldSize);
+    OP_TILING_CHECK(SetHCommCfg(context, tilingData, groupEp, groupTp, tpWorldSize) != ge::GRAPH_SUCCESS,
+        OP_LOGE(nodeName, "SetHCommCfg failed."), return ge::GRAPH_FAILED);
     uint64_t tilingKey = INIT_TILINGKEY;
     CalTilingKey(tilingKey, tpWorldSize, commQuantMode);
     OP_LOGD(nodeName, "tilingKey is %lu", tilingKey);

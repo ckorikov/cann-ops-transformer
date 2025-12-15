@@ -129,7 +129,7 @@ __aicore__ inline void DistributeBarrier<TemplateMC2TypeFunc>::TimeOutTest()
       if (duration >= timeOut_) {
         // 超时后做dfx，通过assert做aicore退出处理
         PipeBarrier<PIPE_ALL>();
-        assert(duration < timeOut_);
+        trap();
         PipeBarrier<PIPE_ALL>();
       }
     }
