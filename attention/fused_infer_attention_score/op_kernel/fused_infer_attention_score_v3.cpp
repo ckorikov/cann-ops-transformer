@@ -31,6 +31,7 @@
 using namespace AscendC;
 using namespace AttentionCommon;
 
+
 #define INVOKE_FIA_NO_KFC_MLA_OP_IMPL(templateClass, ...)                                                               \
     do {                                                                                                               \
         using CubeBlockType = FiaBlockCubeNonQuantMla<FIAType<__VA_ARGS__>>;                                              \
