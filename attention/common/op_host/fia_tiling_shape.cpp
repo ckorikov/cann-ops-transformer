@@ -71,6 +71,11 @@ static bool not_equal_to(const int64_t& a, const int64_t& b)
     return (a != b);
 }
 
+static bool ignore_input(const int64_t& a, const int64_t& b)
+{
+    return true;
+}
+
 static ge::graphStatus GetLayoutAxes(std::vector<FiaAxis> &layoutAxes, const FiaLayout &layout,
     const std::string &opName, const std::string &funcName)
 {
@@ -90,7 +95,9 @@ const std::map<FiaCompareType, CompareFunc<int64_t>> FiaTilingShapeCompare::comp
     {FiaCompareType::GREATER_EQUAL, greater_equal},
     {FiaCompareType::LESS, less},
     {FiaCompareType::LESS_EQUAL, less_equal},
-    {FiaCompareType::NOT_EQUAL, not_equal_to}
+    {FiaCompareType::NOT_EQUAL, not_equal_to},
+    {FiaCompareType::IGNORE_INPUT, ignore_input}
+    
 };
 
 static std::string GetShapeStr(gert::Shape shape)

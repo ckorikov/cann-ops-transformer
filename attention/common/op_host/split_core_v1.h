@@ -33,6 +33,7 @@ struct BaseInfo {
     int64_t preToken = 0;
     int64_t nextToken = 0;
     bool slidingFlag = false;
+    int64_t actualSeqPrefixSize = 0;
 };
 
 struct InnerSplitParams {
@@ -97,6 +98,7 @@ static void SplitCore(const BaseInfo &baseInfo, const InnerSplitParams &innerSpl
                 }
             }
         }
+        s2Size += baseInfo.actualSeqPrefixSize;
         s1GBaseNum[bIdx] = (s1Size * baseInfo.gSize + (innerSplitParams.s1GBaseSize - 1)) / innerSplitParams.s1GBaseSize;
         s2BaseNum[bIdx] = (s2Size + innerSplitParams.s2BaseSize - 1) / innerSplitParams.s2BaseSize;
         if (s1GBaseNum[bIdx] != 0 && s2BaseNum[bIdx] != 0) {
