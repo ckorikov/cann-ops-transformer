@@ -7,7 +7,6 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
 
-
 if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnnExc PRIVATE
         grouped_matmul_def.cpp
@@ -17,6 +16,22 @@ if (BUILD_OPEN_PROJECT)
         OPTIONS --cce-auto-sync=off
                 -Wno-deprecated-declarations
                 -Werror
+    )
+    if("${ASCEND_COMPUTE_UNIT}" STREQUAL "ascend910_95")
+        add_ops_compile_options(
+            OP_NAME GroupedMatmul
+            COMPUTE_UNIT ascend910_9599
+            OPTIONS -mllvm -cce-aicore-dcci-before-kernel-end=false
+        )
+    endif()
+endif()
+
+set(CONDITION_UNIT ${ASCEND_COMPUTE_UNIT})
+if("${CONDITION_UNIT}" STREQUAL "ascend910_95")
+    add_ops_compile_options(
+        OP_NAME GroupedMatmul
+        COMPUTE_UNIT ascend910_9599
+        OPTIONS -DENABLE_CV_COMM_VIA_SSBUF=true
     )
 endif()
 

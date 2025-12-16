@@ -16,6 +16,8 @@
 
 #include <climits>
 #include "register/op_impl_registry.h"
+#include "arch35/grouped_weight_quant_batch_matmul_tiling.h"
+#include "arch35/grouped_no_quant_matmul_tiling.h"
 #include "tiling_base/tiling_templates_registry.h"
 #include "err/ops_err.h"
 #include "../../op_kernel/grouped_matmul_tiling_key.h"
@@ -1751,6 +1753,26 @@ ASCENDC_EXTERN_C ge::graphStatus TilingGMM(gert::TilingContext* context) {
   ge::DataType weightDtype = w0Desc->GetDataType();
   auto compileInfoPtr = context->GetCompileInfo<GMMCompileInfo>();
   OP_CHECK_NULL_WITH_CONTEXT(context, compileInfoPtr);
+  if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910_95) {
+      // 全量化：双8bits或双4bits(不会有A4W2)
+      bool isQuant = xDType == ge::DT_FLOAT4_E1M2 || xDType == ge::DT_FLOAT4_E2M1 || xDType == ge::DT_INT4 ||
+                     (ge::GetSizeByDataType(xDType) == 1 && ge::GetSizeByDataType(weightDtype) == 1);
+      if (isQuant) {
+          return TilingRegistry::GetInstance().DoTilingImpl(context);
+      } else if (xDType != weightDtype) {
+          GroupedWeightQuantBatchMatmulTiling groupedWeightQuantTiling;
+          OP_CHECK_IF(!groupedWeightQuantTiling.SetTiling(context),
+                     OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
+          return ge::GRAPH_SUCCESS;
+      }
+      bool isUnQuant = (xDType == ge::DT_FLOAT16 || xDType == ge::DT_BF16) && (xDType == weightDtype);
+      if (isUnQuant) {
+        GroupedNoQuantMatmulTiling groupedNoQuantMatmulTiling;
+        OP_CHECK_IF(!groupedNoQuantMatmulTiling.SetTiling(context),
+                     OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
+        return ge::GRAPH_SUCCESS;
+      }
+  }
   GMMTiling tiling;
   if(xDType == ge::DT_INT8 && weightDtype == ge::DT_INT4) {     // A8W4 Tiling
     ge::graphStatus A8W4TilingResult = tiling.A8W4Tiling(context, compileInfoPtr);

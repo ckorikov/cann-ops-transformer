@@ -19,14 +19,14 @@ extern "C" {
  * @brief aclnnGroupedMatmulWeightNz的第一段接口，根据具体的计算流程，计算workspace大小。
  * @domain aclnn_ops_infer
  *
- * @param [in] x: 表示公式中的输入x，数据类型支持FLOAT16、BFLOAT16、INT8，数据格式支持ND，支持的最大长度为128个。
- * @param [in] weight：表示公式中的weight，数据类型支持FLOAT16、BFLOAT16、INT8、INT4，数据格式支持NZ，支持的最大长度为128个。
- * @param [in] biasOptional：表示公式中的bias，数据类型支持FLOAT16、FLOAT32、INT32，数据格式支持ND，长度与weight相同。
+ * @param [in] x: 表示公式中的输入x，数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT8_E4M3FN，数据格式支持ND，支持的最大长度为128个。
+ * @param [in] weight：表示公式中的weight，数据类型支持FLOAT16、BFLOAT16、INT8、INT4、FLOAT4_E2M1、INT32、FLOAT32，数据格式支持NZ，支持的最大长度为128个。
+ * @param [in] biasOptional：表示公式中的bias，数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT32，数据格式支持ND，长度与weight相同。
  * @param [in] scaleOptional：代表量化参数中的缩放因子，数据类型支持BFLOAT16、FLOAT32、UINT64，数据格式支持ND，长度与weight相同。
  * @param [in] offsetOptional：代表量化参数中的偏移量，数据类型支持FLOAT32，数据格式支持ND，长度与weight相同。
- * @param [in] antiquantScaleOptional：代表伪量化参数中的缩放因子，数据类型支持FLOAT16、BFLOAT16，数据格式支持ND，长度与weight相同。
+ * @param [in] antiquantScaleOptional：代表伪量化参数中的缩放因子，数据类型支持FLOAT16、BFLOAT16、FLOAT8_E8M0，数据格式支持ND，长度与weight相同。
  * @param [in] antiquantOffsetOptional：代表伪量化参数中的偏移量，数据类型支持FLOAT16、BFLOAT16，数据格式支持ND，长度与weight相同。
- * @param [in] perTokenScaleOptional：代表量化参数中的由输入x量化引入的缩放因子，数据类型支持FLOAT32，数据格式支持ND，长度与x相同
+ * @param [in] perTokenScaleOptional：代表量化参数中的由输入x量化引入的缩放因子，数据类型支持FLOAT32、FLOAT8_E8M0，数据格式支持ND，长度与x相同
  * @param [in] groupListOptional：代表输入和输出分组轴的matmul大小分布，数据类型支持INT64，数据格式支持ND，长度与weight相同。
  * @param [in] activationInputOptional：可选参数，激活函数的反向输入。
  * @param [in] activationQuantScaleOptional：可选参数，激活函数的输出的量化系数。
