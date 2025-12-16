@@ -12,15 +12,4 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTOR ${PROJECT_SOURCE_DIR}/build)
 
 file(GLOB_RECURSE OP_TILING_FILES "*.cpp")
 
-add_library(optiling SHARED ${OP_TILING_FILES})
-
-add_dependencies(optiling json)
-
-target_compile_definitions(optiling PRIVATE
-    _GLIBCXX_USE_CXX11_ABI=0
-    LOG_CPP
-)
-
-target_include_directories(optiling PRIVATE
-    ${OP_TILING_INCLUDE}
-)
+target_sources(${OPHOST_NAME}_tiling_obj PRIVATE ${OP_TILING_FILES})
