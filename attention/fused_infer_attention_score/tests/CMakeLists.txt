@@ -31,6 +31,7 @@ set(_FIA_TilingSourcesExt
         ${OPS_TRANSFORMER_DIR}/attention/common/op_host/fia_tiling_shape.cpp
         ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_nonquant_mla.cpp
         ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_nonquant.cpp
+        ${OPS_TRANSFORMER_DIR}/attention/common/op_host/arch32/fia_tiling_empty_tensor.cpp
 )
 
 set(_FIA_KernelTilingDataDefH
