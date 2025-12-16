@@ -59,6 +59,8 @@ const std::map<std::string, std::vector<FiaLayout>> LAYOUT_SUPPORT_MAP = {
     {KEY_NAME,        {FiaLayout::BSH, FiaLayout::BSND, FiaLayout::BNSD, FiaLayout::TND, FiaLayout::NTD, FiaLayout::NZ, FiaLayout::BnBsH, FiaLayout::BnNBsD}},
     {VALUE_NAME,      {FiaLayout::BSH, FiaLayout::BSND, FiaLayout::BNSD, FiaLayout::TND, FiaLayout::NTD, FiaLayout::NZ, FiaLayout::BnBsH, FiaLayout::BnNBsD}},
     {ATTEN_OUT_NAME,  {FiaLayout::BSH, FiaLayout::BSND, FiaLayout::BNSD, FiaLayout::TND, FiaLayout::NTD, FiaLayout::NBSD}},
+    {KEY_SHARED_PREFIX_NAME, {FiaLayout::BSH, FiaLayout::BSND, FiaLayout::BNSD}},
+    {VALUE_SHARED_PREFIX_NAME, {FiaLayout::BSH, FiaLayout::BSND, FiaLayout::BNSD}},
 };
 
 const std::set<ge::Format> FORMAT_SUPPORT_SET = {
@@ -281,7 +283,8 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaValue() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaPseShift() const
 {
-    if (ge::GRAPH_SUCCESS != CheckDtypeSupport(opParamInfo_.pseShift.desc, PSE_SHIFT_NAME)) {
+    if (ge::GRAPH_SUCCESS != CheckDtypeSupport(opParamInfo_.pseShift.desc, PSE_SHIFT_NAME) ||
+        ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.pseShift.desc, PSE_SHIFT_NAME)) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
@@ -386,6 +389,11 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaQueryPaddingSize() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaKvPaddingSize() const
 {
+    const std::vector<int64_t> kvpaddingsizeShapeNumList = {SHAPE_NUM_ONE};
+    if (ge::GRAPH_SUCCESS != CheckShapeSupport(opParamInfo_.kvPaddingSize.tensor, kvpaddingsizeShapeNumList, KV_PADDING_SIZE_NAME)) {
+        return ge::GRAPH_FAILED;
+    }
+
     if (ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.kvPaddingSize.desc, KV_PADDING_SIZE_NAME)) {
         return ge::GRAPH_FAILED;
     }
@@ -436,8 +444,12 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaValueAntiquantOffset() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaKeySharedPrefix() const
 {
+    if (!fiaInfo_.sysPrefixFlag) {
+        return ge::GRAPH_SUCCESS;
+    }
     if (ge::GRAPH_SUCCESS != CheckDtypeSupport(opParamInfo_.keySharedPrefix.desc, KEY_SHARED_PREFIX_NAME) ||
-        ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.keySharedPrefix.desc, KEY_SHARED_PREFIX_NAME)) {
+        ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.keySharedPrefix.desc, KEY_SHARED_PREFIX_NAME) ||
+        ge::GRAPH_SUCCESS != CheckLayoutSupport(kvLayout_, KEY_SHARED_PREFIX_NAME)) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
@@ -445,8 +457,12 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaKeySharedPrefix() const
 
 ge::graphStatus FiaTilingCheck::CheckSingleParaValueSharedPrefix() const
 {
+    if (!fiaInfo_.sysPrefixFlag) {
+        return ge::GRAPH_SUCCESS;
+    }
     if (ge::GRAPH_SUCCESS != CheckDtypeSupport(opParamInfo_.valueSharedPrefix.desc, VALUE_SHARED_PREFIX_NAME) ||
-        ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.valueSharedPrefix.desc, VALUE_SHARED_PREFIX_NAME)) {
+        ge::GRAPH_SUCCESS != CheckFormatSupport(opParamInfo_.valueSharedPrefix.desc, VALUE_SHARED_PREFIX_NAME) ||
+        ge::GRAPH_SUCCESS != CheckLayoutSupport(kvLayout_, VALUE_SHARED_PREFIX_NAME)) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;

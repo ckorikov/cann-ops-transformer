@@ -203,19 +203,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureNoquantUnsupported() const
     OP_CHECK_IF(fiaInfo_.outputType == ge::DT_INT8,
         OP_LOGE(opName_, "In %s situation, postquant is not supported.", QuantModeToSerialString(quantMode_).c_str()),
         return ge::GRAPH_FAILED);
- 
-    OP_CHECK_IF(fiaInfo_.pseShiftFlag,
-        OP_LOGE(opName_, "In %s situation, pseshift is not supported.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
- 
-    OP_CHECK_IF(fiaInfo_.qPaddingSizeFlag || fiaInfo_.kvPaddingSizeFlag,
-        OP_LOGE(opName_, "In %s situation, left padding is not supported.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED);
-
-    OP_CHECK_IF(fiaInfo_.sysPrefixFlag,
-        OP_LOGE(opName_, "In %s situation, sys prifix is not supported.", QuantModeToSerialString(quantMode_).c_str()),
-        return ge::GRAPH_FAILED); 
- 
+    
     return ge::GRAPH_SUCCESS;
 }
 
@@ -331,6 +319,88 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantMask() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaTilingCheck::CheckFeatureLeftPadding() const
+{
+    if (fiaInfo_.qPaddingSizeFlag || fiaInfo_.kvPaddingSizeFlag) {
+        const std::vector<std::string> layoutSupportList = {
+            "BSND", "BNSD", "BSH", "BNSD_BSND",
+        };
+        std::string layout = opParamInfo_.layOut;
+        if (std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end()) {
+            OP_LOGE(opName_,
+                    "when query_padding_size or kv_padding_size exists, input_layout only supports BSH, BSND, BNSD, "
+                    "and BNSD_BSND, but got %s",
+                    layout.c_str());
+            return ge::GRAPH_FAILED;
+        }
+
+        OP_CHECK_IF(ropeMode_ != RopeMode::NO_ROPE,
+            OP_LOGE(opName_,
+                    "when query_padding_size or kv_padding_size exists, query_rope and key_rope should be not exist "
+                    "and the "
+                    "head_dim(D) dimension of query and key should be equal to the head_dim(D) dimension of value."),
+            return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(kvStorageMode_ == KvStorageMode::TENSOR_LIST,
+            OP_LOGE(opName_,
+                "when query_padding_size or kv_padding_size exists, key/value tensorlist is not suppoprted; in this "
+                "case, the tensor number of key/value should be 1"),
+            return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(kvStorageMode_ == KvStorageMode::PAGE_ATTENTION,
+            OP_LOGE(opName_,
+                "when query_padding_size or kv_padding_size exists, page attention is not suppoprted; in this case, "
+                "block_table should exist and block_size is not 0"),
+            return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(fiaInfo_.sysPrefixFlag,
+            OP_LOGE(opName_,
+                    "when query_padding_size exists, key_shared_prefix and key_shared_prefix should be not exist."),
+            return ge::GRAPH_FAILED);
+    }
+
+    if (fiaInfo_.qPaddingSizeFlag) {
+        OP_CHECK_IF(s1Size_ <= 1,
+            OP_LOGE(opName_,
+                    "when query_padding_size exists, the sequance(S) dimension of query should be greater than 1, but got %ld",
+                    s1Size_),
+            return ge::GRAPH_FAILED);
+
+        OP_CHECK_IF(!fiaInfo_.actualLenQDims,
+            OP_LOGE(opName_, "when query_padding_size exists, the query's actual sequence lengths are required."),
+            return ge::GRAPH_FAILED);
+    }
+
+    if (fiaInfo_.kvPaddingSizeFlag) {
+        OP_CHECK_IF(!fiaInfo_.actualLenDims,
+            OP_LOGE(opName_, "when kv_padding_size exists, the key/value's actual sequence lengths are required."),
+            return ge::GRAPH_FAILED);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus FiaTilingCheck::CheckFeaturePSE() const
+{
+    if (fiaInfo_.pseShiftFlag) {
+        const std::vector<std::string> layoutSupportList = {
+            "BSND", "BNSD", "BSH", "BNSD_BSND",
+        };
+        std::string layout = opParamInfo_.layOut;
+        if (std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end()) {
+            OP_LOGE(opName_,
+                    "when pse_shift exists, input_layout only supports BSH, BSND, BNSD, and BNSD_BSND, but got %s",
+                    layout.c_str());
+            return ge::GRAPH_FAILED;
+        }
+
+        OP_CHECK_IF(ropeMode_ != RopeMode::NO_ROPE,
+            OP_LOGE(opName_, "when pse_shift exists, query_rope and key_rope should be not exist and the head_dim(D) "
+                             "dimension of query and key should be equal to the head_dim(D) dimension of value."),
+            return ge::GRAPH_FAILED);
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquantSink() const
 {
     if (fiaInfo_.learnableSinkFlag == false) {
@@ -434,6 +504,54 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantShape() const
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus FiaTilingCheck::CheckFeatureGqaPrefix() const
+{
+    if (!fiaInfo_.sysPrefixFlag) {
+        return ge::GRAPH_SUCCESS;
+    }
+    const std::vector<std::string> layoutSupportList = {
+        "BSND", "BNSD", "BSH", "BNSD_BSND",
+    };
+    std::string layout = opParamInfo_.layOut;
+    if (std::find(layoutSupportList.begin(), layoutSupportList.end(), layout) == layoutSupportList.end()) {
+        OP_LOGE(opName_,
+                "when system prefix exists, input_layout only supports BSH, BSND, BNSD, and BNSD_BSND, but got %s",
+                layout.c_str());
+        return ge::GRAPH_FAILED;
+    }
+    int32_t sparseMode = *opParamInfo_.sparseMode;
+    auto *maskTensor = opParamInfo_.attenMask.tensor;
+    if (attenMaskFlag_ && (sparseMode == SPARSE_MODE_NO_MASK || sparseMode == SPARSE_MODE_ALL_MASK)) {
+        uint32_t maskS2 = maskTensor->GetStorageShape().GetDim(maskTensor->GetStorageShape().GetDimNum() - 1);
+        uint32_t totalLen = fiaInfo_.systemPrefixLen + fiaInfo_.maxActualseq;
+        if (totalLen > maskS2) {
+            OP_LOGE(opName_, "s2Size + systemPrefix (%u) is greater than mask s2 size (%u)", totalLen, maskS2);
+            return ge::GRAPH_FAILED;
+        }
+    }
+    if (fiaInfo_.ropeMode !=  RopeMode::NO_ROPE) {
+        OP_LOGE(opName_, "system prefix do not support rope");
+        return ge::GRAPH_FAILED;
+    }
+
+    if (fiaInfo_.kvStorageMode == KvStorageMode::PAGE_ATTENTION) {
+        OP_LOGE(opName_, "system prefix do not support PAGE_ATTENTION");
+        return ge::GRAPH_FAILED;
+    }
+    if (fiaInfo_.kvStorageMode == KvStorageMode::TENSOR_LIST && fiaInfo_.s1Size > 1) {
+        OP_LOGE(opName_, "system prefix do not support qs > 1 and enable TENSORLIST");
+        return ge::GRAPH_FAILED;
+    }
+
+    if (fiaInfo_.pseShiftFlag) {
+        if (fiaInfo_.s2Size + fiaInfo_.systemPrefixLen > fiaInfo_.pseShiftS2) {
+            OP_LOGE(opName_, "when enable pse and system prefix, pse s2 Size greater than kv s2size + systemPrefixLen");
+            return ge::GRAPH_FAILED;   
+        }
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant()
 {
     OP_CHECK_IF(socVersion_ == platform_ascendc::SocVersion::ASCEND310P,
@@ -448,7 +566,10 @@ ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoquant()
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantDtype() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantLayout() ||
         ge::GRAPH_SUCCESS != CheckFeatureGqaNoQuantShape() ||
-        ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantSink()) {
+        ge::GRAPH_SUCCESS != CheckFeatureGqaNoquantSink() ||
+        ge::GRAPH_SUCCESS != CheckFeatureGqaPrefix() ||
+        ge::GRAPH_SUCCESS != CheckFeatureLeftPadding() ||
+        ge::GRAPH_SUCCESS != CheckFeaturePSE()) {
         return ge::GRAPH_FAILED;
     }
     return ge::GRAPH_SUCCESS;
