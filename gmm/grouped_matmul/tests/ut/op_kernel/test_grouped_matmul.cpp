@@ -9,8 +9,10 @@
  */
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
-#include "grouped_matmul_tiling_def.h"
+// #include "grouped_matmul_tiling_def.h"
+#include "grouped_matmul_tiling.h"
 #include "data_utils.h"
+// #define __forceinline__ __global__
 #include "../../../op_kernel/grouped_matmul.cpp"
 
 using namespace std;

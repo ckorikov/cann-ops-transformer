@@ -117,4 +117,11 @@ void CreateContiguousTensorList(const aclTensorList *tensorList, std::vector<acl
         newTensorList.emplace_back(tensor);
     }
 }
+std::string dTypeToString(const ge::DataType &dtype) {
+    if(DTYPE_STRING.count(dtype) != 0) {
+        return DTYPE_STRING.at(dtype);
+    } else {
+        return std::string(op::ToString(dtype).GetString());
+    }
+}
 } // namespace gmm
