@@ -19,7 +19,7 @@ constexpr int BASEL = 64;
 constexpr int BASEN = 64;
 constexpr int BASEH = 128;
 constexpr int SUB_BASEH = BASEH / 2;
-constexpr int BLK_SIZE = BASEL * BASEH / 2;
+constexpr int BLK_SIZE = BASEL * SUB_BASEH;
 constexpr float COMPARE_VALUE = 20.0;
 constexpr float CLAMP_MAX = 10000000.0f;
 
@@ -107,7 +107,7 @@ public:
             for (int l=0; l<shape.L; l+=BASEL){
                 
                 in_empty.wait();
-                GM2UB(at_buf.get(cc_cnt), at_mtx[(h + ((get_subblockid() * BASEH) / 2))], 1, (int)SUB_BASEH/MTE_FLOAT, 0, 0);
+                GM2UB(at_buf.get(cc_cnt), at_mtx[(h + (get_subblockid() * SUB_BASEH))], 1, (int)SUB_BASEH/MTE_FLOAT, 0, 0);
                 GM2UB(dt_buf.get(cc_cnt), dt_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * SUB_BASEH))))], BASEL, (int)SUB_BASEH/MTE_HALF, ((shape.H - SUB_BASEH) / MTE_HALF), 0);
                 GM2UB(dtbias_buf.get(cc_cnt), dtbias_mtx[(h + ((get_subblockid() * SUB_BASEH)))], 1, SUB_BASEH/MTE_HALF, 0, 0);
                 GM2UB(dtmask_buf.get(cc_cnt), dtmask_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * SUB_BASEH))))], BASEL, SUB_BASEH/MTE_HALF, ((shape.H - SUB_BASEH) / MTE_HALF), 0);
@@ -121,56 +121,56 @@ public:
                     Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParamsH2F);
+                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, castParamsH2F);
                 Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParamsH2F);
-                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParamsH2F);
+                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, castParamsH2F);
                 PipeBarrier<PIPE_V>();
                 auto custparam = MakeDefaultBinaryRepeatParams();
-                custparam.src1RepStride = 0;
-                Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, custparam);
+                custparam.src1RepStride = 0; // {1,1,1,8,8,0}
+                Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, custparam);
                 PipeBarrier<PIPE_V>();
-                CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, 20.0f, CMPMODE::LT, 4096);
+                CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, COMPARE_VALUE, CMPMODE::LT, BLK_SIZE);
                 PipeBarrier<PIPE_V>();
-                UB2UB(cc_tmp0, cc_tmp1, 64, 8, 0, 0);
+                UB2UB(cc_tmp0, cc_tmp1, BASEL, SUB_BASEH/MTE_FLOAT, 0, 0);
                 PipeBarrier<PIPE_V>();
-                Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, 64, {1, 1, 8, 8});
+                Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
                 PipeBarrier<PIPE_V>();
-                Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, 64, {1, 1, 8, 8});
+                Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
                 PipeBarrier<PIPE_V>();
-                Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, 64, {1, 1, 8, 8});
+                Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
                 PipeBarrier<PIPE_V>();
-                Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, 64, 64, {1, 1, 1, 8, 8, 8});
+                Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, VEC_FLOAT, BLK_SIZE/VEC_FLOAT, binaryParams);
                 PipeBarrier<PIPE_V>();
-                CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, 10000000.0f, CMPMODE::LT, 4096);
+                CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, CLAMP_MAX, CMPMODE::LT, BLK_SIZE);
                 PipeBarrier<PIPE_V>();
-                Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(10000000.0), SELMODE::VSEL_TENSOR_SCALAR_MODE, 4096);
+                Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX.0), SELMODE::VSEL_TENSOR_SCALAR_MODE, BLK_SIZE);
                 PipeBarrier<PIPE_V>();
-                Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, 64, {1, 1, 1, 8, 8, 8});
+                Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, binaryParams);
                 PipeBarrier<PIPE_V>();
-                Mul<float, false>(cc_tmp0, out1buf.get(cc_cnt), at_buf.get(cc_cnt), MASK_PLACEHOLDER, 64, {1, 1, 1, 8, 8, 0});
+                Mul<float, false>(cc_tmp0, out1buf.get(cc_cnt), at_buf.get(cc_cnt), MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, custparam);
                 PipeBarrier<PIPE_V>();
                 if ((l > 0)){
-                    Add<float, false>(cc_tmp0, cc_tmp0, cumsum_tensor.get(cc_cnt), MASK_PLACEHOLDER, 1, {1, 1, 1, 0, 0, 0});
+                    Add<float, false>(cc_tmp0, cc_tmp0, cumsum_tensor.get(cc_cnt), MASK_PLACEHOLDER, SUB_BASEH/VEC_FLOAT, {1, 1, 1, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-                for (int l1=0; l1<63; ++l1){
-                    Add<float, false>(cc_tmp0[(((l1 + 1) * 128) / 2)], cc_tmp0[((l1 * 128) / 2)], cc_tmp0[(((l1 + 1) * 128) / 2)], MASK_PLACEHOLDER, 1, {1, 1, 1, 0, 0, 0});
+                for (int l1=0; l1<BASEL-1; ++l1){
+                    Add<float, false>(cc_tmp0[((l1 + 1) * SUB_BASEH)], cc_tmp0[(l1 * SUB_BASEH)], cc_tmp0[((l1 + 1) * SUB_BASEH)], MASK_PLACEHOLDER, 1, {1, 1, 1, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
                 if ((l < shape.L)){
-                    UB2UB(cumsum_tensor.get((cc_cnt + 1)), cc_tmp0[4032], 1, 8, 0, 0);
+                    UB2UB(cumsum_tensor.get((cc_cnt + 1)), cc_tmp0[(BASEL-1)*SUB_BASEH], 1, SUB_BASEH/MTE_FLOAT, 0, 0);
                     PipeBarrier<PIPE_V>();
                 }
-                UB2UB(out2buf.get(cc_cnt), cc_tmp0, 64, 8, 0, 0);
+                UB2UB(out2buf.get(cc_cnt), cc_tmp0, BASEL, SUB_BASEH/MTE_FLOAT, 0, 0);
                 PipeBarrier<PIPE_V>();
                 in_empty.set();
                 
                 out_ready.set();
                 out_ready.wait();
-                UB2GM(out_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * 128) / 2)))], out1buf.get(cc_cnt), 64, 8, 0, ((shape.H - 64) / 8));
-                UB2GM(out1_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * 128) / 2)))], out2buf.get(cc_cnt), 64, 8, 0, ((shape.H - 64) / 8));
+                UB2GM(out_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + (get_subblockid() * SUB_BASEH)))], out1buf.get(cc_cnt), BASEL, SUB_BASEH/MTE_FLOAT, 0, ((shape.H - SUB_BASEH) / MTE_FLOAT));
+                UB2GM(out1_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + (get_subblockid() * SUB_BASEH)))], out2buf.get(cc_cnt), BASEL, SUB_BASEH/MTE_FLOAT, 0, ((shape.H - SUB_BASEH) / MTE_FLOAT));
                 if (((l + 64) >= shape.L)){
-                    UB2GM(out2_mtx[((((b * shape.C) + c) * shape.H) + (h + ((get_subblockid() * 128) / 2)))], out2buf.get(cc_cnt)[4032], 1, 8, 0, ((shape.H - 64) / 8));
+                    UB2GM(out2_mtx[((((b * shape.C) + c) * shape.H) + (h + (get_subblockid() * SUB_BASEH)))], out2buf.get(cc_cnt)[(BASEL-1)*SUB_BASEH], 1, SUB_BASEH/MTE_FLOAT, 0, ((shape.H - SUB_BASEH) / MTE_FLOAT));
                 }
                 out_empty.set();
                 
