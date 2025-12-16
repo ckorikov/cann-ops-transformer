@@ -9,18 +9,18 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
+    set(moe_token_unpermute_grad_depends moe/moe_finalize_routing_v2_grad CACHE INTERNAL "Dependencies for moe_token_unpermute_grad")
     target_sources(op_host_aclnnInner PRIVATE
         moe_token_unpermute_grad_def.cpp
     )
-endif()
-
-if (BUILD_OPS_RTY_KERNEL)
     add_ops_compile_options(
         OP_NAME MoeTokenUnpermuteGrad
         OPTIONS --cce-auto-sync=on
                 -Wno-deprecated-declarations
                 -Werror
     )
-else()
+endif()
+
+if(NOT BUILD_OPS_RTY_KERNEL)
     add_modules_sources(OPTYPE moe_token_unpermute_grad ACLNNTYPE aclnn_inner)
 endif()

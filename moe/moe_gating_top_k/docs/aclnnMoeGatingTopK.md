@@ -9,18 +9,21 @@
 
 ## 功能说明
 
--   算子功能：MoE计算中，对输入x做Sigmoid计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。
+- 算子功能：MoE计算中，对输入x做Sigmoid或者SoftMax计算，对计算结果分组进行排序，最后根据分组排序的结果选取前k个专家。
 -   计算公式：
 
-    对输入做sigmoid：
+    对输入做Sigmoid或者SoftMax：
     $$
-    normOut=sigmoid(x)
+    if normType==1:
+        normOut=Sigmoid(x)
+    else:
+        normOut=SoftMax(x)
     $$
     如果bias不为空：
     $$
     normOut = normOut + bias
     $$
-    对计算结果按照groupCount进行分组，每组按照topk2的sum值对group进行排序，取前kGroup个组：
+    对计算结果按照groupCount进行分组，每组按照groupSelectMode取max或topk2的sum值对group进行排序，取前kGroup个组：
     $$
     groupOut, groupId = TopK(ReduceSum(TopK(Split(normOut, groupCount), k=2, dim=-1), dim=-1),k=kGroup)
     $$
@@ -254,7 +257,7 @@ aclnnStatus aclnnMoeGatingTopK(
 
 -   **返回值：**
 
-    <p>aclnnStatus：返回状态码，具体参见<a href="../../../docs/context/aclnn返回码.md">aclnn返回码</a>。</p>
+    <p>aclnnStatus：返回状态码，具体参见<a href="../../../docs/zh/context/aclnn返回码.md">aclnn返回码</a>。</p>
     <p>第一段接口完成入参校验，出现以下场景报错：</p>
     <table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
     <col style="width: 319px">
@@ -333,7 +336,7 @@ aclnnStatus aclnnMoeGatingTopK(
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
   * 输入shape限制：
@@ -346,7 +349,7 @@ aclnnStatus aclnnMoeGatingTopK(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include "acl/acl.h"

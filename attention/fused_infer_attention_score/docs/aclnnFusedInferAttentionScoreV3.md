@@ -32,7 +32,7 @@
 
 ## 函数原型
 
-算子执行接口为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnFusedInferAttentionScoreV3GetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnFusedInferAttentionScoreV3”接口执行计算。
+算子执行接口为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnFusedInferAttentionScoreV3GetWorkspaceSize”接口获取入参并根据计算流程计算所需workspace大小，再调用“aclnnFusedInferAttentionScoreV3”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnFusedInferAttentionScoreV3GetWorkspaceSize(
@@ -610,7 +610,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 - **返回值**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
   
   第一段接口完成入参校验，出现以下场景时报错：
   
@@ -689,7 +689,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 - **返回值**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -729,7 +729,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
       - 支持query每个batch的s为1-16；
       - 要求query的n为32/64/128，key、value的n为1；
       - 要求queryRope和keyRope不等于空，queryRope和keyRope的d为64；
-      - 不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
+      - 不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
     - 当query的d不等于512时：
       - 当queryRope和keyRope为空时：TND场景，要求Q_D、K_D、V_D等于128，或者Q_D、K_D等于192，V_D等于128/192；NTD_TND场景，要求Q_D、K_D等于128/192，V_D等于128。当queryRope和keyRope不为空时，要求Q_D、K_D、V_D等于128；
       - 支持TND、NTD_TND；
@@ -757,7 +757,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
         - key&value&keyRope支持ND和NZ输入，当输入NZ时，输入格式为[blockNum, N, D/16, blockSize, 16]；
         - inputLayout：BSH、BSND、BNSD、BNSD_NBSD、BSND_NBSD、BSH_NBSD、TND、TND_NTD，其中NZ输入不支持BNSD、BNSD_NBSD；
         - 必须开启page attention：blockSize支持16、128，其中NZ输入不支持配置16；
-        - 不支持开启SoftMaxLse、左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
+        - 不支持左padding、tensorlist、pse、prefix、伪量化、全量化、后量化。
       - 当query的d等于128时：
         - inputLayout：TND、NTD_TND；
         - queryRope配置时要求queryRope的shape中d为64，其余维度与query一致；
@@ -1177,7 +1177,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV3(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```cpp
 #include <iostream>
