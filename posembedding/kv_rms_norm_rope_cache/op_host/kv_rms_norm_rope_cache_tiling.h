@@ -20,6 +20,7 @@
 #include "tiling_base/tiling_templates_registry.h"
 
 namespace optiling {
+
 using namespace Ops::Base;
 // DS
 BEGIN_TILING_DATA_DEF(KvRmsNormRopeCacheTilingData)
