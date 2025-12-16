@@ -15,13 +15,13 @@
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkCumsum {
 
-constexptr int BASEL = 64;
-constexptr int BASEN = 64;
-constexptr int BASEH = 128;
-constexptr int SUB_BASEH = BASEH / 2;
-constexptr int BLK_SIZE = BASEL * BASEH / 2;
-constexptr float COMPARE_VALUE = 20.0;
-constexptr float CLAMP_MAX = 10000000.0;
+constexpr int BASEL = 64;
+constexpr int BASEN = 64;
+constexpr int BASEH = 128;
+constexpr int SUB_BASEH = BASEH / 2;
+constexpr int BLK_SIZE = BASEL * BASEH / 2;
+constexpr float COMPARE_VALUE = 20.0;
+constexpr float CLAMP_MAX = 10000000.0;
 
 struct CustVecShapeInfo{
     int nstepsH;
@@ -95,6 +95,7 @@ public:
         out_empty.setall();
         
         int cc_cnt = 0;
+        auto castParams = CastHalf2FloatRepeatParams();
         for (int bch=shape.BCH1; bch<shape.BCH2; ++bch){
             int b = (bch / (shape.C * shape.nstepsH));
             int c = ((bch % (shape.C * shape.nstepsH)) / shape.nstepsH);
@@ -116,8 +117,6 @@ public:
                     Adds<float, false>(max_buf, max_buf, 10000000.0f, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-
-                auto castParams = CastHalf2FloatRepeatParams();
                 Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
                 Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParams);
                 Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
