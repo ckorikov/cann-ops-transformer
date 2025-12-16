@@ -33,6 +33,7 @@ if(NOT BUILD_OPS_RTY_KERNEL) #
         ../../common/op_host/fia_tiling_info.cpp
         ../../common/op_host/arch32/fia_tiling_nonquant_mla.cpp
         ../../common/op_host/arch32/fia_tiling_nonquant.cpp
+        ../../common/op_host/arch32/fia_tiling_empty_tensor.cpp
         fallback_fused_infer_attention_score.cpp
     )
 endif()
