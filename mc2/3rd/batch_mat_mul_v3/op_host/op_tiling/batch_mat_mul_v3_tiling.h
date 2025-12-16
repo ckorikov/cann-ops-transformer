@@ -16,7 +16,7 @@
 #define __OP_HOST_BATCH_MAT_MUL_V3_TILING_H__
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
-#include "mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
+#include "../../../mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 
 // ！！！！！！！！！ATTENTION ！！！！！！！！！！！！
 // 当前canndev仓mc2编译时用的是原canndev仓结构体
@@ -26,7 +26,7 @@
 
 namespace optiling {
 
-BEGIN_TILING_DATA_DEF(MultiBatchInfo)
+BEGIN_TILING_DATA_DEF(Mc2MultiBatchInfo)
   TILING_DATA_FIELD_DEF(uint32_t, batchUsedCoreNum);
 
   TILING_DATA_FIELD_DEF(uint32_t, aBatchDimAll);
@@ -59,14 +59,14 @@ BEGIN_TILING_DATA_DEF(MultiBatchInfo)
 
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MultiBatchInfoOp, MultiBatchInfo)
+REGISTER_TILING_DATA_CLASS(Mc2MultiBatchInfoOp, Mc2MultiBatchInfo)
 
-BEGIN_TILING_DATA_DEF(BatchMatmulTilingData)
-  TILING_DATA_FIELD_DEF_STRUCT(MatmulTilingData, matmulTiling);
-  TILING_DATA_FIELD_DEF_STRUCT(MultiBatchInfo, multiBatchInfo);
+BEGIN_TILING_DATA_DEF(Mc2BatchMatmulTilingData)
+  TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulV3TilingData, matmulTiling);
+  TILING_DATA_FIELD_DEF_STRUCT(Mc2MultiBatchInfo, Mc2multiBatchInfo);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(BatchMatMulV3, BatchMatmulTilingData)
-REGISTER_TILING_DATA_CLASS(BatchMatmulTilingDataOp, BatchMatmulTilingData)
+REGISTER_TILING_DATA_CLASS(Mc2BatchMatMulV3, Mc2BatchMatmulTilingData)
+REGISTER_TILING_DATA_CLASS(Mc2BatchMatmulTilingDataOp, Mc2BatchMatmulTilingData)
 }
 #endif // __OP_HOST_BATCH_MAT_MUL_V3_TILING_H__

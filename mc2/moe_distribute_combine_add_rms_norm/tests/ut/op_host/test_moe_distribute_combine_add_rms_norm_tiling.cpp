@@ -10,8 +10,7 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 
 namespace MoeDistributeCombineAddRmsNormNameSpace{
 struct TestParam {
@@ -128,12 +127,13 @@ TEST_P(MoeDistributeCombineAddRmsNormTilingTest, common_test)
         "Ascend910_93",
         20,
         196608);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     if(test_param.status == ge::GRAPH_FAILED){
-        ExecuteTestCase(tilingContextPara);
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
     }
     else {
-        uint64_t expectTilingKey = 0UL;
-        ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+        uint64_t expectTilingKey = 10000UL;
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
     }
 }
 

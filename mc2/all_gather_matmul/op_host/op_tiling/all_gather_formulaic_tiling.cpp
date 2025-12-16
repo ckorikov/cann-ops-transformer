@@ -96,11 +96,7 @@ void AllGatherPlusMM::SetCommTimeFactorForOther()
 
 void AllGatherPlusMM::SetCommTimeFactor()
 {
-	if (clusterInfo_.socType == SocVersion::SOC910_95) {
-		SetCommTimeFactorForA5();
-	}else{
-        SetCommTimeFactorForOther();
-    }
+	SetCommTimeFactorForOther();
 }
 
 void AllGatherPlusMM::SelectTilingMethod()

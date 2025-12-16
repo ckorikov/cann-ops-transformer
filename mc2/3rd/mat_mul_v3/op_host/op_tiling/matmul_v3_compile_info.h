@@ -20,7 +20,7 @@
 
 namespace optiling {
 
-struct MatmulV3CompileInfo {
+struct Mc2MatmulV3CompileInfo {
     uint64_t aicNum{0UL};
     uint64_t aivNum{0UL};
     uint64_t ubSize{0UL};

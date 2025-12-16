@@ -47,7 +47,7 @@ public:
     using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, X_T, IS_TRANS>;
     using cType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, X_T, false>;
     using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, BIAS_T, false>;
-    BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmV3;
+    Mc2BatchMatMulCommonKernel<aType, bType, cType, biasType> bmmV3;
 
 private:
     __aicore__ inline void InitTilingData();
@@ -82,10 +82,10 @@ private:
 
     TPipe* pipe = nullptr;
     const BatchMatMulReduceScatterAlltoAllTilingData* tilingData = nullptr;
-    BatchMatmulTilingData localTileTiling;
-    BatchMatmulTilingData localTailTiling;
-    BatchMatmulTilingData nonLocalTileTiling;
-    BatchMatmulTilingData nonLocalTailTiling;
+    Mc2BatchMatmulTilingData localTileTiling;
+    Mc2BatchMatmulTilingData localTailTiling;
+    Mc2BatchMatmulTilingData nonLocalTileTiling;
+    Mc2BatchMatmulTilingData nonLocalTailTiling;
 
     // Overall Loop sequence is: e_cnt, c_cnt, ep, e_len, c_len, H(H/tp)
     // LocalE - 有尾块， LocalC 无尾块

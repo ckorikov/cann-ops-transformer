@@ -28,7 +28,7 @@ namespace ge {
 * @li scales: An optional tensor. Support dtype: float32, dimension must be 2, support format: ND.
 * @li x_active_mask: An optional tensor. Support dtype: bool, support format: ND.
 * @li expert_scales: An optional tensor. Support dtype: float32. Shape supports (BS, K), support format: ND.
-* @li performance_info: An optional tensor. Support dtype: int64. Shape supports (BS, ), support format: ND.
+* @li performance_info: An optional tensor. Support dtype: int64, support format: ND.
 
 * @par Attributes
 * @li group_ep: Required. Input ep comm group name, ep means experts parallelism, dtype: String.
