@@ -78,6 +78,16 @@ struct GMMAttrs {
     int64_t tuningConfig;
 };
 
+struct GMMInputParamsInfo {
+    size_t numX;
+    size_t numWeight;
+    size_t numBias;
+    size_t numScale;
+    size_t numOffset;
+    size_t numAntiquantScale;
+    size_t numAntiquantOffset;
+};
+
 const std::map<int64_t, ge::DataType> GMM_OUTPUT_DTYPE_MAP = {{0, ge::DataType::DT_FLOAT16},
                                                               {1, ge::DataType::DT_BF16},
                                                               {2, ge::DataType::DT_INT32},
