@@ -103,10 +103,10 @@ public:
             for (int l=0; l<shape.L; l+=BASEL){
                 
                 in_empty.wait();
-                GM2UB(at_buf.get(cc_cnt), at_mtx[(h + ((get_subblockid() * 128) / 2))], 1, 8, 0, 0);
-                GM2UB(dt_buf.get(cc_cnt), dt_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * 128) / 2)))], 64, 4, ((shape.H - 64) / 16), 0);
-                GM2UB(dtbias_buf.get(cc_cnt), dtbias_mtx[(h + ((get_subblockid() * 128) / 2))], 1, 4, 0, 0);
-                GM2UB(dtmask_buf.get(cc_cnt), dtmask_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * 128) / 2)))], 64, 4, ((shape.H - 64) / 16), 0);
+                GM2UB(at_buf.get(cc_cnt), at_mtx[(h + ((get_subblockid() * BASEH) / 2))], 1, (int)SUB_BASEH/MTE_FLOAT, 0, 0);
+                GM2UB(dt_buf.get(cc_cnt), dt_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * SUB_BASEH)))], BASEL, (int)SUB_BASEH/MTE_HALF, ((shape.H - SUB_BASEH) / MTE_HALF), 0);
+                GM2UB(dtbias_buf.get(cc_cnt), dtbias_mtx[(h + ((get_subblockid() * SUB_BASEH))], 1, SUB_BASEH/MTE_HALF, 0, 0);
+                GM2UB(dtmask_buf.get(cc_cnt), dtmask_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * SUB_BASEH)))], BASEL, SUB_BASEH/MTE_HALF, ((shape.H - SUB_BASEH) / MTE_HALF), 0);
                 in_ready.set();
                 
                 out_empty.wait();
