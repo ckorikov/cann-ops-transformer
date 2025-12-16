@@ -1,11 +1,12 @@
 #!/bin/bash
-# This program is free software, you can redistribute it and/or modify.
+# This program is free software, you can redistribute it and/or modify it.
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
 # This file is a part of the CANN Open Software.
 # Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-# See LICENSE in the root of the software repository for the full text of the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. See LICENSE in the root of
+# the software repository for the full text of the License.
 # ============================================================================
 
 set -euo pipefail
@@ -23,7 +24,6 @@ run_command() {
          exit $exit_code
     fi
 }
-
 
 version_ge() {
     # 版本比较，版本形式：xx.xx.xx
@@ -68,6 +68,36 @@ detect_os() {
         PKG_MANAGER="brew"
     else
         echo "不支持的OS类型"
+        exit 1
+    fi
+}
+
+install_gawk() {
+    echo -e "\n==== 检查Gawk ===="
+
+    if command -v gawk &> /dev/null; then
+        echo "Gawk已安装"
+        return
+    fi
+
+    echo "安装Gawk..."
+    case "$OS" in
+        debian)
+            run_command sudo $PKG_MANAGER update
+            run_command sudo $PKG_MANAGER install -y gawk
+            ;;
+        rhel)
+            run_command sudo $PKG_MANAGER install -y gawk
+            ;;
+        macos)
+            run_command brew install gawk
+            ;;
+    esac
+
+    if command -v gawk &> /dev/null; then
+        echo "Gawk安装成功"
+    else
+        echo "Gawk安装失败"
         exit 1
     fi
 }
@@ -379,6 +409,7 @@ main() {
     echo "===================================================="
 
     detect_os
+    install_gawk
     install_python
     install_gcc
     install_cmake
