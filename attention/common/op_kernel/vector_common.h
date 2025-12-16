@@ -803,13 +803,16 @@ struct MaskInfo {
     MaskDataType attenMaskType;
     SparseMode sparseMode;
     uint32_t maskValue;
+
+    uint64_t s1LeftPaddingSize = 0;
+    uint64_t s2LeftPaddingSize = 0;
 };
 
 __aicore__ inline uint64_t ComputeAttenMaskOffsetNoCompress(MaskInfo &info, uint32_t s1StartIdx)
 {
     uint64_t bOffset = static_cast<uint64_t>(info.batchIdx) * static_cast<uint64_t>(info.batchOffset);
-    uint64_t s1Offset = s1StartIdx % info.s1Size * info.attenMaskStride;
-    uint64_t s2Offset = info.s2StartIdx;
+    uint64_t s1Offset = (info.s1LeftPaddingSize + s1StartIdx % info.s1Size) * info.attenMaskStride;
+    uint64_t s2Offset = info.s2LeftPaddingSize + info.s2StartIdx;
     return bOffset + s1Offset + s2Offset;
 }
 
