@@ -21,6 +21,7 @@
 #include "opdev/make_op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
+#include "opdev/tensor_view_utils.h"
 #include "matmul_all_reduce_util.h"
 #include "aclnn_kernels/contiguous.h"
 
@@ -29,6 +30,13 @@ using namespace op;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+enum class NnopbaseHcclServerType : uint32_t {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
 
 static constexpr int64_t ANTIQUANT_GROUP_SIZE_MIN_VALUE = 32;
 
@@ -44,6 +52,7 @@ extern aclnnStatus aclnnInnerMatmulAllReduce(
 extern "C" uint64_t NnopbaseMsprofSysTime();
 extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId& dfxId);
 extern "C" aclnnStatus __attribute__((weak)) NnopbaseDisableOptionalInput(void* executor, const size_t irIndex);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // 根据API定义，需要列出所能支持的所有dtype
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {DataType::DT_FLOAT16, DataType::DT_BF16};
@@ -77,11 +86,9 @@ static bool CheckDtypeValid(
     const std::initializer_list<op::DataType> dtypeSupportListBiasA5 = {
         DataType::DT_FLOAT16, DataType::DT_BF16, DataType::DT_FLOAT};
 
-    const auto x2DtypeSupportList =
-        (socVersion == op::SocVersion::ASCEND910_95) ? dtypeSupportListQuantA5 : DTYPE_SUPPORT_LIST_QUANT;
+    const auto x2DtypeSupportList = DTYPE_SUPPORT_LIST_QUANT;
 
-    const auto biasDtypeSupportList =
-        (socVersion == op::SocVersion::ASCEND910_95) ? dtypeSupportListBiasA5 : dtypeSupportList;
+    const auto biasDtypeSupportList = dtypeSupportList;
     // 检查x1、x2、bias、scale、offset、x3、output的数据类型是否在算子的支持列表内
     OP_CHECK_DTYPE_NOT_SUPPORT(x1, dtypeSupportList, return false);
     // 对于量化来说，x2只为INT8/INT4
@@ -131,7 +138,7 @@ static bool CheckDtypeValid(
 // 检查传入的reduction数值是否在可选范围内
 static bool CheckAttr(const char* reduceOp, int64_t streamMode, int64_t antiquantGroupSize, const aclTensor* x1)
 {
-    if (strcmp(reduceOp, REDUCE_OP_SUM)) {
+    if (strcmp(reduceOp, REDUCE_OP_SUM) != 0) {
         OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Expected reduceOp to be sum, but got %s.", reduceOp);
         return false;
     }
@@ -188,7 +195,7 @@ static bool IsAntiquantScaleShapeValid(
         return false;
     }
 
-    size_t kValue = CeilDiv(x1->GetViewShape().GetDim(x1Len - 1), antiquantGroupSize);
+    int64_t kValue = static_cast<int64_t>(CeilDiv(x1->GetViewShape().GetDim(x1Len - 1), antiquantGroupSize));
     if (antiquantGroupSize > 0) {
         if ((scaleLen == DIM_LEN_TWO && scale->GetViewShape().GetDim(0) == kValue &&
              scale->GetViewShape().GetDim(1) == outShape.GetDim(x1Len - 1))) {
@@ -317,7 +324,6 @@ static bool CheckShape(
     if (offset != nullptr) {
         OP_CHECK_SHAPE_NOT_EQUAL(offset, scale, return false);
     }
-
     return true;
 }
 
@@ -339,7 +345,6 @@ static aclnnStatus CheckParams(
     CHECK_RET(
         CheckShape(x1, x2, bias, antiquantScale, antiquantOffset, x3, output, antiquantGroupSize),
         ACLNN_ERR_PARAM_INVALID);
-
     return ACLNN_SUCCESS;
 }
 
@@ -427,7 +432,6 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream)
 {
     uint64_t timeStamp = NnopbaseMsprofSysTime();
-
     aclnnStatus ret = aclnnInnerMatmulAllReduce(workspace, workspaceSize, executor, stream);
     OP_LOGD("WeightQuantMatmulAllReduce, aclnnWeightQuantMatmulAllReduce ret %d", ret);
     if (ret != 0) {

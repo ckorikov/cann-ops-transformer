@@ -63,7 +63,7 @@ __global__ __aicore__ void grouped_mat_mul_allto_allv(
     if (userWorkspace == nullptr) {
         return;
     }
-    REGISTER_TILING_DEFAULT(GroupedMatMulAlltoAllvTilingData);
+    REGISTER_TILING_DEFAULT(GroupedMatMulAlltoAllvTilingData); 
     auto tiling = (__gm__ GroupedMatMulAlltoAllvTilingData*)tilingGM;
     __gm__ void* hcclInitTiling = (__gm__ void*)(&(tiling->hcclInitTiling));
     __gm__ void* alltoAllvCcTiling = (__gm__ void*)(&(tiling->alltoAllvCcTiling));

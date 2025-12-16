@@ -27,11 +27,11 @@
 #else
 #include "mc2_gen_task_training.h"
 #include "mc2_gen_task_utils.h"
+#include "mc2_a5_gen_task_utils.h"
 #include "register/op_ct_impl_registry.h"
 #endif
 
 namespace ops {
-
 #ifdef BUILD_OPEN_PROJECT
 ge::Status AlltoAllvGroupedMatMulCalcParamFunc(gert::ExeResGenerationContext *context)
 {
@@ -53,6 +53,9 @@ IMPL_OP(AlltoAllvGroupedMatMul)
 #else // mc2 gen task utils
 ge::Status AlltoAllvGroupedMatMulCalcParamFunc(gert::ExeResGenerationContext *context)
 {
+    if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
+        return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, "ccu server", "ccu_stream");
+    }
     const ge::AscendString name = "aicpu kfc server";
     const ge::AscendString reuseKey = "kfc_stream";
     return Mc2GenTaskUtils::CommonKFCMc2CalcParamFunc(context, name, reuseKey);
@@ -61,6 +64,9 @@ ge::Status AlltoAllvGroupedMatMulCalcParamFunc(gert::ExeResGenerationContext *co
 ge::Status AlltoAllvGroupedMatMulGenTaskFunc(const gert::ExeResGenerationContext *context,
                                             std::vector<std::vector<uint8_t>> &tasks)
 {
+    if (Mc2A5GenTaskUtils::IsTargetPlatform(context->GetNodeName(), PLATFORM_A5)) {
+        return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2A5GenTaskUtils::Mc2GenTaskCallBack910A5);
+    }
     return Mc2GenTaskUtils::CommonKFCMc2GenTask(context, tasks, Mc2GenTaskTraining::Mc2TrainingGenTaskCallback);
 }
 

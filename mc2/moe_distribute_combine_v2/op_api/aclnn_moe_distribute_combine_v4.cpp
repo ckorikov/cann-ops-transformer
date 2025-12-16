@@ -7,15 +7,16 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#include "aclnn_moe_distribute_combine_v4.h"
+#include "aclnn_moe_distribute_combine_v3.h"
 #include <algorithm>
 #include "op_mc2.h"
-#include "matmul_util.h"
 #include "op_mc2_def.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/op_log.h"
 #include "opdev/common_types.h"
+#include "common/op_host/op_api/matmul_util.h"
 
+using namespace Ops::Transformer;
 using namespace op;
 
 #ifdef __cplusplus
@@ -101,7 +102,7 @@ aclnnStatus aclnnMoeDistributeCombineV4GetWorkspaceSize(const aclTensor* expandX
                                                             const aclTensor* expandScalesOptional, const aclTensor* sharedExpertXOptional,
                                                             const aclTensor* elasticInfoOptional, const aclTensor* oriXOptional,
                                                             const aclTensor* constExpertAlpha1Optional, const aclTensor* constExpertAlpha2Optional, 
-                                                            const aclTensor* constExpertVOptional, const aclTensor* performanceInfoOptional,
+                                                            const aclTensor* constExpertVOptional,  const aclTensor* performanceInfoOptional,
                                                             const char* groupEp, int64_t epWorldSize,
                                                             int64_t epRankId, int64_t moeExpertNum,
                                                             const char* groupTp, int64_t tpWorldSize, int64_t tpRankId,
@@ -129,7 +130,7 @@ aclnnStatus aclnnMoeDistributeCombineV4GetWorkspaceSize(const aclTensor* expandX
     return aclnnInnerMoeDistributeCombineV2GetWorkspaceSize(expandX, expertIds, assistInfoForCombine, epSendCounts, expertScales,
         tpSendCountsOptional, xActiveMaskOptional, activationScaleOptional, weightScaleOptional, groupListOptional, expandScalesOptional,
         sharedExpertXOptional, elasticInfoOptional, oriXOptional, constExpertAlpha1Optional, constExpertAlpha2Optional, 
-        constExpertVOptional, performanceInfoOptional, groupEp, epWorldSize, epRankId, moeExpertNum, groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
+        constExpertVOptional, nullptr, groupEp, epWorldSize, epRankId, moeExpertNum, groupTp, tpWorldSize, tpRankId, expertShardType, sharedExpertNum,
         sharedExpertRankNum, globalBs, outDtype, commQuantMode, groupListType, commAlg, zeroExpertNum, copyExpertNum, constExpertNum, 
         xOut, workspaceSize, executor);
 }
