@@ -15,9 +15,9 @@
 #include "register/op_def_registry.h"
 
 namespace ops {
-class MatMulV3 : public OpDef {
+class Mc2MatMulV3 : public OpDef {
 public:
-    explicit MatMulV3(const char* name) : OpDef(name)
+    explicit Mc2MatMulV3(const char* name) : OpDef(name)
     {
         this->Input("x1")
             .ParamType(REQUIRED)
@@ -138,5 +138,5 @@ public:
     }
 };
 
-OP_ADD(MatMulV3);
+OP_ADD(Mc2MatMulV3);
 }

@@ -18,7 +18,7 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 #include "../matmul_all_reduce/common.h"
-#include "../matmul_all_reduce/matmul_all_reduce_quant.h"
+#include "../matmul_all_reduce/arch32/matmul_all_reduce_quant.h"
 #include "add_rms_norm_kernel.h"
 
 namespace MatmulAllReduceAddRmsNormImpl {
@@ -63,8 +63,8 @@ public:
 
 private:
     AddRMSNormTilingeKeyData* arnTilineKey_;
-    AddRMSNormTilingData* arnTile_;
-    AddRMSNormTilingData* arnTail_;
+    MC2AddRMSNormTilingData* arnTile_;
+    MC2AddRMSNormTilingData* arnTail_;
 };
 
 #define REG_MM_OBJ_FOR_ARN(opTile, opTail)                                                     \
