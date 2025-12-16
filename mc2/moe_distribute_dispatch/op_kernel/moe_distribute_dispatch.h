@@ -18,7 +18,7 @@
 
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
-#include "moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 #include "moe_distribute_dispatch_tiling.h"
 
 namespace MoeDistributeDispatchImpl {
@@ -250,7 +250,11 @@ __aicore__ inline void MoeDistributeDispatch<TemplateMC2TypeFunc>::Init(
     DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(
         selfDataStatusTensor[aivId_ * UB_ALIGN]);
     dataState_ = selfDataStatusTensor(aivId_ * UB_ALIGN);
-    selfDataStatusTensor(aivId_ * UB_ALIGN) = (dataState_ == 0);
+    if (dataState_ == 0) {
+        selfDataStatusTensor(aivId_ * UB_ALIGN) = 1;
+    } else {
+        selfDataStatusTensor(aivId_ * UB_ALIGN) = 0;
+    }
     DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(
         selfDataStatusTensor[aivId_ * UB_ALIGN]);
     PipeBarrier<PIPE_ALL>();

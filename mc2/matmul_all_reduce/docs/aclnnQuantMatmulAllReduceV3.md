@@ -1,16 +1,20 @@
 # aclnnQuantMatmulAllReduceV3
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-| :---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品</term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |     ×      |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
 ## 功能说明
 
-- **算子功能**：aclnnQuantMatmulAllReduceV3接口是对aclnnQuantMatmulAllReduceV2接口的功能扩展, 新增支持低比特通信：matmul的计算结果依次进行all_to_all通信、reduceSum计算、allgather通信、dequant反量化，代替先dequant和pertoken计算、再all_reduce通信的原流程。支持pertensor、perchannel、pertoken[量化方式](../../../docs/zh/context/量化介绍.md)。
+- **接口功能**：aclnnQuantMatmulAllReduceV3接口是对aclnnQuantMatmulAllReduceV2接口的功能扩展, 新增支持低比特通信：matmul的计算结果依次进行all_to_all通信、ReduceSum计算、allgather通信、dequant反量化，代替先dequant和pertoken计算、再all_reduce通信的原流程。支持pertensor、perchannel、pertoken[量化方式](../../../docs/zh/context/量化介绍.md)。
 
 - **计算公式**：
 
@@ -28,7 +32,7 @@
   output= allReduce(dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional)
   $$
 
-    - 情形3：对量化后的入参x1、x2进行matmul、dequant和pertoken计算，接着与x3进行add操作，再对输出进行perchannel量化，然后进行all_to_all通信，对第一次通讯结果进行reduceSum计算，接着进行all_gather通信，最后对第二次通信结果进行dequant，得到最终输出。
+    - 情形3：对量化后的入参x1、x2进行matmul、dequant和pertoken计算，接着与x3进行add操作，再对输出进行perchannel量化，然后进行all_to_all通信，对第一次通讯结果进行ReduceSum计算，接着进行all_gather通信，最后对第二次通信结果进行dequant，得到最终输出。
 
   $$
   matmulAddOutPut = (dequantScale * pertokenScaleOptional * (x1_{int8}@x2_{int8} + biasOptional_{int32}) + x3Optional);
@@ -48,7 +52,7 @@
 
 ## 函数原型
 
-每个算子分为两段式接口，必须先调用“aclnnQuantMatmulAllReduceV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceV3”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnQuantMatmulAllReduceV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnQuantMatmulAllReduceV3”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnQuantMatmulAllReduceV3GetWorkspaceSize(
@@ -104,8 +108,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>x1</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
-          <td><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></td>
+          <td>MatMul计算的左矩阵，即计算公式中的x1。</td>
+          <td><ul><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></ul></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2-3</td>
@@ -114,8 +118,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>x2</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持两维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td>MatMul计算的右矩阵，即计算公式中的x2。</td>
+          <td><ul><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></ul></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -124,7 +128,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>biasOptional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，bias偏移，即计算公式中的biasOptional。</td>
+          <td>bias偏移，即计算公式中的biasOptional。</td>
           <td>当前版本仅支持一维输入。</td>
           <td>INT32</td>
           <td>ND</td>
@@ -134,8 +138,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>x3Optional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的add计算，即计算公式中的x3Optional。</td>
-          <td><li>维度与output一致。</li><li>目前仅支持输出为BFLOAT16场景，且仅支持非空输入。</li></td>
+          <td>MatMul计算后的add计算，即计算公式中的x3Optional。</td>
+          <td><ul><li>维度与output一致。</li><li>目前仅支持输出为BFLOAT16场景，且仅支持非空输入。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -144,8 +148,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>dequantScale</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
-          <td><li>shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></td>
+          <td>MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
+          <td><ul><li>shape在pertensor场景为(1)，perchannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></ul></td>
           <td>INT64、UINT64、FLOAT32、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -154,7 +158,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>pertokenScaleOptional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的pertoken去量化系数，即计算公式中的pertokenScaleOptional。</td>
+          <td>MatMul计算后的pertoken去量化系数，即计算公式中的pertokenScaleOptional。</td>
           <td>x1为(b, s, k)时，shape为(b*s)；x1为(m, k)时shape为(m)。</td>
           <td>FLOAT32</td>
           <td>ND</td>
@@ -164,7 +168,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>commQuantScale1Optional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，matmulAdd计算后的perchannel量化系数，即计算公式中的commQuantScale1。</td>
+          <td>matmulAdd计算后的perchannel量化系数，即计算公式中的commQuantScale1Optional。</td>
           <td>x2为(k, n)时, shape可为(n)或者(1,n)</td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
@@ -174,7 +178,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>commQuantScale2Optional</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，allGather计算后的perchannel量化系数，即计算公式中的commQuantScale2。</td>
+          <td>allGather计算后的perchannel量化系数，即计算公式中的commQuantScale2Optional。</td>
           <td>x2为(k, n)时, shape可为(n)或者(1,n)</td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
@@ -184,7 +188,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>group</td>
           <td>输入</td>
-          <td>Host侧标识通信域的字符串，通信域名称。</td>
+          <td>通信域名称。</td>
           <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
           <td>String</td>
           <td>-</td>
@@ -194,7 +198,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>reduceOp</td>
           <td>输入</td>
-          <td>Host侧标识操作类型的字符串，reduce操作类型。</td>
+          <td>reduce操作类型。</td>
           <td>当前仅支持输入"sum"。</td>
           <td>String</td>
           <td>-</td>
@@ -204,7 +208,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>commTurn</td>
           <td>输入</td>
-          <td>Host侧的整型，通信数据切分数，即总数据量/单次通信量。</td>
+          <td>通信数据切分数，即总数据量/单次通信量。</td>
           <td>当前版本仅支持输入0。</td>
           <td>INT64</td>
           <td>-</td>
@@ -214,7 +218,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>streamMode</td>
           <td>输入</td>
-          <td>Host侧的整型，AscendCL流模式的枚举。</td>
+          <td>流模式的枚举。</td>
           <td>当前只支持枚举值1。</td>
           <td>INT64</td>
           <td>-</td>
@@ -224,7 +228,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         <tr>
           <td>output</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，MatMul计算与AllReduce通信的结果，即计算公式中的output。</td>
+          <td>MatMul计算与AllReduce通信的结果，即计算公式中的output。</td>
           <td>output的维数与x1一致。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -261,7 +265,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+
     第一段接口完成入参校验，出现以下场景时报错：
     <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
     <col style="width: 250px">
@@ -283,13 +288,13 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
     <tr>
         <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
         <td rowspan="3">161002</td>
-        <td>x1、x2、bias、dequantScale、pertokenScaleOptional、x3、commQuantScale1Optional、commQuantScale2Optional或output的数据类型不在支持的范围之内。</td>
+        <td>x1、x2、biasOptional、dequantScale、pertokenScaleOptional、x3Optional、commQuantScale1Optional、commQuantScale2Optional或output的数据类型不在支持的范围之内。</td>
     </tr>
     <tr>
         <td>streamMode不在合法范围内。</td>
     </tr>
     <tr>
-        <td>x1、x2、bias、dequantScale、pertokenScaleOptional、x3、commQuantScale1Optional、commQuantScale2Optional或output的shape不符合约束要求。</td>
+        <td>x1、x2、biasOptional、dequantScale、pertokenScaleOptional、x3Optional、commQuantScale1Optional、commQuantScale2Optional或output的shape不符合约束要求。</td>
     </tr>
     </tbody>
     </table>
@@ -330,15 +335,18 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
     </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+
+- 确定性计算：
+  - aclnnQuantMatmulAllReduceV3默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
 
 - 增量场景不使能MC2，全量场景使能MC2。
 - 输入x1可为2维或者3维，且不为空Tensor，其shape为(b, s, k)或者(m, k)。x2必须是2维，且不为空Tensor。其shape为(k, n)，k轴满足mm算子入参要求，k轴相等。
 - m大小不超过2147483647，x1与x2的最后一维大小不超过65535，x1的最后一维指k，x2的最后一维指转置时的k或非转置时的n。
 - 传入的x1、x2、dequantScale或者output不为空指针。
-- x1和x2、dequantScale、output、bias（非空场景）、x3（非空场景）的数据类型和数据格式需要在支持的范围之内。
+- x1和x2、dequantScale、output、biasOptional（非空场景）、x3（非空场景）的数据类型和数据格式需要在支持的范围之内。
 - 若输出output类型为FLOAT16，当pertokenScale为空时，dequantScale的类型为INT64、UINT64，当pertokenScale不为空时，dequantScale的类型为FLOAT32；若输出output类型为BFLOAT16，dequantScale的类型为BFLOAT16，x3的类型为BFLOAT16。
 - 传入的commQuantScale1与commQuantScale2需要同时为空指针或同时不为空指针，若传入的commQuantScale1与commQuantScale2同时不为空指针，两个量化参数shape需保持一致，类型需与算子输出类型保持一致，且每张卡输入保持一致。
 - x1的shape为(b, s, k)时，pertokenScaleOptional的shape为(b*s)；当x1的shape为(m, k)时，pertokenScaleOptional的shape为(m)。
@@ -357,7 +365,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
     #include <vector>
     #include <thread>
     #include "aclnnop/aclnn_trans_matmul_weight.h"
-    #include "../op_api/aclnn_quant_matmul_all_reduce_v3.h"
+    #include "aclnnop/aclnn_quant_matmul_all_reduce_v3.h"
 
     int ndev = 8;
 
@@ -677,4 +685,3 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
         return 0;
     }
     ```
-

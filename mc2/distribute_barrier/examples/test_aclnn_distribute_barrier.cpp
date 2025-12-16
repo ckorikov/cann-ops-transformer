@@ -16,12 +16,13 @@
 #include <thread>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "../../moe_distribute_dispatch_v2/op_api/aclnn_moe_distribute_dispatch_v2.h"
-#include "../op_api/aclnn_distribute_barrier.h"
-#include "../../moe_distribute_combine_v2/op_api/aclnn_moe_distribute_combine_v2.h"
+#include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
+#include "aclnnop/aclnn_distribute_barrier.h"
+#include "aclnnop/aclnn_moe_distribute_combine_v2.h"
 
 #define CHECK_RET(cond, return_expr)                                                                                   \
     do {                                                                                                               \
@@ -390,6 +391,7 @@ int LaunchOneProcessDispatchAndCombine(Args &args)
 
 int main(int argc, char *argv[])
 {
+    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtInit failed, ret = %d\n", ret); return ret);
 

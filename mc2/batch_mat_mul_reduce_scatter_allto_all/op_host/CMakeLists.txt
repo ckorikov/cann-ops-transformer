@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         batch_mat_mul_reduce_scatter_allto_all_def.cpp
     )
     add_mc2_modules_sources(OPTYPE batch_mat_mul_reduce_scatter_allto_all batch_mat_mul_reduce_scatter_allto_all ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(batch_mat_mul_reduce_scatter_allto_all_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE batch_mat_mul_reduce_scatter_allto_all batch_mat_mul_reduce_scatter_allto_all ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE batch_mat_mul_reduce_scatter_allto_all batch_mat_mul_reduce_scatter_allto_all ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()
