@@ -4,7 +4,6 @@
 
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
-| <term>昇腾910_95 AI处理器</term>                             |    ×     |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
 | <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
@@ -327,22 +326,6 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - 有TP域通信时为1D Tensor，tpRecvCountsOut 的shape为(tpWorldSize,)；支持非连续的Tensor。
     - expandScalesOut 当前版本不支持该输出。
 
-- <term>昇腾910_95 AI处理器</term>：
-    - xActiveMaskOptional 要求为1D Tensor，shape为(Bs, )；true需排在false前（例：{true, false, true}非法）。
-    - expertScalesOptional 当前版本不支持，传空指针即可。
-    - epWorldSize 取值范围[2, 768]。
-    - moeExpertNum 取值范围(0, 1024]。
-    - groupTp 当前版本不支持，传空字符即可。
-    - tpWorldSize 当前版本不支持，传1即可。
-    - tpRankId 当前版本不支持，传0即可。
-    - expertShardType 当前仅支持传0，表示共享专家卡排在MoE专家卡前面。
-    - sharedExpertNum 当前取值范围[0, 4]。
-    - sharedExpertRankNum 取值范围[0, epWorldSize)；为0时需满足sharedExpertNum为0或1，不为0时需满足sharedExpertRankNum % sharedExpertNum = 0。
-    - commAlg 当前版本不支持，传空指针即可。
-    - epRecvCountsOut 的shape为(epWorldSize * max(tpWorldSize, 1) * localExpertNum,)。
-    - 当前不支持TP域通信。
-    - expandScalesOut 当前版本不支持该输出。
-
 ### 返回值
 
 返回aclnnStatus状态码，具体参见aclnn返回码。
@@ -444,11 +427,9 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - **H**：表示hidden size（隐藏层大小）：
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：依commAlg取值，"fullmesh"支持(0, 7168]且为32的整数倍；"hierarchy"并且驱动版本≥25.0.RC1.1时支持(0, 10*1024]且为32的整数倍。
       - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围[1024, 8192]。
-      - <term>昇腾910_95 AI处理器</term>：取值范围[1024, 8192]。
     - **Bs**：表示batch sequence size（本卡最终输出的token数量）：
       - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：取值范围为 (0 < Bs ≤ 256)。
       - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围为 (0 < Bs ≤ 512)。
-      - <term>昇腾910_95 AI处理器</term>：取值范围为 (0 < Bs ≤ 512)。
     - **K**：表示选取topK个专家，取值范围为 (0 < K ≤ 16) 且满足 (0 < K ≤ moeExpertNum)。
     - **serverNum**：表示服务器的节点数，取值仅支持2、4、8。
     - **localExpertNum**：表示本卡专家数量：
@@ -465,22 +446,6 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
             - 输入`scales`可传入空指针。
             - 若输入`scales`传入有效数据且存在共享专家卡时，其shape为 (`sharedExpertNum` + `moeExpertNum`, `H`)。
             - 若输入`scales`传入有效数据且不存在共享专家卡时，其shape为 (`moeExpertNum`, `H`)。
-    - <term>昇腾910_95 AI处理器</term>：
-        - `quantMode`取值为0时，表示非量化场景，`expandX`的数据类型支持`FLOAT16`、`BFLOAT16`、`FLOAT8_E4M3FN`、`FLOAT8_E5M2`、`HIFLOAT8`。
-            - `expandX`的数据类型为`FLOAT16`、`BFLOAT16`时，输入`scales`必须传入空指针。
-            - `expandX`的数据类型为`FLOAT8_E4M3FN`、`FLOAT8_E5M2`、`HIFLOAT8`时，输入`scales`必须传入有效数据，且输入`scales`的shape第1维必须等于`BS`。
-        - `quantMode`取值为1时，表示静态量化场景，`expandX`的数据类型支持`INT8`、`HIFLOAT8`。
-            - `expandX`的数据类型为`INT8`时，输入`scales`为量化系数时，shape为 (1, )；输入`scales`为每个专家共享的平滑权重时，shape为 (`H`，)。输入`scales`为融了每个专家的平滑权重的量化系数时，若有共享专家卡，其shape为 (`sharedExpertNum` + `moeExpertNum`, `H`)，若无共享专家卡，其shape为 (`moeExpertNum`, `H`)。
-            - `expandX`的数据类型为`HIFLOAT8`时，`scales`的shape必须为 (1, )。
-        - `quantMode`取值为2时，表示pertoken动态量化场景，`expandX`的数据类型支持`INT8`、`FLOAT8_E4M3FN`、`FLOAT8_E5M2`。
-            - 输入`scales`可传入空指针。
-            - 若输入`scales`传入有效数据且存在共享专家卡时，其shape为 (`sharedExpertNum` + `moeExpertNum`, `H`)。
-            - 若输入`scales`传入有效数据且不存在共享专家卡时，其shape为 (`moeExpertNum`, `H`)。
-        - `quantMode`取值为3时，表示pergroup动态量化场景，expandX的数据类型支持`FLOAT8_E4M3FN`、`FLOAT8_E5M2`。
-            - 输入`scales`可传入空指针。
-            - 若输入`scales`传入有效数据且存在共享专家卡时，其shape为 (`sharedExpertNum` + `moeExpertNum`, `H`)。
-            - 若输入`scales`传入有效数据且不存在共享专家卡时，其shape为 (`moeExpertNum`, `H`)。
-        - `quantMode`取值为4时，表示mx量化场景，`expandX`的数据类型支持`FLOAT8_E4M3FN`、`FLOAT8_E5M2`，输入`scales`必须传入空指针。
 
 8. **HCCL_BUFFSIZE**：
 
@@ -492,10 +457,6 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
         - ep通信域内：设置大小要求 (≥ 2) 且满足 (≥ 2 * (localExpertNum * maxBs * epWorldSize * Align512(Align32(2 * H) + 64) + (K + sharedExpertNum) * maxBs * Align512(2 * H)))（`localExpertNum`需使用MoE专家卡的本卡专家数；`Align512(x) = ((x + 512 - 1) / 512) * 512`；`Align32(x) = ((x + 32 - 1) / 32) * 32`）。
         - tp通信域内：设置大小要求\>=A * (H * 2 + 128) * 2。
-    - <term>昇腾910_95 AI处理器</term>：要求 (≥ 2) 且满足 >= `aivNum` * 512 + 2 * `epWorldSize` * (`maxBs` * `Align512(alignedH` * 2) * `localExpertNum` + 512)（`aivNum`表示核数；`localExpertNum`需使用MoE专家卡的本卡专家数；`Align512(x) = ((x + 512 - 1) / 512) * 512`；alignedH在不同量化场景下有不同要求：
-        - pergroup动态量化场景下，`alignedH = Align128(H) = ((H + 128 - 1) / 128) * 128`。
-        - mx量化场景下，`alignedH = Align256(H) = ((H + 256 - 1) / 256) * 256`）。
-        - 其余量化模式下`alignedH = Align32(H) = ((H + 32 - 1) / 32) * 32`。
 
 9. **HCCL_INTRA_PCIE_ENABLE和HCCL_INTRA_ROCE_ENABLE**：
    <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：该环境变量不再推荐使用，建议通过`commAlg`配置为"hierarchy"。
