@@ -19,7 +19,7 @@
 #include "kernel_operator.h"
 #include "kernel_tiling/kernel_tiling.h"
 #include "moe_distribute_dispatch_tiling.h"
-#include "moe_distribute_base.h"
+#include "../common/inc/kernel/moe_distribute_base.h"
 
 namespace MoeDistributeDispatchA2Impl {
 
@@ -352,6 +352,7 @@ __aicore__ inline void MoeDistributeDispatchA2LayeredAicpu<TemplateMC2TypeA2laye
     PipeBarrier<PIPE_ALL>();
     tempLocal(0) += 1ULL;
     magicVal_ = tempLocal(0);
+    SyncFunc<AscendC::HardEvent::S_MTE3>();
     DataCopy(magicGt, tempLocal, UB_32B_ALIGN / sizeof(uint64_t));
     PipeBarrier<PIPE_ALL>();
 }

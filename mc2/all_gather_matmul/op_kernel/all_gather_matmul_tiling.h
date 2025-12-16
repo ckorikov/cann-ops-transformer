@@ -18,8 +18,12 @@
 
 #pragma once
 #include "kernel_tiling/kernel_tiling.h"
-#include "mc2_tiling_struct.h"
-
+#if __has_include("../common/inc/kernel/mc2_tiling_struct.h")
+#include "../common/inc/kernel/mc2_tiling_struct.h"
+#else
+#include "../../common/inc/kernel/mc2_tiling_struct.h"
+#endif
+namespace Mc2Tiling {
 struct AllGatherSoc {
     uint32_t commAlg;
     uint32_t isA3;
@@ -34,11 +38,12 @@ class AllGatherMatmulTilingData {
         TCubeTiling tileTiling;
         TCubeTiling tailTiling;
         TCubeTiling localTiling;
-        TileL2Tiling tileL2Tiling;
-        TileL2Tiling tailL2Tiling;
-        TileL2Tiling localL2Tiling;
-        RCSTiling param;
-        AllGatherSoc socParam;
+        Mc2Tiling::TileL2Tiling tileL2Tiling;
+        Mc2Tiling::TileL2Tiling tailL2Tiling;
+        Mc2Tiling::TileL2Tiling localL2Tiling;
+        Mc2Tiling::RCSTiling param;
+        Mc2Tiling::AllGatherSoc socParam;
 };
+}
 
 #endif //__ALL_GATHER_MATMUL_TILING_H__

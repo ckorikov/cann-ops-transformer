@@ -24,8 +24,8 @@ namespace ge {
 * @par Inputs
 * Three inputs, including:
 * @li x_ref: An optional tensor, reserved. Support dtype:bfloat16, float16, float32, bool, int8, int16, int32, int64, uint8, uint16, uint32, uint64. Support format: ND.
-* @li time_out: An optional tensor, reserved. Support dtype:int32. Support format: ND.
-* @li elastic_info: An optional tensor, reserved. Support dtype:int32. Support format: ND.
+* @li time_out: An optional tensor. Support dtype:int32. Support format: ND.
+* @li elastic_info: An optional tensor. Support dtype:int32. Support format: ND.
 
 * @par Attributes
 * @li group: Required. Input comm group name, means experts parallelism, dtype: String.
