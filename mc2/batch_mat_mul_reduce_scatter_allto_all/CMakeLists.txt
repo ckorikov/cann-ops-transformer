@@ -7,7 +7,6 @@
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
-
 file(GLOB CURRENT_DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 
 if(NOT ENABLE_TEST)
@@ -18,3 +17,5 @@ foreach(SUB_DIR ${CURRENT_DIRS})
         add_subdirectory(${SUB_DIR})
     endif()
 endforeach()
+
+set(MC2_COMPILE ${SUB_MC2_COMPILE} PARENT_SCOPE)

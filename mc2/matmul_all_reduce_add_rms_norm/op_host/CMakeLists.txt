@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         matmul_all_reduce_add_rms_norm_def.cpp
     )
     add_mc2_modules_sources(OPTYPE matmul_all_reduce_add_rms_norm matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(matmul_all_reduce_add_rms_norm_depends mc2/3rd mc2/common  mc2/matmul_all_reduce PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE matmul_all_reduce_add_rms_norm matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE matmul_all_reduce_add_rms_norm matmul_all_reduce_add_rms_norm ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()
