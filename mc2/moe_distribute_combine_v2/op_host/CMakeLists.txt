@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         moe_distribute_combine_v2_def.cpp
     )
     add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(moe_distribute_combine_v2_depends mc2/common mc2/3rd mc2/moe_distribute_combine mc2/moe_distribute_dispatch mc2/moe_distribute_dispatch_v2 PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE moe_distribute_combine_v2 ACLNNTYPE aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()

@@ -176,7 +176,7 @@ void MatmulFormulaicTiling::SetWeightFormat(
 }
 
 ge::graphStatus MatmulFormulaicTiling::GetCubeTiling(
-    TilingArgs &args, ::TCubeTiling &cubeTiling, ::TileL2Tiling &tileL2Tiling) {
+    TilingArgs &args, ::TCubeTiling &cubeTiling, Mc2Tiling::TileL2Tiling &tileL2Tiling) {
   // 1.设置默认BaseM/N/K
   InitBaseBlockTiling();
   InitTilingArgs(args);

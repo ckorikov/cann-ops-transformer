@@ -19,8 +19,12 @@
 constexpr uint32_t NEED_ONE_HUNDRED_AND_TWENTY_SEVEN = 127;
 constexpr uint32_t RIGHT_SHIFT_BIT_SEVEN = 7;
 constexpr uint32_t NEED_THIRTY_FIRST = 31;
-constexpr uint32_t ALIGN_DOWN_TO_32_MASK = 31;
-constexpr uint32_t ALIGN_DOWN_TO_512_MASK = 511;
+constexpr uint32_t ALIGN_UP_TO_2_MASK = 1;
+constexpr uint32_t ALIGN_UP_TO_32_MASK = 31;
+constexpr uint32_t ALIGN_UP_TO_64_MASK = 64;
+constexpr uint32_t ALIGN_UP_TO_128_MASK = 127;
+constexpr uint32_t ALIGN_UP_TO_256_MASK = 255;
+constexpr uint32_t ALIGN_UP_TO_512_MASK = 511;
 constexpr uint32_t RIGHT_SHIFT_BIT_FIVE = 5;
 constexpr uint32_t FIVE_HUNDRED_AND_ELEVEN = 511;
 constexpr uint32_t RIGHT_SHIFT_BIT_NINE = 9;
@@ -57,15 +61,39 @@ __aicore__ inline T2 Align(T1 x, T1 y)
 }
 
 template <typename T>
+__aicore__ inline T Align2(T x)
+{
+    return (x + ALIGN_UP_TO_2_MASK) & (~ALIGN_UP_TO_2_MASK);
+}
+
+template <typename T>
 __aicore__ inline T Align32(T x)
 {
-    return (x + ALIGN_DOWN_TO_32_MASK) & (~ALIGN_DOWN_TO_32_MASK);
+    return (x + ALIGN_UP_TO_32_MASK) & (~ALIGN_UP_TO_32_MASK);
+}
+
+template <typename T>
+__aicore__ inline T Align64(T x)
+{
+    return (x + ALIGN_UP_TO_64_MASK) & (~ALIGN_UP_TO_64_MASK);
+}
+
+template <typename T>
+__aicore__ inline T Align128(T x)
+{
+    return (x + ALIGN_UP_TO_128_MASK) & (~ALIGN_UP_TO_128_MASK);
+}
+
+template <typename T>
+__aicore__ inline T Align256(T x)
+{
+    return (x + ALIGN_UP_TO_256_MASK) & (~ALIGN_UP_TO_256_MASK);
 }
 
 template <typename T>
 __aicore__ inline T Align512(T x)
 {
-    return (x + ALIGN_DOWN_TO_512_MASK) & (~ALIGN_DOWN_TO_512_MASK);
+    return (x + ALIGN_UP_TO_512_MASK) & (~ALIGN_UP_TO_512_MASK);
 }
 
 template <AscendC::HardEvent event>
