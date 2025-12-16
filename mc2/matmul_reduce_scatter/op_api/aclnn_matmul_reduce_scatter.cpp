@@ -13,6 +13,7 @@
  * \brief
  */
 #include "aclnn_matmul_reduce_scatter.h"
+#include "matmul_reduce_scatter_v2/op_api/aclnn_matmul_reduce_scatter_v2.h"
 #include "securec.h"
 #include "acl/acl.h"
 #include "op_mc2.h"
@@ -62,6 +63,7 @@ extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId &d
 extern "C" void NnopbaseReportLaunchInfo(const uint64_t beginTime, const char *const opType);
 extern "C" aclnnStatus NnopbaseReportAicpuAdditionInfo(const uint64_t timeStamp, const char *const opType);
 extern "C" aclnnStatus __attribute__((weak)) NnopbaseDisableOptionalInput(void *executor, const size_t irIndex);
+
 
 static uint8_t GetDebugMode() {
   auto debugModeEnv = getenv("ASCEND_MC2_DEBUG_MODE");

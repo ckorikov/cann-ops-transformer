@@ -34,6 +34,13 @@ using namespace op;
 extern "C" {
 #endif
 
+enum class NnopbaseHcclServerType : uint32_t {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
+
 static constexpr size_t MAX_DIM_LEN = 8;
 
 extern aclnnStatus aclnnInnerMatmulAllReduceGetWorkspaceSize(
@@ -48,6 +55,7 @@ extern aclnnStatus aclnnInnerMatmulAllReduce(
 extern "C" uint64_t NnopbaseMsprofSysTime();
 extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId& dfxId);
 extern "C" aclnnStatus __attribute__((weak)) NnopbaseDisableOptionalInput(void* executor, const size_t irIndex);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // 根据API定义，需要列出所能支持的所有dtype
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST_BIAS = {op::DataType::DT_INT32};
@@ -422,7 +430,6 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream)
 {
     uint64_t timeStamp = NnopbaseMsprofSysTime();
-
     aclnnStatus ret = aclnnInnerMatmulAllReduce(workspace, workspaceSize, executor, stream);
     OP_LOGD("QuantMatmulAllReduce, aclnnQuantMatmulAllReduceV3 ret %d", ret);
 
