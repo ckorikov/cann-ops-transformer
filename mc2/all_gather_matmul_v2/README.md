@@ -4,7 +4,6 @@
 
 | 产品 | 是否支持 |
 | ---- | :----: |
-| <term>昇腾910_95 AI处理器</term> | √ |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | √ |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
 | <term>Atlas 200I/500 A2 推理产品</term> | x |
@@ -207,7 +206,6 @@
 * 当x1、x2数据类型为FLOAT8_E4M3FN/FLOAT_E5M2时，x1和x2数据类型可以为其中一种。
 * 当x1、x2数据类型为FLOAT16/BFLOAT16/HIFLOAT8/FLOAT8_E4M3FN/FLOAT_E5M2时，x2矩阵支持转置/不转置场景，x1矩阵只支持不转置场景。
 * 当groupSize取值为549764202624，bias必须为空。
-* <term>昇腾910_95 AI处理器</term>：支持2、4、8、16、32、64卡。
 ## 调用说明
 
 
