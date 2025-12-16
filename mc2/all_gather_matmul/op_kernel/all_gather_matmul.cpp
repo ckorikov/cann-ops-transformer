@@ -16,9 +16,10 @@
 #include "lib/matmul_intf.h"
 #include "all_gather_matmul_tiling.h"
 #include "all_gather_matmul_full_mesh.h"
+#include "all_gather_matmul_tiling_key.h"
 
 using namespace AscendC;
-
+using namespace all_gather_matmul_tiling_key;
 #define INVOKE_ALL_GATHER_MATMUL_OP_IMPL(templateClass, ...)                                   \
     do {                                                                                       \
         using aType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, A_DTYPE, true>;       \
@@ -35,37 +36,26 @@ template <> struct BiasType<half> {
     using type = half;
 };
 
-extern "C" __global__ __aicore__ void all_gather_matmul(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR cGM,
-    GM_ADDR gatherOut, GM_ADDR workspaceGM, GM_ADDR tilingGM)
+template<bool ALL_GATHER_MM_FULL_MESH, bool ALL_GATHER_MM_ND2NZ_OPT, bool ALL_GATHER_MM_BIAS_CAST>
+__global__ __aicore__ void all_gather_matmul(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR cGM, GM_ADDR gatherOut, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
-    REGISTER_TILING_DEFAULT(AllGatherMatmulTilingData);
-    auto tiling = (__gm__ AllGatherMatmulTilingData*)tilingGM;
+    REGISTER_TILING_DEFAULT(Mc2Tiling::AllGatherMatmulTilingData);
+    auto tiling = (__gm__ Mc2Tiling::AllGatherMatmulTilingData*)tilingGM;
     __gm__ void* mc2InitTiling = (__gm__ void*)(&(tiling->mc2InitTiling));
     __gm__ void* mc2CcTiling = (__gm__ void*)(&(tiling->mc2CcTiling));
     GET_TILING_DATA(tilingData, tilingGM);
-
+    
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     TPipe pipe;
     GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
 
-    if (TILING_KEY_IS(110)) {
-        // full mesh + nd2nz + no bias cast
+    if(ALL_GATHER_MM_BIAS_CAST == false){
         using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, B_DTYPE, true>;
         using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, typename BiasType<BIAS_DTYPE>::type>;
-        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, true, false);
-    } else if (TILING_KEY_IS(100)) {
-        // full mesh + no nd2nz + no bias cast
-        using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, B_DTYPE, true>;
-        using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, typename BiasType<BIAS_DTYPE>::type>;
-        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, false, false);
-    } else if (TILING_KEY_IS(111)) {
-        // full mesh + nd2nz + bias cast
-        using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::NZ, B_DTYPE, true>;
-        using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, float>;
-        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, true, true);
-    } else if (TILING_KEY_IS(101)) {
-        // full mesh + no nd2nz + bias cast
+        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, ALL_GATHER_MM_ND2NZ_OPT, ALL_GATHER_MM_BIAS_CAST);
+    } else if (ALL_GATHER_MM_BIAS_CAST == true) {
         using bType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, B_DTYPE, true>;
         using biasType = MatmulType<AscendC::TPosition::GM, CubeFormat::ND, float>;
-        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, false, true);
+        INVOKE_ALL_GATHER_MATMUL_OP_IMPL(AllGatherMatmulFullMesh, ALL_GATHER_MM_ND2NZ_OPT, ALL_GATHER_MM_BIAS_CAST);
     }
 }
