@@ -45,6 +45,7 @@ ge::graphStatus InferShapeKvQuantSparseFlashAttention(gert::InferShapeContext *c
     std::string inputLayoutQueryPtrStr = std::string(inputLayoutQueryPtr);
     const int64_t ropeHeadDim = *attrs->GetAttrPointer<int64_t>(ROPE_HEAD_DIM_ATTR_INDEX);
 
+    *attentionOutShape = *queryShape;
     if (inputLayoutQueryPtrStr == "BSND") {
         attentionOutShape->SetDimNum(DIM_NUM_4);
         attentionOutShape->SetDim(DIM_INDEX_0, queryShape->GetDim(DIM_INDEX_0));

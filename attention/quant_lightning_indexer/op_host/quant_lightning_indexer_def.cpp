@@ -12,7 +12,6 @@
  * \file quant_lightning_indexer_def.cpp
  * \brief
  */
-
 #include "register/op_def_registry.h"
 
 namespace ops {
