@@ -15,14 +15,14 @@
 #ifndef BATCH_MATMUL_V3_COM_BASE_BLOCK_STRUCT_H
 #define BATCH_MATMUL_V3_COM_BASE_BLOCK_STRUCT_H
 
-struct CommonKernelBlockOffset {
+struct Mc2CommonKernelBlockOffset {
     uint64_t offsetA;
     uint64_t offsetB;
     uint64_t offsetC;
     uint64_t offsetBias;
 };
 
-struct CommonKernelBaseBlockArgs {
+struct Mc2CommonKernelBaseBlockArgs {
     uint64_t batchA1;
     uint64_t batchA2;
     uint64_t batchA3;

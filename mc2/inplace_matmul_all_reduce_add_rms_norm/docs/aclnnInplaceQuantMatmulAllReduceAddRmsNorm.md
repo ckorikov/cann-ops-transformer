@@ -1,10 +1,14 @@
 # aclnnInplaceQuantMatmulAllReduceAddRmsNorm
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-|:---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         |  是否支持   |
+| :----------------------------------------------------------- |:-------:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×    |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √    |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×    |
+| <term>Atlas 推理系列产品</term>                             |    ×    |
+| <term>Atlas 训练系列产品</term>                              |    ×    |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×    |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -30,7 +34,7 @@
 - aclnnQuantMatmulAllReduceAddRmsNorm和aclnnInplaceQuantMatmulAllReduceAddRmsNorm实现相同的功能，使用区别如下，请根据自身实际场景选择合适的算子。
 
   - aclnnQuantMatmulAllReduceAddRmsNorm：需新建两个输出张量normOut和张量y对象存储计算结果。
-  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，原非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
+  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，在非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
 
 - 每个算子分为两段式接口，必须先调用“aclnnInplaceQuantMatmulAllReduceAddRmsNormGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceQuantMatmulAllReduceAddRmsNorm”接口执行计算。
 
@@ -98,7 +102,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -118,8 +122,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
           <td>dequantScale</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算后的全量化系数，即计算公式中的dequantScale。</td>
-          <td>shape在per-tensor场景为(1)，per-channel场景为(n)/(1, n)。</td>
-          <td>UINT64、BFLOAT16</td>
+          <td>shape在per-tensor场景为(1)，per-channel场景为(n)或(1, n)。</td>
+          <td>UINT64、INT64、BFLOAT16</td>
           <td>ND</td>
           <td>1-2</td>
           <td>×</td>
@@ -301,6 +305,9 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 - 使用场景同融合算子aclnnQuantMatmulAllReduce一致：增量场景不使能MC2，全量场景使能MC2。
 - 输入x1可为二维或者三维，其shape为(b, s, k)或者(m, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等。bias若非空，bias为一维，其shape为(n)。
 - m大小不超过2147483647，x1与x2的最后一维大小不超过65535，x1的最后一维指k，x2的最后一维指转置时的k或非转置时的n。
@@ -320,7 +327,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
+#include "aclnnop/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 

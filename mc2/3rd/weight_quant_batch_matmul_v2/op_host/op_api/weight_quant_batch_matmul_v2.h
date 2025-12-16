@@ -14,7 +14,7 @@
 #include "opdev/make_op_executor.h"
 
 namespace l0op {
-const aclTensor* WeightQuantBatchMatmulV2(
+const aclTensor* Mc2WeightQuantBatchMatmulV2(
     const aclTensor* x, const aclTensor* weight, const aclTensor* antiquantScale,
     const aclTensor* antiquantOffsetOptional, const aclTensor* quantScaleOptional, const aclTensor* quantOffsetOptional,
     const aclTensor* biasOptional, bool transposeX, bool transposeWeight, int antiquantGroupSize, int64_t dtype,
