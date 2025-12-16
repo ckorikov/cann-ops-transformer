@@ -16,7 +16,7 @@
 
 #include <iostream>
 #include <gtest/gtest.h>
-#include "../../../op_host/grouped_matmul_add_tiling.h"
+#include "../../../op_host/op_tiling/grouped_matmul_add_tiling.h"
 #include "tiling_context_faker.h"
 #include "tiling_case_executor.h"
 

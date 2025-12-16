@@ -6,10 +6,11 @@
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ======================================================================================================================
+
 if (UT_TEST_ALL OR OP_KERNEL_UT)
     # 算子自己的tiling文件路径
     set(grouped_matmul_add_tiling_files
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/grouped_matmul_add_tiling.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../op_host/op_tiling/grouped_matmul_add_tiling.cpp
         )
     # 使用AddOpTestCase
     # param1：算子名称，以kernel方式命名

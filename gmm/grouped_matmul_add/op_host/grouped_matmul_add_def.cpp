@@ -57,6 +57,17 @@ public:
         this->Attr("group_list_type").AttrType(OPTIONAL).Int(0);
         this->AICore().AddConfig("ascend910b");
         this->AICore().AddConfig("ascend910_93");
+        OpAICoreConfig config91095;
+        this->Attr("group_list_type").AttrType(OPTIONAL).Int(0);
+        config91095.DynamicCompileStaticFlag(true)
+            .DynamicFormatFlag(true)
+            .DynamicRankSupportFlag(true)
+            .DynamicShapeSupportFlag(true)
+            .NeedCheckSupportFlag(false)
+            .PrecisionReduceFlag(true)
+            .ExtendCfgInfo("prebuildPattern.value", "Opaque")
+            .ExtendCfgInfo("coreType.value", "AiCore");
+        this->AICore().AddConfig("ascend910_95", config91095);
     }
 };
 OP_ADD(GroupedMatmulAdd);
