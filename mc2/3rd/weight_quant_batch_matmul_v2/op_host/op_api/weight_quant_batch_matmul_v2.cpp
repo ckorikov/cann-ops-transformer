@@ -20,19 +20,19 @@ using namespace op;
 
 namespace l0op {
 
-OP_TYPE_REGISTER(WeightQuantBatchMatmulV2);
+OP_TYPE_REGISTER(Mc2WeightQuantBatchMatmulV2);
 
 constexpr int64_t TYPE_FP16 = 1;
 constexpr int64_t TYPE_BF16 = 27;
 
-const aclTensor* WeightQuantBatchMatmulV2(
+const aclTensor* Mc2WeightQuantBatchMatmulV2(
     const aclTensor* x, const aclTensor* weight, const aclTensor* antiquantScale,
     const aclTensor* antiquantOffsetOptional, const aclTensor* quantScaleOptional, const aclTensor* quantOffsetOptional,
     const aclTensor* biasOptional, bool transposeX, bool transposeWeight, int antiquantGroupSize, int64_t dtype,
     int innerPrecise, aclOpExecutor* executor)
 {
     L0_DFX(
-        WeightQuantBatchMatmulV2, x, weight, antiquantScale, antiquantOffsetOptional, quantScaleOptional,
+        Mc2WeightQuantBatchMatmulV2, x, weight, antiquantScale, antiquantOffsetOptional, quantScaleOptional,
         quantOffsetOptional, biasOptional, transposeX, transposeWeight, antiquantGroupSize, dtype, innerPrecise);
     DataType outType = x->GetDataType();
     if (dtype != -1) {
@@ -41,7 +41,7 @@ const aclTensor* WeightQuantBatchMatmulV2(
     auto output = executor->AllocTensor(outType, Format::FORMAT_ND, Format::FORMAT_ND);
 
     auto ret = INFER_SHAPE(
-        WeightQuantBatchMatmulV2,
+        Mc2WeightQuantBatchMatmulV2,
         OP_INPUT(
             x, weight, antiquantScale, antiquantOffsetOptional, quantScaleOptional, quantOffsetOptional, biasOptional),
         OP_OUTPUT(output), OP_ATTR(transposeX, transposeWeight, antiquantGroupSize, dtype, innerPrecise));
@@ -50,7 +50,7 @@ const aclTensor* WeightQuantBatchMatmulV2(
         return nullptr;
     }
     ret = ADD_TO_LAUNCHER_LIST_AICORE(
-        WeightQuantBatchMatmulV2,
+        Mc2WeightQuantBatchMatmulV2,
         OP_INPUT(
             x, weight, antiquantScale, antiquantOffsetOptional, quantScaleOptional, quantOffsetOptional, biasOptional),
         OP_OUTPUT(output), OP_ATTR(transposeX, transposeWeight, antiquantGroupSize, dtype, innerPrecise));

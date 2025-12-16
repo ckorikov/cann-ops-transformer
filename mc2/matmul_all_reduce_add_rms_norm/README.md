@@ -6,6 +6,10 @@
 | ---- | :----: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| <term>Atlas 200I/500 A2 推理产品</term> | x |
+| <term>Atlas 推理系列产品</term> | x |
+| <term>Atlas 训练系列产品</term> | x |
+| <term>Atlas 200/300/500 推理产品</term> | x |
 
 ## 功能说明
 
@@ -51,12 +55,12 @@
 ## 参数说明
 
 
-<table style="undefined;table-layout: fixed; width: 1260px"><colgroup>
-  <col style="width: 160px">
-  <col style="width: 150px">
-  <col style="width: 550px">
-  <col style="width: 300px">
-  <col style="width: 100px">
+<table style="undefined;table-layout: fixed; width: 1576px"><colgroup>
+  <col style="width: 170px">
+  <col style="width: 170px">
+  <col style="width: 200px">
+  <col style="width: 200px">
+  <col style="width: 170px">
   </colgroup>
   <thead>
     <tr>
@@ -105,7 +109,7 @@
     <tr>
       <td>antiquant_scale</td>
       <td>可选输入</td>
-      <td>公式中的输入antiquantScale。</td>
+      <td>公式中的输入antiquant_scale。</td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>
@@ -119,7 +123,7 @@
     <tr>
       <td>dequant_scale</td>
       <td>可选输入</td>
-      <td>mm计算后的全量化系数，公式中的输入dequantScale。</td>
+      <td>mm计算后的全量化系数，公式中的输入dequant_scale。</td>
       <td>FLOAT16、BFLOAT16、UINT64、INT64</td>
       <td>ND</td>
     </tr>
@@ -133,7 +137,7 @@
     <tr>
       <td>norm_out</td>
       <td>输出</td>
-      <td><li>公式中的输出normOut。</li><li>mm + all_reduce + add + rms_norm的结果。</li></td>
+      <td><li>公式中的输出norm_out。</li><li>mm + all_reduce + add + rms_norm的结果。</li></td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>

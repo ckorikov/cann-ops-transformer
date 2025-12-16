@@ -12,6 +12,7 @@
  * \file common_add_rms_norm_tiling.cc
  * \brief
  */
+
 #include "common_add_rms_norm_tiling.h"
 
 namespace optiling {
@@ -151,7 +152,7 @@ ge::graphStatus CheckAddRmsNormInputShape(
         VECTOR_INNER_ERR_REPORT_TILING(
             context->GetNodeName(),
             "Expect n of residual and gamma from arn to be same, but got"
-            " reisudal_n:[%lu], gamma_n:[%lu].",
+            " reisudal_n:[%ld], gamma_n:[%ld].",
             x2Shape->GetStorageShape().GetDim(2), gammaShape->GetStorageShape().GetDim(0)),
         return ge::GRAPH_FAILED);
     // residual和y，normOut的shape
@@ -302,3 +303,4 @@ ge::graphStatus CommonAddResNormTiling::Tiling4AddRmsNorm(
     return ge::GRAPH_SUCCESS;
 }
 } // namespace optiling
+

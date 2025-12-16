@@ -25,10 +25,13 @@ const size_t GROUP = 0;
 const size_t AG_IS_TRANS_A = 1;
 const size_t AG_IS_TRANS_B = 2;
 const size_t RANK_SIZE = 5;
-const size_t GATHER_OUT = 6;
+const size_t GATHER_OUT_V1 = 6;
+const size_t GATHER_OUT_V2 = 8;
 const size_t SUPPORT_DIM_SIZE = 2;
 const size_t RS_IS_TRANS_A = 2;
 const size_t RS_IS_TRANS_B = 3;
+const size_t RS_IS_AMAX_OUT = 8;
+const size_t AG_IS_AMAX_OUT = 9;
 
 struct CommParas {
     const gert::Shape* x1MatrixShape;
@@ -40,7 +43,7 @@ struct CommParas {
     int64_t rankSize;
 };
 
-ge::graphStatus InferShapeAllGatherMatmulCommon(gert::InferShapeContext* context);
+ge::graphStatus AllGatherMatmulCommonInferShape(gert::InferShapeContext* context, const size_t gatherIndex);
 ge::graphStatus InferMatmulReduceScatterCommon(gert::InferShapeContext* context);
 } // namespace ops
 #endif // MC2_COMMON_INFERSHAPE_H_

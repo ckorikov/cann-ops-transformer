@@ -21,7 +21,7 @@
 #include "mc2_hcom_topo_info.h"
 #include "util/math_util.h"
 #include "tiling/matmul_formulaic_tiling.h"
-#include "../reduce_scatter_formulaic_tiling.h"
+#include "matmul_reduce_scatter_v2/op_host/op_tiling/reduce_scatter_formulaic_tiling.h"
 #include "../../op_kernel/matmul_reduce_scatter_tiling_key.h"
 #include "../../op_kernel/matmul_reduce_scatter_tiling.h"
 
@@ -177,7 +177,7 @@ static void PrintTilingData(::TCubeTiling& tiling)
     OP_LOGD("MatmulReduceScatter", " tiling.singleBatchN %d", tiling.singleBatchN);
 }
 
-static void PrintTilingData(::RCSTiling& rcsTiling)
+static void PrintTilingData(Mc2Tiling::RCSTiling& rcsTiling)
 {
     OP_LOGD("MatmulReduceScatter", " rcsTiling.rankDim %d", rcsTiling.rankDim);
     OP_LOGD("MatmulReduceScatter", " rcsTiling.rankID %d", rcsTiling.rankID);
@@ -207,7 +207,7 @@ static void PrintTilingData(::RCSTiling& rcsTiling)
     OP_LOGD("MatmulReduceScatter", " rcsTiling.dataType %u", rcsTiling.dataType);
 }
 
-static void PrintTilingData(::TileL2Tiling& tileL2Tiling)
+static void PrintTilingData(Mc2Tiling::TileL2Tiling& tileL2Tiling)
 {
     OP_LOGD("MatmulReduceScatter", " tileL2Tiling.mL2TileCnt %d", tileL2Tiling.mL2TileCnt);
     OP_LOGD("MatmulReduceScatter", " tileL2Tiling.nL2TileCnt %d", tileL2Tiling.nL2TileCnt);
@@ -224,7 +224,7 @@ static void PrintTilingData(::TileL2Tiling& tileL2Tiling)
 namespace optiling {
 
 static ge::graphStatus CalcMatmulTilingReduceScatter(mc2tiling::TilingArgs& args, ::TCubeTiling& cubeTiling,
-                                                     ::TileL2Tiling &l2Tiling);                                                    
+                                                     Mc2Tiling::TileL2Tiling &l2Tiling);                                                    
 
 static ge::graphStatus MC2SetWorkspaceReduceScatter(gert::TilingContext* context,
                                                     MatmulReduceScatterTilingData& tilingData,
@@ -476,7 +476,7 @@ struct KFCMsgBody {
     HcclAicpuOpParam msgRcvArea[mc2tiling::AC_MAX_AIV][mc2tiling::AC_MSG_CNT];
 };
 
-static void GetTilingKey(uint64_t& tilingKey, MatmulReduceScatterTilingData& tilingData)  
+static void GetTilingKey(uint64_t& tilingKey, const MatmulReduceScatterTilingData& tilingData)  
 { 
     bool mmReduceScatterFullMesh = true;
     bool mmReduceScatterNd2nzOpt = false;
@@ -556,7 +556,7 @@ static ge::graphStatus SetMatmulTilingMatmulReduceScatter(gert::TilingContext* c
 }
 
 static ge::graphStatus CalcMatmulTilingReduceScatter(mc2tiling::TilingArgs& args, ::TCubeTiling& cubeTiling,
-                                                     ::TileL2Tiling &l2Tiling)
+                                                     Mc2Tiling::TileL2Tiling &l2Tiling)
 {
     uint64_t mValue = args.mValue;
     uint64_t nValue = args.nValue;
@@ -590,7 +590,7 @@ static ge::graphStatus CalcMatmulTilingReduceScatter(mc2tiling::TilingArgs& args
     return ge::GRAPH_SUCCESS;
 }
 
-static void CalculateNd2nzLen(::RCSTiling& config, mc2tiling::TilingArgs& args, uint64_t& nd2nzLen) {
+static void CalculateNd2nzLen(Mc2Tiling::RCSTiling& config, mc2tiling::TilingArgs& args, uint64_t& nd2nzLen) {
     constexpr uint64_t alignAddrLen = 512;
     uint32_t gatherIndex = config.gatherIndex;
     if (gatherIndex == 0) { // 转置B

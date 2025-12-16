@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_update.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_UPDATE_H
-#define QUANT_BATCH_MATMUL_V3_UPDATE_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_UPDATE_H
+#define MC2_QUANT_BATCH_MATMUL_V3_UPDATE_H
 
 #include "quant_batch_matmul_v3_base.h"
 
@@ -26,9 +26,9 @@ struct QBmmUpdateInfo {
     uint64_t alignedKbSize;
 };
 
-class QuantBatchMatmulV3Update {
+class Mc2QuantBatchMatmulV3Update {
 public:
-    __aicore__ inline QuantBatchMatmulV3Update() {}
+    __aicore__ inline Mc2QuantBatchMatmulV3Update() {}
     template <int x1Format, int x2Format, bool aTrans, bool bTrans>
     __aicore__ inline void Init(const TCubeTiling *mmTiling, const QBmmBaseBlockArgs &params);
     template <int x1Format, int x2Format, bool aTrans, bool bTrans>
@@ -44,7 +44,7 @@ private:
 };
 
 template <int x1Format, int x2Format, bool aTrans, bool bTrans>
-__aicore__ inline void QuantBatchMatmulV3Update::Init(const TCubeTiling *mmTiling, const QBmmBaseBlockArgs &params)
+__aicore__ inline void Mc2QuantBatchMatmulV3Update::Init(const TCubeTiling *mmTiling, const QBmmBaseBlockArgs &params)
 {
     mmTiling_ = mmTiling;
     info_.nBaseTail =
@@ -64,7 +64,7 @@ __aicore__ inline void QuantBatchMatmulV3Update::Init(const TCubeTiling *mmTilin
 }
 
 template <int x1Format, int x2Format, bool aTrans, bool bTrans>
-__aicore__ inline void QuantBatchMatmulV3Update::UpdateBlockParamsAndCalcGmOffset(QBmmBaseBlockArgs &params,
+__aicore__ inline void Mc2QuantBatchMatmulV3Update::UpdateBlockParamsAndCalcGmOffset(QBmmBaseBlockArgs &params,
                                                                                   QBmmBlockOffset &offset,
                                                                                   uint64_t mTileIndex,
                                                                                   uint64_t nTileIndex)
@@ -73,7 +73,7 @@ __aicore__ inline void QuantBatchMatmulV3Update::UpdateBlockParamsAndCalcGmOffse
     CalcGMOffset<x1Format, x2Format, aTrans, bTrans>(params, offset);
 }
 
-__aicore__ inline void QuantBatchMatmulV3Update::UpdateBlockParams(QBmmBaseBlockArgs &params, uint64_t mTileIndex,
+__aicore__ inline void Mc2QuantBatchMatmulV3Update::UpdateBlockParams(QBmmBaseBlockArgs &params, uint64_t mTileIndex,
                                                                    uint64_t nTileIndex)
 {
     if ((mTileIndex == (params.mTileCntL2 - 1)) && (nTileIndex == (params.nTileCntL2 - 1)) &&
@@ -93,7 +93,7 @@ __aicore__ inline void QuantBatchMatmulV3Update::UpdateBlockParams(QBmmBaseBlock
 }
 
 template <int x1Format, int x2Format, bool aTrans, bool bTrans>
-__aicore__ inline void QuantBatchMatmulV3Update::CalcGMOffset(QBmmBaseBlockArgs &params, QBmmBlockOffset &offset)
+__aicore__ inline void Mc2QuantBatchMatmulV3Update::CalcGMOffset(QBmmBaseBlockArgs &params, QBmmBlockOffset &offset)
 {
     uint64_t mCntIndex = params.index / params.nCntUse;
     uint64_t nCntIndex = params.index - mCntIndex * params.nCntUse;

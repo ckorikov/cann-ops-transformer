@@ -1,10 +1,14 @@
 # aclnnInplaceMatmulAllReduceAddRmsNorm
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-| :---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品</term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -14,7 +18,7 @@
 - **计算公式**：
 
     $$
-    mm\_out = allReduce(x1 @ x2 + bias)
+    mm\_out = all_reduce(x1 @ x2 + bias)
     $$
 
     $$
@@ -98,7 +102,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -139,7 +143,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧的双精度，用于防止除0错误，即计算公式中的epsilon。</td>
           <td>epsilon取值满足取值范围(0,1)。</td>
-          <td>Double</td>
+          <td>double</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -149,7 +153,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识通信域的字符串，通信域名称。</td>
           <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -159,7 +163,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识操作类型的字符串，reduce操作类型。</td>
           <td>当前仅支持输入"sum"。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -281,7 +285,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 - **返回值：**
@@ -289,6 +293,9 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
     返回aclnnStatus状态码，具体参见aclnn返回码。
 
 ## 约束说明
+
+- 确定性计算：
+  - aclnnInplaceMatmulAllReduceAddRmsNorm默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
 
 - 使用场景同融合算子aclnnMatmulAllReduce一致：增量场景不使能MC2，全量场景使能MC2。
 - 输入x1可为二维或者三维，其shape为(b, s, k)或者(m, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等。bias若非空，bias为一维，其shape为(n)。
@@ -310,7 +317,7 @@ aclnnStatus aclnnInplaceMatmulAllReduceAddRmsNorm(
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_inplace_matmul_all_reduce_add_rms_norm.h"
+#include "aclnnop/aclnn_inplace_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 

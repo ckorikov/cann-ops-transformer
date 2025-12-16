@@ -1,10 +1,14 @@
 # aclnnMatmulAllReduceAddRmsNorm
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-| ---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品</term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -53,10 +57,9 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize(
 
 ```cpp
 aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
-    void              *workspace, 
-    uint64_t          workspaceSize, 
-    aclOpExecutor     *executor,
-    const aclrtStream stream ）
+    void            *workspace, 
+    uint64_t        workspaceSize, 
+    aclOpExecutor   *executor)
 ```
 
 ## aclnnMatmulAllReduceAddRmsNormGetWorkspaceSize
@@ -98,7 +101,7 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
+          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持最后两轴转置情况下的非连续的tensor</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -304,6 +307,9 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnMatmulAllReduceAddRmsNorm默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 - 使用场景同融合算子aclnnMatmulAllReduce一致：增量场景不使能MC2，全量场景使能MC2。
 - 输入x1可为二维或者三维，其shape为(b, s, k)或者(m, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等。bias若非空，bias为一维，其shape为(n)。
 - b*s、m、k、n的值均不得超过2147483647(INT32_MAX)。
@@ -311,7 +317,7 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
 - 输出y和normOut的shape和数据类型同residual，其shape为(b, s, n)。
 - x1、x2、bias、residual、gamma、y、normOut计算输入的数据类型要一致。
 - 只支持x2矩阵转置/不转置，x1矩阵支持不转置场景。
-- 支持1、2、4、8卡，并且仅支持hccs链路all mesh组网。
+- 支持1、2、4、8卡，并且仅支持HCCS链路all mesh组网。
 - 支持(b*s)、n为0的空tensor，不支持k为0的空tensor。
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
@@ -324,7 +330,7 @@ aclnnStatus aclnnMatmulAllReduceAddRmsNorm(
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_matmul_all_reduce_add_rms_norm.h"
+#include "aclnnop/aclnn_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 
