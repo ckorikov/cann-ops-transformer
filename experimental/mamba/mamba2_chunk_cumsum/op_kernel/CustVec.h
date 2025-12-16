@@ -10,10 +10,19 @@
 
 #pragma once
 #include "tensorutils.h"
+#include "paramutils.h"
 
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkCumsum {
-    
+
+constexptr int BASEL = 64;
+constexptr int BASEN = 64;
+constexptr int BASEH = 128;
+constexptr int SUB_BASEH = BASEH / 2;
+constexptr int BLK_SIZE = BASEL * BASEH / 2;
+constexptr float COMPARE_VALUE = 20.0;
+constexptr float CLAMP_MAX = 10000000.0;
+
 struct CustVecShapeInfo{
     int nstepsH;
     int BCH;
@@ -27,7 +36,7 @@ struct CustVecShapeInfo{
 
 
 __aicore__ inline void tilingShapeCustVec(int B, int C, int H, int L, CustVecShapeInfo &shape){
-    shape.nstepsH = (H / 128);
+    shape.nstepsH = (H / BASEH);
     shape.BCH = ((B * C) * shape.nstepsH);
     shape.BCH_PER_CORE = CeilDiv(shape.BCH,GetBlockNum());
     shape.BCH1 = (shape.BCH_PER_CORE * get_block_idx());
@@ -57,19 +66,19 @@ public:
         out2_mtx.SetGlobalBuffer((__gm__ float*) out2_mtx_);
         
         // Local buffers
-        at_buf.Init(64);
-        dt_buf.Init(4096);
-        dtbias_buf.Init(64);
-        dtmask_buf.Init(4096);
-        out1buf.Init(4096);
-        out2buf.Init(4096);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp0, 4096);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp1, 4096);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp2, 64);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp3, 4096);
-        AllocateLocalTensor<TPosition::VECCALC>(cmp_mask, 4096);
-        AllocateLocalTensor<TPosition::VECCALC>(max_buf, 8);
-        cumsum_tensor.Init(64);
+        at_buf.Init(SUB_BASEH);
+        dt_buf.Init(BLK_SIZE);
+        dtbias_buf.Init(SUB_BASEH);
+        dtmask_buf.Init(BLK_SIZE);
+        out1buf.Init(BLK_SIZE);
+        out2buf.Init(BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp0, BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp1, BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp2, SUB_BASEH);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp3, BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cmp_mask, BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(max_buf, EIGHT);
+        cumsum_tensor.Init(SUB_BASEH);
         // Initialize events
         in_ready.Init();
         in_empty.Init();
@@ -89,8 +98,8 @@ public:
         for (int bch=shape.BCH1; bch<shape.BCH2; ++bch){
             int b = (bch / (shape.C * shape.nstepsH));
             int c = ((bch % (shape.C * shape.nstepsH)) / shape.nstepsH);
-            int h = (((bch % (shape.C * shape.nstepsH)) % shape.nstepsH) * 128);
-            for (int l=0; l<shape.L; l+=64){
+            int h = (((bch % (shape.C * shape.nstepsH)) % shape.nstepsH) * BASEH);
+            for (int l=0; l<shape.L; l+=BASEL){
                 
                 in_empty.wait();
                 GM2UB(at_buf.get(cc_cnt), at_mtx[(h + ((get_subblockid() * 128) / 2))], 1, 8, 0, 0);
@@ -107,9 +116,11 @@ public:
                     Adds<float, false>(max_buf, max_buf, 10000000.0f, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, {1, 1, 8, 4});
-                Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, {1, 1, 8, 4});
-                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, {1, 1, 8, 4});
+
+                auto castParams = CastHalf2FloatRepeatParams();
+                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
+                Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParams);
+                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
                 PipeBarrier<PIPE_V>();
                 Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, 64, {1, 1, 1, 8, 8, 0});
                 PipeBarrier<PIPE_V>();

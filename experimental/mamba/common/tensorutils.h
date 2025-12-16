@@ -40,6 +40,7 @@ constexpr int MTE_HALF = 16;
 constexpr int VEC_FLOAT = 64;
 constexpr int VEC_HALF = 128;
 
+
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){
         if (dst==PIPE_MTE1){
