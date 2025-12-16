@@ -99,7 +99,7 @@ public:
         auto castParamsF2H = CastFloat2HalfRepeatParams();
         auto unaryParams = MakeDefaultUnaryRepeatParams();
         auto binaryParams = MakeDefaultBinaryRepeatParams();
-        
+
         for (int bch=shape.BCH1; bch<shape.BCH2; ++bch){
             int b = (bch / (shape.C * shape.nstepsH));
             int c = ((bch % (shape.C * shape.nstepsH)) / shape.nstepsH);
@@ -121,9 +121,9 @@ public:
                     Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParams);
-                Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParams);
-                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParams);
+                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParamsH2F);
+                Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParamsH2F);
+                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParamsH2F);
                 PipeBarrier<PIPE_V>();
                 auto custparam = MakeDefaultBinaryRepeatParams();
                 custparam.src1RepStride = 0;
