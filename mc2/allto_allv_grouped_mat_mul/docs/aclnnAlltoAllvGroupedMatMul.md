@@ -6,6 +6,10 @@
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    ×     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品</term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
 ## 功能说明
 
@@ -277,6 +281,9 @@ aclnnStatus aclnnAlltoAllvGroupedMatMul(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnAlltoAllvGroupedMatMul默认确定性实现。
+
 - 参数说明里shape使用的变量：
   - BSK：本卡发送的token数，是sendCounts参数累加之和，取值范围(0, 52428800)。
   - H1：表示路由专家hidden size隐藏层大小，取值范围(0, 65536)。
@@ -292,7 +299,7 @@ aclnnStatus aclnnAlltoAllvGroupedMatMul(
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>: 单卡通信量取值需大于等于2MB。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。本示例代码仅支持Atlas A3。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```cpp
@@ -302,7 +309,7 @@ aclnnStatus aclnnAlltoAllvGroupedMatMul(
     #include <vector>
     #include "acl/acl.h"
     #include "hccl/hccl.h"
-    #include "../op_api/aclnn_allto_allv_grouped_mat_mul.h"
+    #include "aclnnop/aclnn_allto_allv_grouped_mat_mul.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \

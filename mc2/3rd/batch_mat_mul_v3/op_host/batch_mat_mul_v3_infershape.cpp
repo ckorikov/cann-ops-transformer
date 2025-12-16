@@ -16,18 +16,18 @@
 
 namespace {
 constexpr size_t BATCH_MATMUL_BIAS_IDX = 2; // input_bias index is different with op_type
-static ge::graphStatus InferShapeForBatchMatMulV3(gert::InferShapeContext* context)
+static ge::graphStatus Mc2InferShapeForBatchMatMulV3(gert::InferShapeContext* context)
 {
     return Ops::Transformer::InferShapeForBatchMatMul(context, 0, BATCH_MATMUL_BIAS_IDX);
 }
 
 // 由于编译期InferShapeRange在InferShape之后，因此该函数无需重复InferShape的dtype校验
-static ge::graphStatus InferShapeRangeForBatchMatMulV3(gert::InferShapeRangeContext *context) {
+static ge::graphStatus Mc2InferShapeRangeForBatchMatMulV3(gert::InferShapeRangeContext *context) {
     return Ops::Transformer::InferShapeRangeForBatchMatMul(context, 0, BATCH_MATMUL_BIAS_IDX);
 }
 
-IMPL_OP_INFERSHAPE(BatchMatMulV3)
-    .InferShape(InferShapeForBatchMatMulV3)
-    .InferShapeRange(InferShapeRangeForBatchMatMulV3);
+IMPL_OP_INFERSHAPE(Mc2BatchMatMulV3)
+    .InferShape(Mc2InferShapeForBatchMatMulV3)
+    .InferShapeRange(Mc2InferShapeRangeForBatchMatMulV3);
 
 } // namespace

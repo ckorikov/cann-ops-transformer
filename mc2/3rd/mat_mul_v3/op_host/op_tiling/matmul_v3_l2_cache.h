@@ -19,13 +19,13 @@
 #include "matmul_v3_common.h"
 
 namespace optiling {
-namespace matmul_v3 {
-class L2Cache {
+namespace mc2_matmul_v3 {
+class Mc2L2Cache {
 public:
-    L2Cache(MatmulV3Args &args, MatmulTilingData &tilingData)
+    Mc2L2Cache(Mc2MatmulV3Args &args, Mc2MatmulV3TilingData &tilingData)
         : args_(args), tilingData_(tilingData) {
     }
-    void SetL2CacheFlag(TilingEnable tilingEnable, uint64_t l2Size, uint32_t &l2CacheFlag);
+    void SetL2CacheFlag(Mc2TilingEnable tilingEnable, uint64_t l2Size, uint32_t &l2CacheFlag);
 private:
     void SetL2CacheFlag(bool aEnableL2Cache, bool bEnableL2Cache, bool cEnableL2Cache,
                         bool biasEnableL2Cache, uint32_t &l2CacheFlag);
@@ -33,8 +33,8 @@ private:
     void SetL2CacheFlagSingleCoreSplitK(bool &aEnableL2Cache, bool &bEnableL2Cache) const;
     void SetL2CacheFlagBase(bool &aEnableL2Cache, bool &bEnableL2Cache) const;
 private:
-    MatmulV3Args &args_;
-    MatmulTilingData &tilingData_;
+    Mc2MatmulV3Args &args_;
+    Mc2MatmulV3TilingData &tilingData_;
 };
 }
 }

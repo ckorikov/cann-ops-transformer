@@ -6,8 +6,12 @@
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
+| <term>Atlas 推理系列产品</term>                             |    ×     |
+| <term>Atlas 训练系列产品</term>                              |    ×     |
+| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
 
-**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
+**说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如Bus Error等。
 
 ## 功能说明
 
@@ -15,7 +19,7 @@
 
 计算公式：
 $$
-output=reducescatter(x1@x2+bias)
+output=reduce_scatter(x1@x2+bias)
 $$
 
 ## 函数原型
@@ -81,7 +85,7 @@ aclnnStatus aclnnMatmulReduceScatter(
   <tr>
    <td>bias</td>
    <td>输入</td>
-   <td>Device侧的aclTensor，即计算公式中的bias，支持传入空指针。当前版本仅支持一维输入，且暂不支持bias输入为非0的场景。</td>
+   <td>Device侧的aclTensor，即计算公式中的bias，支持传入空指针。当前版本仅支持一维输入。<br><term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：暂不支持bias输入为非0的场景。</td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
   </tr>
@@ -130,7 +134,7 @@ aclnnStatus aclnnMatmulReduceScatter(
   <tr>
    <td>executor</td>
    <td>输出</td>
-   <td>返回op执行器，包含了算子的计算流程。</td>
+   <td>返回Op执行器，包含了算子的计算流程。</td>
    <td>aclOpExecutor*</td>
    <td>ND</td>
   </tr>
@@ -208,6 +212,9 @@ aclnnStatus aclnnMatmulReduceScatter(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnMatmulReduceScatter默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 - 输入x1为2维，其shape为(m, k)，m须为卡数rank_size的整数倍。
 - 输入x2必须是2维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等，且k轴取值范围为[256, 65535)。
 - x1/x2支持的空tensor场景，m和n可以为空，k不可为空，且需满足以下条件：
@@ -231,7 +238,7 @@ aclnnStatus aclnnMatmulReduceScatter(
     #include <thread>
     #include <iostream>
     #include <vector>
-    #include "../op_api/aclnn_matmul_reduce_scatter.h"
+    #include "aclnnop/aclnn_matmul_reduce_scatter.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -380,6 +387,7 @@ aclnnStatus aclnnMatmulReduceScatter(
 
     int main(int argc, char *argv[])
     {
+        // 本样例基于Atlas A3实现，必须在Atlas A3上运行
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
         aclrtStream stream[DEV_NUM];

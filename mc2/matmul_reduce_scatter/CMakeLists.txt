@@ -16,3 +16,5 @@ foreach(SUBDIR ${SUBDIRECTORIES})
     add_subdirectory(${SUBDIR})
   endif()
 endforeach()
+
+set(MC2_COMPILE ${SUB_MC2_COMPILE} PARENT_SCOPE)
