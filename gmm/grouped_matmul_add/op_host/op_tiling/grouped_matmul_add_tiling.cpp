@@ -21,6 +21,10 @@
 #include "register/op_def_registry.h"
 #include "log/log.h"
 
+#include "arch35/grouped_matmul_add_compile_info.h"
+#include "arch35/grouped_matmul_add_no_quant_tiling.h"
+#include "arch35/grouped_matmul_add_platform_common.h"
+
 namespace optiling {
 constexpr uint64_t BEST_L1_PARTA = 128UL * 1024UL;
 constexpr uint64_t BEST_L1_PARTB = 256UL * 1024UL;
@@ -72,7 +76,9 @@ static ge::graphStatus CalTCubeTiling(
     mm.SetShape(m, baseN, k);
     mm.SetFixSplit(baseM, baseN, baseK);
 
-    uint64_t l1Size, l0_cSize, ubSize;
+    uint64_t l1Size = 0UL;
+    uint64_t l0_cSize = 0UL;
+    uint64_t ubSize = 0UL;
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L1, l1Size);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_C, l0_cSize);
     ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSize);
@@ -90,8 +96,8 @@ static ge::graphStatus CalTCubeTiling(
             productMK);
         return ge::GRAPH_FAILED;
     }
-    uint32_t mmStepKa = (BEST_L1_PARTA >> 1) / (productMK * static_cast<uint64_t>(DATATYPE_SIZE));
-    uint32_t mmStepKb = (BEST_L1_PARTB >> 1) / (productNK * static_cast<uint64_t>(DATATYPE_SIZE));
+    uint32_t mmStepKa = static_cast<uint32_t>((BEST_L1_PARTA >> 1) / (productMK * static_cast<uint64_t>(DATATYPE_SIZE)));
+    uint32_t mmStepKb = static_cast<uint32_t>((BEST_L1_PARTB >> 1) / (productNK * static_cast<uint64_t>(DATATYPE_SIZE)));
     if (mmStepKa > mmStepKb) {
         mmStepKa = mmStepKa / mmStepKb * mmStepKb;
     } else if (mmStepKa < mmStepKb) {
@@ -232,6 +238,12 @@ static ge::graphStatus TilingCheck4GroupedMatmulAdd(const gert::TilingContext* c
 
 static ge::graphStatus Tiling4GroupedMatmulAdd(gert::TilingContext* context)
 {
+    if (IsAdvancedSocVersion(context)) {
+        GroupedMatmulAddNoQuantTiling gmmAddTiling;
+        OP_CHECK_IF(!gmmAddTiling.SetTiling(context),
+                     OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "SetTiling failed."), return ge::GRAPH_FAILED);
+        return ge::GRAPH_SUCCESS;
+    }
     GroupedMatmulAddTilingData tiling;
     auto xShape = context->GetInputShape(0)->GetOriginShape();
     auto wShape = context->GetInputShape(1)->GetOriginShape();
@@ -288,6 +300,9 @@ static ge::graphStatus Tiling4GroupedMatmulAdd(gert::TilingContext* context)
 
 static ge::graphStatus TilingPrepare4GroupedMatmulAdd(gert::TilingParseContext* context)
 {
+    if (IsAdvancedSocVersion(context)) {
+      return gmm_add_advanced::InitCompileInfo(context);
+    }
     (void)context;
     return ge::GRAPH_SUCCESS;
 }
@@ -295,5 +310,5 @@ static ge::graphStatus TilingPrepare4GroupedMatmulAdd(gert::TilingParseContext* 
 
 IMPL_OP_OPTILING(GroupedMatmulAdd)
     .Tiling(Tiling4GroupedMatmulAdd)
-    .TilingParse<GroupedMatmulAddCompileInfo>(TilingPrepare4GroupedMatmulAdd);
+    .TilingParse<GMMCompileInfo>(TilingPrepare4GroupedMatmulAdd);
 } // namespace optiling

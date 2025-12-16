@@ -18,15 +18,20 @@
 #include "register/op_impl_registry.h"
 #include "log/log.h"
 #include "platform/platform_info.h"
+#include "grouped_matmul_infershape_weight_quant_checker.h"
+#include "grouped_matmul_infershape_quant_checker.h"
 #include "grouped_matmul_infershape_common_util.h"
 
 using namespace ge;
 namespace ops {
 
+static std::set<std::string> GmmDavidSupportSoc = {"Ascend910_95"};
+
 enum class PlatformID : std::uint8_t {
     UNKNOWN,
     ASCEND310P,
-    ASCEND910B
+    ASCEND910B,
+    ASCEND910_95
 };
 
 struct GMMParamsInfo {
@@ -725,9 +730,9 @@ static ge::graphStatus CheckFunctionParamsForShape(gert::InferShapeContext* cont
         OP_LOGW(context->GetNodeName(), "Cannot get platform info!");
         return GRAPH_SUCCESS;
     } else {
-        paramsInfo.platform = (optionalInfo.soc_version.find("310P") != std::string::npos) 
-                                ? PlatformID::ASCEND310P 
-                                : PlatformID::ASCEND910B;
+        paramsInfo.platform = (optionalInfo.soc_version.find("310P") != std::string::npos) ?
+                                PlatformID::ASCEND310P : (optionalInfo.soc_version.find("910_95") != std::string::npos) ?
+                                PlatformID::ASCEND910_95 : PlatformID::ASCEND910B;
     }
     OP_CHECK_IF(CheckQuantParams(context, gmmAttrs, paramsInfo) != GRAPH_SUCCESS,
                   OP_LOGE(context->GetNodeName(), "CheckQuantParams failed!"),
@@ -1189,6 +1194,9 @@ static ge::graphStatus CheckCaseSplitK(gert::InferShapeContext* context, bool tr
     const size_t& weightSize = paramsInfo.numWeight;
     const size_t& ySize = paramsInfo.numY;
     if (xSize == 1UL) {
+        if (paramsInfo.platform == PlatformID::ASCEND910_95) {
+            return GRAPH_SUCCESS;
+        }
         OP_CHECK_IF(!transposeX,
               OP_LOGE(context->GetNodeName(),
                         "When groupType is 2 and x is not separated, tensor in x should be transposed."),
@@ -1346,11 +1354,82 @@ static ge::graphStatus GMMSetOutputShape(gert::InferShapeContext* context, GMMAt
     return GRAPH_SUCCESS;
 }
 
+static graphStatus InferShape4DavidWeightQuantGMM(gert::InferShapeContext *context)
+{
+    GroupedMatmulWeightQuantChecker davidWeightQuantGMMChecker;
+    GroupedMatmulCommonUtil utilForDavidWeightQuantGMM;
+    OP_CHECK_IF(GetAttrsValue(context, utilForDavidWeightQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetAttrsValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidWeightQuantGMMChecker.GetXAndWeightDimValue(context, utilForDavidWeightQuantGMM.attrsInfo) !=
+                  GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetXAndWeightDimValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidWeightQuantGMMChecker.CheckShape(context, utilForDavidWeightQuantGMM) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "CheckShape failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidWeightQuantGMMChecker.InferOutShape(context, utilForDavidWeightQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "InferOutShape failed"), return GRAPH_FAILED);
+    return GRAPH_SUCCESS;
+}
+
+static graphStatus InferShape4DavidQuantGMM(gert::InferShapeContext* context) {
+    GroupedMatmulQuantChecker davidQuantGMMChecker;
+    GroupedMatmulCommonUtil utilForDavidQuantGMM;
+    OP_CHECK_IF(GetAttrsValue(context, utilForDavidQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetAttrsValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.GetXAndWeightDimValue(context, utilForDavidQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetXAndWeightDimValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.GetGroupNumValue(context) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetGroupNumValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.CheckShape(context, utilForDavidQuantGMM) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "CheckShape failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.InferOutShape(context, utilForDavidQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "InferOutShape failed"), return GRAPH_FAILED);
+    return GRAPH_SUCCESS;
+}
+
+template <typename T>
+static graphStatus IsDavidWeightQuantGMMByShape(T context)
+{
+    auto xDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_X, 0);
+    auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
+    OP_CHECK_NULL_WITH_CONTEXT(context, xDesc);
+    OP_CHECK_NULL_WITH_CONTEXT(context, weightDesc);
+    DataType xDtype = xDesc->GetDataType();
+    DataType weightDtype = weightDesc->GetDataType();
+    return GetSizeByDataType(xDtype) != GetSizeByDataType(weightDtype) ? GRAPH_SUCCESS : GRAPH_FAILED;
+}
+
+template<typename T>
+static graphStatus IsDavidQuantGMMByShape(T context) {
+    auto xDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_X, 0);
+    auto weightDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_WEIGHT, 0);
+    auto scaleDesc = context->GetDynamicInputDesc(GMM_INDEX_IN_SCALE, 0);
+    OP_CHECK_NULL_WITH_CONTEXT(context, xDesc);
+    OP_CHECK_NULL_WITH_CONTEXT(context, weightDesc);
+    OP_CHECK_NULL_WITH_CONTEXT(context, scaleDesc);
+    DataType xDtype = xDesc->GetDataType();
+    DataType weightDtype = weightDesc->GetDataType();
+    if (xDtype == ge::DT_FLOAT4_E1M2 || xDtype == ge::DT_FLOAT4_E2M1 || xDtype == ge::DT_INT4) {
+        return GRAPH_SUCCESS;
+    }
+    return (GetSizeByDataType(xDtype) == 1 && GetSizeByDataType(weightDtype) == 1) ? GRAPH_SUCCESS : GRAPH_FAILED;
+}
+
 static ge::graphStatus InferShape4GroupedMatmul(gert::InferShapeContext* context) {
     OP_CHECK_NULL_WITH_CONTEXT(context, context);
     fe::PlatformInfo platformInfo;
     fe::OptionalInfo optionalInfo;
     auto ret = fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platformInfo, optionalInfo);
+    if (ret == GRAPH_SUCCESS && GmmDavidSupportSoc.count(platformInfo.str_info.short_soc_version) > 0) {
+        if (IsDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
+            OP_CHECK_IF(InferShape4DavidQuantGMM(context) != GRAPH_SUCCESS,
+                      OP_LOGE(context->GetNodeName(), "Check params failed"), return GRAPH_FAILED);
+            return GRAPH_SUCCESS;
+        } else if (IsDavidWeightQuantGMMByShape(context) == GRAPH_SUCCESS) {
+            OP_CHECK_IF(InferShape4DavidWeightQuantGMM(context) != GRAPH_SUCCESS,
+                      OP_LOGE(context->GetNodeName(), "Check params failed"), return GRAPH_FAILED);
+            return GRAPH_SUCCESS;
+        }
+    }
     GMMAttrs gmmAttrs{GMM_X_Y_SEPARATED, 0, GMM_NO_SPLIT, false, false, 0, 0};
     OP_CHECK_IF(GetAttrsValue(context, gmmAttrs) != GRAPH_SUCCESS || CheckAttrs(context, gmmAttrs) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "Failed to get attrs."), return GRAPH_FAILED);
@@ -1437,6 +1516,14 @@ static graphStatus CheckNonQuantMatmulParams(fe::PlatformInfo& platformInfo, ger
                                              const DataType xDtype, const DataType weightDtype)
 {
     DataType biasDtype = xDtype == DataType::DT_BF16 ? DataType::DT_FLOAT: xDtype;
+    if (GmmDavidSupportSoc.count(platformInfo.str_info.short_soc_version) > 0) {
+        biasDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_BIAS, 0);
+        if (biasDtype != DT_UNDEFINED) {
+            OP_CHECK_IF(std::find(BIAS_DTYPE_SUPPORT_LIST.begin(), BIAS_DTYPE_SUPPORT_LIST.end(), biasDtype) == BIAS_DTYPE_SUPPORT_LIST.end(),
+                      OP_LOGE(context->GetNodeName(),"non quant case bias only support dtype float16, bfloat16 and float32"),
+                      return GRAPH_FAILED);
+        }
+    }
     OP_CHECK_IF(CheckMatmulDataType(context, xDtype, weightDtype, biasDtype) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "case with x dtype %s and weight dtype %s is not supported!",
                         ToString(xDtype).data(), ToString(weightDtype).data()),
@@ -1493,9 +1580,9 @@ static graphStatus CheckFunctionParamsForDtype(gert::InferDataTypeContext* conte
         OP_LOGW(context->GetNodeName(), "Cannot get platform info.");
         return GRAPH_SUCCESS;
     } else {
-        platform = (optionalInfo.soc_version.find("310P") != std::string::npos)
-                    ? PlatformID::ASCEND310P 
-                    : PlatformID::ASCEND910B;
+        platform = (optionalInfo.soc_version.find("310P") != std::string::npos) ?
+                    PlatformID::ASCEND310P : (optionalInfo.soc_version.find("910_95") != std::string::npos) ?
+                    PlatformID::ASCEND910_95 : PlatformID::ASCEND910B;
     }
     DataType xDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_X, 0);
     DataType weightDtype = context->GetDynamicInputDataType(GMM_INDEX_IN_WEIGHT, 0);
@@ -1572,11 +1659,44 @@ static graphStatus CheckQuantParamsDtype(const gert::InferDataTypeContext* conte
     return GRAPH_SUCCESS;
 }
 
+static graphStatus InferDtype4DavidWeightQuantGMM(gert::InferDataTypeContext *context)
+{
+    GroupedMatmulWeightQuantChecker davidWeightQuantGMMChecker;
+    OP_CHECK_IF(davidWeightQuantGMMChecker.CheckDtype(context) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "CheckDtype failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidWeightQuantGMMChecker.InferOutDtype(context) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "SetYDtype failed"), return GRAPH_FAILED);
+    return GRAPH_SUCCESS;
+}
+
+static graphStatus InferDtype4DavidQuantGMM(gert::InferDataTypeContext* context) {
+    GroupedMatmulQuantChecker davidQuantGMMChecker;
+    GroupedMatmulCommonUtil utilForDavidQuantGMM;
+    OP_CHECK_IF(GetAttrsValue(context, utilForDavidQuantGMM.attrsInfo) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "GetAttrsValue failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.CheckDtype(context, utilForDavidQuantGMM) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "CheckDtype failed"), return GRAPH_FAILED);
+    OP_CHECK_IF(davidQuantGMMChecker.InferOutDtype(context) != GRAPH_SUCCESS,
+              OP_LOGE(context->GetNodeName(), "SetYDtype failed"), return GRAPH_FAILED);
+    return GRAPH_SUCCESS;
+}
+
 static graphStatus InferDataType4GroupedMatmul(gert::InferDataTypeContext *context){
     OP_CHECK_NULL_WITH_CONTEXT(context, context);
     fe::PlatformInfo platformInfo;
     fe::OptionalInfo optionalInfo;
     auto ret = fe::PlatformInfoManager::Instance().GetPlatformInfoWithOutSocVersion(platformInfo, optionalInfo);
+    if (ret == GRAPH_SUCCESS && GmmDavidSupportSoc.count(platformInfo.str_info.short_soc_version) > 0) {
+        if (IsDavidQuantGMMByShape(context) == GRAPH_SUCCESS) {
+            OP_CHECK_IF(InferDtype4DavidQuantGMM(context) != GRAPH_SUCCESS,
+                      OP_LOGE(context->GetNodeName(), "InferDtype4DavidQuantGMM failed"), return GRAPH_FAILED);
+            return GRAPH_SUCCESS;
+        } else if (IsDavidWeightQuantGMMByShape(context) == GRAPH_SUCCESS) {
+            OP_CHECK_IF(InferDtype4DavidWeightQuantGMM(context) != GRAPH_SUCCESS,
+                      OP_LOGE(context->GetNodeName(), "InferDtype4DavidWeightQuantGMM failed"), return GRAPH_FAILED);
+            return GRAPH_SUCCESS;
+        }
+    }
     OP_CHECK_IF(CheckFunctionParamsForDtype(context) != GRAPH_SUCCESS,
               OP_LOGE(context->GetNodeName(), "CheckFunctionParamsForDtype failed!"), return GRAPH_FAILED);
 

@@ -9,7 +9,7 @@
  */
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
-#include "grouped_matmul_add_tiling_def.h"
+#include "grouped_matmul_add_tiling.h"
 #include "data_utils.h"
 
 using namespace std;
