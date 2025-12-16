@@ -21,7 +21,7 @@ constexpr int BASEH = 128;
 constexpr int SUB_BASEH = BASEH / 2;
 constexpr int BLK_SIZE = BASEL * BASEH / 2;
 constexpr float COMPARE_VALUE = 20.0;
-constexpr float CLAMP_MAX = 10000000.0;
+constexpr float CLAMP_MAX = 10000000.0f;
 
 struct CustVecShapeInfo{
     int nstepsH;
@@ -95,7 +95,11 @@ public:
         out_empty.setall();
         
         int cc_cnt = 0;
-        auto castParams = CastHalf2FloatRepeatParams();
+        auto castParamsH2F = CastHalf2FloatRepeatParams();
+        auto castParamsF2H = CastFloat2HalfRepeatParams();
+        auto unaryParams = MakeDefaultUnaryRepeatParams();
+        auto binaryParams = MakeDefaultBinaryRepeatParams();
+        
         for (int bch=shape.BCH1; bch<shape.BCH2; ++bch){
             int b = (bch / (shape.C * shape.nstepsH));
             int c = ((bch % (shape.C * shape.nstepsH)) / shape.nstepsH);
@@ -112,16 +116,18 @@ public:
                 out_empty.wait();
                 in_ready.wait();
                 if ((cc_cnt == 0)){
-                    Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, 8);
+                    Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, N_DBLK_FLOAT);
                     PipeBarrier<PIPE_V>();
-                    Adds<float, false>(max_buf, max_buf, 10000000.0f, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
+                    Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();
                 }
-                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
+                Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParams);
                 Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParams);
-                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 64, castParams);
+                Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, castParams);
                 PipeBarrier<PIPE_V>();
-                Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, 64, {1, 1, 1, 8, 8, 0});
+                auto custparam = MakeDefaultBinaryRepeatParams();
+                custparam.src1RepStride = 0;
+                Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, BASEL*SUB_BASEH/VEC_FLOAT, custparam);
                 PipeBarrier<PIPE_V>();
                 CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, 20.0f, CMPMODE::LT, 4096);
                 PipeBarrier<PIPE_V>();
