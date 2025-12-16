@@ -8,13 +8,14 @@
  */
 #include <algorithm>
 #include "op_mc2.h"
-#include "matmul_util.h"
 #include "op_mc2_def.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/op_log.h"
 #include "opdev/common_types.h"
 #include "aclnn_moe_distribute_combine_add_rms_norm_v2.h"
+#include "common/op_host/op_api/matmul_util.h"
 
+using namespace Ops::Transformer;
 using namespace op;
 
 #ifdef __cplusplus
@@ -79,7 +80,7 @@ static aclnnStatus CheckParams(const aclTensor* expandX, const aclTensor* expert
                            x), ACLNN_ERR_PARAM_NULLPTR);
 
     if (is910B) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not supported platform.");
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not support 910B platform.");
         return ACLNN_ERR_PARAM_INVALID;
     }
     if (strnlen(groupEp, HCCL_GROUP_NAME_MAX) >= HCCL_GROUP_NAME_MAX) {
@@ -119,7 +120,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2GetWorkspaceSize(const aclTenso
     CHECK_RET(ret_param == ACLNN_SUCCESS, ret_param);
     aclnnStatus ret;
     if (is910B) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not supported platform.");
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not support 910B platform.");
         return ACLNN_ERR_PARAM_INVALID;
     } else {
         ret = aclnnInnerMoeDistributeCombineAddRmsNormGetWorkspaceSize(expandX, expertIds, assistInfoForCombine, epSendCounts, expertScales, residualX, gamma,
@@ -136,7 +137,7 @@ aclnnStatus aclnnMoeDistributeCombineAddRmsNormV2(void *workspace, uint64_t work
     aclnnStatus ret = 0;
     const static bool is910B = GetCurrentPlatformInfo().GetSocVersion() == SocVersion::ASCEND910B;
     if (is910B) {
-        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not supported platform.");
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID, "Not support 910B platform.");
         return ACLNN_ERR_PARAM_INVALID;
     } else {
         if (NnopbaseSetHcclServerType) {

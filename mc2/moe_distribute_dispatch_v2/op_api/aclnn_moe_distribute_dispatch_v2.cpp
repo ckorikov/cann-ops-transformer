@@ -10,12 +10,13 @@
 #include "aclnn_moe_distribute_dispatch_v2.h"
 #include <algorithm>
 #include "op_mc2.h"
-#include "matmul_util.h"
 #include "op_mc2_def.h"
 #include "aclnn_kernels/common/op_error_check.h"
 #include "opdev/op_log.h"
 #include "opdev/common_types.h"
+#include "common/op_host/op_api/matmul_util.h"
 
+using namespace Ops::Transformer;
 using namespace op;
 
 #ifdef __cplusplus
@@ -26,12 +27,13 @@ static constexpr int32_t DISPATCH_DYNAMIC_QUANT_MODE = 2;
 enum NnopbaseHcclServerType {
     NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
     NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
     NNOPBASE_HCCL_SERVER_TYPE_END
 };
 
 extern aclnnStatus aclnnInnerMoeDistributeDispatchV2GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds, const aclTensor* scales,
-                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo, const aclTensor* performanceInfo,
-                                                                   const char* groupEp, int64_t epWorldSize,
+                                                                   const aclTensor* xActiveMask, const aclTensor* expertScales,  const aclTensor* elasticInfo,
+                                                                   const aclTensor* performanceInfo, const char* groupEp, int64_t epWorldSize,
                                                                    int64_t epRankId, int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
                                                                    int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, int64_t shareExpertRankNum,
                                                                    int64_t quantMode, int64_t globalBs, int64_t expertTokenNumsType, const char* commAlg,

@@ -22,6 +22,7 @@
 #include "register/tilingdata_base.h"
 #include "mc2_log.h"
 #include "tiling_base/tiling_base.h"
+#include "tiling/mc2_opversion_manager.h"
 using namespace Ops::Transformer::OpTiling;
 
 namespace optiling {
@@ -35,6 +36,7 @@ constexpr uint32_t X_ACTIVE_MASK_INDEX = 6;
 constexpr uint32_t SHARED_EXPERT_X_INDEX = 11;
 constexpr uint32_t OUTPUT_X_INDEX = 0;
 constexpr uint32_t ATTR_SHARED_EXPERT_RANK_NUM_INDEX = 9;
+constexpr uint32_t OP_VERSION_1 = 1U;
 
 constexpr uint32_t THREE_DIMS = 3U;
 constexpr uint32_t TWO_DIMS = 2U;
@@ -54,6 +56,7 @@ private:
     inline static bool CheckInputSendCountsTensorDim(const gert::TilingContext *context, const char *nodeName);
     inline static bool CheckInputExpertScalesTensorDim(const gert::TilingContext *context, const char *nodeName);
     inline static bool CheckOutputTensorDim(const gert::TilingContext *context, const char *nodeName);
+    inline static bool CheckActiveMask(const gert::TilingContext *context, const char *nodeName);
 };
 } // namespace optiling
 #endif // MOE_DISTRIBUTE_COMBINE_TILING_HELPER_H

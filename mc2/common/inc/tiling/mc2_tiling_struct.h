@@ -103,6 +103,7 @@ BEGIN_TILING_DATA_DEF(RCSTiling)
     TILING_DATA_FIELD_DEF(uint32_t, isInputCommQuantScale); // 是否传入CommQuantScale
     TILING_DATA_FIELD_DEF(uint32_t, dataType);
     TILING_DATA_FIELD_DEF(uint32_t, commInt8WorkSpace); // int8 通信时用于存放reduceScatter输入 workspace 的开销
+    TILING_DATA_FIELD_DEF(uint32_t, dynamicQuantTempBuffSize); // fp8通信时用于存放BroadCast接口需要的临时空间开销
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(RCSTilingOp, RCSTiling)
 
@@ -176,16 +177,6 @@ BEGIN_TILING_DATA_DEF(TileL2Tiling)
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(TileL2TilingOp, TileL2Tiling);
 
-BEGIN_TILING_DATA_DEF(Mc2MatmulTilingData)
-    TILING_DATA_FIELD_DEF(uint32_t, rankDim);
-    TILING_DATA_FIELD_DEF(uint32_t, rankM);
-    TILING_DATA_FIELD_DEF(uint32_t, rankID);
-    TILING_DATA_FIELD_DEF(uint32_t, enableL2Tile);
-    TILING_DATA_FIELD_DEF_STRUCT(BatchMatmulTilingData, bmmTilingData);
-
-END_TILING_DATA_DEF;
-REGISTER_TILING_DATA_CLASS(Mc2MatmulTilingDataOp, Mc2MatmulTilingData);
-
 BEGIN_TILING_DATA_DEF(TileInfo)
     TILING_DATA_FIELD_DEF(uint64_t, tileCnt);
     TILING_DATA_FIELD_DEF(uint64_t, tileLen);
@@ -199,7 +190,12 @@ BEGIN_TILING_DATA_DEF(MC2MatmulV3TilingData)
   TILING_DATA_FIELD_DEF(uint32_t, mTailCnt);
   TILING_DATA_FIELD_DEF(uint32_t, nTailCnt);
   TILING_DATA_FIELD_DEF(uint32_t, kTailCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, mBaseTailSplitCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, nBaseTailSplitCnt);
+  TILING_DATA_FIELD_DEF(uint32_t, mTailMain);
+  TILING_DATA_FIELD_DEF(uint32_t, nTailMain);
   TILING_DATA_FIELD_DEF(uint32_t, isHf32);
+  TILING_DATA_FIELD_DEF(uint32_t, aswWindowLen);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MC2MatmulV3TilingDataOp, MC2MatmulV3TilingData);
 
