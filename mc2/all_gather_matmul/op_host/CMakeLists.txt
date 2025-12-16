@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         all_gather_matmul_def.cpp
     )
     add_mc2_modules_sources(OPTYPE all_gather_matmul all_gather_matmul ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(all_gather_matmul_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE all_gather_matmul all_gather_matmul ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE all_gather_matmul all_gather_matmul ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
 endif()

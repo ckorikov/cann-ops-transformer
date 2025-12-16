@@ -18,13 +18,13 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 #include "../matmul_all_reduce/common.h"
-#include "../matmul_all_reduce/matmul_all_reduce_weight_quant.h"
+#include "../matmul_all_reduce/arch32/matmul_all_reduce_weight_quant.h"
 #include "add_rms_norm_kernel.h"
 
 namespace MatmulAllReduceAddRmsNormImpl {
 using namespace AscendC;
 using MatmulAllReduceImpl::MatmulAllReduceWeightQuant;
-using WeightQuantBatchMatmulV2::QuantType;
+using Mc2WeightQuantBatchMatmulV2::Mc2QuantType;
 template <typename xType, typename wType, typename yType, class mmType>
 class MatmulAllReduceAddRmsNormWeightQuant : public MatmulAllReduceWeightQuant<xType, wType, yType, mmType>
 {
@@ -67,8 +67,8 @@ public:
 
 private:
     AddRMSNormTilingeKeyData* arnTilineKey_;
-    AddRMSNormTilingData* arnTile_;
-    AddRMSNormTilingData* arnTail_;
+    MC2AddRMSNormTilingData* arnTile_;
+    MC2AddRMSNormTilingData* arnTail_;
 };
 
 #define INVOKE_MC2_ARN_WEIGHT_QUANT_910_OP_IMPL(bTransFlag, quantType, offsetFlag)                         \
@@ -76,7 +76,7 @@ private:
         GET_TILING_DATA_WITH_STRUCT(WeightQuantMatmulAllReduceAddRmsNormTilingData, tilingData, tilingGM); \
         using opType = WEIGH_QUANT_MATMUL_CLASS_NAME<                                                      \
             DTYPE_X1, DTYPE_X2, DTYPE_BIAS_FOR_MC2, DTYPE_Y, false, bTransFlag, quantType, offsetFlag,     \
-            QuantType::NONE>;                                                                              \
+            Mc2QuantType::NONE>;                                                                              \
         MC2GmAddrs addrs = {aGM, bGM, biasGM, nullptr, normOutGM, workspaceGM, normOutGM};                 \
         QuantGmAddrs quantAddrs = {antiquantScaleGM, antiquantOffsetGM, nullptr, nullptr};                 \
         ArnGmAddrs arnAddrs = {residualGM, gammaGM, yGM, normOutGM};                                       \

@@ -47,6 +47,7 @@ struct MoeDistributeCombineV2Info {
     uint64_t totalWinSizeTp;
     float armAvgFactor;
     float epsilon;
+    uint32_t bufferNum;
 };
 struct MoeDistributeCombineV2TilingData {
     Mc2InitTiling mc2InitTiling;

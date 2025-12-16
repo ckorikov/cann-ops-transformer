@@ -67,7 +67,11 @@ private:
 
     // alltoall 流程数据结构
     static constexpr uint64_t MAX_HANDLE_ID_NUM = 64U;
+#if defined(__DAV_C310__)
+    Hccl<HcclServerType::HCCL_SERVER_TYPE_CCU> hccl_;
+#else
     Hccl<HCCL_SERVER_TYPE_AICPU> hccl_;
+#endif
     HcclDataType hcclDataType_ = HCCL_DATA_TYPE_FP16;
     HcclHandle alltoAllvHandleId_[MAX_HANDLE_ID_NUM] = {INVALID_HANDLE_ID};
 
@@ -80,6 +84,7 @@ private:
     typename gmmType::MT gmm_;
     typename mmType::MT mm_;
 };
+
 template <typename DataType, bool IsNeedMM, bool IsTranGmmW, bool IsTranMmW>
 __aicore__ inline void AlltoAllvGmmCoarseGrained<DataType, IsNeedMM, IsTranGmmW, IsTranMmW>::Init(
     GM_ADDR gmmxGM, GM_ADDR gmmweightGM, GM_ADDR sendCountsTensorOptionalGM, GM_ADDR recvCountsTensorOptionalGM,
@@ -100,7 +105,6 @@ __aicore__ inline void AlltoAllvGmmCoarseGrained<DataType, IsNeedMM, IsTranGmmW,
 
     hccl_.Init(contextGM, hcclInitTiling);
     hccl_.SetCcTiling(alltoAllvCcTiling);
-
     rankId_ = hccl_.GetRankId();
     rankDim_ = hccl_.GetRankDim();
 

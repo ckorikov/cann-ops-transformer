@@ -32,7 +32,7 @@ struct ReduceScatterSoc {
     uint32_t baseBN;
 };
 
-struct L2cacheUseInfo {
+struct Mc2L2cacheUseInfo {
     uint32_t l2CacheFlag;
 };
 
@@ -40,15 +40,15 @@ class MatmulReduceScatterTilingData {
 public:
     Mc2InitTiling mc2InitTiling;
     Mc2CcTiling mc2CcTiling;
-    RCSTiling param;
+    Mc2Tiling::RCSTiling param;
     TCubeTiling tileTiling;
     TCubeTiling tailTiling;
     TCubeTiling localTiling;
-    TileL2Tiling tileL2Tiling;
-    TileL2Tiling tailL2Tiling;
-    TileL2Tiling localL2Tiling;
+    Mc2Tiling::TileL2Tiling tileL2Tiling;
+    Mc2Tiling::TileL2Tiling tailL2Tiling;
+    Mc2Tiling::TileL2Tiling localL2Tiling;
 	ReduceScatterSoc socParam;
-    L2cacheUseInfo l2cacheUseInfo;
+    Mc2L2cacheUseInfo l2cacheUseInfo;
 };
 
 #endif //__MATMUL_REDUCE_SCATTER_TILING_H__
