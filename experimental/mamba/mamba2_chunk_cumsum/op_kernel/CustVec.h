@@ -143,7 +143,7 @@ public:
                 PipeBarrier<PIPE_V>();
                 CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, CLAMP_MAX, CMPMODE::LT, BLK_SIZE);
                 PipeBarrier<PIPE_V>();
-                Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX.0), SELMODE::VSEL_TENSOR_SCALAR_MODE, BLK_SIZE);
+                Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX), SELMODE::VSEL_TENSOR_SCALAR_MODE, BLK_SIZE);
                 PipeBarrier<PIPE_V>();
                 Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, binaryParams);
                 PipeBarrier<PIPE_V>();
