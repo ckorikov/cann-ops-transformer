@@ -29,6 +29,7 @@ using namespace AscendC;
 namespace optiling {
 
 constexpr uint64_t PRE_LOAD_NUM_MLA = 2;
+constexpr uint32_t QK_HEAD_DIM_512 = 512U;
 
 constexpr uint64_t FIA_TILINGKEYOFFSET = uint64_t(100000000000000000UL); // 10^17
 constexpr uint64_t FIA_PERF_MODE_TILINGKEYOFFSET = uint64_t(1000000000000000UL); // 10^15
@@ -89,12 +90,11 @@ bool FiaTilingNonQuantMla::IsCapable()
     ge::DataType qDataType = fiaInfo_->inputQType;
     ge::DataType kDataType = fiaInfo_->inputKvType;
 
-    if (fiaInfo_->ropeMode == RopeMode::ROPE_SPLIT) {
-        // MLA非量化
+    if (fiaInfo_->ropeMode == RopeMode::ROPE_SPLIT && fiaInfo_->qkHeadDim == QK_HEAD_DIM_512) {	
+        // MLA非量化	
         if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
             return true;
         }
-    }
     return false;
 }
 
@@ -158,7 +158,7 @@ void FiaTilingNonQuantMla::ZeroTensorProcess() const
 
 void FiaTilingNonQuantMla::InitParams()
 {
-    perfMode_ = IfaPerfMode::CUBE_VIEW_MM_MLA;
+    perfMode_ = FiaTemplateId::HIGH_PERFORMANCE_MLA;
     coreNum_ = aicNum_;
     blockDim_ = aicNum_; // Tiling下沉首次Tiling也会校验blockDim_是否为0，为避免拦截报错，将blockDim_设置为aicNum_，实际不生效
 
@@ -487,5 +487,5 @@ ge::graphStatus FiaTilingNonQuantMla::DoOpTiling()
 // 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
 // 3. 个位代表特化模板到泛化模板的优先级排序
 REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuantMla,
-    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 1);
+    std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B)}), 9);
 } // namespace optiling
