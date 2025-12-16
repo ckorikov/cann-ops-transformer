@@ -84,7 +84,7 @@ ge::graphStatus MatmulReduceScatterV2Tiling::CheckInput()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus MatmulReduceScatterV2Tiling::SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg)
+ge::graphStatus MatmulReduceScatterV2Tiling::SetMc2Hcomm()
 {
     matmulReduceScatterV2TilingData_->hcommCfg.opType = (
         static_cast<uint32_t>(mc2tiling::AicpuComType::HCCL_CMD_REDUCE_SCATTER));
@@ -159,7 +159,7 @@ ge::graphStatus MatmulReduceScatterV2Tiling::DoAllMatmulTiling()
 ge::graphStatus MatmulReduceScatterV2Tiling::DoOpTiling()
 {
     GE_ASSERT_GRAPH_SUCCESS(CheckInput());
-    OP_TILING_CHECK(SetMc2Hcomm(matmulReduceScatterV2TilingData_->param) != ge::GRAPH_SUCCESS,
+    OP_TILING_CHECK(SetMc2Hcomm() != ge::GRAPH_SUCCESS,
         OP_LOGE(opName_, "Tiling SetHcommCfg failed."), return ge::GRAPH_FAILED);
     SetRcsTilingData(matmulReduceScatterV2TilingData_->param);
     DoSplitMTiling(matmulReduceScatterV2TilingData_->param);

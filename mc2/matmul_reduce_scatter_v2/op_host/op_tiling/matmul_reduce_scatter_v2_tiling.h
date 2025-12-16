@@ -42,7 +42,7 @@ protected:
     ge::graphStatus CheckInput() override;
     ge::graphStatus DoAllMatmulTiling();
     void PrintAllTilingData() const; // done
-    ge::graphStatus SetMc2Hcomm(Mc2Tiling::RCSTiling &rcsCfg);
+    ge::graphStatus SetMc2Hcomm();
     ge::graphStatus DoMatmulV3Tiling(Mc2MatmulHelper::Mc2MatmulTilingCfg &tilingCfg, Mc2MMRegisterCfg &registerCfg,
                                      Mc2MatMulV3TilingData &tilingData);
     inline Mc2MatMulV3TilingData &MutableMC2MmV3TileTilingData() const

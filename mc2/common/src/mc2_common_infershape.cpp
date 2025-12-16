@@ -100,6 +100,10 @@ ge::graphStatus AllGatherMatmulInferYShape(gert::InferShapeContext* context, Com
 ge::graphStatus AllGatherMatmulInferGatherOutShape(gert::InferShapeContext* context, const CommParas& commParas,
                                                    const size_t gatherIndex)
 {
+    if (context->GetAttrs() == nullptr) {
+        OP_LOGE(context->GetNodeName(), "get attrs failed.");
+        return ge::GRAPH_FAILED;
+    }
     const bool* isGatherOut = context->GetAttrs()->GetAttrPointer<bool>(gatherIndex);
     OPS_CHECK_NULL_WITH_CONTEXT(context, isGatherOut);
     gert::Shape* gatherOutShape = context->GetOutputShape(1);
