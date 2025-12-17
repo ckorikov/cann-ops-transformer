@@ -111,32 +111,7 @@ public:
             int c = ((int)(bch % ((int)(shape.C * shape.H) / (int)shape.BASEH)) / (int)((int)shape.H / (int)shape.BASEH));
             int h = ((bch % ((int)(shape.C * shape.H) / (int)shape.BASEH)) % ((int)shape.H / (int)shape.BASEH));
             for (int r=0; r<shape.repeatL; r+=1){
-                in_empty.wait();
-                GM2UB(dacs.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / MTE_FLOAT), ((int)(shape.H - shape.BASEH) / MTE_FLOAT), 0);
-                GM2UB(dacs_t.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + ((shape.L - 1) * shape.H)) + (h * shape.BASEH))], 1, 1, 0, 0);
-                GM2UB(dtout.get(da_cnt), dtout_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, 1, ((int)(shape.H - shape.BASEH) / (int)MTE_FLOAT), 0);
-                in_ready.set();
-                out_empty.wait();
-                in_ready.wait();
-                Brcb(dacs_brcb.get(da_cnt), dacs.get(da_cnt), shape.subvec_L, {1, NUM_DBLK_FLOAT});
-                PipeBarrier<PIPE_V>();
-                Brcb(dacs_t_brcb.get(da_cnt), dacs_t.get(da_cnt), 1, {1, NUM_DBLK_FLOAT});
-                PipeBarrier<PIPE_V>();
-                auto custparam = MakeDefaultBinaryRepeatParams();
-                custparam.src0RepStride = 0; // {1,1,1,8,0,8}
-                Sub<float, false>(dacs_brcb.get(da_cnt), dacs_t_brcb.get(da_cnt), dacs_brcb.get(da_cnt), MASK_PLACEHOLDER, shape.subvec_L, custparam);
-                PipeBarrier<PIPE_V>();
-                BlockReduceMax<float, false>(dacs.get(da_cnt), dacs_brcb.get(da_cnt), shape.subvec_L, MASK_PLACEHOLDER, 1, 1, 8);
-                PipeBarrier<PIPE_V>();
-                Exp<float, false>(dacs.get(da_cnt), dacs.get(da_cnt), MASK_PLACEHOLDER, ((int)(shape.subvec_L * 8) / (int)64), {1, 1, 8, 8});
-                PipeBarrier<PIPE_V>();
-                Mul<float, false>(out_fp32.get(da_cnt), dtout.get(da_cnt), dacs.get(da_cnt), MASK_PLACEHOLDER, ((int)(shape.subvec_L * 8) / (int)64), {(uint8_t)1, (uint8_t)1, (uint8_t)1, (uint8_t)8, (uint8_t)8, (uint8_t)8});
-                in_empty.set();
-                out_ready.set();
-                out_ready.wait();
-                UB2GM(da_out[(((get_block_idx() * shape.L) * 8) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEH))], out_fp32.get(da_cnt), shape.subvec_L, 1, 0, 0);
-                out_empty.set();
-                da_cnt = (da_cnt + 1);
+                Process_part1(b, c, h, r);
             }
             PipeBarrier<PIPE_ALL>();
             for (int madn=0; madn<shape.N; madn+=shape.BASEN){
@@ -186,6 +161,37 @@ public:
         WAIT_CUBE(0);
         in_empty.release();
         out_empty.release();
+    }
+
+    __aicore__ inline void Process_part1(int b, int c, int h, int r){
+        in_empty.wait();
+        GM2UB(dacs.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / MTE_FLOAT), ((int)(shape.H - shape.BASEH) / MTE_FLOAT), 0);
+        GM2UB(dacs_t.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + ((shape.L - 1) * shape.H)) + (h * shape.BASEH))], 1, 1, 0, 0);
+        GM2UB(dtout.get(da_cnt), dtout_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, 1, ((int)(shape.H - shape.BASEH) / (int)MTE_FLOAT), 0);
+        in_ready.set();
+
+        out_empty.wait();
+        in_ready.wait();
+        Brcb(dacs_brcb.get(da_cnt), dacs.get(da_cnt), shape.subvec_L, {1, NUM_DBLK_FLOAT});
+        PipeBarrier<PIPE_V>();
+        Brcb(dacs_t_brcb.get(da_cnt), dacs_t.get(da_cnt), 1, {1, NUM_DBLK_FLOAT});
+        PipeBarrier<PIPE_V>();
+        auto custparam = MakeDefaultBinaryRepeatParams();
+        custparam.src0RepStride = 0; // {1,1,1,8,0,8}
+        Sub<float, false>(dacs_brcb.get(da_cnt), dacs_t_brcb.get(da_cnt), dacs_brcb.get(da_cnt), MASK_PLACEHOLDER, shape.subvec_L, custparam);
+        PipeBarrier<PIPE_V>();
+        BlockReduceMax<float, false>(dacs.get(da_cnt), dacs_brcb.get(da_cnt), shape.subvec_L, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
+        PipeBarrier<PIPE_V>();
+        Exp<float, false>(dacs.get(da_cnt), dacs.get(da_cnt), MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEH) / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Mul<float, false>(out_fp32.get(da_cnt), dtout.get(da_cnt), dacs.get(da_cnt), MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEH) / (int)VEC_FLOAT), binary_params);
+        in_empty.set();
+        out_ready.set();
+
+        out_ready.wait();
+        UB2GM(da_out[(((get_block_idx() * shape.L) * shape.BASEH) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEH))], out_fp32.get(da_cnt), shape.subvec_L, 1, 0, 0);
+        out_empty.set();
+        da_cnt = (da_cnt + 1);
     }
     
 private:
