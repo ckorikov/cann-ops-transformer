@@ -16,7 +16,6 @@
 #ifndef QUANTIZE_FUNCTIONS_H
 #define QUANTIZE_FUNCTIONS_H
 
-#include "../inc/platform.h"
 #include "common.h"
 
 namespace quant {
@@ -38,11 +37,25 @@ constexpr float INT8_MAX_VALUE = 127.0f;
 
 using namespace AscendC;
 
+__aicore__ inline constexpr uint32_t GetUbBlockSizeDispatch()
+{
+    return 32U;
+}
+
+__aicore__ inline constexpr uint32_t GetVRegSizeDispatch()
+{
+#if __CCE_AICORE__ == 310
+    return AscendC::VECTOR_REG_WIDTH;
+#else
+    return 256U;
+#endif
+}
+
 template<typename T>
 __aicore__ inline void ComputeMaxExp(__ubuf__ T* srcAddr, __ubuf__ uint16_t* maxExpAddr, uint32_t totalCountInUB)
 {
-    uint32_t vlForHalfNumber = platform::GetVRegSize() / sizeof(T);
-    uint16_t elementAfterReduce = platform::GetVRegSize() / platform::GetUbBlockSize();
+    uint32_t vlForHalfNumber = GetVRegSizeDispatch() / sizeof(T);
+    uint16_t elementAfterReduce = GetVRegSizeDispatch() / GetUbBlockSizeDispatch();
     uint16_t loopNum = Ceil(totalCountInUB, 2 * vlForHalfNumber);
 
     __VEC_SCOPE__
@@ -97,7 +110,7 @@ template<typename T>
 __aicore__ inline void ComputeScale(__ubuf__ uint16_t* maxExpAddr, __ubuf__ uint16_t* mxScaleLocalAddr,
     __ubuf__ uint16_t* halfScaleLocalAddr, uint32_t totalScaleInUB)
 {
-    uint32_t vlForHalfNumber = platform::GetVRegSize() / sizeof(uint16_t);
+    uint32_t vlForHalfNumber = GetVRegSizeDispatch() / sizeof(uint16_t);
     uint16_t f8Emax = std::is_same<T, fp8_e4m3fn_t>::value ? FP8_E4M3_MAX_EXP : FP8_E5M2_MAX_EXP;
     uint16_t loopNumScale = Ceil(totalScaleInUB, vlForHalfNumber);
 
@@ -165,8 +178,8 @@ template <typename T, typename U, RoundMode toBf16RoundMode, RoundMode roundMode
 __aicore__ inline void ComputeData(__ubuf__ T* srcAddr, __ubuf__ uint16_t* halfScaleLocalAddr,
     __ubuf__ int8_t* outLocalAddr, uint32_t totalCountInUB)
 {
-    uint32_t vlForHalfNumber = platform::GetVRegSize() / sizeof(T);
-    uint16_t elementAfterReduce = platform::GetVRegSize() / platform::GetUbBlockSize();
+    uint32_t vlForHalfNumber = GetVRegSizeDispatch() / sizeof(T);
+    uint16_t elementAfterReduce = GetVRegSizeDispatch() / GetUbBlockSizeDispatch();
     uint32_t totalCountInUB2 = totalCountInUB * DIGIT_TWO;
     uint16_t loopNum = Ceil(totalCountInUB, 2 * vlForHalfNumber);
     __VEC_SCOPE__
@@ -263,8 +276,8 @@ template <typename T, typename U, RoundMode RMode, bool HasSmooth>
 __aicore__ inline void ComputePerTileDynamic(__ubuf__ T* srcAddr, __ubuf__ float* smoothLocalAddr,
     __ubuf__ float* scaleOutLocalAddr, __ubuf__ int8_t* outLocalAddr, uint32_t totalCountInUB)
 {
-    uint32_t vlB16 = platform::GetVRegSize() / sizeof(T);
-    uint32_t vlB32 = platform::GetVRegSize() / sizeof(float);
+    uint32_t vlB16 = GetVRegSizeDispatch() / sizeof(T);
+    uint32_t vlB32 = GetVRegSizeDispatch() / sizeof(float);
     uint16_t loopNum = Ceil(totalCountInUB, vlB16);
     uint32_t totalCntForB32 = totalCountInUB;
     float maxVal = 0.0f;
