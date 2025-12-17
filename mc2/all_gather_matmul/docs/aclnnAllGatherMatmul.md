@@ -26,24 +26,24 @@
 
 ```cpp
 aclnnStatus aclnnAllGatherMatmulGetWorkspaceSize(
-    const aclTensor *x1, 
-    const aclTensor *x2, 
-    const aclTensor *bias, 
-    const char      *group, 
-    int64_t         gatherIndex, 
-    int64_t         commTurn, 
-    int64_t         streamMode, 
-    const aclTensor *output, 
-    const aclTensor *gatherOut, 
-    uint64_t        *workspaceSize, 
+    const aclTensor *x1,
+    const aclTensor *x2,
+    const aclTensor *bias,
+    const char      *group,
+    int64_t         gatherIndex,
+    int64_t         commTurn,
+    int64_t         streamMode,
+    const aclTensor *output,
+    const aclTensor *gatherOut,
+    uint64_t        *workspaceSize,
     aclOpExecutor   **executor)
 ```
 
 ```cpp
 aclnnStatus aclnnAllGatherMatmul(
-    void          *workspace, 
-    uint64_t       workspaceSize, 
-    aclOpExecutor *executor, 
+    void          *workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
     aclrtStream    stream)
 ```
 
@@ -53,10 +53,10 @@ aclnnStatus aclnnAllGatherMatmul(
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 330px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
+      <col style="width: 300px">
+      <col style="width: 330px">
+      <col style="width: 212px">
+      <col style="width: 100px">
       <col style="width: 190px">
       <col style="width: 145px">
       </colgroup>
@@ -76,7 +76,7 @@ aclnnStatus aclnnAllGatherMatmul(
           <td>x1</td>
           <td>输入</td>
           <td>Device侧的aclTensor，即计算公式中的x1。</td>
-          <td><li>不支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持两维shape输入，且仅支持不转置场景。</li></td>
+          <td><li>不支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持二维shape输入，且仅支持不转置场景。</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -86,7 +86,7 @@ aclnnStatus aclnnAllGatherMatmul(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，即计算公式中的x2。</td>
-          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
+          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -467,7 +467,7 @@ aclnnStatus aclnnAllGatherMatmul(
             args[rankId].rankId = rankId;
             args[rankId].hcclComm = comms[rankId];
             args[rankId].stream = stream[rankId];
-            threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_AllGatherMm, std::ref(args [rankId])));    
+            threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_AllGatherMm, std::ref(args [rankId])));
         }
         for (uint32_t rankId = 0; rankId < DEV_NUM; rankId++) {
             threads[rankId]->join();

@@ -115,7 +115,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持两维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -261,8 +261,8 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
 
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
-    第一段接口完成入参校验，出现以下场景时报错：
+    <p>aclnnStatus：返回状态码，具体参见<a href="../../../docs/zh/context/aclnn返回码.md">aclnn返回码</a>。</p>
+    <p>第一段接口完成入参校验，出现以下场景报错：</p>
     <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
     <col style="width: 250px">
     <col style="width: 130px">
@@ -349,7 +349,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV3(
 - int8低bit通信仅在通信bound的情况下存在性能收益，计算bound的情况不建议使能int8低bit通信，即不建议输入commQuantScale1和commQuantScale2。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
     ```Cpp
