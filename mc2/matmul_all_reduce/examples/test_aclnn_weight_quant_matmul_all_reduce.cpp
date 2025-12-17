@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
         args[rankId].stream = stream[rankId];
         args[rankId].context = context[rankId];
         threads[rankId].reset(
-                new(std::nothrow) std::thread(&launchOneThreadweightQuantmatmulAllReduce, std::ref(args [rankId])));
+                new(std::nothrow) std::thread(&launchOneThreadweightQuantmatmulAllReduce, std::ref(args[rankId])));
     }
     for (uint32_t rankId = 0; rankId < static_cast<uint32_t>(ndev); rankId++) {
         threads[rankId]->join();

@@ -411,7 +411,7 @@ aclnnStatus aclnnMatmulReduceScatter(
             args[rankId].rankId = rankId;
             args[rankId].hcclComm = comms[rankId];
             args[rankId].stream = stream[rankId];
-            threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_MmReduceScatter, std::ref(args [rankId])));
+            threads[rankId].reset(new(std::nothrow) std::thread(&launchOneThread_MmReduceScatter, std::ref(args[rankId])));
         }
         for (uint32_t rankId = 0; rankId < DEV_NUM; rankId++) {
             threads[rankId]->join();
