@@ -14,8 +14,8 @@ import logging
 import torch
 import torch_npu
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 def check_diff(x, y):
     diff = torch.abs(x - y)
@@ -53,7 +53,7 @@ def profiling(model, inputs, mode):
 
         logger.info(
             ">>>> %s IMPL TIME ELAPSED: %.1f us",
-            profile_type,
+            mode,
             elapsed / repeat * 1000,
         )
 

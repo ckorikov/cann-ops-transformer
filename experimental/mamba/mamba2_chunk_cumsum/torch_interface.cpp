@@ -87,8 +87,8 @@ __global__ __aicore__ void kernel_cust_chunk_cumsum(GM_ADDR at_mtx, GM_ADDR dt_m
     }
 }  
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor>
-mambav2_chunk_cumsum(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Tensor &dt_mask){
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> mambav2_chunk_cumsum(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Tensor &dt_mask){
     auto ascendcPlatform = platform_ascendc::PlatformAscendCManager::GetInstance();
     uint32_t blockDims = 20;
     int devidx = dt.device().index();
@@ -109,15 +109,10 @@ mambav2_chunk_cumsum(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Te
     void* aclstream = stream.stream();
 
     // === initialize output ===
-
     auto opts = dt.options().dtype(torch::kFloat32);
     at::Tensor dt_out = torch::empty({B, C, L, H}, opts);
     at::Tensor dacs_out = torch::empty({B, C, L, H}, opts);
     at::Tensor dacs_chunk_out = torch::empty({B, C, 1, H}, opts);
-    
-    // std::cout << dt.options() << std::endl;
-    // std::cout << opts << std::endl;
-
 
     // === workspace ===
     auto userWorkspaceSize = 1024;
@@ -144,8 +139,8 @@ mambav2_chunk_cumsum(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Te
     return std::make_tuple(dt_out, dacs_out, dacs_chunk_out);
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> 
-mambav2_chunk_cumsum_meta(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Tensor &dt_mask)
+ 
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> mambav2_chunk_cumsum_meta(at::Tensor &at, at::Tensor &dt, at::Tensor &dt_bias, at::Tensor &dt_mask)
 {
     TORCH_CHECK(at.defined(), "Input tensor at must be defined");
     TORCH_CHECK(dt.defined(), "Input tensor dt must be defined");
