@@ -12,13 +12,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTOR ${PROJECT_SOURCE_DIR}/build)
 
 file(GLOB_RECURSE OP_API_FILES "*.cpp")
 
-add_library(opapi SHARED ${OP_API_FILES})
-
-target_compile_definitions(opapi PRIVATE
-    _GLIBCXX_USE_CXX11_ABI=0
-    LOG_CPP
-)
-
-target_include_directories(opapi PRIVATE
-    ${OPAPI_INCLUDE}
-)
+if (NOT ENABLE_STATIC)
+    target_sources(${OPHOST_NAME}_opapi_obj PRIVATE ${OP_API_FILES})
+endif()

@@ -7,9 +7,13 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
+#include <algorithm>
 
-#include "aclnn_distribute_barrier_common.h"
 #include "aclnn_distribute_barrier_v2.h"
+#include "aclnn_kernels/common/op_error_check.h"
+#include "op_mc2_def.h"
+#include "opdev/common_types.h"
+#include "opdev/op_log.h"
 
 using namespace op;
 
@@ -17,16 +21,33 @@ using namespace op;
 extern "C" {
 #endif
 
+enum NnopbaseHcclServerType : uint32_t {
+  NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+  NNOPBASE_HCCL_SERVER_TYPE_MTE,
+  NNOPBASE_HCCL_SERVER_TYPE_END
+};
+
+extern aclnnStatus aclnnInnerDistributeBarrierGetWorkspaceSize(
+    const aclTensor* xRef, const aclTensor* timeOut,
+    const aclTensor* elasticInfo, const char* group,
+    int64_t worldSize, uint64_t* workspaceSize,
+    aclOpExecutor** executor);
+extern aclnnStatus aclnnInnerDistributeBarrier(void* workspace,
+                                               uint64_t workspaceSize,
+                                               aclOpExecutor* executor,
+                                               aclrtStream stream);
+extern "C" void __attribute__((weak))
+NnopbaseSetHcclServerType(void* executor, NnopbaseHcclServerType sType);
+
 // check nullptr
 static bool CheckNullStatus(const aclTensor* xRef, const char* group) {
   // 检查必选入参出参为非空
-  OP_LOGD("aclnn_distribute_barrier_v2 CheckNotNull start");
   OP_CHECK_NULL(xRef, return false);
   if (group == nullptr) {
     OP_LOGE(ACLNN_ERR_PARAM_NULLPTR, "Required group name is Empty.");
     return false;
   }
-  OP_LOGD("aclnn_distribute_barrier_v2 CheckNotNull end");
+
   return true;
 }
 
@@ -43,6 +64,7 @@ static aclnnStatus CheckParams(const aclTensor* xRef, const char* group) {
     return false;
   }
   OP_LOGD("aclnn_distribute_barrier_v2 checkParams success");
+
   return ACLNN_SUCCESS;
 }
 
@@ -58,9 +80,14 @@ aclnnStatus aclnnDistributeBarrierV2GetWorkspaceSize(const aclTensor* xRef, cons
                                                      group, worldSize, workspaceSize, executor);
 }
 
-aclnnStatus aclnnDistributeBarrierV2(void* workspace, uint64_t workspaceSize, aclOpExecutor* executor,
-                                     aclrtStream stream) {
-  return aclnnDistributeBarrierCommon(workspace, workspaceSize, executor, stream);
+aclnnStatus aclnnDistributeBarrierV2(void* workspace, uint64_t workspaceSize,
+                                   aclOpExecutor* executor,
+                                   aclrtStream stream) {
+  if (NnopbaseSetHcclServerType) {
+    NnopbaseSetHcclServerType(executor, NNOPBASE_HCCL_SERVER_TYPE_MTE);
+  }
+  return aclnnInnerDistributeBarrier(workspace, workspaceSize, executor,
+                                     stream);
 }
 
 #ifdef __cplusplus
