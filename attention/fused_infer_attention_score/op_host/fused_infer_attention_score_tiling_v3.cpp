@@ -18,6 +18,7 @@
 #include "fused_infer_attention_score_tiling_info_parser.h"
 #include "../../common/op_host/arch32/fia_tiling_nonquant_mla.h"
 #include "../../common/op_host/arch32/fia_tiling_nonquant.h"
+#include "../../common/op_host/arch32/fia_tiling_empty_tensor.h"
 #include "../../common/op_host/fia_tiling_templates_registry.h"
 
 using namespace AscendC;
@@ -182,15 +183,12 @@ bool CheckGqaDSupport(gert::TilingContext *context)
     if (GetQkvD(context, queryD, queryRopeD, valueD) != true) {
         return false;
     }
-
-    // D的组合(128+0,128)(64+0,64)(128+64,128)(192+0,128)
     if ((queryD  == 128 && queryRopeD  == 0 && valueD == 128) || // 128: gqa qkvD
         (queryD  == 64 && queryRopeD  == 0 && valueD == 64) || // 64: gqa qkvD
         (queryD  == 128 && queryRopeD  == 64 && valueD == 128) || // 128: gqa qkvD, 64: mla ropeD
         (queryD  == 192 && queryRopeD  == 0 && valueD == 128)) { // 192: gqa qkD, 128: gqa valueD
         return true;
     }
-
     return false;
 }
 
@@ -257,21 +255,9 @@ bool IsEmptyTensor(gert::TilingContext *context)
 
 bool CheckGqaFeatureSupport(gert::TilingContext *context)
 {
-    auto pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
-    auto queryPaddingSize = context->GetOptionalInputTensor(QUERY_PADDING_SIZE_INDEX);
-    auto kvPaddingSize = context->GetOptionalInputTensor(KV_PADDING_SIZE_INDEX);
-    auto keySharedPrefix = context->GetOptionalInputTensor(KEY_SHARED_PREFIX_INDEX);
-    auto valueSharedPrefix = context->GetOptionalInputTensor(VALUE_SHARED_PREFIX_INDEX);
-    auto actualSharedPrefixLen = context->GetOptionalInputTensor(ACTUAL_SHARED_PREFIX_LEN_INDEX);
     auto quantScale2 = context->GetOptionalInputTensor(QUANT_SCALE2_INDEX);
     auto quantOffset2 = context->GetOptionalInputTensor(QUANT_OFFSET2_INDEX);
-    if (pseShift != nullptr ||
-        queryPaddingSize != nullptr ||
-        kvPaddingSize != nullptr ||
-        keySharedPrefix != nullptr ||
-        valueSharedPrefix != nullptr ||
-        actualSharedPrefixLen != nullptr ||
-        quantScale2 != nullptr ||
+    if (quantScale2 != nullptr ||
         quantOffset2 != nullptr) {
         return false;
     }

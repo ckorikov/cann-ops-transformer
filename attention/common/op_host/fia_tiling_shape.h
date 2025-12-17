@@ -26,7 +26,8 @@ enum class FiaCompareType : uint32_t {
     GREATER_EQUAL = 2,
     LESS = 3,
     LESS_EQUAL = 4,
-    NOT_EQUAL = 5
+    NOT_EQUAL = 5,
+    IGNORE_INPUT = 6
 };
 
 struct FiaTilingShapeCompareParam {

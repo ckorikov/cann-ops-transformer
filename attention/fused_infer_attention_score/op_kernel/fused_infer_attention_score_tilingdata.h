@@ -220,15 +220,24 @@ public:
 class FiaPseShiftTilingParam {
 public:
     uint32_t pseShiftFlag;
-    uint32_t pseShiftB;
+    uint32_t pseShiftByBatch;
+    uint32_t pseShiftS1;
+    uint32_t pseShiftS2;
+    uint32_t pseShiftB;	
     uint32_t pseShiftS;
 
     uint32_t get_pseShiftFlag() { return pseShiftFlag; }
-    uint32_t get_pseShiftB() { return pseShiftB; }
+    uint32_t get_pseShiftByBatch() { return pseShiftByBatch; }
+    uint32_t get_pseShiftS1() { return pseShiftS1; }
+    uint32_t get_pseShiftS2() { return pseShiftS2; }
+    uint32_t get_pseShiftB() { return pseShiftB; }	
     uint32_t get_pseShiftS() { return pseShiftS; }
 
     void set_pseShiftFlag(uint32_t pseShiftFlag) { this->pseShiftFlag = pseShiftFlag; }
-    void set_pseShiftB(uint32_t pseShiftB) { this->pseShiftB = pseShiftB; }
+    void set_pseShiftByBatch(uint32_t pseShiftByBatch) { this->pseShiftByBatch = pseShiftByBatch; }
+    void set_pseShiftS1(uint32_t pseShiftS1) { this->pseShiftS1 = pseShiftS1; }
+    void set_pseShiftS2(uint32_t pseShiftS2) { this->pseShiftS2 = pseShiftS2; }
+    void set_pseShiftB(uint32_t pseShiftB) { this->pseShiftB = pseShiftB; }	
     void set_pseShiftS(uint32_t pseShiftS) { this->pseShiftS = pseShiftS; }
 };
 
@@ -250,29 +259,63 @@ public:
     uint64_t userPromptAttenOutOffset;
     uint64_t tmpLseOffset;
     uint64_t prefixLen;
+    uint64_t prefixMaxLen;
     uint32_t formerCoreNum;
     uint32_t blockSplitBn2Range;
     uint32_t tailSplitedBatchRange;
     uint32_t batchSizeQ;
+    uint32_t prefixFlag;
 
     uint64_t get_prefixAttenOutOffset() { return prefixAttenOutOffset; }
     uint64_t get_userPromptAttenOutOffset() { return userPromptAttenOutOffset; }
     uint64_t get_tmpLseOffset() { return tmpLseOffset; }
     uint64_t get_prefixLen() { return prefixLen; }
+    uint64_t get_prefixMaxLen() { return prefixMaxLen; }
     uint32_t get_formerCoreNum() { return formerCoreNum; }
     uint32_t get_blockSplitBn2Range() { return blockSplitBn2Range; }
     uint32_t get_tailSplitedBatchRange() { return tailSplitedBatchRange; }
     uint32_t get_batchSizeQ() { return batchSizeQ; }
+    uint32_t get_prefixFlag() { return prefixFlag; }
 
     void set_prefixAttenOutOffset(uint64_t prefixAttenOutOffset) { this->prefixAttenOutOffset = prefixAttenOutOffset; }
     void set_userPromptAttenOutOffset(uint64_t userPromptAttenOutOffset) { this->userPromptAttenOutOffset = userPromptAttenOutOffset; }
     void set_tmpLseOffset(uint64_t tmpLseOffset) { this->tmpLseOffset = tmpLseOffset; }
     void set_prefixLen(uint64_t prefixLen) { this->prefixLen = prefixLen; }
+    void set_prefixMaxLen(uint64_t prefixMaxLen) { this->prefixMaxLen = prefixMaxLen; }
     void set_formerCoreNum(uint32_t formerCoreNum) { this->formerCoreNum = formerCoreNum; }
     void set_blockSplitBn2Range(uint32_t blockSplitBn2Range) { this->blockSplitBn2Range = blockSplitBn2Range; }
     void set_tailSplitedBatchRange(uint32_t tailSplitedBatchRange) { this->tailSplitedBatchRange = tailSplitedBatchRange; }
     void set_batchSizeQ(uint32_t batchSizeQ) { this->batchSizeQ = batchSizeQ; }
+    void set_prefixFlag(uint32_t prefixFlag) { this->prefixFlag = prefixFlag; }
 };
+
+// 空tensor 参数
+class FiaEmptyTensorTilingParam {
+public:
+    uint64_t totalOutputSize;
+    uint64_t singleCoreSize;
+    uint64_t totalLseSize;
+    uint64_t singleCoreLseSize;
+    uint32_t usedCoreNum;
+    uint32_t softmaxLseFlag;
+    uint32_t headDim;
+
+    uint64_t get_totalOutputSize() { return totalOutputSize; }
+    uint64_t get_singleCoreSize() { return singleCoreSize; }
+    uint64_t get_totalLseSize() { return totalLseSize; }
+    uint64_t get_singleCoreLseSize() { return singleCoreLseSize; }
+    uint32_t get_usedCoreNum() { return usedCoreNum; }
+    uint32_t get_softmaxLseFlag() { return softmaxLseFlag; }
+    uint32_t get_headDim() { return headDim; }
+
+    void set_totalOutputSize(uint64_t totalOutputSize) { this->totalOutputSize = totalOutputSize; }
+    void set_singleCoreSize(uint64_t singleCoreSize) { this->singleCoreSize = singleCoreSize; }
+    void set_totalLseSize(uint64_t totalLseSize) { this->totalLseSize = totalLseSize; }
+    void set_singleCoreLseSize(uint64_t singleCoreLseSize) { this->singleCoreLseSize = singleCoreLseSize; }
+    void set_usedCoreNum(uint32_t usedCoreNum) { this->usedCoreNum = usedCoreNum; }
+    void set_softmaxLseFlag(uint32_t softmaxLseFlag) { this->softmaxLseFlag = softmaxLseFlag; }
+    void set_headDim(uint32_t headDim) { this->headDim = headDim; }
+}
 
 // L2 Cache 参数
 class FiaL2CacheTilingParam {
