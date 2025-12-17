@@ -102,6 +102,9 @@ void FiaTilingCheck::Init()
 
 ge::graphStatus FiaTilingCheck::Process()
 {
+    if (fiaInfo_.emptyTensorFlag) {
+        return ge::GRAPH_SUCCESS;
+    }
     Init();
     if (CheckSinglePara() != ge::GRAPH_SUCCESS ||
         CheckParaExistence() != ge::GRAPH_SUCCESS ||

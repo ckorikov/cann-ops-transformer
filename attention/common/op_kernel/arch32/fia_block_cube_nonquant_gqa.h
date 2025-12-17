@@ -470,7 +470,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::UpdateKey(uint32_t
     InitKeyGm(bIdx);
     uint64_t s2Size = fa_base_kernel::SeqLenFromTensorList<KV_LAYOUT_T>(keyPtr, bIdx);
     keyGmTensor.gmTensor = keyGm;
-    keyGmTensor.offsetCalculator.Init(0, constInfo.kvHeadNum, s2Size, constInfo.headDim);
+    keyGmTensor.offsetCalculator.Init(0, constInfo.kvHeadNum, s2Size, constInfo.headDim, actualSeqLengthsGm, constInfo.actualLenDims);
 }
 
 template <typename FIAT, typename Config>
@@ -481,7 +481,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::UpdateValue(uint32
     InitValueGm(bIdx);
     uint64_t s2Size = fa_base_kernel::SeqLenFromTensorList<KV_LAYOUT_T>(valuePtr, bIdx);
     valueGmTensor.gmTensor = valueGm;
-    valueGmTensor.offsetCalculator.Init(0, constInfo.kvHeadNum, s2Size, constInfo.headDim);
+    valueGmTensor.offsetCalculator.Init(0, constInfo.kvHeadNum, s2Size, constInfo.headDim, actualSeqLengthsGm, constInfo.actualLenDims);
 }
 
 template <typename FIAT, typename Config>
@@ -496,9 +496,21 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::Init(
             __gm__ uint8_t *actualSharedPrefixLen, __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope,
             __gm__ uint8_t *keyRopeAntiquantScale, __gm__ uint8_t *attentionOut, __gm__ uint8_t *softmaxLse)
 {
-    uint32_t qkTensorD = constInfo.ropeSplitMode ? constInfo.headDim : (constInfo.headDim + constInfo.headDimRope);
+    // 先初始化基础参数
+    if (constInfo.actualLenQDims != 0) {
+        actualSeqLengthsGmQ.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengthsQ, constInfo.actualLenQDims);
+        this->actualSequenceLengthsQ = actualSeqLengthsQ;
+    }
+    if (constInfo.actualLenDims != 0) {
+        actualSeqLengthsGm.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengths, constInfo.actualLenDims);
+        this->actualSeqLengths = actualSeqLengths;
+    }
+    if constexpr (PAGE_ATTENTION) {
+        blockTableGm.SetGlobalBuffer((__gm__ int32_t *)blockTable);
+    }
 
-    // init global buffer
+    // 再初始化复杂参数
+    uint32_t qkTensorD = constInfo.ropeSplitMode ? constInfo.headDim : (constInfo.headDim + constInfo.headDimRope);
     queryGm.SetGlobalBuffer((__gm__ Q_T *)query);
     {
         queryGmTensor.gmTensor = queryGm;
@@ -541,7 +553,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::Init(
         } else {
             if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      constInfo.headDimRope);
+                                                      constInfo.headDimRope, actualSeqLengthsGm, constInfo.actualLenDims);
             } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDimRope, actualSeqLengthsGm,
                                                       constInfo.actualLenDims);
@@ -569,7 +581,7 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::Init(
             } else {
                 if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                     keyGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      qkTensorD);
+                                                      qkTensorD, actualSeqLengthsGm, constInfo.actualLenDims);
                 } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                     keyGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, qkTensorD, actualSeqLengthsGm,
                                                       constInfo.actualLenDims);
@@ -593,25 +605,13 @@ __aicore__ inline void FiaBlockCubeNonQuantGqa<FIAT, Config>::Init(
             } else {
                 if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                     valueGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                        constInfo.headDim);
+                                                        constInfo.headDim, actualSeqLengthsGm, constInfo.actualLenDims);
                 } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                     valueGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDim, actualSeqLengthsGm,
                                                         constInfo.actualLenDims);
                 }
             }
         }
-    }
-
-    if (constInfo.actualLenQDims != 0) {
-        actualSeqLengthsGmQ.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengthsQ, constInfo.actualLenQDims);
-        this->actualSequenceLengthsQ = actualSeqLengthsQ;
-    }
-    if (constInfo.actualLenDims != 0) {
-        actualSeqLengthsGm.SetGlobalBuffer((__gm__ uint64_t *)actualSeqLengths, constInfo.actualLenDims);
-        this->actualSeqLengths = actualSeqLengths;
-    }
-    if constexpr (PAGE_ATTENTION) {
-        blockTableGm.SetGlobalBuffer((__gm__ int32_t *)blockTable);
     }
 }
 
