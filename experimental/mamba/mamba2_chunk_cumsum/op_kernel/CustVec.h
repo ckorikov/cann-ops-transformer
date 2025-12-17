@@ -23,7 +23,7 @@ constexpr int BLK_SIZE = BASEL * SUB_BASEH;
 constexpr float COMPARE_VALUE = 20.0;
 constexpr float CLAMP_MAX = 10000000.0f;
 
-struct CustVecShapeInfo{
+struct CustVecShapeInfo {
     int nstepsH;
     int BCH;
     int BCH_PER_CORE;
@@ -95,10 +95,10 @@ public:
         out_empty.setall();
         
         cc_cnt = 0;
-        auto castParamsH2F = CastHalf2FloatRepeatParams();
-        auto castParamsF2H = CastFloat2HalfRepeatParams();
-        auto unaryParams = MakeDefaultUnaryRepeatParams();
-        auto binaryParams = MakeDefaultBinaryRepeatParams();
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
 
         for (int bch=shape.BCH1; bch<shape.BCH2; ++bch){
             int b = (bch / (shape.C * shape.nstepsH));
@@ -111,7 +111,7 @@ public:
                 
                 out_empty.wait();
                 in_ready.wait();
-                Process_dacs();
+                Process_dacs(l);
                 in_empty.set();
                 out_ready.set();
 
@@ -134,16 +134,16 @@ public:
         GM2UB(dtmask_buf.get(cc_cnt), dtmask_mtx[((((((b * shape.C) + c) * shape.L) * shape.H) + (l * shape.H)) + (h + ((get_subblockid() * SUB_BASEH))))], BASEL, SUB_BASEH/MTE_HALF, ((shape.H - SUB_BASEH) / MTE_HALF), 0);
     }
 
-    __aicore__ inline void Process_dacs(){
+    __aicore__ inline void Process_dacs(int l){
         if ((cc_cnt == 0)){
             Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, N_DBLK_FLOAT);
             PipeBarrier<PIPE_V>();
             Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
             PipeBarrier<PIPE_V>();
         }
-        Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, castParamsH2F);
-        Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, castParamsH2F);
-        Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, castParamsH2F);
+        Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, cast_params_h2f);
+        Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, cast_params_h2f);
+        Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, cast_params_h2f);
         PipeBarrier<PIPE_V>();
         auto custparam = MakeDefaultBinaryRepeatParams();
         custparam.src1RepStride = 0; // {1,1,1,8,8,0}
@@ -153,19 +153,19 @@ public:
         PipeBarrier<PIPE_V>();
         UB2UB(cc_tmp0, cc_tmp1, BASEL, SUB_BASEH/MTE_FLOAT, 0, 0);
         PipeBarrier<PIPE_V>();
-        Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
+        Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
+        Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unaryParams);
+        Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, VEC_FLOAT, BLK_SIZE/VEC_FLOAT, binaryParams);
+        Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, VEC_FLOAT, BLK_SIZE/VEC_FLOAT, binary_params);
         PipeBarrier<PIPE_V>();
         CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, CLAMP_MAX, CMPMODE::LT, BLK_SIZE);
         PipeBarrier<PIPE_V>();
         Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX), SELMODE::VSEL_TENSOR_SCALAR_MODE, BLK_SIZE);
         PipeBarrier<PIPE_V>();
-        Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, binaryParams);
+        Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, binary_params);
         PipeBarrier<PIPE_V>();
         Mul<float, false>(cc_tmp0, out1buf.get(cc_cnt), at_buf.get(cc_cnt), MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, custparam);
         PipeBarrier<PIPE_V>();
@@ -197,6 +197,11 @@ private:
     CustVecShapeInfo shape;
     // Global Params
     int cc_cnt; 
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
+
     // Global Tensors
     GlobalTensor<float> at_mtx;
     GlobalTensor<half> dt_mtx;
@@ -227,6 +232,5 @@ private:
     DEvent<PIPE_MTE3, PIPE_V> out_empty;
     // User-defined events
 };
-// Auto-generated code. Readability is not guaranteed
 } // namespace Mambav2ChunkCumsum
 } // namespace npu_ops_transformer_ext
