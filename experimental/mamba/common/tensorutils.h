@@ -429,21 +429,6 @@ __aicore__ inline void L0C2GM_NZ2ND(GlobalTensor<T> dst, LocalTensor<T2> src, in
     Fixpipe(dst, src, fixpipeParams);
 }
 
-
-template <typename T, typename T2>
-__aicore__ inline void L0C2UB_NZ2ND(LocalTensor<T> dst, LocalTensor<T2> src, int m, int n, int N, int nz_M, int dualMode, bool subBlkId){
-    QuantMode_t q;
-    if constexpr(std::is_same<T, float>::value && std::is_same<T2, float>::value){
-        q = NoQuant; 
-    }else if constexpr(std::is_same<T, half>::value && std::is_same<T2, float>::value){
-        q = F322F16;
-    }else if constexpr(std::is_same<T, bfloat16_t>::value && std::is_same<T2, float>::value){
-        q = F322BF16;
-    }else{
-        q = NoQuant;
-    }
-}
-
 template <typename T1, typename T2, typename T3>
 __aicore__ inline void MMAD(LocalTensor<T1> dst, LocalTensor<T2> src0, LocalTensor<T3> src1, uint16_t m, uint16_t k, uint16_t n, bool cmatrixInitVal, uint8_t unitFlag){
     MmadParams param;

@@ -14,13 +14,16 @@
 namespace npu_ops_transformer_ext{
 using namespace AscendC;
 
+constexpr int STRIDE_FLOAT = 8;
+constexpr int CAST_STRIDE_HALF = 4;
+
 __aicore__ inline UnaryRepeatParams MakeDefaultUnaryRepeatParams()
 {
     UnaryRepeatParams p;
     p.dstBlkStride = 1;
     p.srcBlkStride = 1;
-    p.dstRepStride = 8;
-    p.srcRepStride = 8;
+    p.dstRepStride = STRIDE_FLOAT;
+    p.srcRepStride = STRIDE_FLOAT;
     return p;
 }
 
@@ -29,8 +32,8 @@ __aicore__ inline UnaryRepeatParams CastHalf2FloatRepeatParams()
     UnaryRepeatParams p;
     p.dstBlkStride = 1;
     p.srcBlkStride = 1;
-    p.dstRepStride = 8;
-    p.srcRepStride = 4;
+    p.dstRepStride = STRIDE_FLOAT;
+    p.srcRepStride = CAST_STRIDE_HALF;
     return p;
 }
 
@@ -39,8 +42,8 @@ __aicore__ inline UnaryRepeatParams CastFloat2HalfRepeatParams()
     UnaryRepeatParams p;
     p.dstBlkStride = 1;
     p.srcBlkStride = 1;
-    p.dstRepStride = 4;
-    p.srcRepStride = 8;
+    p.dstRepStride = CAST_STRIDE_HALF;
+    p.srcRepStride = STRIDE_FLOAT;
     return p;
 }
 
@@ -50,9 +53,9 @@ __aicore__ inline BinaryRepeatParams MakeDefaultBinaryRepeatParams()
     p.dstBlkStride = 1;
     p.src0BlkStride = 1;
     p.src1BlkStride = 1;
-    p.dstRepStride = 8;
-    p.src0RepStride = 8;
-    p.src1RepStride = 8;
+    p.dstRepStride = STRIDE_FLOAT;
+    p.src0RepStride = STRIDE_FLOAT;
+    p.src1RepStride = STRIDE_FLOAT;
     return p;
 }
 
