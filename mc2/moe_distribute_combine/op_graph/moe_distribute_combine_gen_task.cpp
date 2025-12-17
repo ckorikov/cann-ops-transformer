@@ -99,7 +99,7 @@ ge::Status MoeDistributeCombineGenTaskFunc(const gert::ExeResGenerationContext *
 IMPL_OP_CT(MoeDistributeCombine)
     .CalcOpParam(MoeDistributeCombineCalcParamFunc)
     .GenerateTask(MoeDistributeCombineGenTaskFunc);
-    
+
 REGISTER_EXT_TASK_TYPE(MoeDistributeCombine, fe::ExtTaskType::kAicoreTask);
 #endif
 } // namespace ops

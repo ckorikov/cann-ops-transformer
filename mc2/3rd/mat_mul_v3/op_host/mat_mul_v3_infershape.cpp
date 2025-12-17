@@ -187,5 +187,5 @@ static ge::graphStatus InferShapeForMatMulV3(InferShapeContext* context)
     return ge::GRAPH_SUCCESS;
 }
 
-IMPL_OP_INFERSHAPE(MatMulV3).InferShape(InferShapeForMatMulV3);
+IMPL_OP_INFERSHAPE(Mc2MatMulV3).InferShape(InferShapeForMatMulV3);
 } // namespace

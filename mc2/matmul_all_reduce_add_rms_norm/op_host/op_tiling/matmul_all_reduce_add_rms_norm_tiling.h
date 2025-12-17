@@ -15,15 +15,15 @@
 
 #ifndef _MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
 #define _MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
-#include "../../../matmul_all_reduce/op_host/op_tiling/matmul_all_reduce_tiling_910.h"
+#include "../../../matmul_all_reduce/op_host/op_tiling/arch32/matmul_all_reduce_tiling_910.h"
 #include "common_add_rms_norm_tiling.h"
 #include "context_transfer.h"
 
 namespace optiling {
 BEGIN_TILING_DATA_DEF(MatmulAllReduceAddRmsNormTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(MatmulAllReduce910TilingData, matmulAllReduceTilingData);
-TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingData, addRMSNormTileTilingData);
-TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingData, addRMSNormTailTilingData);
+TILING_DATA_FIELD_DEF_STRUCT(MC2AddRMSNormTilingData, addRMSNormTileTilingData);
+TILING_DATA_FIELD_DEF_STRUCT(MC2AddRMSNormTilingData, addRMSNormTailTilingData);
 TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingeKeyData, addRmsNormTilingeKeyData);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MatmulAllReduceAddRmsNorm, MatmulAllReduceAddRmsNormTilingData)

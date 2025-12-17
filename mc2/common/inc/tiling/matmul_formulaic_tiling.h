@@ -17,7 +17,7 @@
 
 #pragma once
 #include "graph/ge_error_codes.h"
-#include "../kernel/all_gather_matmul_tiling.h"
+#include "../kernel/mc2_tiling_struct.h"
 #include "register/tilingdata_base.h"
 #include "mc2_tiling_struct.h"
 #include "tiling/tiling_api.h"
@@ -89,6 +89,7 @@ enum class AicpuComType {
   HCCL_CMD_REDUCE_SCATTER,
   HCCL_CMD_ALLTOALLV,
   HCCL_CMD_ALLTOALLVC,
+  HCCL_CMD_ALLTOALL,
   HCCL_CMD_GATHER,
   HCCL_CMD_HALFALLTOALLV = 20,
   HCCL_CMD_MAX
@@ -162,6 +163,7 @@ struct TilingArgs {
   uint64_t orgMValue;
   uint64_t orgNValue;
   uint64_t orgKValue;
+  uint64_t batchValue;
   uint64_t mValue;
   uint64_t kValue;
   uint64_t nValue;
@@ -278,7 +280,7 @@ class MatmulFormulaicTiling {
     socInfo_.socVersion = version;
   }
   ge::graphStatus GetCubeTiling(TilingArgs &args, ::TCubeTiling &cubeTiling,
-                                ::TileL2Tiling &tileL2Tiling);
+                                Mc2Tiling::TileL2Tiling &tileL2Tiling);
   ge::graphStatus GetCubeTiling(TilingArgs &args,
                                 optiling::TCubeTiling &cubeTiling,
                                 optiling::TileL2Tiling &tileL2Tiling);
