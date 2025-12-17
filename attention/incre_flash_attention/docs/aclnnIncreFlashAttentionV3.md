@@ -229,7 +229,7 @@ aclnnStatus aclnnIncreFlashAttentionV3(
         <td>antiquantScale</td>
         <td>输入</td>
         <td>量化因子。</td>
-        <td><ul><li>支持空Tensor。</li><li>持per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
+        <td><ul><li>支持空Tensor。</li><li>支持per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
         <td>FLOAT16、BFLOAT16</td>
         <td>-</td>
         <td><ul><li>(2, N, 1, D)</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>
@@ -239,7 +239,7 @@ aclnnStatus aclnnIncreFlashAttentionV3(
         <td>antiquantOffset</td>
         <td>输入</td>
         <td>输出量化的量化因子。</td>
-        <td><ul><li>支持空Tensor。</li><li>持per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
+        <td><ul><li>支持空Tensor。</li><li>支持per-channel（list），由shape决定，BNSD场景下shape为(2, N, 1, D)，BSH场景下shape为(2, H)，BSND场景下shape为(2, N, D)。</li></ul></td>
         <td>FLOAT16、BFLOAT16</td>
         <td>ND</td>
         <td><ul><li>(2, N, 1, D)</li><li>(2, H)</li><li>(2, N, D)</li><li>(2)</li></ul></td>

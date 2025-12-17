@@ -198,9 +198,9 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>ND</td>
             <td>
             <ul>
-                <li>spareseMode = 2、3、4时，attenMaskOptional的shape需要为（2048,2048）或（1,2048,2048）或（1,1,2048,2048）。</li>
-                <li>spareseMode为其他值且Q_S不为1时建议shape输入 (Q_S,KV_S); (B,Q_S,KV_S); (1,Q_S,KV_S); (B,1,Q_S,KV_S); (1,1,Q_S,KV_S)。</li>
-                <li>spareseMode为其他值且Q_S为1时建议shape输入(B,KV_S); (B,1,KV_S); (B,1,1,KV_S)。</li>
+                <li>sparseMode = 2、3、4时，attenMaskOptional的shape需要为（2048,2048）或（1,2048,2048）或（1,1,2048,2048）。</li>
+                <li>sparseMode为其他值且Q_S不为1时建议shape输入 (Q_S,KV_S); (B,Q_S,KV_S); (1,Q_S,KV_S); (B,1,Q_S,KV_S); (1,1,Q_S,KV_S)。</li>
+                <li>sparseMode为其他值且Q_S为1时建议shape输入(B,KV_S); (B,1,KV_S); (B,1,1,KV_S)。</li>
             </ul>
             </td>
             <td>×</td>
@@ -282,7 +282,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>quantOffset2Optional</td>
             <td>可选输入</td>
-            <td>表示对输出结果进行量化的偏移，配置此项为非对称量化，反之为非对称量化</td>
+            <td>表示对输出结果进行量化的偏移，配置此项为对称量化，反之为非对称量化</td>
             <td>支持per-tensor、per-channel类型与shape与quantScale2Optional保持一致。</td>
             <td>FLOAT32、BFLOAT16</td>
             <td>ND</td>
@@ -303,7 +303,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>antiquantOffsetOptional</td>
             <td>可选输入</td>
             <td>表示对key/value进行伪量化的偏移，配置此项为非对称量化，反之为非对称量化</td>
-            <td>支持per-tensor、per-channel、per-tokenshape与antiquantScaleOptional保持一致。</td>
+            <td>支持per-tensor、per-channel、per-token shape与antiquantScaleOptional保持一致。</td>
             <td>与antiquantScaleOptional保持一致</td>
             <td>ND</td>
             <td>与antiquantScaleOptional保持一致</td>
@@ -545,7 +545,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
         <tr>
             <td>inputLayout</td>
             <td>可选输入</td>
-            <td>用于标识输入query、key、value的数据排布格式，当该字段包含“_”时，表示“输入layout_输出layput”</td>
+            <td>用于标识输入query、key、value的数据排布格式，当该字段包含“_”时，表示“输入layout_输出layout”</td>
             <td>
             <ul>
                 <li>Q_S=1:BSH、BSND、BNSD。</li>
