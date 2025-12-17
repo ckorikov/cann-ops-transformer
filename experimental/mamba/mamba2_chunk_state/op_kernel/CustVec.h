@@ -120,31 +120,39 @@ public:
                     for (int madh=0; madh<shape.BASEH; madh+=1){
                         in_empty.wait();
                         if ((madh == 0)){
-                            GM2UB(da.get(cs_cnt), da_out[(((get_block_idx() * shape.L) * 8) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / (int)8), 0, 0);
+                            GM2UB(da.get(cs_cnt), da_out[(((get_block_idx() * shape.L) * shape.BASEH) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / (int)MTE_FLOAT), 0, 0);
                         }
                         if (((madh % shape.group_size) == 0)){
-                            GM2UB(bt_half.get(cs_cnt3), bt_mtx[(((((b * (((shape.C * shape.L) * shape.G) * shape.N)) + (c * ((shape.L * shape.G) * shape.N))) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * (shape.G * shape.N))) + (((int)((h * shape.BASEH) + madh) / (int)shape.group_size) * shape.N)) + madn)], shape.subvec_L, ((int)shape.BASEN / (int)16), ((int)((shape.G * shape.N) - shape.BASEN) / (int)16), 0);
+                            GM2UB(bt_half.get(cs_cnt3), bt_mtx[(((((b * (((shape.C * shape.L) * shape.G) * shape.N)) + (c * ((shape.L * shape.G) * shape.N))) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * (shape.G * shape.N))) + (((int)((h * shape.BASEH) + madh) / (int)shape.group_size) * shape.N)) + madn)], shape.subvec_L, ((int)shape.BASEN / (int)MTE_HALF), ((int)((shape.G * shape.N) - shape.BASEN) / (int)MTE_HALF), 0);
                         }
                         in_ready.set();
                         out_empty.wait();
                         in_ready.wait();
                         if ((madh == 0)){
-                            Brcb(da_brcb.get(cs_cnt), da.get(cs_cnt), shape.subvec_L, {1, 8});
+                            Brcb(da_brcb.get(cs_cnt), da.get(cs_cnt), shape.subvec_L, {1, NUM_DBLK_FLOAT});
                             PipeBarrier<PIPE_V>();
                         }
                         if (((madh % shape.group_size) == 0)){
-                            Cast<float, half, false>(bt_fp32.get(cs_cnt3), bt_half.get(cs_cnt3), RoundMode::CAST_NONE, MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEN) / (int)64), {1, 1, 8, 4});
+                            Cast<float, half, false>(bt_fp32.get(cs_cnt3), bt_half.get(cs_cnt3), RoundMode::CAST_NONE, MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEN) / (int)VEC_FLOAT), cast_params_h2f);
                             PipeBarrier<PIPE_V>();
                         }
+                        auto custparam1 = MakeDefaultBinaryRepeatParams();
+                        custparam1.dstBlkStride = (uint8_t)((int)shape.BASEN / (int)8); 
+                        custparam1.src0BlkStride = (uint8_t)((int)shape.BASEN / (int)8);
+                        custparam1.src1BlkStride = (uint8_t)((int)(8 * shape.BASEH) / (int)8);
+                        custparam1.dstRepStride = (uint8_t)((int)(8 * shape.BASEN) / (int)8);
+                        custparam1.src0RepStride = (uint8_t)((int)(8 * shape.BASEN) / (int)8);
+                        custparam1.src1RepStride = (uint8_t)((int)(64 * shape.BASEH) / (int)8)；
+
                         for (int rb=0; rb<shape.BASEN; rb+=8){
-                            Mul<float, false>(out_fp32.get(cs_cnt2)[rb], bt_fp32.get(cs_cnt3)[rb], da_brcb.get(cs_cnt)[(madh * 8)], MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEH) / (int)64), {(uint8_t)((int)shape.BASEN / (int)8), (uint8_t)((int)shape.BASEN / (int)8), (uint8_t)((int)(8 * shape.BASEH) / (int)8), (uint8_t)((int)(8 * shape.BASEN) / (int)8), (uint8_t)((int)(8 * shape.BASEN) / (int)8), (uint8_t)((int)(64 * shape.BASEH) / (int)8)});
+                            Mul<float, false>(out_fp32.get(cs_cnt2)[rb], bt_fp32.get(cs_cnt3)[rb], da_brcb.get(cs_cnt)[(madh * NUM_DBLK_FLOAT)], MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEH) / (int)VEC_FLOAT), custparam1);
                             PipeBarrier<PIPE_V>();
                         }
-                        Cast<half, float, false>(out_half.get(cs_cnt2), out_fp32.get(cs_cnt2), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEN) / (int)64), {1, 1, 4, 8});
+                        Cast<half, float, false>(out_half.get(cs_cnt2), out_fp32.get(cs_cnt2), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEN) / (int)VEC_FLOAT), cast_params_f2h);
                         in_empty.set();
                         out_ready.set();
                         out_ready.wait();
-                        UB2GM(vec_out[(((((ws_cnt % 3) * (((GetBlockNum() * 8) * shape.L) * shape.BASEN)) + (((get_block_idx() * 8) * shape.L) * shape.BASEN)) + ((madh * shape.L) * shape.BASEN)) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEN))], out_half.get(cs_cnt2), shape.subvec_L, ((int)shape.BASEN / (int)16), 0, 0);
+                        UB2GM(vec_out[(((((ws_cnt % THREE) * (((GetBlockNum() * shape.BASEH) * shape.L) * shape.BASEN)) + (((get_block_idx() * shape.BASEH) * shape.L) * shape.BASEN)) + ((madh * shape.L) * shape.BASEN)) + (((rp * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.BASEN))], out_half.get(cs_cnt2), shape.subvec_L, ((int)shape.BASEN / (int)MTE_HALF), 0, 0);
                         out_empty.set();
                         cs_cnt2 = (cs_cnt2 + 1);
                         if ((((madh + 1) % shape.group_size) == 0)){
