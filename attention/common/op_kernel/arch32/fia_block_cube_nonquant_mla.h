@@ -268,7 +268,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
             } else {
                 if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                     keyGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      qkTensorD);
+                                                      qkTensorD, actualSeqLengthsGm, constInfo.actualLenDims);
                 } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                     keyGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, qkTensorD, actualSeqLengthsGm,
                                                       constInfo.actualLenDims);
@@ -289,7 +289,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
         } else {
             if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                 valueGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                    constInfo.headDim);
+                                                    constInfo.headDim, actualSeqLengthsGm, constInfo.actualLenDims);
             } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                 valueGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDim, actualSeqLengthsGm,
                                                     constInfo.actualLenDims);
@@ -326,7 +326,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
         } else {
             if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      constInfo.headDimRope);
+                                                      constInfo.headDimRope, actualSeqLengthsGm, constInfo.actualLenDims);
             } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDimRope,
                                                       actualSeqLengthsGm, constInfo.actualLenDims);
