@@ -254,6 +254,7 @@ public:
             GM2UB(x_half.get(v1_cnt2), xmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], shape.BASEL, ((int)shape.P / (int)MTE_HALF), ((int)((shape.H - 1) * shape.P) / (int)MTE_HALF), 0);
             in_ready.set();
             tensor_in_ready.set();
+            
             out_empty.wait();
             in_ready.wait();
             tensor_out_empty.wait();
@@ -278,6 +279,7 @@ public:
             in_empty.set();
             tensor_out_ready.set();
             tensor_in_empty.set();
+
             out_ready.wait();
             tensor_out_ready.wait();
             UB2GM(sumoutmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], sumout.get(v1_cnt2), shape.BASEL, ((int)shape.P / (int)MTE_FLOAT), 0, ((int)((shape.H - 1) * shape.P) / (int)MTE_FLOAT));
