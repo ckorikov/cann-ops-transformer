@@ -440,6 +440,58 @@ static aclnnStatus InputDtypeCheck(const aclTensor *query, const aclTensor *key,
     return ACLNN_SUCCESS;
 }
 
+static inline bool CheckFormat(
+    const aclTensor *query, const aclTensor *queryRope, const aclTensor *key, const aclTensor *keyRope, const aclTensor *value, const aclTensor *realShiftOptional,
+    const aclTensor *dropMaskOptional, const aclTensor *paddingMaskOptional, const aclTensor *attenMaskOptional, const aclTensor *sinkOptional, 
+    const aclTensor *softmaxMaxOut, const aclTensor *softmaxSumOut, const aclTensor *attentionOutOut)
+{
+    bool formatValid = query->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+                       key->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+                       value->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+                       softmaxMaxOut->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+                       softmaxSumOut->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ &&
+                       attentionOutOut->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ;
+    if (!formatValid) {
+        OP_LOGE(
+            ACLNN_ERR_PARAM_INVALID,
+            "Input and output format only support [ND]. Actual: query:[%s], key:[%s], value:[%s], softmaxMaxOut:[%s], softmaxSumOut:[%s], attentionOutOut:[%s].",
+            op::ToString(query->GetStorageFormat()).GetString(), op::ToString(key->GetStorageFormat()).GetString(),
+            op::ToString(value->GetStorageFormat()).GetString(), op::ToString(softmaxMaxOut->GetStorageFormat()).GetString(), 
+            op::ToString(softmaxSumOut->GetStorageFormat()).GetString(), op::ToString(attentionOutOut->GetStorageFormat()).GetString());
+        return false;
+    }
+    if (queryRope != nullptr) {
+        formatValid = (formatValid && queryRope->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (keyRope != nullptr) {
+        formatValid = (formatValid && keyRope->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (realShiftOptional != nullptr) {
+        formatValid = (formatValid && realShiftOptional->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (dropMaskOptional != nullptr) {
+        formatValid = (formatValid && dropMaskOptional->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (paddingMaskOptional != nullptr) {
+        formatValid = (formatValid && paddingMaskOptional->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (attenMaskOptional != nullptr) {
+        formatValid = (formatValid && attenMaskOptional->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (sinkOptional != nullptr) {
+        formatValid = (formatValid && sinkOptional->GetStorageFormat() != op::Format::FORMAT_FRACTAL_NZ);
+    }
+    if (!formatValid) {
+        OP_LOGE(ACLNN_ERR_PARAM_INVALID,"Optional input format only support [ND]. Actual: queryRope:[%s], keyRope:[%s], realShiftOptional:[%s], "
+            "dropMaskOptional:[%s], paddingMaskOptional:[%s], attenMaskOptional:[%s], sinkOptional:[%s].",op::ToString(queryRope->GetStorageFormat()).GetString(),
+            op::ToString(keyRope->GetStorageFormat()).GetString(),op::ToString(realShiftOptional->GetStorageFormat()).GetString(),
+            op::ToString(dropMaskOptional->GetStorageFormat()).GetString(),op::ToString(paddingMaskOptional->GetStorageFormat()).GetString(),
+            op::ToString(attenMaskOptional->GetStorageFormat()).GetString(),op::ToString(sinkOptional->GetStorageFormat()).GetString());
+        return false;
+    }
+    return formatValid;
+}
+
 static aclnnStatus AnalysisInput(const aclTensor *query, const aclTensor *key, const aclTensor *value,
                                  char *inputLayout, int64_t headNum, FaShapeInfo &shapeInfo,
                                  const aclIntArray *actualSeqQLenOptional = nullptr,
@@ -815,15 +867,21 @@ aclnnStatus aclnnFlashAttentionScoreGetWorkspaceSize(
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_SUCCESS;
     }
-
+    
     const aclTensor *sinkOptional = nullptr;
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, PSE_TYPE_V1, sinkOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -900,14 +958,21 @@ aclnnStatus aclnnFlashAttentionVarLenScoreGetWorkspaceSize(
     }
 
     const aclTensor *sinkOptional = nullptr;
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, PSE_TYPE_V1, sinkOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
                             actualSeqKvLenOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -981,14 +1046,21 @@ aclnnStatus aclnnFlashAttentionScoreV2GetWorkspaceSize(
     }
 
     const aclTensor *sinkOptional = nullptr;
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, pseType, nullptr) == ACLNN_SUCCESS,
               ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -1057,14 +1129,21 @@ aclnnStatus aclnnFlashAttentionScoreV3GetWorkspaceSize(
         return ACLNN_SUCCESS;
     }
 
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, pseType, sinkOptional) == ACLNN_SUCCESS,
               ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -1145,16 +1224,23 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV2GetWorkspaceSize(
         return ACLNN_ERR_PARAM_INVALID;
     }
     FaShapeInfo shapeInfo;
-
+    
     const aclTensor *sinkOptional = nullptr;
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, pseType, sinkOptional) == ACLNN_SUCCESS,
               ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
                             actualSeqKvLenOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -1238,6 +1324,13 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV3GetWorkspaceSize(
     FaShapeInfo shapeInfo;
 
     const aclTensor *sinkOptional = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, pseType, sinkOptional) == ACLNN_SUCCESS,
               ACLNN_ERR_PARAM_INVALID);
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
@@ -1327,14 +1420,21 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV4GetWorkspaceSize(
     }
 
     const aclTensor *sinkOptional = nullptr;
+    const aclTensor *queryRope = nullptr;
+    const aclTensor *keyRope = nullptr;
+    
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, PSE_TYPE_V1, sinkOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
     FaShapeInfo shapeInfo;
     CHECK_RET(AnalysisInput(query, key, value, inputLayout, headNum, shapeInfo, actualSeqQLenOptional,
                             actualSeqKvLenOptional) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_INVALID);
 
     aclOpExecutor *l0Executor = uniqueExecutor.get();
-    const aclTensor *queryRope = nullptr;
-    const aclTensor *keyRope = nullptr;
     CHECK_RET(Contiguous(query, key, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, queryRope, keyRope, sinkOptional,
                          l0Executor) == ACLNN_SUCCESS, ACLNN_ERR_PARAM_NULLPTR);
 
@@ -1415,6 +1515,13 @@ aclnnStatus aclnnFlashAttentionVarLenScoreV5GetWorkspaceSize(
         uniqueExecutor.ReleaseTo(executor);
         return ACLNN_ERR_PARAM_INVALID;
     }
+
+    //检查format是否符合要求
+    if (GetCurrentPlatformInfo().GetSocVersion() != SocVersion::ASCEND910_95) {
+        CHECK_RET(CheckFormat(query, queryRope, key, keyRope, value, realShiftOptional, dropMaskOptional, paddingMaskOptional, attenMaskOptional, 
+            sinkOptional, softmaxMaxOut, softmaxSumOut, attentionOutOut), ACLNN_ERR_PARAM_INVALID);
+    }
+
     FaShapeInfo shapeInfo;
     CHECK_RET(InputDtypeCheck(query, key, value, realShiftOptional, pseType, sinkOptional) == ACLNN_SUCCESS,
               ACLNN_ERR_PARAM_INVALID);
