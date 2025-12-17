@@ -26,7 +26,7 @@ class AllGatherAdd {
 public:
     __aicore__ inline AllGatherAdd(){};
     __aicore__ inline void Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
-                                GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe);
+                                AllGatherAddTilingData *tilingData, TPipe *tPipe);
     __aicore__ inline void Process();
 
 private:
@@ -68,7 +68,7 @@ private:
 };
 
 __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM, GM_ADDR gatherGM, 
-                                          GM_ADDR workspaceGM, GM_ADDR contextGM, AllGatherAddTilingData *tilingData, TPipe *tPipe)
+                                          AllGatherAddTilingData *tilingData, TPipe *tPipe)
 {
     aGM_ = aGM;
     bGM_ = bGM;
@@ -83,6 +83,7 @@ __aicore__ inline void AllGatherAdd::Init(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     blockIdx_ = AscendC::GetBlockIdx();
 
     // 初始化hccl对象
+    GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
     hccl_.InitV2(contextGM, tilingData);
     hccl_.SetCcTilingV2(offsetof(AllGatherAddTilingData, mc2CcTiling));
     
