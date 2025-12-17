@@ -61,28 +61,28 @@
 ```cpp
 aclnnStatus aclnnQuantMatmulAllReduceV4GetWorkspaceSize(
     const aclTensor *x1,
-    const aclTensor *x2, 
-    const aclTensor *biasOptional, 
-    const aclTensor *x3Optional, 
-    const aclTensor *x1ScaleOptional, 
-    const aclTensor *x2Scale, 
-    const aclTensor *commQuantScale1Optional, 
-    const aclTensor *commQuantScale2Optional, 
-    const char      *group, 
-    const char      *reduceOp, 
-    int64_t          commTurn, 
-    int64_t          streamMode, 
-    int64_t          groupSize, 
+    const aclTensor *x2,
+    const aclTensor *biasOptional,
+    const aclTensor *x3Optional,
+    const aclTensor *x1ScaleOptional,
+    const aclTensor *x2Scale,
+    const aclTensor *commQuantScale1Optional,
+    const aclTensor *commQuantScale2Optional,
+    const char      *group,
+    const char      *reduceOp,
+    int64_t          commTurn,
+    int64_t          streamMode,
+    int64_t          groupSize,
     int64_t          commQuantMode,
-    const aclTensor *output, 
-    uint64_t        *workspaceSize, 
+    const aclTensor *output,
+    uint64_t        *workspaceSize,
     aclOpExecutor  **executor)
 ```
 ```cpp
 aclnnStatus aclnnQuantMatmulAllReduceV4(
-    void          *workspace, 
-    uint64_t       workspaceSize, 
-    aclOpExecutor *executor, 
+    void          *workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
     aclrtStream    stream)
 ```
 
@@ -92,10 +92,10 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 330px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
+      <col style="width: 300px">
+      <col style="width: 330px">
+      <col style="width: 212px">
+      <col style="width: 100px">
       <col style="width: 190px">
       <col style="width: 145px">
       </colgroup>
@@ -125,7 +125,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持两维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
           <td>INT8、FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8、FLOAT4_E2M1、FLOAT4_E1M2。</td>
           <td>ND</td>
           <td>2</td>
@@ -370,7 +370,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>
@@ -469,12 +469,12 @@ int CreateWeightNzAclTensor(const std::vector<T> &hostData, const std::vector<in
     // 调用aclCreateTensor接口创建aclTensor
     *tensor = aclCreateTensor(shape.data(), shape.size(), dataType, strides.data(), 0, aclFormat::ACL_FORMAT_ND,
                               shape.data(), shape.size(), *deviceAddr);
-  
+
     uint64_t transWorkspaceSize;
     aclOpExecutor *executor;
     void *transWorkspaceAddr = nullptr;
     ret = aclnnTransMatmulWeightGetWorkspaceSize(*tensor, &transWorkspaceSize, &executor);
-    CHECK_RET(ret == ACL_SUCCESS && transWorkspaceSize > 0, 
+    CHECK_RET(ret == ACL_SUCCESS && transWorkspaceSize > 0,
               printf("[ERROR] aclnnTransMatmulWeightGetWorkspaceSize failed. ret = %d \n", ret); return ret);
     ACL_CHECK(aclrtMalloc(&transWorkspaceAddr, transWorkspaceSize, ACL_MEM_MALLOC_HUGE_FIRST));
     ret = aclnnTransMatmulWeight(transWorkspaceAddr, transWorkspaceSize, executor, args.stream);
