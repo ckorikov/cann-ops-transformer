@@ -124,9 +124,8 @@ bool FiaTilingNonQuant::IsCapable()
 
     ge::DataType qDataType = fiaInfo_->inputQType;
     ge::DataType kDataType = fiaInfo_->inputKvType;
-
-    if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
-        if ((fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) || 
+    if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {	
+        if ((fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) || 	
             (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_64 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_64) ||
             (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_192 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) ||
             (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128)) {
@@ -216,7 +215,15 @@ void FiaTilingNonQuant::ZeroTensorProcess()
 
 void FiaTilingNonQuant::InitParams()
 {
-    perfMode_ = IfaPerfMode::CUBE_VIEW_MM;
+    perfMode_ = FiaTemplateId::GENERAL_GQA;
+    if ((fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) || 
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_64 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_0 && fiaInfo_->vHeadDim == V_HEAD_DIM_64) ||
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_192 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128) ||
+        (fiaInfo_->qkHeadDim  == QK_HEAD_DIM_128 && fiaInfo_->ropeHeadDim  == ROPE_HEAD_DIM_64 && fiaInfo_->vHeadDim == V_HEAD_DIM_128)) {
+        if (!(fiaInfo_->sysPrefixFlag || fiaInfo_->pseShiftFlag || fiaInfo_->kvPaddingSizeFlag || fiaInfo_->qPaddingSizeFlag)) {
+            perfMode_ = FiaTemplateId::HIGH_PERFORMANCE_GQA;
+        }
+    }
     coreNum_ = aicNum_;
     blockDim_ = aicNum_; // Tiling下沉首次Tiling也会校验blockDim_是否为0，为避免拦截报错，将blockDim_设置为aicNum_，实际不生效
 
@@ -246,9 +253,7 @@ void FiaTilingNonQuant::CalcInnerSize(uint32_t s2Size)
             uint32_t idx = std::min(fiaInfo_->gSize / 5U, 2U);
             sInnerSize_ = sInnerSize[idx];
         } else {
-            bool highPreciseFlag = ((fiaInfo_->innerPrecise & 1) == 0) ? true : false;
-            sInnerSize_ = ((highPreciseFlag && fiaInfo_->inputQType == ge::DT_FLOAT16) ||
-                fiaInfo_->inputQType == ge::DT_BF16) ? S_INNER_SIZE_512 : S_INNER_SIZE_1024;
+            sInnerSize_ = S_INNER_SIZE_512;
         }
     }
     if (fiaInfo_->attenMaskFlag && (fiaInfo_->sparseMode == SPARSE_MODE_2 || fiaInfo_->sparseMode == SPARSE_MODE_3 || fiaInfo_->sparseMode == SPARSE_MODE_4)) {
@@ -292,9 +297,7 @@ void FiaTilingNonQuant::CalcMBaseSize()
                 mBaseSize_ = M_BASE_SIZE_32;
             }
         } else {
-            bool highPreciseFlag = (fiaInfo_->innerPrecise & 1 == 0) ? true : false;
-            mBaseSize_ = ((highPreciseFlag && fiaInfo_->inputQType == ge::DT_FLOAT16) ||
-                           fiaInfo_->inputQType == ge::DT_BF16) ? M_BASE_SIZE_256 : M_BASE_SIZE_512;
+            mBaseSize_ = M_BASE_SIZE_512;
         }
     }
     softmaxWithBrcbFlag_ = (mBaseSize_ <= M_BASE_SIZE_128);
@@ -321,7 +324,15 @@ void FiaTilingNonQuant::CreateSplitInput(BaseInfo &baseInfo)
     if (fiaInfo_->opParamInfo.actualSeqLengths.tensor != nullptr) {
         baseInfo.actualSeqS2Size = fiaInfo_->opParamInfo.actualSeqLengths.tensor->GetData<int64_t>();
         baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+    } else {
+        if (fiaInfo_->kvStorageMode == KvStorageMode::TENSOR_LIST && fiaInfo_->kvListSeqLens.size()) {
+            baseInfo.actualSeqS2Size = fiaInfo_->kvListSeqLens.data();
+            baseInfo.isAccumSeqS2 = fiaInfo_->isAccumKVSeq;
+        }
     }
+    if (fiaInfo_->sysPrefixFlag) {
+        baseInfo.actualSeqPrefixSize = fiaInfo_->systemPrefixLen;
+    } 
 }
 
 void FiaTilingNonQuant::CreateSplitOutput(OuterSplitParams &outerSplitParams, FlashDecodeParams &fDParams, SplitCoreRes &res)
@@ -464,6 +475,12 @@ void FiaTilingNonQuant::FillTilingMaskParams()
     tilingData_->maskParams.set_isRowInvalid(isRowInvalid);
 }
 
+void FiaTilingNonQuant::FillTilingLeftPaddingParams()
+{
+    tilingData_->leftPaddingParams.set_qPaddingFlag(fiaInfo_->qPaddingSizeFlag ? 1 : 0);
+    tilingData_->leftPaddingParams.set_kvPaddingFlag(fiaInfo_->kvPaddingSizeFlag ? 1 : 0);
+}
+
 // for flash decode
 void FiaTilingNonQuant::FillTilingWorkspaceParams()
 {
@@ -475,6 +492,17 @@ void FiaTilingNonQuant::FillTilingWorkspaceParams()
     tilingData_->workspaceParams.set_fdLogSumExpSize(numOfFdSumMax * aicNum_ * maxConventNum * mBaseSize_ * (BYTE_BLOCK / BLOCK_TABLE_ELEM_BYTE));
     tilingData_->workspaceParams.set_mm1ResSize(mm1ResSize_);
     tilingData_->workspaceParams.set_mm2ResSize(mm2ResSize_);
+}
+
+void FiaTilingNonQuant::FillTilingFeatureParams()
+{
+    tilingData_->prefixParams.set_prefixMaxLen(fiaInfo_->systemPrefixMaxLen);
+    tilingData_->prefixParams.set_prefixLen(fiaInfo_->systemPrefixLen);
+    tilingData_->prefixParams.set_prefixFlag(fiaInfo_->sysPrefixFlag);
+    tilingData_->pseParams.set_pseShiftFlag(fiaInfo_->pseShiftFlag);
+    tilingData_->pseParams.set_pseShiftByBatch(fiaInfo_->pseShiftByBatch);
+    tilingData_->pseParams.set_pseShiftS1(fiaInfo_->pseShiftS1);
+    tilingData_->pseParams.set_pseShiftS2(fiaInfo_->pseShiftS2);
 }
 
 void FiaTilingNonQuant::CalcMmResSize()
@@ -496,7 +524,9 @@ void FiaTilingNonQuant::FillTiling()
     FillTilingBaseParams();
     FillTilingPageAttenParams();
     FillTilingMaskParams();
+    FillTilingLeftPaddingParams();
     FillTilingWorkspaceParams();
+    FillTilingFeatureParams();
 }
 
 uint32_t FiaTilingNonQuant::CalcFlashDecodeParamNums(const uint32_t coreNum) const
@@ -595,5 +625,5 @@ ge::graphStatus FiaTilingNonQuant::DoOpTiling()
 // 2. 十位表示gqa、mla、泛化，即: x0x-mla, x1x-gpa, x2x-泛化
 // 3. 个位代表特化模板到泛化模板的优先级排序
 REGISTER_TILING_TEMPLATE_FIA(FusedInferAttentionScore, FiaTilingNonQuant,
-    std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 19);
+    std::vector<int32_t>({(int32_t)platform_ascendc::SocVersion::ASCEND910B}), 29);
 } // namespace optiling
