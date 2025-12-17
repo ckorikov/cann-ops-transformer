@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3_base.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_BASE_H
-#define QUANT_BATCH_MATMUL_V3_BASE_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_BASE_H
+#define MC2_QUANT_BATCH_MATMUL_V3_BASE_H
 
 #include <cstdint>
 #include "kernel_operator.h"
@@ -190,8 +190,27 @@ __aicore__ inline uint64_t CalcAL1Size(uint64_t mL1, uint64_t kL1)
  */
 __aicore__ inline constexpr uint32_t GetTaskRation()
 {
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 310
+    return 2U; // aiv corenum is 2 in C310 platform
+#else
     return 1U;
+#endif
 }
+
+
+#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 310
+template <typename T>
+__aicore__ inline constexpr bool IsMxType()
+{
+    return AscendC::IsSameType<T, AscendC::fp8_e8m0_t>::value;
+}
+
+template <typename T>
+__aicore__ inline constexpr bool IsFp4()
+{
+    return (AscendC::IsSameType<T, fp4x2_e2m1_t>::value || AscendC::IsSameType<T, fp4x2_e1m2_t>::value);
+}
+#endif
 
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220
 __aicore__ inline void CalcDequantParams(uint32_t curAivM, uint32_t curAivN, AscendC::DequantParams &dequantParams,

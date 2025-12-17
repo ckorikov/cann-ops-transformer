@@ -7,8 +7,8 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef OP_API_INC_MOE_DISTRIBUTE_DISPATCH_V4_
-#define OP_API_INC_MOE_DISTRIBUTE_DISPATCH_V4_
+#ifndef OP_API_INC_MOE_DISTRIBUTE_DISPATCH_V3_
+#define OP_API_INC_MOE_DISTRIBUTE_DISPATCH_V3_
 
 #include <string>
 
@@ -62,8 +62,8 @@ extern "C" {
  */
 ACLNN_API aclnnStatus aclnnMoeDistributeDispatchV4GetWorkspaceSize(const aclTensor* x, const aclTensor* expertIds,
     const aclTensor* scalesOptional, const aclTensor* xActiveMaskOptional,
-    const aclTensor* expertScalesOptional, const aclTensor* elasticInfoOptional, const aclTensor* performanceInfoOptional,
-    const char* groupEp, int64_t epWorldSize, int64_t epRankId,
+    const aclTensor* expertScalesOptional, const aclTensor* elasticInfoOptional,
+    const aclTensor* performanceInfoOptional, const char* groupEp, int64_t epWorldSize, int64_t epRankId,
     int64_t moeExpertNum, const char* groupTp, int64_t tpWorldSize,
     int64_t tpRankId, int64_t expertShardType, int64_t sharedExpertNum, 
     int64_t sharedExpertRankNum, int64_t quantMode, int64_t globalBs,

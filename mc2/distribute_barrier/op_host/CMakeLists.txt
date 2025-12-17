@@ -12,8 +12,10 @@ if (BUILD_OPEN_PROJECT)  # custom
         distribute_barrier_def.cpp
     )
     add_mc2_modules_sources(OPTYPE distribute_barrier distribute_barrier ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE)
     set(MC2_OPT ON PARENT_SCOPE)
     set(distribute_barrier_depends mc2/common mc2/3rd PARENT_SCOPE)
 else() # 回黄host
-    add_mc2_modules_sources(OPTYPE distribute_barrier distribute_barrier ACLNNTYPE aclnn aclnn_inner) 
+    add_mc2_modules_sources(OPTYPE distribute_barrier distribute_barrier ACLNNTYPE aclnn aclnn_inner)
+    set(SUB_MC2_COMPILE TRUE PARENT_SCOPE) 
 endif()

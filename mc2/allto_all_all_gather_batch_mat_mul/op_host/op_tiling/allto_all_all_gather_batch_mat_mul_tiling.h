@@ -20,6 +20,7 @@
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
 #include "tiling/mc2_tiling_struct.h"
+#include "tiling/new_mc2_tiling_struct.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_tiling.h"
 #include "mat_mul_v3/op_host/op_tiling/matmul_v3_base_tiling.h"
 #include "mc2_log.h"
@@ -108,22 +109,22 @@ TILING_DATA_FIELD_DEF_STRUCT(Mc2ServerCfg, serverCfg);                 // server
 TILING_DATA_FIELD_DEF_STRUCT(Mc2HcommCfg, hcommCfgATA);                // 通信域1：allToall
 TILING_DATA_FIELD_DEF_STRUCT(Mc2HcommCfg, hcommCfgAG);                 // 通信域2：allGather
 TILING_DATA_FIELD_DEF_STRUCT(Mc2CommonTiling, commonTiling);           // kernel侧需要的通用tiling
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, localTiling);        // local块的matmul tiling数据
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, domesticTiling);     // 非local块的matmul tiling数据
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, localTailTiling);    // local尾块的matmul tiling数据
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData, domesticTailTiling); // 非local尾块的matmul tiling数据
-TILING_DATA_FIELD_DEF_STRUCT(Mc2MatmulTilingData,
+TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, localTiling);        // local块的matmul tiling数据
+TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, domesticTiling);     // 非local块的matmul tiling数据
+TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, localTailTiling);    // local尾块的matmul tiling数据
+TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData, domesticTailTiling); // 非local尾块的matmul tiling数据
+TILING_DATA_FIELD_DEF_STRUCT(NewMc2MatmulTilingData,
                              domesticTailETiling); // sherd-0切E不切C时非local尾块的matmul tiling数据
 
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(AlltoAllAllGatherBatchMatMul, AlltoAllAllGatherBatchMatMulTilingData);
 
-class AlltoAllAllGatherBatchMatMulTiling : public batch_mat_mul_v3::BatchMatmulV3BaseTiling {
+class AlltoAllAllGatherBatchMatMulTiling : public Mc2batch_mat_mul_v3::Mc2BatchMatmulV3BaseTiling {
 public:
-    AlltoAllAllGatherBatchMatMulTiling(gert::TilingContext *context, BatchMatmulTilingData &bmmTilingData,
+    AlltoAllAllGatherBatchMatMulTiling(gert::TilingContext *context, Mc2BatchMatmulTilingData &bmmTilingData,
                                        AlltoAllAllGatherBatchInfo &BMMV3BatchInfo,
                                        AlltoAllAllGatherMatmulInfo &MMV3ArgsInfo)
-        : BatchMatmulV3BaseTiling(context, bmmTilingData), BMMV3BatchInfo_(BMMV3BatchInfo), MMV3ArgsInfo_(MMV3ArgsInfo)
+        : Mc2BatchMatmulV3BaseTiling(context, bmmTilingData), BMMV3BatchInfo_(BMMV3BatchInfo), MMV3ArgsInfo_(MMV3ArgsInfo)
     {
     }
 

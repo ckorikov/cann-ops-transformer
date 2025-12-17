@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  */
 #ifndef WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H
 #define WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H
-namespace WeightQuantBatchMatmulV2 {
+namespace Mc2WeightQuantBatchMatmulV2 {
 using HighPreciseType = int32_t;
 using HighPerformanceType = half;
-enum class QuantType
+enum class Mc2QuantType
 {
     NONE = 0,
     PER_TENSOR = 1,
@@ -32,5 +32,5 @@ enum class PrecisionType
     HIGH_PRECISION = 1,
 };
 
-} // namespace WeightQuantBatchMatmulV2
+} // namespace Mc2WeightQuantBatchMatmulV2
 #endif // WEIGHT_QUANT_BATCH_MATMUL_V2_CONSTANT_H
