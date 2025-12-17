@@ -526,7 +526,7 @@ static void SetSocParam(Mc2Tiling::AllGatherMatmulTilingData* tilingData, const 
   tilingData->socParam.isND2NZ = 1U; 
 }
 
-static ge::graphStatus InitHcclParam(gert::TilingContext *context, Mc2Tiling::AllGatherMatmulTilingData* tilingData, const char* group)
+static ge::graphStatus InitHcclParam(const gert::TilingContext *context, Mc2Tiling::AllGatherMatmulTilingData* tilingData, const char* group)
 {
   std::string algConfig = (tilingData->socParam.isA3 == 0) ?
     "AllGather=level0:fullmesh" : "AllGather=level0:doublering";
