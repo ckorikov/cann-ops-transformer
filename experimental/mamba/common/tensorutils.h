@@ -25,7 +25,7 @@ using namespace AscendC;
 #define WAIT_VEC(iiii) CrossCoreWaitFlag(iiii)
 
 constexpr uint64_t VECTORFULLMASK[2] = {(uint64_t)-1, (uint64_t)-1};
-constexpr int TWO = 2;
+constexpr int TWO = 2; // vector per core; dbuff
 constexpr int THREE = 3;
 constexpr int FOUR = 4;
 constexpr int FIVE = 5;
@@ -40,7 +40,7 @@ constexpr int MTE_HALF = 16;
 constexpr int VEC_FLOAT = 64;
 constexpr int VEC_HALF = 128;
 
-constexpr int N_DBLK_FLOAT = 8; // num of data blocks
+constexpr int NUM_DBLK_FLOAT = 8; // num of data blocks
 
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){

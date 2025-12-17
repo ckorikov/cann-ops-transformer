@@ -14,6 +14,12 @@
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkState {
 
+constexpr int BASEH = 8;
+constexpr int BASEL = 128;
+constexpr int CBASEM = 64;
+constexpr int CBASEN = 64;
+constexpr int CBASEK = 256;
+
 struct CustVecShapeInfo{
     int BCH;
     int BCH_PER_CORE;
@@ -35,7 +41,7 @@ struct CustVecShapeInfo{
 
 
 __aicore__ inline void tilingShapeCustVec(int B, int C, int H, int G, int L, int N, CustVecShapeInfo &shape){
-    shape.BCH = ((int)((B * C) * H) / (int)8);
+    shape.BCH = ((int)(B * C * H) / (int)BASEH);
     shape.BCH_PER_CORE = CeilDiv(shape.BCH,GetBlockNum());
     shape.BCH1 = (shape.BCH_PER_CORE * get_block_idx());
     shape.BCH2 = (((shape.BCH_PER_CORE + shape.BCH1))<(shape.BCH)) ? ((shape.BCH_PER_CORE + shape.BCH1)) : (shape.BCH);
@@ -45,13 +51,13 @@ __aicore__ inline void tilingShapeCustVec(int B, int C, int H, int G, int L, int
     shape.L = L;
     shape.H = H;
     shape.N = N;
-    shape.BASEH = 8;
-    shape.BASEN = 64;
+    shape.BASEH = BASEH;
+    shape.BASEN = CBASEM;
     shape.group_size = ((int)H / (int)G);
-    shape.BASEL = 128;
+    shape.BASEL = BASEL;
     shape.repeatL = ((int)shape.L / (int)shape.BASEL);
-    shape.subvec_L = ((int)shape.BASEL / (int)2);
-    shape.BASEK = 256;
+    shape.subvec_L = ((int)shape.BASEL / (int)TWO);
+    shape.BASEK = CBASEK;
 }
 
 
@@ -74,12 +80,12 @@ public:
         // Local buffers
         dacs.Init((shape.subvec_L * shape.BASEH));
         dacs_t.Init(shape.BASEH);
-        dacs_brcb.Init((shape.subvec_L * 64));
-        dacs_t_brcb.Init((shape.BASEH * 8));
+        dacs_brcb.Init((shape.subvec_L * shape.BASEH * NUM_DBLK_FLOAT));
+        dacs_t_brcb.Init((shape.BASEH * NUM_DBLK_FLOAT));
         dtout.Init((shape.subvec_L * shape.BASEH));
         da_out_fp32.Init((shape.subvec_L * shape.BASEH));
         da.Init((shape.subvec_L * shape.BASEH));
-        da_brcb.Init(((shape.subvec_L * shape.BASEH) * 8));
+        da_brcb.Init(((shape.subvec_L * shape.BASEH) * NUM_DBLK_FLOAT));
         bt_half.Init((shape.subvec_L * shape.BASEN));
         bt_fp32.Init((shape.subvec_L * shape.BASEN));
         out_fp32.Init((shape.subvec_L * shape.BASEN));
@@ -94,28 +100,30 @@ public:
     __aicore__ inline void Compute(){
         in_empty.setall();
         out_empty.setall();
-        int da_cnt = 0;
-        int cs_cnt = 0;
-        int cs_cnt2 = 0;
-        int cs_cnt3 = 0;
-        int ws_cnt = 0;
+        da_cnt = 0;
+        cs_cnt = 0;
+        cs_cnt2 = 0;
+        cs_cnt3 = 0;
+        ws_cnt = 0;
         for (int bch=shape.BCH1; bch<shape.BCH2; bch+=1){
             int b = ((int)bch / (int)((int)(shape.C * shape.H) / (int)shape.BASEH));
             int c = ((int)(bch % ((int)(shape.C * shape.H) / (int)shape.BASEH)) / (int)((int)shape.H / (int)shape.BASEH));
             int h = ((bch % ((int)(shape.C * shape.H) / (int)shape.BASEH)) % ((int)shape.H / (int)shape.BASEH));
             for (int r=0; r<shape.repeatL; r+=1){
                 in_empty.wait();
-                GM2UB(dacs.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / (int)8), ((int)(shape.H - shape.BASEH) / (int)8), 0);
+                GM2UB(dacs.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, ((int)shape.BASEH / MTE_FLOAT), ((int)(shape.H - shape.BASEH) / MTE_FLOAT), 0);
                 GM2UB(dacs_t.get(da_cnt), dacs_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + ((shape.L - 1) * shape.H)) + (h * shape.BASEH))], 1, 1, 0, 0);
-                GM2UB(dtout.get(da_cnt), dtout_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, 1, ((int)(shape.H - 8) / (int)8), 0);
+                GM2UB(dtout.get(da_cnt), dtout_mtx[((((b * ((shape.C * shape.L) * shape.H)) + (c * (shape.L * shape.H))) + (((r * shape.BASEL) + (get_subblockid() * shape.subvec_L)) * shape.H)) + (h * shape.BASEH))], shape.subvec_L, 1, ((int)(shape.H - shape.BASEH) / (int)MTE_FLOAT), 0);
                 in_ready.set();
                 out_empty.wait();
                 in_ready.wait();
-                Brcb(dacs_brcb.get(da_cnt), dacs.get(da_cnt), shape.subvec_L, {1, 8});
+                Brcb(dacs_brcb.get(da_cnt), dacs.get(da_cnt), shape.subvec_L, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
-                Brcb(dacs_t_brcb.get(da_cnt), dacs_t.get(da_cnt), 1, {1, 8});
+                Brcb(dacs_t_brcb.get(da_cnt), dacs_t.get(da_cnt), 1, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
-                Sub<float, false>(dacs_brcb.get(da_cnt), dacs_t_brcb.get(da_cnt), dacs_brcb.get(da_cnt), MASK_PLACEHOLDER, shape.subvec_L, {1, 1, 1, 8, 0, 8});
+                auto custparam = MakeDefaultBinaryRepeatParams();
+                custparam.src0RepStride = 0; // {1,1,1,8,0,8}
+                Sub<float, false>(dacs_brcb.get(da_cnt), dacs_t_brcb.get(da_cnt), dacs_brcb.get(da_cnt), MASK_PLACEHOLDER, shape.subvec_L, custparam);
                 PipeBarrier<PIPE_V>();
                 BlockReduceMax<float, false>(dacs.get(da_cnt), dacs_brcb.get(da_cnt), shape.subvec_L, MASK_PLACEHOLDER, 1, 1, 8);
                 PipeBarrier<PIPE_V>();
@@ -181,6 +189,17 @@ public:
     
 private:
     CustVecShapeInfo shape;
+    // Global Params
+    int da_cnt;
+    int cs_cnt;
+    int cs_cnt2;
+    int cs_cnt3;
+    int ws_cnt;
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
+
     // Global Tensors
     GlobalTensor<float> da_out;
     GlobalTensor<float> dtout_mtx;
