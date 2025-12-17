@@ -350,15 +350,15 @@ ARCH_INFO=$(uname -m)
 
 export INCLUDE_PATH="${ASCEND_HOME_PATH}/include"
 export ACLNN_INCLUDE_PATH="${INCLUDE_PATH}/aclnn"
-export COMPILER_INCLUDE_PATH="${ASCEND_HOME_PATH}/compiler/include"
+export COMPILER_INCLUDE_PATH="${ASCEND_HOME_PATH}/include"
 export GRAPH_INCLUDE_PATH="${COMPILER_INCLUDE_PATH}/graph"
 export GE_INCLUDE_PATH="${COMPILER_INCLUDE_PATH}/ge"
 export INC_INCLUDE_PATH="${ASCEND_OPP_PATH}/built-in/op_proto/inc"
 export LINUX_INCLUDE_PATH="${ASCEND_HOME_PATH}/${ARCH_INFO}-linux/include"
 export EAGER_LIBRARY_OPP_PATH="${ASCEND_OPP_PATH}/lib64"
 export EAGER_LIBRARY_PATH="${ASCEND_HOME_PATH}/lib64"
-export GRAPH_LIBRARY_STUB_PATH="${ASCEND_HOME_PATH}/compiler/lib64/stub"
-export GRAPH_LIBRARY_PATH="${ASCEND_HOME_PATH}/compiler/lib64"
+export GRAPH_LIBRARY_STUB_PATH="${ASCEND_HOME_PATH}/lib64/stub"
+export GRAPH_LIBRARY_PATH="${ASCEND_HOME_PATH}/lib64"
 
 export EAGER_INCLUDE_OPP_ACLNNOP_PATH="${ASCEND_OPP_PATH}/include/aclnnop"
 
@@ -418,7 +418,7 @@ function build_example()
         fi
         for file in $files; do
             echo "Start compile and run example file: $file"
-            g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -o test_geir_${EXAMPLE_NAME}
+            g++ ${file} -I ${GRAPH_INCLUDE_PATH} -I ${GE_INCLUDE_PATH} -I ${LINUX_INCLUDE_PATH} -I ${INC_INCLUDE_PATH} -L ${GRAPH_LIBRARY_STUB_PATH} -L ${GRAPH_LIBRARY_PATH} -lgraph -lge_runner -lgraph_base -lge_compile -o test_geir_${EXAMPLE_NAME}
             ./test_geir_${EXAMPLE_NAME}
         done
     else
