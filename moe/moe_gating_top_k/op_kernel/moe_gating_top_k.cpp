@@ -13,7 +13,7 @@
  * \brief
  */
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
-#include "moe_gating_top_k_e_k_fullload_v100.h"
+#include "moe_gating_top_k_e_k_fullload_v100_double_token.h"
 #else
 #include "moe_gating_top_k_e_k_fullload.h"
 #include "moe_gating_top_k_without_group.h"

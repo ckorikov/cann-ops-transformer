@@ -109,6 +109,7 @@ private:
     ge::graphStatus CheckAttr();
     ge::graphStatus CheckOutShape();
     void SplitRows();
+    void SplitRows910();
     void CalTmpBufUbSize();
 
     const gert::Shape *xShape_ = nullptr;
@@ -170,6 +171,16 @@ ge::graphStatus MoeGatingTopKTilingBase::CheckInputShape()
 
 ge::graphStatus MoeGatingTopKTilingBase::CheckAttr()
 {
+    auto platformInfo = context_->GetPlatformInfo();
+    OP_CHECK_IF(platformInfo == nullptr, OP_LOGE(context_, "fail to get platform info"), return ge::GRAPH_FAILED);
+    auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo);
+    if (ascendcPlatform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND910) {
+        OP_CHECK_IF(k_ != 8, OP_LOGE(context_, "k is: %ld, but only support 8 in Ascend910.", k_), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(kGroup_ != 4 && kGroup_ != 8,
+                    OP_LOGE(context_, "kGroup is: %ld, but only support 4 or 8 in Ascend910.", kGroup_), return ge::GRAPH_FAILED);
+        OP_CHECK_IF(groupCount_ != 8, OP_LOGE(context_, "group_count is: %ld, but only support 8 in Ascend910.", groupCount_),
+                    return ge::GRAPH_FAILED);
+    }
     OP_CHECK_IF(
         expertCount_ > MAX_EXPERT_COUNT,
         OP_LOGE(context_, "expert count is: %ld, but should not greater than %ld.", expertCount_, MAX_EXPERT_COUNT),
@@ -440,6 +451,23 @@ void MoeGatingTopKTilingBase::SplitRows()
     moeGatingTopKTilingData_.set_vmsCount(vmsCount); // 需要归并的轮数
 }
 
+void MoeGatingTopKTilingBase::SplitRows910() {
+    // 因为每次计算出8个专家，输出的yOut是fp16，而910只能对齐32Byte输出，所以每次计算2行一起输出
+    // 先计算需要的核数
+    int64_t effectBlockDim = std::min(Ops::Base::CeilDiv(rows_, 2L), static_cast<int64_t>(aicoreParams_.blockDim));
+    // 每个核至少计算 2 * perCoreRowsDiv2行
+    int64_t perCoreRowCountDiv2 = rows_ / 2 / effectBlockDim;
+    // 剩余的行数
+    int64_t leftRow = rows_ - perCoreRowCountDiv2 * 2 * effectBlockDim;
+    // 有多少个核要多计算2行，可能会剩一行，在kernel判断，rows_ - effectBlockDim * perCoreRowCountDiv2 * 2 - lastCoreRowCount * 2 ！= 0时，blockIdx == lastCoreRowCount的核多计算一行
+    int64_t lastCoreRowCountDiv2 = leftRow / 2;
+
+    moeGatingTopKTilingData_.set_needCoreNum(effectBlockDim);
+    moeGatingTopKTilingData_.set_perCoreRowCount(perCoreRowCountDiv2 * 2);
+    // 在kernel侧 blockIdx_ < lastCoreRowCountDiv2的core，要多计算2行
+    moeGatingTopKTilingData_.set_lastCoreRowCount(lastCoreRowCountDiv2);
+}
+
 void MoeGatingTopKTilingBase::CalTmpBufUbSize()
 {
     std::vector<int64_t> shape_vec = {expertCount_};
@@ -471,6 +499,7 @@ ge::graphStatus MoeGatingTopKTilingBase::DoOpTiling()
 
     CalTmpBufUbSize();
     SplitRows();
+    SplitRows910();
     return ge::GRAPH_SUCCESS;
 }
 
