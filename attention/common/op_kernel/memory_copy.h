@@ -1503,12 +1503,14 @@ private:
             uint64_t l1Offset = headSize * 16U;
 
             if (likely(offsetCalculator.GetStrideS1() <= ND_MATRIX_STRIDE_LIMIT)) {
-                CopyMultiMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset],
-                        s1IdxEnd - s1IdxStart - 1, offsetCalculator.GetStrideS1(), offsetCalculator.GetDimG() * 16U,
-                        offsetCalculator.GetDimG(), gmCoord.dDealSize,
-                        offsetCalculator.GetStrideG(), dstTensor.rowCount);
-                gmOffset += (s1IdxEnd - s1IdxStart - 1) * offsetCalculator.GetStrideS1();
-                l1Offset += (s1IdxEnd - s1IdxStart - 1) * offsetCalculator.GetDimG() * 16U;
+                if (s1IdxEnd - s1IdxStart > 1) {
+                    CopyMultiMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset],
+                            s1IdxEnd - s1IdxStart - 1, offsetCalculator.GetStrideS1(), offsetCalculator.GetDimG() * 16U,
+                            offsetCalculator.GetDimG(), gmCoord.dDealSize,
+                            offsetCalculator.GetStrideG(), dstTensor.rowCount);
+                    gmOffset += (s1IdxEnd - s1IdxStart - 1) * offsetCalculator.GetStrideS1();
+                    l1Offset += (s1IdxEnd - s1IdxStart - 1) * offsetCalculator.GetDimG() * 16U; 
+                }
             } else {
                 for (uint32_t i = s1IdxStart + 1; i < s1IdxEnd; i++) {
                     CopySingleMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset],
@@ -1584,11 +1586,13 @@ private:
             uint64_t l1Offset = headSize * 16U;
 
             if (likely(offsetCalculator.GetStrideG() <= ND_MATRIX_STRIDE_LIMIT)) {
-                CopyMultiMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset],
-                        gIdxEnd - gIdxStart - 1, offsetCalculator.GetStrideG(), s1Size * 16U,
-                        s1Size, gmCoord.dDealSize, offsetCalculator.GetStrideS1(), dstTensor.rowCount);
-                gmOffset += (gIdxEnd - gIdxStart - 1) * offsetCalculator.GetStrideG();
-                l1Offset += (gIdxEnd - gIdxStart - 1) * s1Size * 16U;
+                if (gIdxEnd - gIdxStart > 1) {
+                    CopyMultiMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset],
+                            gIdxEnd - gIdxStart - 1, offsetCalculator.GetStrideG(), s1Size * 16U,
+                            s1Size, gmCoord.dDealSize, offsetCalculator.GetStrideS1(), dstTensor.rowCount);
+                    gmOffset += (gIdxEnd - gIdxStart - 1) * offsetCalculator.GetStrideG();
+                    l1Offset += (gIdxEnd - gIdxStart - 1) * s1Size * 16U;
+                }
             } else {
                 for (uint32_t i = gIdxStart + 1; i < gIdxEnd; i++) {
                     CopySingleMatrixNDToNZ(dstTensor.tensor[l1Offset], srcTensor.gmTensor[gmOffset], s1Size,
