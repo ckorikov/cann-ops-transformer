@@ -115,7 +115,7 @@ public:
                 out_empty.wait();
                 in_ready.wait();
                 if ((cc_cnt == 0)){
-                    Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, N_DBLK_FLOAT);
+                    Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
                     PipeBarrier<PIPE_V>();
                     Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
                     PipeBarrier<PIPE_V>();

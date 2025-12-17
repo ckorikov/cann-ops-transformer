@@ -19,7 +19,7 @@ constexpr int BASEL = 64;
 constexpr int BASEN = 64;
 constexpr int BASEH = 128;
 constexpr int SUB_BASEH = BASEH / 2;
-constexpr int BLK_SIZE = BASEL * SUB_BASEH;
+constexpr int TILE_BLK_SIZE = BASEL * SUB_BASEH;
 constexpr float COMPARE_VALUE = 20.0;
 constexpr float CLAMP_MAX = 10000000.0f;
 
@@ -67,16 +67,16 @@ public:
         
         // Local buffers
         at_buf.Init(SUB_BASEH);
-        dt_buf.Init(BLK_SIZE);
+        dt_buf.Init(TILE_BLK_SIZE);
         dtbias_buf.Init(SUB_BASEH);
-        dtmask_buf.Init(BLK_SIZE);
-        out1buf.Init(BLK_SIZE);
-        out2buf.Init(BLK_SIZE);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp0, BLK_SIZE);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp1, BLK_SIZE);
+        dtmask_buf.Init(TILE_BLK_SIZE);
+        out1buf.Init(TILE_BLK_SIZE);
+        out2buf.Init(TILE_BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp0, TILE_BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp1, TILE_BLK_SIZE);
         AllocateLocalTensor<TPosition::VECCALC>(cc_tmp2, SUB_BASEH);
-        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp3, BLK_SIZE);
-        AllocateLocalTensor<TPosition::VECCALC>(cmp_mask, BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cc_tmp3, TILE_BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(cmp_mask, TILE_BLK_SIZE);
         AllocateLocalTensor<TPosition::VECCALC>(max_buf, EIGHT);
         cumsum_tensor.Init(SUB_BASEH);
         // Initialize events
@@ -136,38 +136,38 @@ public:
 
     __aicore__ inline void Process_dacs(int l){
         if ((cc_cnt == 0)){
-            Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, N_DBLK_FLOAT);
+            Duplicate<float, false>(max_buf, 0.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
             PipeBarrier<PIPE_V>();
             Adds<float, false>(max_buf, max_buf, CLAMP_MAX, MASK_PLACEHOLDER, 1, {0, 0, 0, 0});
             PipeBarrier<PIPE_V>();
         }
-        Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, cast_params_h2f);
+        Cast<float, half, false>(cc_tmp1, dt_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, cast_params_h2f);
         Cast<float, half, false>(cc_tmp2, dtbias_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, 1, cast_params_h2f);
-        Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, cast_params_h2f);
+        Cast<float, half, false>(cc_tmp3, dtmask_buf.get(cc_cnt), RoundMode::CAST_NONE, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, cast_params_h2f);
         PipeBarrier<PIPE_V>();
         auto custparam = MakeDefaultBinaryRepeatParams();
         custparam.src1RepStride = 0; // {1,1,1,8,8,0}
-        Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, custparam);
+        Add<float, false>(cc_tmp1, cc_tmp1, cc_tmp2, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, custparam);
         PipeBarrier<PIPE_V>();
-        CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, COMPARE_VALUE, CMPMODE::LT, BLK_SIZE);
+        CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, COMPARE_VALUE, CMPMODE::LT, TILE_BLK_SIZE);
         PipeBarrier<PIPE_V>();
         UB2UB(cc_tmp0, cc_tmp1, BASEL, SUB_BASEH/MTE_FLOAT, 0, 0);
         PipeBarrier<PIPE_V>();
-        Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
+        Exp<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
+        Adds<float, false>(cc_tmp1, cc_tmp1, 1.0f, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, unary_params);
+        Ln<float, false>(cc_tmp1, cc_tmp1, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, unary_params);
         PipeBarrier<PIPE_V>();
-        Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, VEC_FLOAT, BLK_SIZE/VEC_FLOAT, binary_params);
+        Select<float, uint8_t, false>(cc_tmp1, cmp_mask, cc_tmp1, cc_tmp0, SELMODE::VSEL_TENSOR_TENSOR_MODE, VEC_FLOAT, TILE_BLK_SIZE/VEC_FLOAT, binary_params);
         PipeBarrier<PIPE_V>();
-        CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, CLAMP_MAX, CMPMODE::LT, BLK_SIZE);
+        CompareScalar<float, uint8_t>(cmp_mask, cc_tmp1, CLAMP_MAX, CMPMODE::LT, TILE_BLK_SIZE);
         PipeBarrier<PIPE_V>();
-        Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX), SELMODE::VSEL_TENSOR_SCALAR_MODE, BLK_SIZE);
+        Select<float, uint8_t>(cc_tmp1, cmp_mask, cc_tmp1, static_cast<float>(CLAMP_MAX), SELMODE::VSEL_TENSOR_SCALAR_MODE, TILE_BLK_SIZE);
         PipeBarrier<PIPE_V>();
-        Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, binary_params);
+        Mul<float, false>(out1buf.get(cc_cnt), cc_tmp1, cc_tmp3, MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, binary_params);
         PipeBarrier<PIPE_V>();
-        Mul<float, false>(cc_tmp0, out1buf.get(cc_cnt), at_buf.get(cc_cnt), MASK_PLACEHOLDER, BLK_SIZE/VEC_FLOAT, custparam);
+        Mul<float, false>(cc_tmp0, out1buf.get(cc_cnt), at_buf.get(cc_cnt), MASK_PLACEHOLDER, TILE_BLK_SIZE/VEC_FLOAT, custparam);
         PipeBarrier<PIPE_V>();
         if ((l > 0)){
             Add<float, false>(cc_tmp0, cc_tmp0, cumsum_tensor.get(cc_cnt), MASK_PLACEHOLDER, SUB_BASEH/VEC_FLOAT, {1, 1, 1, 0, 0, 0});
