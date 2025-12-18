@@ -68,9 +68,9 @@ public:
         final_state.SetGlobalBuffer((__gm__ float*) final_state_);
         
         // Local buffers
-        dacsbuf.Init(8);
-        dacsbrcbbuf1.Init(8);
-        dacsbrcbbuf2.Init(64);
+        dacsbuf.Init(MTE_FLOAT);
+        dacsbrcbbuf1.Init(NUM_DBLK_FLOAT);
+        dacsbrcbbuf2.Init(VEC_FLOAT);
         tmpbuf.Init(shape.z_pervec);
         outbuf.Init(shape.z_pervec);
         fp32_statebuf.Init(shape.z_pervec);
@@ -86,88 +86,113 @@ public:
     __aicore__ inline void Compute(){
         in_empty.setall();
         out_empty.setall();
-        int len_h = ((shape.headPerCore)<(((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)))) ? (shape.headPerCore) : (((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)));
-        int cnt = 0;
-        int ws_cnt = 0;
+        len_h = ((shape.headPerCore)<(((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)))) ? (shape.headPerCore) : (((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)));
+        cnt = 0;
+        ws_cnt = 0;
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
+
         for (int chunk_id=0; chunk_id<shape.C; chunk_id+=1){
             if ((chunk_id == 0)){
-                int bh_index = (get_block_idx() * shape.headPerCore);
-                int subBlockid = get_subblockid();
-                int base_b = 0;
-                int base_h = 0;
-                for (int head_id=0; head_id<len_h; head_id+=1){
-                    base_b = ((int)bh_index / (int)shape.H);
-                    base_h = (bh_index % shape.H);
-                    WAIT_CUBE(0);
-                    for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
-                        in_empty.wait();
-                        GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        in_ready.set();
-                        out_empty.wait();
-                        in_ready.wait();
-                        Cast<half, float, false>(fp16_statebuf_c0.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
-                        in_empty.set();
-                        out_ready.set();
-                        out_ready.wait();
-                        UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_c0.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
-                        out_empty.set();
-                        cnt = (cnt + 1);
-                    }
-                    VEC_READY(0, PIPE_MTE3);
-                    ws_cnt = (ws_cnt + 1);
-                    bh_index = (bh_index + 1);
-                }
+                Process_chunk0(chunk_id);
             }
             if ((chunk_id < (shape.C - 1))){
-                int bh_index = (get_block_idx() * shape.headPerCore);
-                int subBlockid = get_subblockid();
-                int base_b = 0;
-                int base_h = 0;
-                for (int head_id=0; head_id<len_h; head_id+=1){
-                    base_b = ((int)bh_index / (int)shape.H);
-                    base_h = (bh_index % shape.H);
-                    WAIT_CUBE(0);
-                    for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
-                        in_empty.wait();
-                        GM2UB(fp32_statebuf.get(cnt), statemtx[(((((base_b * shape.stride_B) + (chunk_id * shape.stride_C)) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        GM2UB(dacsbuf.get(cnt), dacs[((((base_b * shape.C) * shape.H) + (chunk_id * shape.H)) + base_h)], 1, 1, 0, 0);
-                        if ((chunk_id == 0)){
-                            GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        }
-                        if ((chunk_id > 0)){
-                            GM2UB(tmpbuf.get(cnt), tmpmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        }
-                        in_ready.set();
-                        out_empty.wait();
-                        in_ready.wait();
-                        Brcb(dacsbrcbbuf1.get(cnt), dacsbuf.get(cnt), 1, {1, 8});
-                        PipeBarrier<PIPE_V>();
-                        Brcb(dacsbrcbbuf2.get(cnt), dacsbrcbbuf1.get(cnt), 1, {1, 8});
-                        PipeBarrier<PIPE_V>();
-                        Exp<float, false>(dacsbrcbbuf2.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, 1, {1, 1, 8, 8});
-                        PipeBarrier<PIPE_V>();
-                        Mul<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 0});
-                        PipeBarrier<PIPE_V>();
-                        Add<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), fp32_statebuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 8});
-                        PipeBarrier<PIPE_V>();
-                        Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
-                        PipeBarrier<PIPE_V>();
-                        UB2UB(outbuf.get(cnt), tmpbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        PipeBarrier<PIPE_V>();
-                        in_empty.set();
-                        out_ready.set();
-                        out_ready.wait();
-                        UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_ci.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
-                        UB2GM(tmpmtx[((((base_b * shape.stride_B) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], outbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
-                        out_empty.set();
-                        cnt = (cnt + 1);
-                    }
-                    VEC_READY(0, PIPE_MTE3);
-                    ws_cnt = (ws_cnt + 1);
-                    bh_index = (bh_index + 1);
-                }
+                // handshake with cube
+                Process_chunks(chunk_id);
             }
         }
+
+        Process_final_state(shape.C -1);
+        
+        WAIT_CUBE(0);
+        WAIT_CUBE(0);
+        WAIT_CUBE(0);
+        in_empty.release();
+        out_empty.release();
+    }
+
+    __aicore__ inline void Process_chunk0(int chunk_id){
+        int bh_index = (get_block_idx() * shape.headPerCore);
+        int subBlockid = get_subblockid();
+        int base_b = 0;
+        int base_h = 0;
+        for (int head_id=0; head_id<len_h; head_id+=1){
+            base_b = ((int)bh_index / (int)shape.H);
+            base_h = (bh_index % shape.H);
+            WAIT_CUBE(0);
+            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
+                in_empty.wait();
+                GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                in_ready.set();
+                out_empty.wait();
+                in_ready.wait();
+                Cast<half, float, false>(fp16_statebuf_c0.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
+                in_empty.set();
+                out_ready.set();
+                out_ready.wait();
+                UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_c0.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
+                out_empty.set();
+                cnt = (cnt + 1);
+            }
+            VEC_READY(0, PIPE_MTE3);
+            ws_cnt = (ws_cnt + 1);
+            bh_index = (bh_index + 1);
+        }
+    }
+
+    __aicore__ inline void Process_chunks(int chunk_id){
+        int bh_index = (get_block_idx() * shape.headPerCore);
+        int subBlockid = get_subblockid();
+        int base_b = 0;
+        int base_h = 0;
+        for (int head_id=0; head_id<len_h; head_id+=1){
+            base_b = ((int)bh_index / (int)shape.H);
+            base_h = (bh_index % shape.H);
+            WAIT_CUBE(0);
+            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
+                in_empty.wait();
+                GM2UB(fp32_statebuf.get(cnt), statemtx[(((((base_b * shape.stride_B) + (chunk_id * shape.stride_C)) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                GM2UB(dacsbuf.get(cnt), dacs[((((base_b * shape.C) * shape.H) + (chunk_id * shape.H)) + base_h)], 1, 1, 0, 0);
+                if ((chunk_id == 0)){
+                    GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                }
+                if ((chunk_id > 0)){
+                    GM2UB(tmpbuf.get(cnt), tmpmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                }
+                in_ready.set();
+                out_empty.wait();
+                in_ready.wait();
+                Brcb(dacsbrcbbuf1.get(cnt), dacsbuf.get(cnt), 1, {1, 8});
+                PipeBarrier<PIPE_V>();
+                Brcb(dacsbrcbbuf2.get(cnt), dacsbrcbbuf1.get(cnt), 1, {1, 8});
+                PipeBarrier<PIPE_V>();
+                Exp<float, false>(dacsbrcbbuf2.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, 1, {1, 1, 8, 8});
+                PipeBarrier<PIPE_V>();
+                Mul<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 0});
+                PipeBarrier<PIPE_V>();
+                Add<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), fp32_statebuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 8});
+                PipeBarrier<PIPE_V>();
+                Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
+                PipeBarrier<PIPE_V>();
+                UB2UB(outbuf.get(cnt), tmpbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                PipeBarrier<PIPE_V>();
+                in_empty.set();
+                out_ready.set();
+                out_ready.wait();
+                UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_ci.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
+                UB2GM(tmpmtx[((((base_b * shape.stride_B) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], outbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                out_empty.set();
+                cnt = (cnt + 1);
+            }
+            VEC_READY(0, PIPE_MTE3);
+            ws_cnt = (ws_cnt + 1);
+            bh_index = (bh_index + 1);
+        }
+    }
+
+    __aicore__ inline void Process_final_state(int chunk_id){
         int bh_index = (get_block_idx() * shape.headPerCore);
         int subBlockid = get_subblockid();
         int base_b = 0;
@@ -211,15 +236,18 @@ public:
             }
             bh_index = (bh_index + 1);
         }
-        WAIT_CUBE(0);
-        WAIT_CUBE(0);
-        WAIT_CUBE(0);
-        in_empty.release();
-        out_empty.release();
     }
     
 private:
     CustVecShapeInfo shape;
+    // Global Params
+    int len_h;
+    int cnt;
+    int ws_cnt;
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
     // Global Tensors
     GlobalTensor<float> dacs;
     GlobalTensor<float> initmtx;
