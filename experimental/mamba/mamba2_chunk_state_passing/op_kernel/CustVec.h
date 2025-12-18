@@ -152,38 +152,41 @@ public:
             base_b = ((int)bh_index / (int)shape.H);
             base_h = (bh_index % shape.H);
             WAIT_CUBE(0);
-            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
+            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * TWO)){
                 in_empty.wait();
-                GM2UB(fp32_statebuf.get(cnt), statemtx[(((((base_b * shape.stride_B) + (chunk_id * shape.stride_C)) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                GM2UB(fp32_statebuf.get(cnt), statemtx[(((((base_b * shape.stride_B) + (chunk_id * shape.stride_C)) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 GM2UB(dacsbuf.get(cnt), dacs[((((base_b * shape.C) * shape.H) + (chunk_id * shape.H)) + base_h)], 1, 1, 0, 0);
                 if ((chunk_id == 0)){
-                    GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                    GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 }
                 if ((chunk_id > 0)){
-                    GM2UB(tmpbuf.get(cnt), tmpmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                    GM2UB(tmpbuf.get(cnt), tmpmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 }
                 in_ready.set();
                 out_empty.wait();
                 in_ready.wait();
-                Brcb(dacsbrcbbuf1.get(cnt), dacsbuf.get(cnt), 1, {1, 8});
+                Brcb(dacsbrcbbuf1.get(cnt), dacsbuf.get(cnt), 1, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
-                Brcb(dacsbrcbbuf2.get(cnt), dacsbrcbbuf1.get(cnt), 1, {1, 8});
+                Brcb(dacsbrcbbuf2.get(cnt), dacsbrcbbuf1.get(cnt), 1, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
-                Exp<float, false>(dacsbrcbbuf2.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, 1, {1, 1, 8, 8});
+                Exp<float, false>(dacsbrcbbuf2.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, 1, unary_params);
                 PipeBarrier<PIPE_V>();
-                Mul<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 0});
+                auto custparam = MakeDefaultBinaryRepeatParams;
+                custparam.src1RepStride = 0;
+                Mul<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), custparam);
                 PipeBarrier<PIPE_V>();
-                Add<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), fp32_statebuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 1, 8, 8, 8});
+                Add<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), fp32_statebuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
-                Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
+                Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (VEC_FLOAT), cast_params_f2h);
                 PipeBarrier<PIPE_V>();
-                UB2UB(outbuf.get(cnt), tmpbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                UB2UB(outbuf.get(cnt), tmpbuf.get(cnt), 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 PipeBarrier<PIPE_V>();
                 in_empty.set();
                 out_ready.set();
+
                 out_ready.wait();
-                UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_ci.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
-                UB2GM(tmpmtx[((((base_b * shape.stride_B) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], outbuf.get(cnt), 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                UB2GM(state_fp16[((((((ws_cnt % THREE) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_ci.get(cnt), 1, ((int)shape.z_pervec / MTE_HALF), 0, 0);
+                UB2GM(tmpmtx[((((base_b * shape.stride_B) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], outbuf.get(cnt), 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 out_empty.set();
                 cnt = (cnt + 1);
             }
