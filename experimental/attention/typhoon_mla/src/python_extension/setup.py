@@ -1,6 +1,6 @@
 import logging
 import os
-import subprocess
+import subprocess as sp
 import sys
 import time
 
@@ -38,11 +38,11 @@ class CMakeBuild(build_ext):
 
         # Use subprocess to invoke CMake for configuring and building the extension.
         # This executes external build commands in a controlled build directory.
-        subprocess.check_call(["cmake", ext.sourcedir] +
+        sp.check_call(["cmake", ext.sourcedir] +
                               cmake_args, cwd=self.build_temp)
         
         # Build the project using CMake-generated build files
-        subprocess.check_call(
+        sp.check_call(
             ["cmake", "--build", ".", "-j"] + build_args, cwd=self.build_temp)
 
     def generate_pyi(self, ext):
@@ -54,10 +54,10 @@ class CMakeBuild(build_ext):
             sys.executable), "pybind11-stubgen")
         try:
             # Run pybind11-stubgen
-            subprocess.check_call([stubgen_bin] + stubgen_args, cwd=extdir)
+            sp.check_call([stubgen_bin] + stubgen_args, cwd=extdir)
         except FileNotFoundError as e:
             logging.warning("No pybind11-stubgen found")
-        except subprocess.CalledProcessError as e:
+        except sp.CalledProcessError as e:
             logging.warning("pybind11-stubgen exited abnormally")
 
 
