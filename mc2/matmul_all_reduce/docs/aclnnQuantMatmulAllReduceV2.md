@@ -85,7 +85,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
           <td>x1</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
-          <td><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></td>
+          <td><ul><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></ul></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2-3</td>
@@ -95,7 +95,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td><ul><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></ul></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -125,7 +125,7 @@ aclnnStatus aclnnQuantMatmulAllReduceV2(
           <td>dequantScale</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算后的去量化系数，即计算公式中的dequantScale。</td>
-          <td><li>shape在pertensor场景为(1)，PerChannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></td>
+          <td><ul><li>shape在pertensor场景为(1)，PerChannel场景为(n)/(1, n)</li><li>输出为BFLOAT16时，直接将BFLOAT16类型的dequantScale传入本接口。</li><li>输出为FLOAT16时，如果pertokenScale不为空，可直接将FLOAT32类型的dequantScale传入本接口，如果pertokenScale为空，则需提前调用TransQuantParamV2算子的aclnn接口来将dequantScale转成INT64/UINT64数据类型。</li></ul></td>
           <td>INT64、UINT64、FLOAT32、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>

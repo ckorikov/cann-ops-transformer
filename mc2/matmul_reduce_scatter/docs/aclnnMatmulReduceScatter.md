@@ -74,7 +74,7 @@ aclnnStatus aclnnMatmulReduceScatter(
    <td>x1</td>
    <td>输入</td>
    <td>Device侧的aclTensor，即计算公式中的x1。</td>
-   <td><li>数据类型与x2保持一致。</li><li>当前版本仅支持两维输入。</li><li>仅支持不转置场景。</li></td>
+   <td><ul><li>数据类型与x2保持一致。</li><li>当前版本仅支持两维输入。</li><li>仅支持不转置场景。</li></ul></td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
    <td>2</td>
@@ -84,7 +84,7 @@ aclnnStatus aclnnMatmulReduceScatter(
    <td>x2</td>
    <td>输入</td>
    <td>Device侧的aclTensor，即计算公式中的x2。</td>
-   <td><li>数据类型与x1保持一致。</li><li>当前版本仅支持两维输入。</li><li>支持通过转置构造的非连续的Tensor。</li></td>
+   <td><ul><li>数据类型与x1保持一致。</li><li>当前版本仅支持两维输入。</li><li>支持通过转置构造的非连续的Tensor。</li></ul></td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
    <td>2</td>
@@ -94,7 +94,7 @@ aclnnStatus aclnnMatmulReduceScatter(
    <td>bias</td>
    <td>输入</td>
    <td>Device侧的aclTensor，即计算公式中的bias。</td>
-   <td><li>支持传入空指针。</li><li>当前版本仅支持一维输入。</li><li>暂不支持bias输入为非0的场景。</li></td>
+   <td><ul><li>支持传入空指针。</li><li>当前版本仅支持一维输入。</li><li>暂不支持bias输入为非0的场景。</li></ul></td>
    <td>FLOAT16、BFLOAT16</td>
    <td>ND</td>
    <td>1</td>
