@@ -87,8 +87,6 @@ public:
         for (int bd=shape.BD1; bd<shape.BD2; bd+=1){
             Duplicate<float, false>(xbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.W) / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
             PipeBarrier<PIPE_V>();
-
-            Process_bd();
             half b_val_f16 = 0;
             b_val_f16 = (half) bias[(bd % shape.D)].GetValue(0);
             float b_val = 0;
