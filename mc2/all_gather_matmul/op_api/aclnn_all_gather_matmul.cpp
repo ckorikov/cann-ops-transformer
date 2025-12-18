@@ -9,6 +9,7 @@
  */
 
 #include "aclnn_all_gather_matmul.h"
+#include "all_gather_matmul_v2/op_api/aclnn_all_gather_matmul_v2.h"
 #include "securec.h"
 #include "acl/acl.h"
 #include "op_mc2.h"
@@ -20,9 +21,10 @@
 #include "opdev/op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
-#include "matmul_util.h"
+#include "common/op_host/op_api/matmul_util.h"
 #include "hccl_util.h"
 
+using namespace Ops::Transformer;
 using namespace op;
 
 #ifdef __cplusplus
@@ -67,6 +69,7 @@ static bool CheckNotNull(const aclTensor* x1, const aclTensor* x2, const aclTens
   OP_CHECK_NULL(output, return false);
   return true;
 }
+
 // 根据API定义，需要列出所能支持的所有dtype
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST = {
   op::DataType::DT_FLOAT16, op::DataType::DT_BF16
