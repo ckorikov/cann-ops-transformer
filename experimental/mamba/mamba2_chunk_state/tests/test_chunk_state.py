@@ -51,7 +51,7 @@ if __name__ == '__main__':
     BASEH=8
     CBASEM=64
     
-    device = torch.device('npu:0')
+    device = torch.device('npu:6')
        
     print('torch compute')
 

@@ -60,7 +60,7 @@ if __name__ == '__main__':
     G = 8
     E = 1e-05
     
-    device = torch.device('npu:0')
+    device = torch.device('npu:6')
 
     tensor_x = torch.randn([B, S, D], dtype=torch.float32, device=device) * 0.2
     tensor_w = torch.randn([D], dtype=torch.float32, device=device) * 0.2

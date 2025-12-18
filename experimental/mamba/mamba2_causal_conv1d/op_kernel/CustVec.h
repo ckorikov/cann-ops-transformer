@@ -94,61 +94,17 @@ public:
             float w_scale = 0;
             for (int baseS=0; baseS<shape.S; baseS+=shape.baseS){
                 in_empty.wait();
-                if (((baseS + shape.baseS) >= shape.S)){
-                    if ((baseS == 0)){
-                        GM2UBPad(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, (shape.S * FOUR), 0, 0, 0, 0, 0, 0); // FOUR: 4bytes
-                    }
-                    else {
-                        GM2UBPad(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, (((shape.S - baseS) + Align64B(shape.W)) * FOUR), 0, 0, 0, 0, 0, 0);
-                    }
-                }
-                else {
-                    if ((baseS == 0)){
-                        GM2UB(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
-                    }
-                    else {
-                        GM2UB(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, ((int)(shape.baseS + Align64B(shape.W)) / MTE_FLOAT), 0, 0);
-                    }
-                }
+                Process_movein(bd, baseS);
                 in_ready.set();
                 
                 out_empty.wait();
                 in_ready.wait();
-                Duplicate<float, false>(sumbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), 1, NUM_DBLK_FLOAT);
-                PipeBarrier<PIPE_V>();
-                LocalTensor<uint32_t> tmptsr_0 = offsetbuf.ReinterpretCast<uint32_t>();
-                for (int widx=0; widx<shape.W; widx+=1){
-                    w_scale = (float) wmtx[(((bd % shape.D) * shape.W) + widx)].GetValue(0);
-                    Gather(tmpbuf.get(cnt), xbuf.get(cnt), tmptsr_0, 0, VECTORFULLMASK, ((int)shape.baseS / MTE_FLOAT), NUM_DBLK_FLOAT);
-                    PipeBarrier<PIPE_V>();
-                    Muls<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), (float)w_scale, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                    Add<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), tmpbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), binary_params);
-                    PipeBarrier<PIPE_V>();
-                    Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)4, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                    PipeBarrier<PIPE_V>();
-                }
-                Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * 4)), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Adds<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), (float)b_val, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Muls<float, false>(outbuf.get(cnt), sumbuf.get(cnt), (float)-1.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Exp<float, false>(outbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Adds<float, false>(outbuf.get(cnt), outbuf.get(cnt), (float)1.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Div<float, false>(outbuf.get(cnt), sumbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), binary_params);
-                PipeBarrier<PIPE_V>();
+                Process_calc(b_val, w_scale);
                 out_ready.set();
                 in_empty.set();
 
                 out_ready.wait();
-                if (((baseS + shape.baseS) >= shape.S)){
-                    UB2GMPad(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((shape.S - baseS) * FOUR), 0, 0);
-                }
-                else {
-                    UB2GM(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
-                }
+                Process_moveout(bd, baseS);
                 out_empty.set();
                 cnt = (cnt + 1);
             }
@@ -157,6 +113,62 @@ public:
         out_empty.release();
     }
     
+    __aicore__ inline void Process_movein(int bd, int baseS){
+        if (((baseS + shape.baseS) >= shape.S)){
+            if ((baseS == 0)){
+                GM2UBPad(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, (shape.S * FOUR), 0, 0, 0, 0, 0, 0); // FOUR: 4bytes
+            }
+            else {
+                GM2UBPad(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, (((shape.S - baseS) + Align64B(shape.W)) * FOUR), 0, 0, 0, 0, 0, 0);
+            }
+        }
+        else {
+            if ((baseS == 0)){
+                GM2UB(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
+            }
+            else {
+                GM2UB(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, ((int)(shape.baseS + Align64B(shape.W)) / MTE_FLOAT), 0, 0);
+            }
+        }
+    }
+
+    __aicore__ inline void Process_calc(float b_val, float w_scale){
+        Duplicate<float, false>(sumbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
+        PipeBarrier<PIPE_V>();
+        LocalTensor<uint32_t> tmptsr_0 = offsetbuf.ReinterpretCast<uint32_t>();
+        for (int widx=0; widx<shape.W; widx+=1){
+            w_scale = (float) wmtx[(((bd % shape.D) * shape.W) + widx)].GetValue(0);
+            Gather(tmpbuf.get(cnt), xbuf.get(cnt), tmptsr_0, 0, VECTORFULLMASK, ((int)shape.baseS / VEC_FLOAT), NUM_DBLK_FLOAT);
+            PipeBarrier<PIPE_V>();
+            Muls<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), (float)w_scale, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+            Add<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), tmpbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), binary_params);
+            PipeBarrier<PIPE_V>();
+            Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)4, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+            PipeBarrier<PIPE_V>();
+        }
+        Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * 4)), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Adds<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), (float)b_val, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Muls<float, false>(outbuf.get(cnt), sumbuf.get(cnt), (float)-1.0, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Exp<float, false>(outbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Adds<float, false>(outbuf.get(cnt), outbuf.get(cnt), (float)1.0, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Div<float, false>(outbuf.get(cnt), sumbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), binary_params);
+        PipeBarrier<PIPE_V>();
+    }
+
+    __aicore__ inline void Process_moveout(int bd, int baseS){
+        if (((baseS + shape.baseS) >= shape.S)){
+            UB2GMPad(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((shape.S - baseS) * FOUR), 0, 0);
+        }
+        else {
+            UB2GM(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
+        }
+    }
+
 private:
     CustVecShapeInfo shape;
     // Global Params
