@@ -5,15 +5,15 @@ import torch
 import torch_npu
 from typing import Tuple
 
-SEED = 42
+seed = 42
 
 
 def gen_quest_prefill_inputs(
-        B: int, N: int, BLOCK_SIZE: int, D: int,
+        batch_size: int, num_kv_heads: int, block_size: int, head_dim: int,
         num_kv_blocks: int = 100,
         num_meta_blocks: int = 20,
-        MKBPR: int = 128,
-        MMBPR: int = 1,
+        mkbpr: int = 128,
+        mmbpr: int = 1,
         same_seq_len_all_reqs: bool = False,
         dtype: torch.dtype = torch.float16,
         device: str = "npu:0",
@@ -22,29 +22,29 @@ def gen_quest_prefill_inputs(
     """
     Creates pseudo-random inputs for quest_prefill_metadata kernel.
     Arguments:
-        B - batch size
-        N - number of KV heads
-        BLOCK_SIZE - number of tokens per block (equal for metadata block and 
+        batch_size - batch size
+        num_kv_heads - number of KV heads
+        block_size - number of tokens per block (equal for metadata block and 
                      kv-cache block)
-        D - head dimension
+        head_dim - head dimension
         num_kv_blocks - total number of KV-cache blocks for the entire job (all 
                      requests together)
         num_meta_blocks - total number of metadata blocks for the entire job 
                     (all requests together)
-        MKBPR - maximum number of KV-cache blocks per request in a batch    
-        MMBPR - maximum number of metadata blocks per request in a batch    
+        mkbpr - maximum number of KV-cache blocks per request in a batch    
+        mmbpr - maximum number of metadata blocks per request in a batch    
         same_seq_len_all_reqs - True <--> all request in a batch will have the 
                      same sequence length (same number of kv blocks)
 
     Returns
     -------
-        k_cache               : (num_kv_blocks, BLOCK_SIZE, N, D)
-        block_tables          : (B, MKBPR) indices into k_cache
-        seq_lens              : (B,) between BLOCK_SIZE and BLOCK_SIZE*MKBPR
-        metadata_block_tables : (B, MMBPR) indices into [0..num_meta_blocks-1]
-        maxblocks             : (num_meta_blocks, BLOCK_SIZE, N, D) indices in 
+        k_cache               : (num_kv_blocks, block_size, num_kv_heads, head_dim)
+        block_tables          : (batch_size, mkbpr) indices into k_cache
+        seq_lens              : (batch_size,) between block_size and block_size*mkbpr
+        metadata_block_tables : (batch_size, mmbpr) indices into [0..num_meta_blocks-1]
+        maxblocks             : (num_meta_blocks, block_size, num_kv_heads, head_dim) indices in 
                                 [0..num_meta_blocks-1]
-        minblocks             : (num_meta_blocks, BLOCK_SIZE, N, D) indices in 
+        minblocks             : (num_meta_blocks, block_size, num_kv_heads, head_dim) indices in 
                                 [0..num_meta_blocks-1]
     """
 
@@ -52,30 +52,30 @@ def gen_quest_prefill_inputs(
     
     # reset the seed each time to be able to reproduce individual failed tests 
     # out of a loop of tests
-    torch.manual_seed(SEED)    
+    torch.manual_seed(seed)    
 
     # ---- K-cache ---- #
-    k_cache = torch.randn(num_kv_blocks, BLOCK_SIZE, N, D,
+    k_cache = torch.randn(num_kv_blocks, block_size, num_kv_heads, head_dim,
                          dtype=dtype, device=device) * 1.5 # 1.5 to increase the range
 
     # ---- request statistics ---- #
-    max_seq_len = MKBPR * BLOCK_SIZE
+    max_seq_len = mkbpr * block_size
     if same_seq_len_all_reqs:
-        seq_lens = torch.tensor([max_seq_len]*B, dtype=torch.int32, device=device)
+        seq_lens = torch.tensor([max_seq_len]*batch_size, dtype=torch.int32, device=device)
     else:
-        seq_lens = torch.randint(low=0, high=max_seq_len + 1, size=(B,), dtype=torch.int32, device=device)
+        seq_lens = torch.randint(low=0, high=max_seq_len + 1, size=(batch_size,), dtype=torch.int32, device=device)
 
     # ---- block tables ---- #
     perm_kv_blk_ids = torch.randperm(num_kv_blocks, device=device)[:num_kv_blocks]      
-    block_tables = perm_kv_blk_ids.reshape((B, MKBPR)).to(dtype=torch.int32, device=device)                       
+    block_tables = perm_kv_blk_ids.reshape((batch_size, mkbpr)).to(dtype=torch.int32, device=device)                       
 
     # ---- metadata_block_tables ---- #
     perm_meta_blk_ids = torch.randperm(num_meta_blocks, device=device)[:num_meta_blocks]      
-    metadata_block_tables = perm_meta_blk_ids.reshape((B, MMBPR)).to(dtype=torch.int32, device=device)      
+    metadata_block_tables = perm_meta_blk_ids.reshape((batch_size, mmbpr)).to(dtype=torch.int32, device=device)      
 
     # placeholder for kernel outputs
-    maxblocks = torch.empty(num_meta_blocks, BLOCK_SIZE, N, D, dtype=dtype, device=device)
-    minblocks = torch.empty(num_meta_blocks, BLOCK_SIZE, N, D, dtype=dtype, device=device)
+    maxblocks = torch.empty(num_meta_blocks, block_size, num_kv_heads, head_dim, dtype=dtype, device=device)
+    minblocks = torch.empty(num_meta_blocks, block_size, num_kv_heads, head_dim, dtype=dtype, device=device)
 
     # Ensure all tensors are contiguous
     k_cache = k_cache.contiguous()

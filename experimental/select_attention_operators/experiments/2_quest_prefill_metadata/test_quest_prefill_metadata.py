@@ -12,49 +12,53 @@ from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, compare_te
 
 
 device = "npu:0"
-BLOCK_SIZE_DEFAULT = 128
-D_DEFAULT = 128
+block_size_default = 128
+d_default = 128
 
 
 # --------------------------------------------------------------------------- #
 # Central test worker  (assertion crashes <--> test failed)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="internal worker - not called directly by pytest")
-def test_prefill_kernel(DTYPE:torch.dtype, B: int, N: int, BLOCK_SIZE: int, D: int,
-                        MKBPR: int = 128,
-                        MMBPR: int = 1,
-                        SSAR: bool = True,
+def test_prefill_kernel(dtype:torch.dtype, 
+                        batch_size: int, 
+                        num_kv_heads: int, 
+                        block_size: int, 
+                        head_dim: int,
+                        mkbpr: int = 128,
+                        mmbpr: int = 1,
+                        ssar: bool = True,
                         verbose: bool = False) -> None:
     """Run reference vs Ascend-C and assert bit-accurate match.
     
     Arguments:
-        B - batch size
-        N - number of KV heads
-        BLOCK_SIZE - nmuumbe of tokens per block (equal for metadata block and 
+        batch_size - batch size
+        num_kv_heads - number of KV heads
+        block_size - nmuumbe of tokens per block (equal for metadata block and 
                      kv-cahce block)
-        D - head dimeansion
-        MKBPR - maximum number of KV-cache blocks per request in a batch    
-        MMBPR - maximum number of metadata blocks per request in a batch    
-        SSAR - "same_seq_len_all_request" 
+        head_dim - head dimeansion
+        mkbpr - maximum number of KV-cache blocks per request in a batch    
+        mmbpr - maximum number of metadata blocks per request in a batch    
+        ssar - "same_seq_len_all_reqs" 
                if true, the the data generated will have same sequence length 
                for all request in the batch.
                if false: each request wll have a randomly number of tokens.
     
     """
 
-    MMBPR = ceil_div(MKBPR, BLOCK_SIZE)
-    num_kv_blocks = B * MKBPR  # total number of KV-cache blocks for the entire job (all requests together)
-    num_meta_blocks = B * MMBPR  # total number of metadata blocks for the entire job (all requests together)
+    mmbpr = ceil_div(mkbpr, block_size)
+    num_kv_blocks = batch_size * mkbpr  # total number of KV-cache blocks for the entire job (all requests together)
+    num_meta_blocks = batch_size * mmbpr  # total number of metadata blocks for the entire job (all requests together)
 
     # ---- generate input/output tensors ---- #
     k_cache, block_tables, seq_lens, meta_ids, max_out, min_out = gen_quest_prefill_inputs(
-        B, N, BLOCK_SIZE, D,
+        batch_size, num_kv_heads, block_size, head_dim,
         num_kv_blocks=num_kv_blocks,
         num_meta_blocks=num_meta_blocks,
-        MKBPR=MKBPR,
-        MMBPR=MMBPR,
-        same_seq_len_all_reqs=SSAR, 
-        dtype=DTYPE,
+        mkbpr=mkbpr,
+        mmbpr=mmbpr,
+        same_seq_len_all_reqs=ssar, 
+        dtype=dtype,
         device=device)
     
     # ---- reference kernel ---- #
@@ -81,7 +85,7 @@ def test_prefill_kernel(DTYPE:torch.dtype, B: int, N: int, BLOCK_SIZE: int, D: i
         print(f"{min_ref=}")
         print(f"{min_out=}")    
         print(" ==================== SUMMARY =================== ")
-        print(f"{B=} {N=} {BLOCK_SIZE=} {D=} {MKBPR=} {MMBPR=} {DTYPE=} {num_kv_blocks=} {num_meta_blocks=}")
+        print(f"{batch_size=} {num_kv_heads=} {block_size=} {head_dim=} {mkbpr=} {mmbpr=} {dtype=} {num_kv_blocks=} {num_meta_blocks=}")
         print("maxblocks - ", end='')
         compare_tensors(max_ref, max_out)    
         print("minblocks - ", end='')
@@ -92,93 +96,99 @@ def test_prefill_kernel(DTYPE:torch.dtype, B: int, N: int, BLOCK_SIZE: int, D: i
 # 3.  Param-set builder  (same pattern as block-select file)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="internal helper")
-def construct_prefill_parameter_sets(B_VALUES, N_VALUES, MKBPR_VALUES, SSAR_VALUES):
+def construct_prefill_parameter_sets(dtype_vals, batch_size_vals, num_kv_heads_vals, mkbpr_vals, ssar_vals):
     """
-    Build legal (B,N,MKBPR) tuples.
-    BLOCK_SIZE & D are global constants.
+    Build legal (batch_size, num_kv_heads, mkbpr) tuples.
+    block_size & head_dim are global constants.
     """
     sets = []
-    for b in B_VALUES:
-        for n in N_VALUES:
-            for MKBPR in MKBPR_VALUES:
-                sets.append((b, n, MKBPR))
+    for dtype in dtype_vals:
+        for b in batch_size_vals:
+            for n in num_kv_heads_vals:
+                for mkbpr in mkbpr_vals:
+                    for ssar in ssar_vals:
+                        sets.append((dtype, b, n, mkbpr, ssar))
     return sets
 
 
 # --------------------------------------------------------------------------- #
 # Test 1 – Basic functionality
 # ---------------------------------------------------------------------------#
-DTYPE_BASIC = [torch.float16, torch.bfloat16]
-B_BASIC = [1, 2]
-N_BASIC = [4, 8]
-MKBPR_BASIC = [1, 64, 126, 128]
-SSAR_BASIC = [True, False]
+parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
+                                                  batch_size_vals = [1, 2], 
+                                                  num_kv_heads_vals = [4, 8], 
+                                                  mkbpr_vals = [1, 64, 126, 128], 
+                                                  ssar_vals = [True, False])
 
 @pytest.mark.parametrize(
-    "DTYPE, B, N, MKBPR, SSAR", product(DTYPE_BASIC, B_BASIC, N_BASIC, MKBPR_BASIC, SSAR_BASIC),
-    ids=[f"{DTYPE=},{B=},{N=},{MKBPR=},{SSAR=}" for DTYPE, B, N, MKBPR, SSAR in product(DTYPE_BASIC, B_BASIC, N_BASIC, MKBPR_BASIC, SSAR_BASIC)]
+    "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
+    ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
+         for dtype, batch_size, num_kv_heads, mkbpr, ssar in parameter_sets]
 )
 @torch.inference_mode()
-def test_basic_functionality(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
+def test_basic_functionality(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
 # Test 2 – Edge cases
 # ---------------------------------------------------------------------------#
-DTYPE_EDGE = [torch.float16, torch.bfloat16]
-B_EDGE = [1, 2]
-N_EDGE = [1, 2, 4, 7, 8, 9, 16, 21, 32, 33]
-MKBPR_EDGE = [1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257]
-SSAR_EDGE = [True, False]
+parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
+                                                  batch_size_vals = [1, 2], 
+                                                  num_kv_heads_vals = [1, 2, 4, 7, 8, 9, 16, 21, 32, 33], 
+                                                  mkbpr_vals = [1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257], 
+                                                  ssar_vals = [True, False])
 
 @pytest.mark.parametrize(
-    "DTYPE, B, N, MKBPR, SSAR", product(DTYPE_EDGE, B_EDGE, N_EDGE, MKBPR_EDGE, SSAR_EDGE),
-    ids=[f"{DTYPE=},{B=},{N=},{MKBPR=},{SSAR=}" for DTYPE, B, N, MKBPR, SSAR in product(DTYPE_EDGE, B_EDGE, N_EDGE, MKBPR_EDGE, SSAR_EDGE)]
+    "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
+    ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
+         for dtype, batch_size, num_kv_heads, mkbpr, ssar in parameter_sets]
 )
 @torch.inference_mode()
-def test_edge_cases(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
+def test_edge_cases(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
 # Test 3 – Test Large sequence
 # ---------------------------------------------------------------------------#
-DTYPE_LS = [torch.float16, torch.bfloat16]
-B_LS = [1, 2, 4, 8]
-N_LS = [2, 4, 8]
-MKBPR_LS = [1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512]
-SSAR_LS = [True, False]
+parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
+                                                  batch_size_vals = [1, 2, 4, 8], 
+                                                  num_kv_heads_vals = [2, 4, 8], 
+                                                  mkbpr_vals = [1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512], 
+                                                  ssar_vals = [True, False])
 
 @pytest.mark.parametrize(
-    "DTYPE, B, N, MKBPR, SSAR", product(DTYPE_LS, B_LS, N_LS, MKBPR_LS, SSAR_LS),
-    ids=[f"{DTYPE=},{B=},{N=},{MKBPR=},{SSAR=}" for DTYPE, B, N, MKBPR, SSAR in product(DTYPE_LS, B_LS, N_LS, MKBPR_LS, SSAR_LS)]
+    "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
+    ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
+         for dtype, batch_size, num_kv_heads, mkbpr, ssar in parameter_sets]
 )
 @torch.inference_mode()
-def test_large_lequence(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
+def test_large_lequence(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
 # Test 4 – Large batch
 # ---------------------------------------------------------------------------#
-DTYPE_LB = [torch.float16, torch.bfloat16]
-B_LB = [16, 20, 24, 32]
-N_LB = [4, 8, 16]
-MKBPR_LB = [1, 64, 126, 128, 130, 141]
-SSAR_LB = [True, False]
+parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
+                                                  batch_size_vals = [16, 20, 24, 32], 
+                                                  num_kv_heads_vals = [4, 8, 16], 
+                                                  mkbpr_vals = [1, 64, 126, 128, 130, 141], 
+                                                  ssar_vals = [True, False])
 
 @pytest.mark.parametrize(
-    "DTYPE, B, N, MKBPR, SSAR", product(DTYPE_LB, B_LB, N_LB, MKBPR_LB, SSAR_LB),
-    ids=[f"{DTYPE=},{B=},{N=},{MKBPR=},{SSAR=}" for DTYPE, B, N, MKBPR, SSAR in product(DTYPE_LB, B_LB, N_LB, MKBPR_LB, SSAR_LB)]
+    "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
+    ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
+         for dtype, batch_size, num_kv_heads, mkbpr, ssar in parameter_sets]
 )
 @torch.inference_mode()
-def test_large_batch(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
+def test_large_batch(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
 
 # --------------------------------------------------------------------------- #
 # Quick manual run (kept for copy-paste debugging)
 # ---------------------------------------------------------------------------#
 if __name__ == "__main__":
-    test_prefill_kernel(DTYPE=torch.bfloat16, B=20, N=8, BLOCK_SIZE=128, D=128, MKBPR=128, SSAR=False, verbose=True) # passes 
+    test_prefill_kernel(dtype=torch.bfloat16, batch_size=20, num_kv_heads=8, block_size=128, head_dim=128, mkbpr=128, ssar=False, verbose=True) # passes 
     print("Manual smoke test PASSED")
