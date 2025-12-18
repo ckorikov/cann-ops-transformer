@@ -19,8 +19,8 @@ from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, ceil_div, 
 
 torch.npu.set_device("npu:0")
 DTYPE = torch.bfloat16
-BLOCK_SIZE = 128
-D = 128
+BLOCK_SIZE_DEFAULT = 128
+D_DEFAULT = 128
 SAME_SEQ_LEN_ALL_REQS = True # to set equally long input length and avoid unknown actual size
 
 # --------------------------------------------------------------------------- #
@@ -89,21 +89,21 @@ def benchmark_quest_prefill():
         return
 
     print("=" * 106)
-    print(f"  {DTYPE=}  {BLOCK_SIZE=}  {D=}  {SAME_SEQ_LEN_ALL_REQS=}")
+    print(f"  {DTYPE=}  {BLOCK_SIZE_DEFAULT=}  {D_DEFAULT=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 106)
     print(f"{'N':>3} {'B':>3} {'Seq_len':>10} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 106)
 
     for n, b, mkbpr in itertools.product(N_vals, B_vals, MKBPR_vals):
-        seq_len = mkbpr * BLOCK_SIZE
-        mmbpr = ceil_div(mkbpr, BLOCK_SIZE)
+        seq_len = mkbpr * BLOCK_SIZE_DEFAULT
+        mmbpr = ceil_div(mkbpr, BLOCK_SIZE_DEFAULT)
         
         ######## Check correctness ########
         are_equal = "N/A"
         if run_our and run_ref:
             # Create fresh output tensors for correctness check
             k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our = gen_quest_prefill_inputs(
-                b, n, BLOCK_SIZE, D,
+                b, n, BLOCK_SIZE_DEFAULT, D_DEFAULT,
                 num_kv_blocks=b * mkbpr,
                 num_meta_blocks=b * mmbpr,
                 MKBPR=mkbpr,
@@ -129,7 +129,7 @@ def benchmark_quest_prefill():
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
                     gen_quest_prefill_inputs(
-                        b, n, BLOCK_SIZE, D,
+                        b, n, BLOCK_SIZE_DEFAULT, D_DEFAULT,
                         num_kv_blocks=b * mkbpr,
                         num_meta_blocks=b * mmbpr,
                         MKBPR=mkbpr,
@@ -159,7 +159,7 @@ def benchmark_quest_prefill():
             torch.npu.synchronize()
             
             our_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE, D, mkbpr, mmbpr, seq_lens)
+            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE_DEFAULT, D_DEFAULT, mkbpr, mmbpr, seq_lens)
             our_bw = total_bytes / our_duration / 1e6  # TB/s
 
         ############ Reference ###########
@@ -169,7 +169,7 @@ def benchmark_quest_prefill():
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
                     gen_quest_prefill_inputs(
-                        b, n, BLOCK_SIZE, D,
+                        b, n, BLOCK_SIZE_DEFAULT, D_DEFAULT,
                         num_kv_blocks=b * mkbpr,
                         num_meta_blocks=b * mmbpr,
                         MKBPR=mkbpr,
@@ -199,7 +199,7 @@ def benchmark_quest_prefill():
             torch.npu.synchronize()
             
             ref_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE, D, mkbpr, mmbpr, seq_lens)
+            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE_DEFAULT, D_DEFAULT, mkbpr, mmbpr, seq_lens)
             ref_bw = total_bytes / ref_duration / 1e6  # TB/s
         
         ####### Print results #######

@@ -11,8 +11,8 @@ from gen_data_quest_block_select_paged import gen_quest_paged_inputs, compare_in
 
 
 device = "npu:0"
-BLOCK_SIZE = 128
-D = 128
+BLOCK_SIZE_DEFAULT = 128
+D_DEFAULT = 128
 SAME_SEQ_LEN_ALL_REQS = False
 
 
@@ -83,18 +83,16 @@ def construct_quest_paged_parameter_sets(DTYPE_VALUES, B_VALUES, H_VALUES, N_VAL
                     if n <= h and h % n == 0:
                         for mmbpr in MMBPR_VALUES:
                             for k in K_VALUES:
-                                parameter_sets.append((dtype, b, h, n, BLOCK_SIZE, D, mmbpr, k))
+                                parameter_sets.append((dtype, b, h, n, BLOCK_SIZE_DEFAULT, D_DEFAULT, mmbpr, k))
     return parameter_sets
 
 ########################### Test 1 - Basic functionality ###########################
-DTYPE_VALUES = [torch.float16, torch.bfloat16]
-B_VALUES = [1, 2]
-H_VALUES = [8, 16]
-N_VALUES = [4, 8]
-MMBPR_VALUES = [1, 2, 3, 4]
-K_VALUES = [4, 8]
-
-parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES, B_VALUES, H_VALUES, N_VALUES, MMBPR_VALUES, K_VALUES)
+parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES = [torch.float16, torch.bfloat16], 
+                                                      B_VALUES = [1, 2], 
+                                                      H_VALUES = [8, 16], 
+                                                      N_VALUES = [4, 8], 
+                                                      MMBPR_VALUES = [1, 2, 3, 4], 
+                                                      K_VALUES = [4, 8])
 
 @pytest.mark.parametrize(
     "DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k", parameter_sets,
@@ -107,14 +105,12 @@ def test_quest_paged_basic(DTYPE:torch.dtype, B: int, H: int, N: int, BLOCK_SIZE
     test_quest_paged_kernel(DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k)
 
 ########################### Test 2 - Edge cases ###########################
-DTYPE_VALUES = [torch.float16, torch.bfloat16]
-B_VALUES = [1]
-H_VALUES = [1, 2, 4, 8, 16, 32]
-N_VALUES = [1, 2, 4, 8, 16]
-MMBPR_VALUES = [1, 2, 4]
-K_VALUES = [1, 4, 16]
-
-parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES, B_VALUES, H_VALUES, N_VALUES, MMBPR_VALUES, K_VALUES)
+parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES = [torch.float16, torch.bfloat16],
+                                                      B_VALUES = [1], 
+                                                      H_VALUES = [1, 2, 4, 8, 16, 32], 
+                                                      N_VALUES = [1, 2, 4, 8, 16], 
+                                                      MMBPR_VALUES = [1, 2, 4], 
+                                                      K_VALUES = [1, 4, 16])
 
 @pytest.mark.parametrize(
     "DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k", parameter_sets,
@@ -127,14 +123,12 @@ def test_quest_paged_edge_cases(DTYPE:torch.dtype, B: int, H: int, N: int, BLOCK
     test_quest_paged_kernel(DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k)
 
 ########################### Test 3 - Extensive testing ###########################
-DTYPE_VALUES = [torch.float16, torch.bfloat16]
-B_VALUES = [1, 2, 8]
-H_VALUES = [8, 16, 32, 64]
-N_VALUES = [2, 4, 8, 16]
-MMBPR_VALUES = [1, 2, 3, 4]
-K_VALUES = [2, 4, 8, 16, 32]
-
-parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES, B_VALUES, H_VALUES, N_VALUES, MMBPR_VALUES, K_VALUES)
+parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES = [torch.float16, torch.bfloat16], 
+                                                      B_VALUES = [1, 2, 8], 
+                                                      H_VALUES = [8, 16, 32, 64], 
+                                                      N_VALUES = [2, 4, 8, 16], 
+                                                      MMBPR_VALUES = [1, 2, 3, 4], 
+                                                      K_VALUES = [2, 4, 8, 16, 32])
 
 @pytest.mark.parametrize(
     "DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k", parameter_sets,
@@ -147,14 +141,12 @@ def test_quest_paged_extensive(DTYPE:torch.dtype, B: int, H: int, N: int, BLOCK_
     test_quest_paged_kernel(DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k)
 
 ########################### Test 4 - Large scale ###########################
-DTYPE_VALUES = [torch.float16, torch.bfloat16]
-B_VALUES = [16, 20, 24, 32]
-H_VALUES = [32, 64, 128]
-N_VALUES = [4, 8, 16, 32, 64]
-MMBPR_VALUES = [1, 2, 4]
-K_VALUES = [4, 8, 32, 64]
-
-parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES, B_VALUES, H_VALUES, N_VALUES, MMBPR_VALUES, K_VALUES)
+parameter_sets = construct_quest_paged_parameter_sets(DTYPE_VALUES = [torch.float16, torch.bfloat16], 
+                                                      B_VALUES = [16, 20, 24, 32], 
+                                                      H_VALUES = [32, 64, 128], 
+                                                      N_VALUES = [4, 8, 16, 32, 64], 
+                                                      MMBPR_VALUES = [1, 2, 4], 
+                                                      K_VALUES = [4, 8, 32, 64])
 
 @pytest.mark.parametrize(
     "DTYPE, B, H, N, BLOCK_SIZE, D, MMBPR, k", parameter_sets,

@@ -12,8 +12,8 @@ from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, compare_te
 
 
 device = "npu:0"
-BLOCK_SIZE = 128
-D = 128
+BLOCK_SIZE_DEFAULT = 128
+D_DEFAULT = 128
 
 
 # --------------------------------------------------------------------------- #
@@ -120,7 +120,7 @@ SSAR_BASIC = [True, False]
 )
 @torch.inference_mode()
 def test_basic_functionality(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE, D, MKBPR, SSAR)
+    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
 
 
 # --------------------------------------------------------------------------- #
@@ -138,7 +138,7 @@ SSAR_EDGE = [True, False]
 )
 @torch.inference_mode()
 def test_edge_cases(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE, D, MKBPR, SSAR)
+    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
 
 
 # --------------------------------------------------------------------------- #
@@ -156,7 +156,7 @@ SSAR_LS = [True, False]
 )
 @torch.inference_mode()
 def test_large_lequence(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE, D, MKBPR, SSAR)
+    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
 
 
 # --------------------------------------------------------------------------- #
@@ -174,12 +174,11 @@ SSAR_LB = [True, False]
 )
 @torch.inference_mode()
 def test_large_batch(DTYPE: torch.dtype, B: int, N: int, MKBPR: int, SSAR: int):
-    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE, D, MKBPR, SSAR)
+    test_prefill_kernel(DTYPE, B, N, BLOCK_SIZE_DEFAULT, D_DEFAULT, MKBPR, SSAR)
 
 # --------------------------------------------------------------------------- #
 # Quick manual run (kept for copy-paste debugging)
 # ---------------------------------------------------------------------------#
 if __name__ == "__main__":
     test_prefill_kernel(DTYPE=torch.bfloat16, B=20, N=8, BLOCK_SIZE=128, D=128, MKBPR=128, SSAR=False, verbose=True) # passes 
-    # test_prefill_kernel(DTYPE=torch.float16, B=20, N=8, BLOCK_SIZE=128, D=128, MKBPR=256, SSAR=False, verbose=True) # still fails due to large MKBPR
     print("Manual smoke test PASSED")
