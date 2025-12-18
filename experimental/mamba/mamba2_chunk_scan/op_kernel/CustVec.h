@@ -19,6 +19,7 @@ constexpr int VBASEL = 64;
 constexpr int VBASEH = 8;
 constexpr int BRCB_BLK = 64;
 constexpr int CBASEM = 64;
+constexpr int CBASEN = 64;
 constexpr int BLK_K = 64;
 constexpr int MASKV = 4294967295;
 
@@ -115,19 +116,8 @@ public:
         unary_params = MakeDefaultUnaryRepeatParams();
         binary_params = MakeDefaultBinaryRepeatParams();
         
-        LocalTensor<uint32_t> tmptsr_0 = maskdiagbuf.ReinterpretCast<uint32_t>();
-        Duplicate<uint32_t, false>(tmptsr_0, (uint32_t)0, MASK_PLACEHOLDER, CBASEM, 1, MTE_FLOAT);
-        PipeBarrier<PIPE_V>();
-        uint64_t mask = 1;
-        for (int i=0; i<CBASEM; i+=1){
-            SetVectorMask<half, MaskMode::NORMAL>(0, mask);
-            LocalTensor<uint32_t> tmptsr_1 = maskdiagbuf[(i * CBASEM)].ReinterpretCast<uint32_t>();
-            Duplicate<uint32_t, false>(tmptsr_1, (uint32_t)MASKV, MASK_PLACEHOLDER, 1, 1, MTE_FLOAT);
-            PipeBarrier<PIPE_V>();
-            mask = ((mask * TWO) + 1);
-        }
-        SetVectorMask<half, MaskMode::NORMAL>(-1, -1);
-        PipeBarrier<PIPE_V>();
+        Init_mask();
+
         tensor_in_empty.set();
         tensor_out_empty.set();
         VEC_READY(THREE, PIPE_MTE3);
@@ -160,6 +150,22 @@ public:
         out_empty.release();
     }
 
+    __aicore__ inline void Init_mask(){
+        LocalTensor<uint32_t> tmptsr_0 = maskdiagbuf.ReinterpretCast<uint32_t>();
+        Duplicate<uint32_t, false>(tmptsr_0, (uint32_t)0, MASK_PLACEHOLDER, CBASEM, 1, MTE_FLOAT);
+        PipeBarrier<PIPE_V>();
+        mask = 1;
+        for (int i=0; i<CBASEM; i+=1){
+            SetVectorMask<half, MaskMode::NORMAL>(0, mask);
+            LocalTensor<uint32_t> tmptsr_1 = maskdiagbuf[(i * CBASEM)].ReinterpretCast<uint32_t>();
+            Duplicate<uint32_t, false>(tmptsr_1, (uint32_t)MASKV, MASK_PLACEHOLDER, 1, 1, MTE_FLOAT);
+            PipeBarrier<PIPE_V>();
+            mask = ((mask * TWO) + 1);
+        }
+        SetVectorMask<half, MaskMode::NORMAL>(-1, -1);
+        PipeBarrier<PIPE_V>();
+    }
+
     __aicore__ inline void Process_dt(){
         int m1start = 0;
         int m1end = 0;
@@ -187,6 +193,7 @@ public:
                 }
                 in_ready.set();
                 tensor_in_ready.set();
+
                 out_empty.wait();
                 in_ready.wait();
                 tensor_out_empty.wait();
@@ -226,6 +233,7 @@ public:
                 in_empty.set();
                 tensor_out_ready.set();
                 tensor_in_empty.set();
+
                 out_ready.wait();
                 tensor_out_ready.wait();
                 UB2GM(mmtx[((((bc_now * ((shape.H * shape.L) * shape.L)) + (h_now * (shape.L * shape.L))) + ((m1 * CBASEM) * shape.L)) + ((m2 * BLK_K) * 1))], da_out_half, shape.BASEL, ((int)shape.BASEL / (int)MTE_HALF), 0, ((int)(shape.L - shape.BASEL) / (int)MTE_HALF));
@@ -310,6 +318,7 @@ private:
     int h_now;
     int v1_bc_now;
     int v1_h_now;
+    uint64_t mask;
     UnaryRepeatParams cast_params_h2f;
     UnaryRepeatParams cast_params_f2h;
     UnaryRepeatParams unary_params;
