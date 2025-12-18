@@ -10,9 +10,12 @@
 
 #pragma once
 #include "tensorutils.h"
+#include "paramutils.h"
 
 namespace npu_ops_transformer_ext{
 namespace Mambav2CausalConv1d{
+
+constexpr int BASES = 2048;
 
 struct CustVecShapeInfo{
     int D;
@@ -29,10 +32,10 @@ __aicore__ inline void tilingShapeCustVec(int B, int D, int S, int W, CustVecSha
     shape.D = D;
     shape.S = S;
     shape.W = W;
-    shape.BD_PER_CORE = CeilDiv((B * D),(GetBlockNum() * 2));
+    shape.BD_PER_CORE = CeilDiv((B * D),(GetBlockNum() * TWO));
     shape.BD1 = (shape.BD_PER_CORE * GetBlockIdx());
     shape.BD2 = (((shape.BD1 + shape.BD_PER_CORE))<((B * D))) ? ((shape.BD1 + shape.BD_PER_CORE)) : ((B * D));
-    shape.baseS = Align64B(((shape.S)<(2048)) ? (shape.S) : (2048));
+    shape.baseS = Align64B(((shape.S)<(BASES)) ? (shape.S) : (BASES));
 }
 
 
@@ -68,17 +71,24 @@ public:
     __aicore__ inline void Compute(){
         in_empty.setall();
         out_empty.setall();
-        Duplicate<int32_t, false>(offsetbuf, (int32_t)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.S) / (int)64), 1, 8);
+        Duplicate<int32_t, false>(offsetbuf, (int32_t)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.S) / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
         PipeBarrier<PIPE_V>();
         int cnt = 0;
         int32_t val = 0;
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
+
         for (int idx=0; idx<shape.baseS; idx+=1){
-            val = (((idx + 65) - shape.W) * 4);
+            val = (((idx + VEC_FLOAT + 1) - shape.W) * FOUR);
             offsetbuf[idx].SetValue(0, (int32_t)(val));
         }
         for (int bd=shape.BD1; bd<shape.BD2; bd+=1){
-            Duplicate<float, false>(xbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.W) / (int)64), 1, 8);
+            Duplicate<float, false>(xbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.W) / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
             PipeBarrier<PIPE_V>();
+
+            Process_bd();
             half b_val_f16 = 0;
             b_val_f16 = (half) bias[(bd % shape.D)].GetValue(0);
             float b_val = 0;
@@ -88,56 +98,57 @@ public:
                 in_empty.wait();
                 if (((baseS + shape.baseS) >= shape.S)){
                     if ((baseS == 0)){
-                        GM2UBPad(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, (shape.S * 4), 0, 0, 0, 0, 0, 0);
+                        GM2UBPad(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, (shape.S * FOUR), 0, 0, 0, 0, 0, 0); // FOUR: 4bytes
                     }
                     else {
-                        GM2UBPad(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, (((shape.S - baseS) + Align64B(shape.W)) * 4), 0, 0, 0, 0, 0, 0);
+                        GM2UBPad(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, (((shape.S - baseS) + Align64B(shape.W)) * FOUR), 0, 0, 0, 0, 0, 0);
                     }
                 }
                 else {
                     if ((baseS == 0)){
-                        GM2UB(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, ((int)shape.baseS / (int)8), 0, 0);
+                        GM2UB(xbuf.get(cnt)[Align64B(shape.W)], xmtx[(bd * shape.S)], 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
                     }
                     else {
-                        GM2UB(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, ((int)(shape.baseS + Align64B(shape.W)) / (int)8), 0, 0);
+                        GM2UB(xbuf.get(cnt), xmtx[(((bd * shape.S) + baseS) - Align64B(shape.W))], 1, ((int)(shape.baseS + Align64B(shape.W)) / MTE_FLOAT), 0, 0);
                     }
                 }
                 in_ready.set();
+                
                 out_empty.wait();
                 in_ready.wait();
-                Duplicate<float, false>(sumbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), 1, 8);
+                Duplicate<float, false>(sumbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), 1, NUM_DBLK_FLOAT);
                 PipeBarrier<PIPE_V>();
                 LocalTensor<uint32_t> tmptsr_0 = offsetbuf.ReinterpretCast<uint32_t>();
                 for (int widx=0; widx<shape.W; widx+=1){
                     w_scale = (float) wmtx[(((bd % shape.D) * shape.W) + widx)].GetValue(0);
-                    Gather(tmpbuf.get(cnt), xbuf.get(cnt), tmptsr_0, 0, VECTORFULLMASK, ((int)shape.baseS / (int)64), 8);
+                    Gather(tmpbuf.get(cnt), xbuf.get(cnt), tmptsr_0, 0, VECTORFULLMASK, ((int)shape.baseS / MTE_FLOAT), NUM_DBLK_FLOAT);
                     PipeBarrier<PIPE_V>();
-                    Muls<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), (float)w_scale, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
-                    Add<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), tmpbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 1, 8, 8, 8});
+                    Muls<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), (float)w_scale, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
+                    Add<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), tmpbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), binary_params);
                     PipeBarrier<PIPE_V>();
-                    Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)4, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                    Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)4, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                     PipeBarrier<PIPE_V>();
                 }
-                Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * 4)), MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * 4)), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Adds<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), (float)b_val, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                Adds<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), (float)b_val, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Muls<float, false>(outbuf.get(cnt), sumbuf.get(cnt), (float)-1.0, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                Muls<float, false>(outbuf.get(cnt), sumbuf.get(cnt), (float)-1.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Exp<float, false>(outbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                Exp<float, false>(outbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Adds<float, false>(outbuf.get(cnt), outbuf.get(cnt), (float)1.0, MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 8, 8});
+                Adds<float, false>(outbuf.get(cnt), outbuf.get(cnt), (float)1.0, MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Div<float, false>(outbuf.get(cnt), sumbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / (int)64), {1, 1, 1, 8, 8, 8});
+                Div<float, false>(outbuf.get(cnt), sumbuf.get(cnt), outbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / MTE_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
                 out_ready.set();
                 in_empty.set();
                 out_ready.wait();
                 if (((baseS + shape.baseS) >= shape.S)){
-                    UB2GMPad(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((shape.S - baseS) * 4), 0, 0);
+                    UB2GMPad(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((shape.S - baseS) * FOUR), 0, 0);
                 }
                 else {
-                    UB2GM(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((int)shape.baseS / (int)8), 0, 0);
+                    UB2GM(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((int)shape.baseS / MTE_FLOAT), 0, 0);
                 }
                 out_empty.set();
                 cnt = (cnt + 1);
@@ -149,6 +160,12 @@ public:
     
 private:
     CustVecShapeInfo shape;
+    // Global Params
+    int cnt;
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
     // Global Tensors
     GlobalTensor<float> xmtx;
     GlobalTensor<float> wmtx;
