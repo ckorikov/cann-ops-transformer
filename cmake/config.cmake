@@ -239,6 +239,7 @@ if (BUILD_OPEN_PROJECT)
                 --op_debug_config ${OP_DEBUG_CONFIG}
                 --build_ops_rty_kernel ${BUILD_OPS_RTY_KERNEL}
                 --enable_built_in ${ENABLE_BUILT_IN}
+                --enable_experimental ${ENABLE_EXPERIMENTAL}
                 --enable_ccache ${ENABLE_CCACHE}
                 RESULT_VARIABLE result
                 OUTPUT_STRIP_TRAILING_WHITESPACE
