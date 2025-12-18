@@ -137,14 +137,14 @@ public:
                             PipeBarrier<PIPE_V>();
                         }
                         auto custparam1 = MakeDefaultBinaryRepeatParams();
-                        custparam1.dstBlkStride = (uint8_t)((int)shape.BASEN / (int)8); 
-                        custparam1.src0BlkStride = (uint8_t)((int)shape.BASEN / (int)8);
-                        custparam1.src1BlkStride = (uint8_t)((int)(8 * shape.BASEH) / (int)8);
-                        custparam1.dstRepStride = (uint8_t)((int)(8 * shape.BASEN) / (int)8);
-                        custparam1.src0RepStride = (uint8_t)((int)(8 * shape.BASEN) / (int)8);
-                        custparam1.src1RepStride = (uint8_t)((int)(64 * shape.BASEH) / (int)8);
+                        custparam1.dstBlkStride = (uint8_t)((int)shape.BASEN / NUM_ELE_PERBLK_FLOAT); 
+                        custparam1.src0BlkStride = (uint8_t)((int)shape.BASEN / NUM_ELE_PERBLK_FLOAT);
+                        custparam1.src1BlkStride = (uint8_t)((int)(NUM_DBLK_FLOAT * shape.BASEH) / NUM_ELE_PERBLK_FLOAT);
+                        custparam1.dstRepStride = (uint8_t)((int)(NUM_DBLK_FLOAT * shape.BASEN) / NUM_ELE_PERBLK_FLOAT);
+                        custparam1.src0RepStride = (uint8_t)((int)(NUM_DBLK_FLOAT * shape.BASEN) / NUM_ELE_PERBLK_FLOAT);
+                        custparam1.src1RepStride = (uint8_t)((int)(NUM_DBLK_FLOAT * (shape.BASEH * NUM_DBLK_FLOAT)) / NUM_ELE_PERBLK_FLOAT);
 
-                        for (int rb=0; rb<shape.BASEN; rb+=8){
+                        for (int rb=0; rb<shape.BASEN; rb+=NUM_DBLK_FLOAT){
                             Mul<float, false>(out_fp32.get(cs_cnt2)[rb], bt_fp32.get(cs_cnt3)[rb], da_brcb.get(cs_cnt)[(madh * NUM_DBLK_FLOAT)], MASK_PLACEHOLDER, ((int)(shape.subvec_L * shape.BASEH) / (int)VEC_FLOAT), custparam1);
                             PipeBarrier<PIPE_V>();
                         }
