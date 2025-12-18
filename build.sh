@@ -382,7 +382,7 @@ export EAGER_LIBRARY_PATH="${ASCEND_HOME_PATH}/lib64"
 export GRAPH_LIBRARY_STUB_PATH="${ASCEND_HOME_PATH}/lib64/stub"
 export GRAPH_LIBRARY_PATH="${ASCEND_HOME_PATH}/lib64"
 
-export EAGER_INCLUDE_OPP_ACLNNOP_PATH="${ASCEND_OPP_PATH}/${ARCH_INFO}-linux/include/aclnnop"
+export EAGER_INCLUDE_OPP_ACLNNOP_PATH="${ASCEND_HOME_PATH}/${ARCH_INFO}-linux/include/aclnnop"
 
 function build_example()
 {
@@ -421,17 +421,19 @@ function build_example()
                     vendor_name="custom"
                 fi
                 echo "pkg_mode:${PKG_MODE} vendor_name:${vendor_name}"
-                export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/lib"     # 仅自定义算子需要
-                export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${VENDOR}_transformer/op_api/include" # 仅自定义算子需要
+                export CUST_LIBRARY_PATH="${ASCEND_OPP_PATH}/vendors/${vendor_name}_transformer/op_api/lib"     # 仅自定义算子需要
+                export CUST_INCLUDE_PATH="${ASCEND_OPP_PATH}/vendors/${vendor_name}_transformer/op_api/include" # 仅自定义算子需要
                 if [[ -n "${ASCEND_CUSTOM_OPP_PATH}" ]]; then
                     CUST_VENDORS_PATH=$(dirname "${ASCEND_CUSTOM_OPP_PATH%%:*}")
                     CUST_LIBRARY_PATH="${CUST_VENDORS_PATH}/${vendor_name}_transformer/op_api/lib"
                     CUST_INCLUDE_PATH="${CUST_VENDORS_PATH}/${vendor_name}_transformer/op_api/include"
                 fi
                 ABSOLUTE_MC2_PATH=$(realpath ${BUILD_PATH}/../mc2)
+                ABSOLUTE_EXAMPLES_PATH=$(realpath ${BUILD_PATH}/../examples/mc2)
+                ABSOLUTE_EXPERIMENTAL_MC2_PATH=$(realpath ${BUILD_PATH}/../experimental/mc2)
                 REAL_FILE_PATH=$(realpath "$file")
                 MC2_APPEND_INCLUDE_AND_LIBRARY=""
-                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* ]]; then
+                if [[ "$REAL_FILE_PATH" == "${ABSOLUTE_MC2_PATH}"* || "$REAL_FILE_PATH" == "${ABSOLUTE_EXAMPLES_PATH}"* || "$REAL_FILE_PATH" == "${ABSOLUTE_EXPERIMENTAL_MC2_PATH}"* ]]; then
                     MC2_APPEND_INCLUDE_AND_LIBRARY="-lpthread -lhccl -lhccl_fwk"
                 fi
                 g++ ${file} -I ${INCLUDE_PATH} -I ${CUST_INCLUDE_PATH} -L ${CUST_LIBRARY_PATH} -L ${EAGER_LIBRARY_PATH} -lcust_opapi -lascendcl -lnnopbase -I ${EAGER_INCLUDE_OPP_ACLNNOP_PATH} ${MC2_APPEND_INCLUDE_AND_LIBRARY} -o test_aclnn_${EXAMPLE_NAME} -Wl,-rpath=${CUST_LIBRARY_PATH}
