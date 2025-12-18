@@ -280,7 +280,7 @@ public:
             in_ready.wait();
             tensor_out_empty.wait();
             tensor_in_ready.wait();
-            Process_out_calc();
+            Process_out_calc(d_scale);
             out_ready.set();
             in_empty.set();
             tensor_out_ready.set();
@@ -296,7 +296,7 @@ public:
         }
     }
 
-    __aicore__ inline void Process_out_calc(){
+    __aicore__ inline void Process_out_calc(int d_scale){
         Exp<float, false>(scalea.get(v1_cnt1), scalea.get(v1_cnt1), MASK_PLACEHOLDER, ((int)shape.BASEL / (int)VEC_FLOAT), {1, 1, EIGHT, EIGHT});
         PipeBarrier<PIPE_V>();
         Brcb(scalea_brcb, scalea.get(v1_cnt1), ((int)shape.BASEL / (int)EIGHT), {1, EIGHT});
