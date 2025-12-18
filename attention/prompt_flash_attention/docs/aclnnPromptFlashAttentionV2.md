@@ -503,22 +503,18 @@ aclnnStatus aclnnPromptFlashAttentionV2(
     - 支持D轴小于等于512。inputLayout为BSH或者BSND时，要求N*D小于65535。
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、INT8
-  - 输入数据类型限制：
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8
-
 - pseShift功能使用限制如下：
   
   - 预留参数，暂未使用。Device侧的aclTensor，数据类型与query的数据类型需满足数据类型推导规则。目前该参数会被强制设置为nullptr。
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持FLOAT16、BFLOAT16
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持FLOAT16、BFLOAT16
-  
+    
 - attenMask功能使用限制如下：
   
   - 输入shape限制：如果不使用该功能可传入nullptr。通常建议shape输入Q_S,KV_S;B,Q_S,KV_S;1,Q_S,KV_S;B,1,Q_S,KV_S;1,1,Q_S,KV_S，其中Q_S为query的shape中的S，KV_S为key和value的shape中的S，对于attenMask的KV_S为非32对齐的场景，建议padding到32对齐来提高性能，多余部分填充成1。
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持BOOL、INT8和UINT8。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持BOOL、INT8和UINT8。
+
   - 当attenMask数据类型取INT8、UINT8时，其tensor中的值需要为0或1。
   
 - actualSeqLengths，actualSeqLengthsKv输入，功能使用限制如下：
@@ -529,19 +525,16 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   - 输入属性限制：关于seqlen的传入长度有以下规则：当传入长度为1时，所有Batch将使用相同的seqlen；当传入长度大于或等于Batch数量时，将取seqlen的前Batch个数值；其他长度的传入将不被支持。
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持INT64。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持INT64。
   
 - deqScale1，deqScale2输入，功能使用限制如下：
   
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持UINT64、FLOAT32。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持UINT64、FLOAT32。
-  
+    
 - quantScale1输入，功能使用限制如下：
   
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持FLOAT32。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持FLOAT32。
 
 - quantScale2，quantOffset2输入，功能使用限制如下：
   
@@ -553,13 +546,11 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持INT64。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持INT64。
   
 - nextTokens输入，功能使用限制如下：
   
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持INT64。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持INT64。
   
 - inputLayout输入，功能使用限制如下：
   
@@ -572,7 +563,6 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   - Host侧的int，代表key、value中head个数，用于支持GQA（Grouped-Query Attention，分组查询注意力）场景。用户不特意指定时建议传入0，表示key/value和query的head个数相等。限制：需要满足numHeads整除numKeyValueHeads，numHeads与numKeyValueHeads的比值不能大于64，且在BSND、BNSD、BNSD_BSND场景下，需要与shape中的key/value的N轴shape值相同，否则报错。
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持INT64。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持INT64。
 
 - sparseMode输入，功能使用限制如下：
   
@@ -589,7 +579,6 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   - shape限制：当inputLayout为BNSD_BSND时，输入query的shape是BNSD，输出shape为BSND；其余情况该入参的shape需要与入参query的shape保持一致。
   - 数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持FLOAT16、BFLOAT16、INT8。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8。
   
 - 其它约束：
   - int8量化相关入参数量与输入、输出数据格式的综合限制：
