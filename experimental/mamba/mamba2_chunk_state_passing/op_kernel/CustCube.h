@@ -14,6 +14,9 @@
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkStatePassing {
 
+constexpr int CBASEM = 64;
+constexpr int CBASEN = 64;
+
 struct CustCubeShapeInfo{
     int BASEM;
     int BASEK;
@@ -41,9 +44,9 @@ struct CustCubeShapeInfo{
 
 
 __aicore__ inline void tilingShapeCustCube(int B, int H, int S, int C, int L, int G, int N, int P, int Z, CustCubeShapeInfo &shape){
-    shape.BASEM = 64;
+    shape.BASEM = CBASEM;
     shape.BASEK = N;
-    shape.BASEN = 64;
+    shape.BASEN = CBASEN;
     shape.CUBEM = L;
     shape.CUBEN = P;
     shape.CUBEK = N;
@@ -102,63 +105,77 @@ public:
         l1_empty.setall();
         l0_empty.setall();
         out_empty.setall();
-        int input_cnt = 0;
-        int output_cnt = 0;
-        int ws_cnt = 0;
-        int len_h = ((shape.headPerCore)<(((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)))) ? (shape.headPerCore) : (((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)));
+        input_cnt = 0;
+        output_cnt = 0;
+        ws_cnt = 0;
+        len_h = ((shape.headPerCore)<(((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)))) ? (shape.headPerCore) : (((shape.B * shape.H) - (get_block_idx() * shape.headPerCore)));
+
         CUBE_READY(0, PIPE_FIX);
         CUBE_READY(0, PIPE_FIX);
         CUBE_READY(0, PIPE_FIX);
+
         for (int chunk_id=0; chunk_id<shape.C; chunk_id+=1){
-            int bh_index = (get_block_idx() * shape.headPerCore);
-            int base_b = 0;
-            int base_h = 0;
-            int base_g = 0;
-            for (int head_id=0; head_id<len_h; head_id+=1){
-                base_b = ((int)bh_index / (int)shape.H);
-                base_h = (bh_index % shape.H);
-                base_g = ((int)base_h / (int)shape.groupsize);
-                WAIT_VEC(0);
-                for (int m=0; m<shape.CUBEM; m+=shape.BASEM){
-                    for (int n=0; n<shape.CUBEN; n+=shape.BASEN){
-                        for (int k=0; k<shape.CUBEK; k+=shape.BASEK){
-                            l1_empty.wait();
-                            L1ND2NZ(l1a.get(input_cnt), cmtx[(((((base_b * shape.cmtx_strideB) + (chunk_id * shape.cmtx_strideC)) + (m * shape.cmtx_strideL)) + (base_g * shape.CUBEK)) + k)], shape.BASEM, shape.BASEK, (shape.G * shape.CUBEK), shape.BASEM);
-                            L1ND2NZ(l1b.get(input_cnt), state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + (k * shape.CUBEN)) + n)], shape.BASEK, shape.BASEN, shape.CUBEN, shape.BASEK);
-                            l1_ready.set();
-                            l0_empty.wait();
-                            l1_ready.wait();
-                            L0NZ2ZZ(l0a.get(input_cnt), l1a.get(input_cnt), shape.BASEM, shape.BASEK, shape.BASEM, shape.BASEK);
-                            L0NZ2ZN(l0b.get(input_cnt), l1b.get(input_cnt), shape.BASEK, shape.BASEN, shape.BASEK, shape.BASEN);
-                            l1_empty.set();
-                            l0_ready.set();
-                            out_empty.wait();
-                            l0_ready.wait();
-                            MMAD(l0c.get(output_cnt), l0a.get(input_cnt), l0b.get(input_cnt), shape.BASEM, shape.BASEK, shape.BASEN, (k == 0), 0);
-                            out_ready.set();
-                            l0_empty.set();
-                            input_cnt = (input_cnt + 1);
-                            out_ready.wait();
-                            if (((k + shape.BASEK) >= shape.CUBEK)){
-                                L0C2GM_NZ2ND(out_bmm[(((((base_b * shape.out_strideB) + (chunk_id * shape.out_strideC)) + (base_h * shape.out_strideH)) + (m * shape.CUBEN)) + n)], l0c.get(output_cnt), shape.BASEM, shape.BASEN, shape.CUBEN, shape.BASEM, 0);
-                                output_cnt = (output_cnt + 1);
-                            }
-                            out_empty.set();
-                        }
-                    }
-                }
-                CUBE_READY(0, PIPE_FIX);
-                ws_cnt = (ws_cnt + 1);
-                bh_index = (bh_index + 1);
-            }
+            Process_cube(chunk_id);
         }
+        
         l1_empty.release();
         l0_empty.release();
         out_empty.release();
     }
+
+    __aicore__ inline void Process_cube(int chunk_id){
+        int bh_index = (get_block_idx() * shape.headPerCore);
+        int base_b = 0;
+        int base_h = 0;
+        int base_g = 0;
+        for (int head_id=0; head_id<len_h; head_id+=1){
+            base_b = ((int)bh_index / (int)shape.H);
+            base_h = (bh_index % shape.H);
+            base_g = ((int)base_h / (int)shape.groupsize);
+            WAIT_VEC(0);
+            for (int m=0; m<shape.CUBEM; m+=shape.BASEM){
+                for (int n=0; n<shape.CUBEN; n+=shape.BASEN){
+                    for (int k=0; k<shape.CUBEK; k+=shape.BASEK){
+                        l1_empty.wait();
+                        L1ND2NZ(l1a.get(input_cnt), cmtx[(((((base_b * shape.cmtx_strideB) + (chunk_id * shape.cmtx_strideC)) + (m * shape.cmtx_strideL)) + (base_g * shape.CUBEK)) + k)], shape.BASEM, shape.BASEK, (shape.G * shape.CUBEK), shape.BASEM);
+                        L1ND2NZ(l1b.get(input_cnt), state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + (k * shape.CUBEN)) + n)], shape.BASEK, shape.BASEN, shape.CUBEN, shape.BASEK);
+                        l1_ready.set();
+
+                        l0_empty.wait();
+                        l1_ready.wait();
+                        L0NZ2ZZ(l0a.get(input_cnt), l1a.get(input_cnt), shape.BASEM, shape.BASEK, shape.BASEM, shape.BASEK);
+                        L0NZ2ZN(l0b.get(input_cnt), l1b.get(input_cnt), shape.BASEK, shape.BASEN, shape.BASEK, shape.BASEN);
+                        l1_empty.set();
+                        l0_ready.set();
+                        out_empty.wait();
+                        l0_ready.wait();
+                        MMAD(l0c.get(output_cnt), l0a.get(input_cnt), l0b.get(input_cnt), shape.BASEM, shape.BASEK, shape.BASEN, (k == 0), 0);
+                        out_ready.set();
+                        l0_empty.set();
+                        input_cnt = (input_cnt + 1);
+
+                        out_ready.wait();
+                        if (((k + shape.BASEK) >= shape.CUBEK)){
+                            L0C2GM_NZ2ND(out_bmm[(((((base_b * shape.out_strideB) + (chunk_id * shape.out_strideC)) + (base_h * shape.out_strideH)) + (m * shape.CUBEN)) + n)], l0c.get(output_cnt), shape.BASEM, shape.BASEN, shape.CUBEN, shape.BASEM, 0);
+                            output_cnt = (output_cnt + 1);
+                        }
+                        out_empty.set();
+                    }
+                }
+            }
+            CUBE_READY(0, PIPE_FIX);
+            ws_cnt = (ws_cnt + 1);
+            bh_index = (bh_index + 1);
+        }
+    }
     
 private:
     CustCubeShapeInfo shape;
+    // Global Params
+    int input_cnt;
+    int output_cnt;
+    int ws_cnt;
+    int len_h;
     // Global Tensors
     GlobalTensor<half> cmtx;
     GlobalTensor<half> state_fp16;
