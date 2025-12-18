@@ -66,6 +66,13 @@ public:
     static constexpr uint32_t VECTOR_SIZE = 128;
     static constexpr uint32_t HALF_LL_UB_SIZE = 256;
 
+    static const uint32_t DST_REP_STRIDE_IN_4 = 4;
+    static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
+    static const uint32_t SRC1_REP_STRIDE_IN_4 = 4;
+    static const uint32_t DST_REP_STRIDE_IN_8 = 8;
+    static const uint32_t SRC0_REP_STRIDE_IN_8 = 8;
+    static const uint32_t SRC1_REP_STRIDE_IN_8 = 8;
+    
     CATLASS_DEVICE
     BlockEpilogue(Arch::Resource<ArchTag> &resource, half tor_, uint32_t kvSplitCoreNum_)
     {
@@ -170,7 +177,7 @@ public:
         uint32_t kSeqTileRound)
     {
         AscendC::Brcb(tempMaxTensor.ReinterpretCast<uint32_t>(), MaxTensor.ReinterpretCast<uint32_t>(),
-                      subMRound / FLOAT_BLOCK_SIZE, AscendC::BrcbRepeatParams(1, 8));
+                      subMRound / FLOAT_BLOCK_SIZE, AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8)); 
         AscendC::PipeBarrier<PIPE_V>();
         for (uint32_t subIdx = 0; subIdx < kSeqTile / FLOAT_VECTOR_SIZE; ++subIdx) {
             AscendC::Sub<float, false>(
@@ -223,7 +230,7 @@ public:
                     (uint64_t)0,
                     curRowNum,
                     AscendC::BinaryRepeatParams(
-                        1, 1, 1, 8, 8, kSeqTileRound / FLOAT_BLOCK_SIZE));
+                        1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, kSeqTileRound / FLOAT_BLOCK_SIZE)); 
                 AscendC::PipeBarrier<PIPE_V>();
             }
             if (kSeqTile % FLOAT_VECTOR_SIZE > 0) {
@@ -235,7 +242,7 @@ public:
                     (uint64_t)0,
                     curRowNum,
                     AscendC::BinaryRepeatParams(
-                        1, 1, 1, 8, 8, kSeqTileRound / FLOAT_BLOCK_SIZE));
+                        1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, kSeqTileRound / FLOAT_BLOCK_SIZE)); 
             }
             AscendC::PipeBarrier<PIPE_V>();
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
@@ -305,7 +312,7 @@ public:
                 (uint64_t)0,
                 sub_m_d64,
                 AscendC::BinaryRepeatParams(
-                    1, 1, 1, 8, 8, 8));
+                    1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
             AscendC::PipeBarrier<PIPE_V>();
             AscendC::Sub<float, false>(
                 dmUbTensor[dmUbOffsetCurCycle],
@@ -314,7 +321,7 @@ public:
                 (uint64_t)0,
                 sub_m_d64,
                 AscendC::BinaryRepeatParams(
-                    1, 1, 1, 8, 8, 8));
+                    1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
             AscendC::PipeBarrier<PIPE_V>();
         } else {
             AscendC::DataCopy(hmUbTensor, lmUbTensor, AscendC::DataCopyParams(1, subMRound / FLOAT_BLOCK_SIZE, 0, 0));
@@ -343,7 +350,7 @@ public:
             lsUbTensor,
             (uint64_t)0,
             (curRowNum * kSeqTileRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-            AscendC::UnaryRepeatParams(1, 1, 8, 8));
+            AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
 
         AscendC::PipeBarrier<PIPE_V>();
         // *** lp = castfp32to16(ls)
@@ -351,12 +358,12 @@ public:
             AscendC::Cast<ElementOutput, float, false>(
                 tvUbTensor16, lsUbTensor, AscendC::RoundMode::CAST_RINT, (uint64_t)0,
                 (curRowNum * kSeqTileRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8)); 
         } else {
             AscendC::Cast<ElementOutput, float, false>(
                 tvUbTensor16, lsUbTensor, AscendC::RoundMode::CAST_NONE, (uint64_t)0,
                 (curRowNum * kSeqTileRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                AscendC::UnaryRepeatParams(1, 1, 4, 8));
+                AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8));
         }
 
         AscendC::PipeBarrier<PIPE_V>();

@@ -18,8 +18,6 @@
 
 namespace CatlassKernel {
 
-// using namespace Catlass;
-
 void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInfo)
 {
     // construct MLAInfo on host
@@ -66,31 +64,6 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     uint32_t kvSplitCoreNum = *((uint32_t *)tilingHost + MLATiling::TILING_KVCORENUM);
     uint64_t oFdSize = embeddingSize * numHeads * numTokens * kvSplitCoreNum * sizeof(float);
     uint64_t lSize = numTokens * numHeads * kvSplitCoreNum * sizeof(float);
-
-    // uint8_t *oCoreTmpDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&oCoreTmpDevice), oFdSize, ACL_MEM_MALLOC_HUGE_FIRST));
-
-    // uint8_t *lDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&lDevice), lSize, ACL_MEM_MALLOC_HUGE_FIRST));
-
-    // uint8_t *sDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&sDevice),
-    //                       aicCoreNum * MLATiling::WORKSPACE_BLOCK_SIZE_DB * sizeof(float) * MLATiling::NUM2,
-    //                       ACL_MEM_MALLOC_HUGE_FIRST));
-
-    // uint8_t *pDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&pDevice),
-    //                       aicCoreNum * MLATiling::WORKSPACE_BLOCK_SIZE_DB * 2 * MLATiling::NUM2,
-    //                       ACL_MEM_MALLOC_HUGE_FIRST));  // NOTE: sizeof(fp16_t) = 2
-
-    // uint8_t *oTmpDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&oTmpDevice),
-    //                       aicCoreNum * MLATiling::WORKSPACE_BLOCK_SIZE_DB * sizeof(float) * MLATiling::NUM2,
-    //                       ACL_MEM_MALLOC_HUGE_FIRST));
-
-    // uint8_t *globaloDevice;
-    // ACL_CHECK(aclrtMalloc((void **)(&globaloDevice), aicCoreNum * MLATiling::WORKSPACE_BLOCK_SIZE_DB * sizeof(float),
-    //                       ACL_MEM_MALLOC_HUGE_FIRST));
 
     // prepare for device kernel launch
     uint64_t fftsAddr{0};

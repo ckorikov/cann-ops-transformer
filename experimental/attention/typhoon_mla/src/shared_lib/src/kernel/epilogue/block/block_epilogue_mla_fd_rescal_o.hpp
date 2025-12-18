@@ -45,6 +45,13 @@ public:
     static constexpr uint32_t FLOAT_BLOCK_SIZE = 8;
     static constexpr uint32_t STAGES = 2;
 
+    static const uint32_t DST_REP_STRIDE_IN_4 = 4;
+    static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
+    static const uint32_t SRC1_REP_STRIDE_IN_4 = 4;
+    static const uint32_t DST_REP_STRIDE_IN_8 = 8;
+    static const uint32_t SRC0_REP_STRIDE_IN_8 = 8;
+    static const uint32_t SRC1_REP_STRIDE_IN_8 = 8;
+    
     CATLASS_DEVICE
     BlockEpilogue(Arch::Resource<ArchTag> &resource, uint32_t kvSplitCoreNum_)
     {
@@ -150,7 +157,7 @@ public:
             lExp,
             (uint64_t)0,
             actualHeads,
-            AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8));
+            AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8)); 
         AscendC::PipeBarrier<PIPE_V>();
 
         AscendC::Exp<float, false>(
@@ -158,7 +165,7 @@ public:
             lExp,
             (uint64_t)0,
             actualHeads,
-            AscendC::UnaryRepeatParams(1, 1, 8, 8));
+            AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
         AscendC::PipeBarrier<PIPE_V>();
 
         AscendC::RepeatReduceSum<float, false>(lSum, lExp, actualHeads, 0, 0, 1, 1, 8);
@@ -199,7 +206,7 @@ public:
             lExp,
             (uint64_t)0,
             actualHeads,
-            AscendC::BinaryRepeatParams(1, 1, 1, 8, 8, 8));
+            AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
 
@@ -208,7 +215,7 @@ public:
             lExp,
             (uint64_t)0,
             actualHeads,
-            AscendC::UnaryRepeatParams(1, 1, 8, 8));
+            AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8));
         AscendC::PipeBarrier<PIPE_V>();
 
         // preload
