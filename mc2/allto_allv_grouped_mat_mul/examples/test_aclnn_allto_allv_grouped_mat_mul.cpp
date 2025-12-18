@@ -16,10 +16,11 @@
 #include <thread>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include "acl/acl.h"
 #include "hccl/hccl.h"
-#include "../op_api/aclnn_allto_allv_grouped_mat_mul.h"
+#include "aclnnop/aclnn_allto_allv_grouped_mat_mul.h"
 
 #define CHECK_RET(cond, return_expr)                                                                                   \
     do {                                                                                                               \
@@ -246,6 +247,7 @@ int LaunchOneThreadAlltoAllvGmm(Args &args)
 
 int main(int argc, char *argv[])
 {
+    // 本样例基于Atlas A3实现，必须在Atlas A3上运行
     int ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
     aclrtStream stream[EP_WORLD_SIZE];

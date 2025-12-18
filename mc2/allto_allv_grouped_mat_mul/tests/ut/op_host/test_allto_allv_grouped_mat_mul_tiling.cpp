@@ -13,8 +13,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 
-#include "tiling_context_faker.h"
-#include "tiling_case_executor.h"
+#include "mc2_tiling_case_executor.h"
 
 using namespace std;
 
@@ -252,14 +251,15 @@ TEST_P(AlltoAllvGroupedMatMulTiling, shape_size)
         &compileInfo, socVersion, coreNum, ubSize, tilingDataSize
     );
 
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
     if (test_param.status == ge::GRAPH_FAILED) {
-        ExecuteTestCase(tilingContextPara);
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
     } else {
         uint64_t expectTilingKey = 1000UL;
         if (test_param.test_name == "Test_no_MM") {
             expectTilingKey = 256UL;
         }
-        ExecuteTestCase(tilingContextPara, ge::GRAPH_SUCCESS, expectTilingKey);
+        Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues, ge::GRAPH_SUCCESS, expectTilingKey);
     }
 }
 
@@ -352,7 +352,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_H_4)
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_A_1)
@@ -388,7 +389,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_A_1)
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_BS_1)
@@ -423,7 +425,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_BS_1)
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_1)
@@ -459,7 +462,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_1
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_2)
@@ -495,7 +499,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_2
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_3)
@@ -531,7 +536,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_3
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_5)
@@ -566,7 +572,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_5
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_6)
@@ -601,7 +608,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_6
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_7)
@@ -636,7 +644,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_7
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_10)
@@ -672,7 +681,8 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_dim_1
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 
 TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_transMmWeight_1)
@@ -708,6 +718,7 @@ TEST_F(AlltoAllvGroupedMatMulTiling, allto_allv_grouped_matmul_tiling_test_trans
         {"permute_out_flag", Ops::Transformer::AnyValue::CreateFrom<bool>(true)},
     },
     &compileInfo, socVersion, coreNum, ubSize, tilingDataSize);
-    ExecuteTestCase(tilingContextPara);
+    Mc2Hcom::MockValues hcomTopologyMockValues{{"rankNum", 8}};
+    Mc2ExecuteTestCase(tilingContextPara, hcomTopologyMockValues);
 }
 } // allto_allv_grouped_mat_mul_ut

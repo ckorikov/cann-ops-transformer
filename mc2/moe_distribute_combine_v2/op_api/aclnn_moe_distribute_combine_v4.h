@@ -7,8 +7,8 @@
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
-#ifndef OP_API_INC_MOE_DISTRIBUTE_COMBINE_V3_
-#define OP_API_INC_MOE_DISTRIBUTE_COMBINE_V3_
+#ifndef OP_API_INC_MOE_DISTRIBUTE_COMBINE_V4_
+#define OP_API_INC_MOE_DISTRIBUTE_COMBINE_V4_
 
 #include <string>
 
@@ -21,7 +21,7 @@ extern "C" {
 
 /**
  * 算子功能：实现MoeDistributeCombineV2功能。
- * @brief aclnnMoeDistributeCombineV4的第一段接口，根据具体的计算流程，计算workspace大小。
+ * @brief aclnnMoeDistributeCombineV3的第一段接口，根据具体的计算流程，计算workspace大小。
  * @domain aclnn_ops_infer
  * @param [in] expandX: 计算输入，Tensor，数据类型float16，bfloat16，必须为2维，数据格式支持ND。
  * @param [in] expertIds: 计算输入，Tensor，数据类型int32，必须为2维，数据格式支持ND。
@@ -84,9 +84,9 @@ ACLNN_API aclnnStatus aclnnMoeDistributeCombineV4GetWorkspaceSize(const aclTenso
     aclOpExecutor** executor);
 
 /**
- * @brief aclnnMoeDistributeCombineV4的第二段接口，用于执行计算。
+ * @brief aclnnMoeDistributeCombineV3的第二段接口，用于执行计算。
  * @param [in] workspace: 在npu device侧申请的workspace内存起址。
- * @param [in] workspace_size: 在npu device侧申请的workspace大小，由第一段接口aclnnMoeDistributeCombineV4GetWorkspaceSize获取。
+ * @param [in] workspace_size: 在npu device侧申请的workspace大小，由第一段接口aclnnMoeDistributeCombineV3GetWorkspaceSize获取。
  * @param [in] executor: op执行器，包含了算子计算流程。
  * @param [in] stream: acl stream流。
  * @return aclnnStatus: 返回状态码
@@ -98,4 +98,4 @@ ACLNN_API aclnnStatus aclnnMoeDistributeCombineV4(void* workspace, uint64_t work
 }
 #endif
 
-#endif  // OP_API_INC_MOE_DISTRIBUTE_COMBINE_V3_
+#endif  // OP_API_INC_MOE_DISTRIBUTE_COMBINE_V4_

@@ -15,19 +15,19 @@
 #ifndef _QUANT_MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
 #define _QUANT_MATMUL_ALL_REDUCE_ADD_RMS_NORM_TILING_H_
 #include <memory>
-#include "../../../matmul_all_reduce/op_host/op_tiling/quant_matmul_all_reduce_tiling.h"
+#include "../../../matmul_all_reduce/op_host/op_tiling/arch32/quant_matmul_all_reduce_tiling.h"
 #include "common_add_rms_norm_tiling.h"
 #include "context_transfer.h"
 namespace optiling {
 BEGIN_TILING_DATA_DEF(QuantMatmulAllReduceAddRmsNormTilingData)
 TILING_DATA_FIELD_DEF_STRUCT(QuantMatmulAllReduceTilingData, qunatMatmulAllReduceTilingData);
-TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingData, addRMSNormTileTilingData);
-TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingData, addRMSNormTailTilingData);
+TILING_DATA_FIELD_DEF_STRUCT(MC2AddRMSNormTilingData, addRMSNormTileTilingData);
+TILING_DATA_FIELD_DEF_STRUCT(MC2AddRMSNormTilingData, addRMSNormTailTilingData);
 TILING_DATA_FIELD_DEF_STRUCT(AddRMSNormTilingeKeyData, addRmsNormTilingeKeyData);
 END_TILING_DATA_DEF;
 
-REGISTER_TILING_DATA_CLASS(MatmulAllReduceAddRmsNorm_0, QuantMatmulAllReduceAddRmsNormTilingData);
-REGISTER_TILING_DATA_CLASS(MatmulAllReduceAddRmsNorm_1, QuantMatmulAllReduceAddRmsNormTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduceAddRmsNorm_8, QuantMatmulAllReduceAddRmsNormTilingData);
+REGISTER_TILING_DATA_CLASS(MatmulAllReduceAddRmsNorm_4104, QuantMatmulAllReduceAddRmsNormTilingData);
 
 class QuantMMNTilingTransferHelper;
 class QuantMatmulAllReduceAddRmsNormTiling : public TilingBaseClass

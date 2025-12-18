@@ -25,8 +25,10 @@ extern "C" __global__ __aicore__ void distribute_barrier(GM_ADDR xRef, GM_ADDR t
   REGISTER_TILING_DEFAULT(DistributeBarrierTilingData);
   TPipe pipe;
 
-  GET_TILING_DATA_WITH_STRUCT(DistributeBarrierTilingData, tilingData, tilingGM);
-  DistributeBarrier<DTYPE_X_REF> op;
-  op.Init(timeOut, elasticInfo, workspaceGM, &pipe, &tilingData);
-  op.Process();
+  if (TILING_KEY_IS(10000)) {
+    GET_TILING_DATA_WITH_STRUCT(DistributeBarrierTilingData, tilingData, tilingGM);
+    DistributeBarrier<DTYPE_X_REF> op;
+    op.Init(timeOut, elasticInfo, workspaceGM, &pipe, &tilingData);
+    op.Process();
+  }
 }
