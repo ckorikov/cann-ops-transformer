@@ -117,7 +117,7 @@ public:
                 
                 out_empty.wait();
                 in_ready.wait();
-                Process_calc();
+                Process_calc(scale);
                 out_ready.set();
                 in_empty.set();
                 
@@ -133,7 +133,7 @@ public:
         out_empty.release();
     }
 
-    __aicore__ inline void Process_calc(){
+    __aicore__ inline void Process_calc(float scale){
         // calc silu
         Duplicate<float, false>(fp32_dupbuf, 1.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
         PipeBarrier<PIPE_V>();
