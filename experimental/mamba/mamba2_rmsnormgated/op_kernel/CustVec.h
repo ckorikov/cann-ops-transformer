@@ -10,9 +10,12 @@
  
 #pragma once
 #include "tensorutils.h"
+#include "paramutils.h"
 
 namespace npu_ops_transformer_ext {
 namespace Mambav2Rmsnormgated {
+
+constexpr int BASED = 2048;
 
 struct CustVecShapeInfo{
     int group_size;
@@ -39,9 +42,9 @@ __aicore__ inline void tilingShapeCustVec(int B, int S, int D, int G, float E, C
     shape.G = G;
     shape.E = E;
     shape.ngroups = G;
-    shape.BASED = 2048;
+    shape.BASED = BASED;
     shape.BASEG = (shape.BASED / shape.group_size);
-    shape.loopnum = CeilDiv((B * S),(GetBlockNum() * 2));
+    shape.loopnum = CeilDiv((B * S),(GetBlockNum() * TWO));
     shape.vec_d = (shape.loopnum * shape.D);
 }
 
@@ -67,11 +70,11 @@ public:
         fp32_zbuf.Init(shape.BASED);
         fp32_wbuf.Init(shape.BASED);
         fp32_squarebuf.Init(shape.BASED);
-        fp32_meanbuf.Init(64);
-        fp32_meantempbuf.Init(64);
-        AllocateLocalTensor<TPosition::VECCALC>(fp32_dupbuf, 64);
-        fp32_scaletempbuf.Init((shape.BASEG * 8));
-        fp32_normscalebuf.Init((shape.BASEG * 64));
+        fp32_meanbuf.Init(BLK_SIZE);
+        fp32_meantempbuf.Init(BLK_SIZE);
+        AllocateLocalTensor<TPosition::VECCALC>(fp32_dupbuf, BLK_SIZE);
+        fp32_scaletempbuf.Init((shape.BASEG * NUM_DBLK_FLOAT));
+        fp32_normscalebuf.Init((shape.BASEG * BLK_SIZE));
         fp32_sigmoidbuf.Init(shape.BASED);
         // Initialize events
         in_ready.Init();
@@ -91,53 +94,54 @@ public:
         float scale = shape.group_size;
         scale = ((float)((float)1.0 / scale));
         int ub_d = ((shape.vec_d)<((((shape.B * shape.S) - (GetBlockIdx() * shape.loopnum)) * shape.D))) ? (shape.vec_d) : ((((shape.B * shape.S) - (GetBlockIdx() * shape.loopnum)) * shape.D));
-        int cnt = 0;
-        int mte2_base_d = 0;
-        int mte2_kernel_d = 0;
-        // PreLoad
-        // GM2UB(fp32_xbuf.get(cnt), xmtx[(((GetBlockIdx() * shape.vec_d) + 0) + 0)], 1, (shape.BASED / 8), 0, 0);
-        // GM2UB(fp32_zbuf.get(cnt), zmtx[(((GetBlockIdx() * shape.vec_d) + 0) + 0)], 1, (shape.BASED / 8), 0, 0);
-        // GM2UB(fp32_wbuf.get(cnt), wmtx[0], 1, (shape.BASED / 8), 0, 0);
-        // in_ready.set();
+        cnt = 0;
+        mte2_base_d = 0;
+        mte2_kernel_d = 0;
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
         
         for (int kernel_d=0; kernel_d<ub_d; kernel_d+=shape.D){
             for (int base_d=0; base_d<shape.D; base_d+=shape.BASED){
                 in_empty.wait();
                 if(kernel_d==0 && base_d==0){
-                    GM2UB(fp32_xbuf.get(cnt), xmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], 1, (shape.BASED / 8), 0, 0);
-                    GM2UB(fp32_zbuf.get(cnt), zmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], 1, (shape.BASED / 8), 0, 0);
-                    GM2UB(fp32_wbuf.get(cnt), wmtx[base_d], 1, (shape.BASED / 8), 0, 0);
+                    GM2UB(fp32_xbuf.get(cnt), xmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], 1, (shape.BASED / MTE_FLOAT), 0, 0);
+                    GM2UB(fp32_zbuf.get(cnt), zmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], 1, (shape.BASED / MTE_FLOAT), 0, 0);
+                    GM2UB(fp32_wbuf.get(cnt), wmtx[base_d], 1, (shape.BASED / MTE_FLOAT), 0, 0);
                 }
                 if (kernel_d + base_d < ub_d - shape.BASED){
                     mte2_base_d = (base_d + shape.BASED) % shape.D;
                     mte2_kernel_d = kernel_d + (int)((base_d + shape.BASED) / shape.D)*shape.D;
-                    GM2UB(fp32_xbuf.get(cnt+1), xmtx[(((GetBlockIdx() * shape.vec_d) + mte2_kernel_d) + mte2_base_d)], 1, (shape.BASED / 8), 0, 0);
-                    GM2UB(fp32_zbuf.get(cnt+1), zmtx[(((GetBlockIdx() * shape.vec_d) + mte2_kernel_d) + mte2_base_d)], 1, (shape.BASED / 8), 0, 0);
-                    GM2UB(fp32_wbuf.get(cnt+1), wmtx[mte2_base_d], 1, (shape.BASED / 8), 0, 0);
+                    GM2UB(fp32_xbuf.get(cnt+1), xmtx[(((GetBlockIdx() * shape.vec_d) + mte2_kernel_d) + mte2_base_d)], 1, (shape.BASED / MTE_FLOAT), 0, 0);
+                    GM2UB(fp32_zbuf.get(cnt+1), zmtx[(((GetBlockIdx() * shape.vec_d) + mte2_kernel_d) + mte2_base_d)], 1, (shape.BASED / MTE_FLOAT), 0, 0);
+                    GM2UB(fp32_wbuf.get(cnt+1), wmtx[mte2_base_d], 1, (shape.BASED / MTE_FLOAT), 0, 0);
                 }
                 in_ready.set();
                 
                 out_empty.wait();
                 in_ready.wait();
                 // calc silu
-                Duplicate<float, false>(fp32_dupbuf, 1.000000f, MASK_PLACEHOLDER, 1, 1, 8);
+                Duplicate<float, false>(fp32_dupbuf, 1.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
                 PipeBarrier<PIPE_V>();
-                Muls<float, false>(fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), -1.0f, MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 8, 8});
+                Muls<float, false>(fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), -1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Exp<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 8, 8});
+                Exp<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Adds<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), 1.0f, MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 8, 8});
+                Adds<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), 1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
                 PipeBarrier<PIPE_V>();
-                Div<float, false>(fp32_sigmoidbuf.get(cnt), fp32_dupbuf, fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 1, 8, 0, 8});
+                auto custparam = MakeDefaultBinaryRepeatParams();
+                custparam.src0RepStride = 0; // 1,1,1,8,0,8
+                Div<float, false>(fp32_sigmoidbuf.get(cnt), fp32_dupbuf, fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), custparam);
                 PipeBarrier<PIPE_V>();
-                Mul<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 1, 8, 8, 8});
+                Mul<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
-                Mul<float, false>(fp32_xbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 1, 8, 8, 8});
+                Mul<float, false>(fp32_xbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
                 // calc norm
-                Mul<float, false>(fp32_squarebuf.get(cnt), fp32_xbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 1, 8, 8, 8});
+                Mul<float, false>(fp32_squarebuf.get(cnt), fp32_xbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
-                Duplicate<float, false>(fp32_meanbuf.get(cnt), 0.000000f, MASK_PLACEHOLDER, 1, 1, 8);
+                Duplicate<float, false>(fp32_meanbuf.get(cnt), 0.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
                 PipeBarrier<PIPE_V>();
                 for (int base_g=0; base_g<shape.BASEG; ++base_g){
                     ReduceSum<float>(fp32_meanbuf.get(cnt)[base_g], fp32_squarebuf.get(cnt)[(base_g * shape.group_size)], fp32_meantempbuf.get(cnt), shape.group_size);
@@ -149,27 +153,27 @@ public:
                 PipeBarrier<PIPE_V>();
                 Sqrt<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), shape.BASEG);
                 PipeBarrier<PIPE_V>();
-                Div<float, false>(fp32_meanbuf.get(cnt), fp32_dupbuf, fp32_meanbuf.get(cnt), MASK_PLACEHOLDER, 1, {1, 1, 1, 8, 0, 8});
+                Div<float, false>(fp32_meanbuf.get(cnt), fp32_dupbuf, fp32_meanbuf.get(cnt), MASK_PLACEHOLDER, 1, custparam);
                 PipeBarrier<PIPE_V>();
                 // okay
-                Brcb(fp32_scaletempbuf.get(cnt), fp32_meanbuf.get(cnt), 1, {1, 8});
+                Brcb(fp32_scaletempbuf.get(cnt), fp32_meanbuf.get(cnt), 1, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
-                Brcb(fp32_normscalebuf.get(cnt), fp32_scaletempbuf.get(cnt), shape.BASEG, {1, 8});
+                Brcb(fp32_normscalebuf.get(cnt), fp32_scaletempbuf.get(cnt), shape.BASEG, {1, NUM_DBLK_FLOAT});
                 PipeBarrier<PIPE_V>();
                 
                 for (int base_g=0; base_g<shape.BASEG; ++base_g){
                     int index = base_g * shape.group_size;
-                    Mul<float, false>(fp32_xbuf.get(cnt)[index], fp32_xbuf.get(cnt)[index], fp32_normscalebuf.get(cnt)[(base_g * 64)], MASK_PLACEHOLDER, (shape.group_size / 64), {1, 1, 1, 8, 8, 0});
+                    Mul<float, false>(fp32_xbuf.get(cnt)[index], fp32_normscalebuf.get(cnt)[(base_g * BLK_SIZE)], fp32_xbuf.get(cnt)[index], MASK_PLACEHOLDER, (shape.group_size / VEC_FLOAT), custparam);
                     PipeBarrier<PIPE_V>();
                 }
-                Mul<float, false>(outbuf.get(cnt), fp32_xbuf.get(cnt), fp32_wbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / 64), {1, 1, 1, 8, 8, 8});
+                Mul<float, false>(outbuf.get(cnt), fp32_xbuf.get(cnt), fp32_wbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
                 
                 out_ready.set();
                 in_empty.set();
                 
                 out_ready.wait();
-                UB2GM(outmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], outbuf.get(cnt), 1, (shape.BASED / 8), 0, 0);
+                UB2GM(outmtx[(((GetBlockIdx() * shape.vec_d) + kernel_d) + base_d)], outbuf.get(cnt), 1, (shape.BASED / MTE_FLOAT), 0, 0);
                 out_empty.set();
                 
                 cnt = (cnt + 1);
@@ -183,6 +187,14 @@ public:
     
 private:
     CustVecShapeInfo shape;
+    // Global Params
+    int cnt;
+    int mte2_base_d;
+    int mte2_kernel_d;
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
     // Global Tensors
     GlobalTensor<float> xmtx;
     GlobalTensor<float> zmtx;
