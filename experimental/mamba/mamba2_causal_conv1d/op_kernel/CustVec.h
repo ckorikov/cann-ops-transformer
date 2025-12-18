@@ -73,8 +73,8 @@ public:
         out_empty.setall();
         Duplicate<int32_t, false>(offsetbuf, (int32_t)0.0, MASK_PLACEHOLDER, ((int)Align64B(shape.S) / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
         PipeBarrier<PIPE_V>();
-        int cnt = 0;
-        int32_t val = 0;
+        cnt = 0;
+        val = 0;
         cast_params_h2f = CastHalf2FloatRepeatParams();
         cast_params_f2h = CastFloat2HalfRepeatParams();
         unary_params = MakeDefaultUnaryRepeatParams();
@@ -141,6 +141,7 @@ public:
                 PipeBarrier<PIPE_V>();
                 out_ready.set();
                 in_empty.set();
+
                 out_ready.wait();
                 if (((baseS + shape.baseS) >= shape.S)){
                     UB2GMPad(outmtx[((bd * shape.S) + baseS)], outbuf.get(cnt), 1, ((shape.S - baseS) * FOUR), 0, 0);
@@ -160,6 +161,7 @@ private:
     CustVecShapeInfo shape;
     // Global Params
     int cnt;
+    int32_t val;
     UnaryRepeatParams cast_params_h2f;
     UnaryRepeatParams cast_params_f2h;
     UnaryRepeatParams unary_params;
