@@ -14,6 +14,12 @@
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkState {
 
+constexpr int BASEH = 8;
+constexpr int BASEL = 128;
+constexpr int CBASEM = 64;
+constexpr int CBASEN = 64;
+constexpr int CBASEK = 256;
+
 struct CustCubeShapeInfo{
     int BCH;
     int BCH_PER_CORE;
@@ -30,7 +36,7 @@ struct CustCubeShapeInfo{
 
 
 __aicore__ inline void tilingShapeCustCube(int B, int C, int H, int G, int L, int N, int P, CustCubeShapeInfo &shape){
-    shape.BCH = ((int)((B * C) * H) / (int)8);
+    shape.BCH = ((int)((B * C) * H) / BASEH);
     shape.BCH_PER_CORE = CeilDiv(shape.BCH,GetBlockNum());
     shape.BCH1 = (shape.BCH_PER_CORE * get_block_idx());
     shape.BCH2 = (((shape.BCH_PER_CORE + shape.BCH1))<(shape.BCH)) ? ((shape.BCH_PER_CORE + shape.BCH1)) : (shape.BCH);
@@ -40,7 +46,7 @@ __aicore__ inline void tilingShapeCustCube(int B, int C, int H, int G, int L, in
     shape.G = G;
     shape.N = N;
     shape.P = P;
-    shape.BASEK = ((shape.L)<(256)) ? (shape.L) : (256);
+    shape.BASEK = ((shape.L)<(CBASEK)) ? (shape.L) : (CBASEK);
 }
 
 
@@ -58,14 +64,14 @@ public:
         xt_mtx.SetGlobalBuffer((__gm__ half*) xt_mtx_);
         out_mtx.SetGlobalBuffer((__gm__ float*) out_mtx_);
         // L1 Buffers
-        cs_l1a.Init((shape.BASEK * 64));
-        cs_l1b.Init((shape.BASEK * 64));
+        cs_l1a.Init((shape.BASEK * CBASEM));
+        cs_l1b.Init((shape.BASEK * CBASEN));
         // L0A Buffers
-        cs_l0a.Init((shape.BASEK * 64));
+        cs_l0a.Init((shape.BASEK * CBASEM));
         // L0B Buffers
-        cs_l0b.Init((shape.BASEK * 64));
+        cs_l0b.Init((shape.BASEK * CBASEN));
         // L0C Buffers
-        cs_l0c.Init(4096);
+        cs_l0c.Init(CBASEM * CBASEN);
         // UB Buffers
         // Initialize events
         l1_empty.Init();
@@ -87,10 +93,10 @@ public:
         CUBE_READY(0, PIPE_FIX);
         CUBE_READY(0, PIPE_FIX);
         for (int bch=shape.BCH1; bch<shape.BCH2; bch+=1){
-            int b = ((int)bch / (int)((int)(shape.C * shape.H) / (int)8));
-            int c = ((int)(bch % ((int)(shape.C * shape.H) / (int)8)) / (int)((int)shape.H / (int)8));
-            int h = ((bch % ((int)(shape.C * shape.H) / (int)8)) % ((int)shape.H / (int)8));
-            for (int madn=0; madn<shape.N; madn+=64){
+            int b = ((int)bch / (int)((int)(shape.C * shape.H) / BASEH));
+            int c = ((int)(bch % ((int)(shape.C * shape.H) / BASEH)) / (int)((int)shape.H / BASEH));
+            int h = ((bch % ((int)(shape.C * shape.H) / BASEH)) % ((int)shape.H / BASEH));
+            for (int madn=0; madn<shape.N; madn+=CBASEM){
                 WAIT_VEC(0);
                 for (int madh=0; madh<8; madh+=1){
                     for (int k=0; k<shape.L; k+=shape.BASEK){

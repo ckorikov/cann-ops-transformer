@@ -106,6 +106,11 @@ public:
         cs_cnt2 = 0;
         cs_cnt3 = 0;
         ws_cnt = 0;
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
+        
         for (int bch=shape.BCH1; bch<shape.BCH2; bch+=1){
             int b = ((int)bch / (int)((int)(shape.C * shape.H) / (int)shape.BASEH));
             int c = ((int)(bch % ((int)(shape.C * shape.H) / (int)shape.BASEH)) / (int)((int)shape.H / (int)shape.BASEH));
