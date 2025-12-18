@@ -14,6 +14,7 @@ from typing import Tuple, List
 
 seed = 42
 
+
 def gen_quest_paged_inputs(batch_size: int, 
                            num_heads: int,  # number of query heads
                            num_kv_heads: int,  # number of KV heads
@@ -69,7 +70,7 @@ def gen_quest_paged_inputs(batch_size: int,
     return query, maxblocks, minblocks, metadata_block_tables, seq_lens
 
 
-def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentage:float=0.02, verbose=False) -> bool:
+def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentage: float=0.02, verbose=False) -> bool:
     """
     Compares tensors of integer numbers, requiring the last dimension to contain 
     the same set of numbers.

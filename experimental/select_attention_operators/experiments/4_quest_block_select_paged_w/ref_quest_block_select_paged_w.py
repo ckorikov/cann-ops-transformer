@@ -218,7 +218,7 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
 
         # add sink
         if (tokens_since_metadata_update >= 0): 
-            all_scores[:,0] = torch.finfo(all_scores.dtype).max
+            all_scores[:, 0] = torch.finfo(all_scores.dtype).max
 
         # Get top-k indices from the global indices
         eff_num_scores = all_scores.shape[-1]

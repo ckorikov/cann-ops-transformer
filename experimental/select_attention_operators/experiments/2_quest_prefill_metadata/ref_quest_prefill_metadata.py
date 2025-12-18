@@ -11,6 +11,7 @@ import torch
 from typing import Tuple
 from gen_data_quest_prefill_metadata import ceil_div
 
+
 def ref_quest_prefill_metadata(
         k_cache: torch.Tensor,          # (num_blocks_total, block_size, num_kv_heads, head_dim)
         block_tables: torch.Tensor,      # (batch_size, max_blocks_per_req)

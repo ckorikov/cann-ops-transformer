@@ -27,38 +27,39 @@ from gen_data_quest_block_select_paged import gen_quest_paged_inputs, ceil_div, 
 
 torch.npu.set_device("npu:0")
 DTYPE = torch.bfloat16
-BLOCK_SIZE = 128
+block_size = 128
 D_DEFAULT = 128
 SAME_SEQ_LEN_ALL_REQS = True # to set equally long input length and avoid unknown actual size
+
 
 # --------------------------------------------------------------------------- #
 #  bytes-moved calculator
 # --------------------------------------------------------------------------- #
-def bytes_moved_paged_select(B: int, H: int, N: int, BLOCK_SIZE: int, D: int,
-                            MMBPR: int, k: int, seq_lens: torch.Tensor) -> int:
+def bytes_moved_paged_select(batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int,
+                            mmbpr: int, k: int, seq_lens: torch.Tensor) -> int:
     """
     Global-memory traffic (read + write) for quest_block_select_paged.
 
     Reads:
-    - query: [B, H, D] - B * H * D * 2 bytes (FP16)
-    - maxblocks: [?, BLOCK_SIZE, N, D] - num_effective_metadata_blocks * BLOCK_SIZE * N * D * 2 bytes (FP16)
-    - minblocks: [?, BLOCK_SIZE, N, D] - num_effective_metadata_blocks * BLOCK_SIZE * N * D * 2 bytes (FP16)
-    - metadata_block_tables: [B, MMBPR] - B * MMBPR * 4 bytes (INT32)
-    - seq_lens: [B] - B * 4 bytes (INT32)
+    - query: [batch_size, num_heads, head_dim] - batch_size * num_heads * head_dim * 2 bytes (FP16)
+    - maxblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2 bytes (FP16)
+    - minblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2 bytes (FP16)
+    - metadata_block_tables: [batch_size, mmbpr] - batch_size * mmbpr * 4 bytes (INT32)
+    - seq_lens: [batch_size] - batch_size * 4 bytes (INT32)
 
     Writes:
-    - selected_indices: [B, N, k] - B * N * k * 4 bytes (INT32)
+    - selected_indices: [batch_size, num_kv_heads, k] - batch_size * num_kv_heads * k * 4 bytes (INT32)
     """
-    toks_per_meta_block = BLOCK_SIZE * BLOCK_SIZE
+    toks_per_meta_block = block_size * block_size
     num_effective_metadata_blocks = torch.sum(ceil_div(seq_lens, toks_per_meta_block)).item()
 
-    read_query = B * H * D * 2
-    read_maxblocks = num_effective_metadata_blocks * BLOCK_SIZE * N * D * 2
-    read_minblocks = num_effective_metadata_blocks * BLOCK_SIZE * N * D * 2
-    read_metadata_tables = B * MMBPR * 4
+    read_query = batch_size * num_heads * head_dim * 2
+    read_maxblocks = num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2
+    read_minblocks = num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2
+    read_metadata_tables = batch_size * mmbpr * 4
     read_seq_lens = seq_lens.element_size() * seq_lens.numel()
     
-    write_indices = B * N * k * 4
+    write_indices = batch_size * num_kv_heads * k * 4
     
     return read_query + read_maxblocks + read_minblocks + read_metadata_tables + read_seq_lens + write_indices
 
@@ -83,20 +84,20 @@ def benchmark_quest_block_select_paged():
         return
 
     print("=" * 124)
-    print(f"  {DTYPE=}  {BLOCK_SIZE=}  {D_DEFAULT=}  {SAME_SEQ_LEN_ALL_REQS=}")
+    print(f"  {DTYPE=}  {block_size=}  {D_DEFAULT=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 124)
-    print(f"{'H':>3} {'N':>3} {'B':>3} {'MMBPR':>6} {'Max_seq_len':>12} {'k':>4} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
+    print(f"{'num_heads':>3} {'num_kv_heads':>3} {'batch_size':>3} {'mmbpr':>6} {'Max_seq_len':>12} {'k':>4} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 124)
 
     for b, h, n, mmbpr, k in itertools.product(batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, k_vals):
         
         ######## Check correctness #######
-        are_equal = "N/A"
+        are_equal = "num_kv_heads/A"
         if run_our and run_ref:
             query, maxblocks, minblocks, metadata_block_tables, seq_lens = gen_quest_paged_inputs(
-                    b, h, n, BLOCK_SIZE, D_DEFAULT,
+                    b, h, n, block_size, D_DEFAULT,
                     num_meta_blocks=b * mmbpr,
-                    MMBPR=mmbpr,
+                    mmbpr=mmbpr,
                     same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
                     device="npu:0", 
                     dtype=DTYPE)
@@ -113,9 +114,9 @@ def benchmark_quest_block_select_paged():
             for i in range(n_warmup + n_repeat):
                 query, maxblocks, minblocks, metadata_block_tables, seq_lens = \
                     gen_quest_paged_inputs(
-                        b, h, n, BLOCK_SIZE, D_DEFAULT,
+                        b, h, n, block_size, D_DEFAULT,
                         num_meta_blocks=b * mmbpr,
-                        MMBPR=mmbpr,
+                        mmbpr=mmbpr,
                         same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
                         device="npu:0", 
                         dtype=DTYPE)
@@ -144,7 +145,7 @@ def benchmark_quest_block_select_paged():
             torch.npu.synchronize()
             
             our_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_paged_select(b, h, n, BLOCK_SIZE, D_DEFAULT, mmbpr, k, seq_lens)
+            total_bytes = bytes_moved_paged_select(b, h, n, block_size, D_DEFAULT, mmbpr, k, seq_lens)
             our_bw = total_bytes / our_duration / 1e6  # TB/s
 
 
@@ -155,9 +156,9 @@ def benchmark_quest_block_select_paged():
             for i in range(n_warmup + n_repeat):
                 query, maxblocks, minblocks, metadata_block_tables, seq_lens = \
                     gen_quest_paged_inputs(
-                        b, h, n, BLOCK_SIZE, D_DEFAULT,
+                        b, h, n, block_size, D_DEFAULT,
                         num_meta_blocks=b * mmbpr,
-                        MMBPR=mmbpr,
+                        mmbpr=mmbpr,
                         same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
                         device="npu:0", 
                         dtype=DTYPE)
@@ -183,32 +184,32 @@ def benchmark_quest_block_select_paged():
             torch.npu.synchronize()
             
             ref_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_paged_select(b, h, n, BLOCK_SIZE, D_DEFAULT, mmbpr, k, seq_lens)
+            total_bytes = bytes_moved_paged_select(b, h, n, block_size, D_DEFAULT, mmbpr, k, seq_lens)
             ref_bw = total_bytes / ref_duration / 1e6  # TB/s
         
         ####### Print results #######
-        max_seq_len = mmbpr * BLOCK_SIZE * BLOCK_SIZE
+        max_seq_len = mmbpr * block_size * block_size
         print(f"{h:>3} {n:>3} {b:>3} {mmbpr:>6} {max_seq_len:>12} {k:>4} {are_equal:>15} ", end='')
         
         if run_ref and ref_duration is not None:
             print(f"{ref_duration:>18.2f} ", end='')
         else:
-            print(f"{'N/A':>18} ", end='')
+            print(f"{'num_kv_heads/A':>18} ", end='')
         
         if run_our and our_duration is not None:
             print(f"{our_duration:>18.2f} ", end='')
         else:
-            print(f"{'N/A':>18} ", end='')
+            print(f"{'num_kv_heads/A':>18} ", end='')
         
         if run_ref and ref_bw is not None:
             print(f"{ref_bw:>16.3f} ", end='')
         else:
-            print(f"{'N/A':>16} ", end='')
+            print(f"{'num_kv_heads/A':>16} ", end='')
         
         if run_our and our_bw is not None:
             print(f"{our_bw:>16.3f}")
         else:
-            print(f"{'N/A':>16}")
+            print(f"{'num_kv_heads/A':>16}")
 
     print("=" * 124)
 

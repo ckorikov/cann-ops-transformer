@@ -96,7 +96,7 @@ def gen_quest_prefill_inputs(
     return k_cache, block_tables, seq_lens, metadata_block_tables, maxblocks, minblocks
 
 
-def compare_tensors(ref: torch.Tensor, custom: torch.Tensor, *, rtol=1e-2, atol=1e-3, verbose:bool=True) -> bool:
+def compare_tensors(ref: torch.Tensor, custom: torch.Tensor, *, rtol=1e-2, atol=1e-3, verbose: bool=True) -> bool:
     """
     compare tensors with a relaxed fp16 tolerance
     """
@@ -112,5 +112,6 @@ def compare_tensors(ref: torch.Tensor, custom: torch.Tensor, *, rtol=1e-2, atol=
         print(e)
         return False
 
-def ceil_div(x:int,y:int) -> int:
+
+def ceil_div(x: int, y: int) -> int:
     return (x + y - 1) // y

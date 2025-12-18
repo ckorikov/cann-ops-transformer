@@ -10,9 +10,11 @@
 import torch
 import math
 
+
 def ceil_div(a, b):
     """Ceiling division: ceil(a / b)"""
     return -(a // -b)
+
 
 def ref_quest_block_select_paged(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
                                  maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
@@ -50,6 +52,7 @@ def ref_quest_block_select_paged(query: torch.Tensor,              # (batch_size
         return ref_quest_paged_fast(query, maxblocks, minblocks, metadata_block_tables, seq_lens, k)
     else:
         return ref_quest_paged_slow(query, maxblocks, minblocks, metadata_block_tables, seq_lens, k)
+
 
 def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
                          maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
@@ -133,6 +136,7 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
             eff_k = min(k, eff_num_scores)            
             selected_indices[b, n, :] = torch.topk(all_scores, eff_k, dim=-1)[1] 
     return selected_indices
+
 
 def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
                          maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)

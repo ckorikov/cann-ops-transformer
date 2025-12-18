@@ -29,7 +29,7 @@ HEAD_DIM = 128
 # Central test worker  (assertion crashes <--> test failed)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="internal worker - not called directly by pytest")
-def test_prefill_kernel(dtype:torch.dtype, 
+def test_prefill_kernel(dtype: torch.dtype, 
                         batch_size: int, 
                         num_kv_heads: int, 
                         block_size: int, 
@@ -129,6 +129,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
                                                   mkbpr_vals=[1, 64, 126, 128], 
                                                   ssar_vals=[True, False])
 
+
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
     ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
@@ -147,6 +148,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
                                                   num_kv_heads_vals=[1, 2, 4, 7, 8, 9, 16, 21, 32, 33], 
                                                   mkbpr_vals=[1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257], 
                                                   ssar_vals=[True, False])
+
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
@@ -167,6 +169,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
                                                   mkbpr_vals=[1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512], 
                                                   ssar_vals=[True, False])
 
+
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
     ids=[f"{dtype=},{batch_size=},{num_kv_heads=},{mkbpr=},{ssar=}" 
@@ -185,6 +188,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
                                                   num_kv_heads_vals=[4, 8, 16], 
                                                   mkbpr_vals=[1, 64, 126, 128, 130, 141], 
                                                   ssar_vals=[True, False])
+
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,

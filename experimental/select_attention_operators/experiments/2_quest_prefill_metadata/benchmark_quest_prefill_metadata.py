@@ -29,6 +29,7 @@ BLOCK_SIZE = 128
 HEAD_DIM = 128
 SAME_SEQ_LEN_ALL_REQS = True # to set equally long input length and avoid unknown actual size
 
+
 # --------------------------------------------------------------------------- #
 #  bytes-moved calculator
 # --------------------------------------------------------------------------- #
