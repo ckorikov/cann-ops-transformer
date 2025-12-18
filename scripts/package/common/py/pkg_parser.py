@@ -321,6 +321,13 @@ def get_cann_version(version_dir: str) -> str:
         return render_cann_version(
             int(matched.group(1)), int(matched.group(2)), None, None, None, None
         )
+    release_alpha_pattern_new = re.compile(r'(\d+)\.(\d+)\.(\d+)\-[a-z]*\.(\d+)', re.IGNORECASE)
+    matched = release_alpha_pattern_new.fullmatch(version_dir)
+    if matched:
+        return render_cann_version(
+            int(matched.group(1)), int(matched.group(2)), int(matched.group(3)), None, None,
+            int(matched.group(4))
+        )
 
     raise IllegalVersionDir(version_dir)
 
@@ -583,13 +590,6 @@ def evaluate_info(info: Dict[str, str],
 
     def replace_pkg_inner_softlink(key: str, value: str) -> Tuple[str, str]:
         if key == 'pkg_inner_softlink':
-            inner_softlink_new = [
-                join_pkg_inner_softlink(link_str.split(':'))
-                for link_str in value.split(';')
-                if ':' not in link_str or link_str.split(':')[0] == loaded_block.dst_path
-            ]
-            if inner_softlink_new:
-                return key, ';'.join(inner_softlink_new)
             return key, 'NA'
         return key, value
 
@@ -1050,7 +1050,11 @@ def parse_xml_config(filepath: str,
     default_config = xml_root.attrib.copy()
 
     package_attr = parse_package_attr(xml_root, args)
-    version, version_dir = read_version_info()
+    if args.version_dir:
+        version = args.version_dir
+        version_dir = args.version_dir
+    else:
+        version, version_dir = read_version_info()
     if args.disable_multi_version:
         version_dir = None
     timestamp = get_timestamp(args)

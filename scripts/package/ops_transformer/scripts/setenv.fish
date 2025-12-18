@@ -9,20 +9,22 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-set param_mult_ver $argv[1]
 set REAL_SHELL_PATH (realpath (command -v $argv[0]))
-set CANN_PATH (cd (dirname $REAL_SHELL_PATH)/../../ && pwd)
-if test -d "$CANN_PATH/ops_transformer" -a test -d "$CANN_PATH/../latest"
-    set INSATLL_PATH (cd (dirname $REAL_SHELL_PATH)/../../../ && pwd)
-    if test -L "$INSATLL_PATH/latest/ops_transformer"
-        set _ASCEND_OPS_TRANSFORMER_PATH (cd $CANN_PATH/ops_transformer && pwd)
-        if test "$param_mult_ver" = "multi_version"
-            set _ASCEND_OPS_TRANSFORMER_PATH (cd $INSATLL_PATH/latest/ops_transformer && pwd)
-        end
+set MULTI_VERSION $argv[1]
+set CANN_PATH (cd (dirname $REAL_SHELL_PATH)/../../../../ && pwd)
+
+if test -d "$CANN_PATH/opp"
+    set INSATLL_PATH `cd $(dirname $REAL_SHELL_PATH)/../../../../../ && pwd`
+    set _ASCEND_OPP_PATH "${CANN_PATH}/opp"
+    if test "$MULTI_VERSION" = "multi_version"
+        set _ASCEND_OPP_PATH "${INSATLL_PATH}/latest/opp"
     end
-elseif test -d "$CANN_PATH/ops_transformer"
-    set _ASCEND_OPS_TRANSFORMER_PATH (cd $CANN_PATH/ops_transformer && pwd)
 end
 
-set -x ASCEND_OPS_TRANSFORMER_PATH $_ASCEND_OPS_TRANSFORMER_PATH
+set -x ASCEND_OPP_PATH $_ASCEND_OPP_PATH
+
+pylib_path="${_ASCEND_OPP_PATH}/python/site-packages/"
+if test -d ${pylib_path}
+    set -x PYTHONPATH $PYTHONPATH:$pylib_path
+end
 

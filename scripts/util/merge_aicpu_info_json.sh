@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/bash
 # ----------------------------------------------------------------------------
 # This program is free software, you can redistribute it and/or modify.
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
@@ -9,20 +9,29 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-set REAL_SHELL_PATH = `realpath $0`
-set MULTI_VERSION = $argv[1]
-set CANN_PATH = `cd $(dirname $REAL_SHELL_PATH)/../../../../ && pwd`
-if (-d "$CANN_PATH/opp") then
-    set INSATLL_PATH = `cd $(dirname $REAL_SHELL_PATH)/../../../../../ && pwd`
-    set _ASCEND_OPP_PATH = "${CANN_PATH}/opp"
-    if ($MULTI_VERSION == "multi_version") then
-        set _ASCEND_OPP_PATH = "${INSATLL_PATH}/latest/opp"
-    endif
-endif
+echo $@
+top_dir=$1
+output_json=$2
+first_json=$3
+shift 3
 
-setenv ASCEND_OPP_PATH ${_ASCEND_OPP_PATH}
+merge_json_tool="${top_dir}/scripts/util/insert_op_info.py"
+>$output_json
 
-pylib_path="${_ASCEND_OPP_PATH}/python/site-packages/"
-if ( -d ${pylib_path} ) then
-    setenv PYTHONPATH ${PYTHONPATH}:${pylib_path}
-endif
+if [[ -f "$first_json" ]]
+then
+    cp -f $first_json $output_json
+else
+    echo "[ERROR] ${first_json} is not a file"
+    exit 1
+fi
+
+for single_json in "$@"
+do
+    if [[ -f "${single_json}" ]]
+    then
+        python3 ${top_dir}/scripts/util/insert_op_info.py ${single_json} ${output_json}
+    else
+        echo "[ERROR] ${single_json} is not a file"
+    fi
+done
