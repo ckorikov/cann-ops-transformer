@@ -276,21 +276,21 @@ public:
             in_ready.wait();
             tensor_out_empty.wait();
             tensor_in_ready.wait();
-            Exp<float, false>(scalea.get(v1_cnt1), scalea.get(v1_cnt1), MASK_PLACEHOLDER, ((int)shape.BASEL / (int)VEC_FLOAT), {1, 1, EIGHT, EIGHT});
+            Exp<float, false>(scalea.get(v1_cnt1), scalea.get(v1_cnt1), MASK_PLACEHOLDER, ((int)shape.BASEL / (int)VEC_FLOAT), unary_params);
             PipeBarrier<PIPE_V>();
-            Brcb(scalea_brcb, scalea.get(v1_cnt1), ((int)shape.BASEL / (int)EIGHT), {1, EIGHT});
+            Brcb(scalea_brcb, scalea.get(v1_cnt1), ((int)shape.BASEL / NUM_ELE_PERBLK_FLOAT), {1, NUM_DBLK_FLOAT});
             PipeBarrier<PIPE_V>();
-            Brcb(scalea_brcb2, scalea_brcb, shape.BASEL, {1, EIGHT});
+            Brcb(scalea_brcb2, scalea_brcb, shape.BASEL, {1, NUM_DBLK_FLOAT});
             PipeBarrier<PIPE_V>();
-            Mul<float, false>(states, states, scalea_brcb2, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, EIGHT});
+            Mul<float, false>(states, states, scalea_brcb2, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), binary_params);
             PipeBarrier<PIPE_V>();
-            Add<float, false>(states, states, out_b.get(v1_cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, EIGHT});
+            Add<float, false>(states, states, out_b.get(v1_cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), binary_params);
             PipeBarrier<PIPE_V>();
-            Cast<float, half, false>(sumout.get(v1_cnt2), x_half.get(v1_cnt2), RoundMode::CAST_NONE, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), {1, 1, EIGHT, FOUR});
+            Cast<float, half, false>(sumout.get(v1_cnt2), x_half.get(v1_cnt2), RoundMode::CAST_NONE, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), cast_params_h2f);
             PipeBarrier<PIPE_V>();
-            Muls<float, false>(sumout.get(v1_cnt2), sumout.get(v1_cnt2), (float)d_scale, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), {1, 1, EIGHT, EIGHT});
+            Muls<float, false>(sumout.get(v1_cnt2), sumout.get(v1_cnt2), (float)d_scale, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), unary_params);
             PipeBarrier<PIPE_V>();
-            Add<float, false>(sumout.get(v1_cnt2), sumout.get(v1_cnt2), states, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, EIGHT});
+            Add<float, false>(sumout.get(v1_cnt2), sumout.get(v1_cnt2), states, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.P) / (int)VEC_FLOAT), binary_params);
             PipeBarrier<PIPE_V>();
             out_ready.set();
             in_empty.set();
@@ -299,7 +299,7 @@ public:
 
             out_ready.wait();
             tensor_out_ready.wait();
-            UB2GM(sumoutmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], sumout.get(v1_cnt2), shape.BASEL, ((int)shape.P / (int)MTE_FLOAT), 0, ((int)((shape.H - 1) * shape.P) / (int)MTE_FLOAT));
+            UB2GM(sumoutmtx[(((v1_bc_now * ((shape.L * shape.H) * shape.P)) + ((m * CBASEM) * (shape.H * shape.P))) + (v1_h_now * shape.P))], sumout.get(v1_cnt2), shape.BASEL, ((int)shape.P / MTE_FLOAT), 0, ((int)((shape.H - 1) * shape.P) / MTE_FLOAT));
             out_empty.set();
             tensor_out_empty.set();
             v1_cnt1 = (v1_cnt1 + 1);

@@ -91,7 +91,7 @@ if __name__ == '__main__':
     N = 128
     P = 64
 
-    device = torch.device("npu:0")
+    device = torch.device("npu:6")
 
     tensor_cmtx = torch.randn([B, C*L, G*N], dtype=torch.float16, device=device) * 0.2
     tensor_bmtx = torch.randn([B, C*L, G*N], dtype=torch.float16, device=device) * 0.2
