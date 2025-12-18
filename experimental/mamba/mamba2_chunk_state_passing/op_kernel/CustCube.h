@@ -117,7 +117,7 @@ public:
         for (int chunk_id=0; chunk_id<shape.C; chunk_id+=1){
             Process_cube(chunk_id);
         }
-        
+
         l1_empty.release();
         l0_empty.release();
         out_empty.release();
@@ -138,7 +138,7 @@ public:
                     for (int k=0; k<shape.CUBEK; k+=shape.BASEK){
                         l1_empty.wait();
                         L1ND2NZ(l1a.get(input_cnt), cmtx[(((((base_b * shape.cmtx_strideB) + (chunk_id * shape.cmtx_strideC)) + (m * shape.cmtx_strideL)) + (base_g * shape.CUBEK)) + k)], shape.BASEM, shape.BASEK, (shape.G * shape.CUBEK), shape.BASEM);
-                        L1ND2NZ(l1b.get(input_cnt), state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + (k * shape.CUBEN)) + n)], shape.BASEK, shape.BASEN, shape.CUBEN, shape.BASEK);
+                        L1ND2NZ(l1b.get(input_cnt), state_fp16[((((((ws_cnt % THREE) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + (k * shape.CUBEN)) + n)], shape.BASEK, shape.BASEN, shape.CUBEN, shape.BASEK);
                         l1_ready.set();
 
                         l0_empty.wait();
