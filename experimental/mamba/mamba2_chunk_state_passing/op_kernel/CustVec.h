@@ -105,7 +105,7 @@ public:
             }
         }
 
-        Process_final_state(shape.C -1);
+        Process_final_state(shape.C-1);
         
         WAIT_CUBE(0);
         WAIT_CUBE(0);
@@ -123,17 +123,17 @@ public:
             base_b = ((int)bh_index / (int)shape.H);
             base_h = (bh_index % shape.H);
             WAIT_CUBE(0);
-            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * 2)){
+            for (int base_z=0; base_z<shape.Z; base_z+=(shape.z_pervec * TWO)){
                 in_empty.wait();
-                GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / (int)8), 0, 0);
+                GM2UB(tmpbuf.get(cnt), initmtx[((((base_b * shape.stride_C) + (base_h * shape.stride_H)) + base_z) + (subBlockid * shape.z_pervec))], 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 in_ready.set();
                 out_empty.wait();
                 in_ready.wait();
-                Cast<half, float, false>(fp16_statebuf_c0.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (int)64), {1, 1, 4, 8});
+                Cast<half, float, false>(fp16_statebuf_c0.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), cast_params_f2h);
                 in_empty.set();
                 out_ready.set();
                 out_ready.wait();
-                UB2GM(state_fp16[((((((ws_cnt % 3) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_c0.get(cnt), 1, ((int)shape.z_pervec / (int)16), 0, 0);
+                UB2GM(state_fp16[((((((ws_cnt % THREE) * GetBlockNum()) * shape.Z) + (get_block_idx() * shape.Z)) + base_z) + (subBlockid * shape.z_pervec))], fp16_statebuf_c0.get(cnt), 1, ((int)shape.z_pervec / MTE_HALF), 0, 0);
                 out_empty.set();
                 cnt = (cnt + 1);
             }
