@@ -94,7 +94,7 @@ public:
                 WAIT_VEC(0);
                 for (int madh=0; madh<8; madh+=1){
                     for (int k=0; k<shape.L; k+=shape.BASEK){
-                        Process_cube(b, c, h, madh, madn);
+                        Process_cube(b, c, h, madh, madn, k);
                     }
                 }
                 CUBE_READY(0, PIPE_FIX);
@@ -106,7 +106,7 @@ public:
         out_empty.release();
     }
 
-    __aicore__ inline void Process_cube(int b, int c, int h, int madh, int madn){
+    __aicore__ inline void Process_cube(int b, int c, int h, int madh, int madn, int k){
         l1_empty.wait();
         L1ND2NZ(cs_l1a.get(cs_input_cnt), vec_out[(((((ws_cnt % THREE) * (((GetBlockNum() * BASEH) * shape.L) * CBASEM)) + (((get_block_idx() * BASEH) * shape.L) * CBASEM)) + ((madh * shape.L) * CBASEM)) + (k * CBASEM))], shape.BASEK, CBASEM, CBASEM, shape.BASEK);
         L1ND2NZ(cs_l1b.get(cs_input_cnt), xt_mtx[(((((((b * shape.C) + c) * shape.L) * shape.H) * shape.P) + ((k * shape.H) * shape.P)) + (((h * BASEH) + madh) * shape.P))], shape.BASEK, CBASEN, (shape.H * shape.P), shape.BASEK);
