@@ -1,38 +1,46 @@
-
-import torch
-import math
-import numpy as np
-from typing import Tuple
+# -----------------------------------------------------------------------------------------------------------
+# Copyright (c) 2025 Huawei Technologies Co., Ltd.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# -----------------------------------------------------------------------------------------------------------
 
 import os
+import math
 import json
 
+from typing import Tuple
+
+import numpy as np
 import torch
 import torch_npu
 
 from torch_catlass_attention import catlass_mla_prepare, mla
 
-def catlass_device_malloc(device, aic_core_num, O_CORE_TEMP_SIZE, L_SIZE):
+def catlass_device_malloc(device, aic_core_num, o_core_temp_size, l_size):
     aic_core_num = aic_core_num.astype(np.int64)
-    L_SIZE = L_SIZE.astype(np.int64)
-    O_CORE_TEMP_SIZE = O_CORE_TEMP_SIZE.astype(np.int64)
+    l_size = l_size.astype(np.int64)
+    o_core_temp_size = o_core_temp_size.astype(np.int64)
 
-    BLOCK_SIZE_DB = 65536 # -> Hard coded in kernel
-    NUM2 = 2
+    block_size_db = 65536 # -> Hard coded in kernel
     return {
-        "s": torch.empty(aic_core_num * BLOCK_SIZE_DB * NUM2,
+        "s": torch.empty(aic_core_num * block_size_db * 2,
                         dtype=torch.float32, device=device).contiguous(),
-        "p": torch.empty(aic_core_num * BLOCK_SIZE_DB * NUM2,
+        "p": torch.empty(aic_core_num * block_size_db * 2,
                         dtype=torch.float16, device=device).contiguous(),
-        "result_temp": torch.empty(aic_core_num * BLOCK_SIZE_DB * NUM2,
+        "result_temp": torch.empty(aic_core_num * block_size_db * 2,
                                 dtype=torch.float32, device=device).contiguous(),
-        "global_o": torch.empty(aic_core_num * BLOCK_SIZE_DB,
+        "global_o": torch.empty(aic_core_num * block_size_db,
                                 dtype=torch.float32, device=device).contiguous(),
-        "l": torch.empty(L_SIZE,
+        "l": torch.empty(l_size,
                         dtype=torch.float32, device=device).contiguous(),
-        "o_core_temp": torch.empty(O_CORE_TEMP_SIZE,
+        "o_core_temp": torch.empty(o_core_temp_size,
                                 dtype=torch.float32, device=device).contiguous()
     }
+
 
 def catlass_compute_lse_indices(length, kv_split_num, batch_size, num_heads, device) -> torch.Tensor:
     n = int(kv_split_num)
@@ -62,8 +70,10 @@ def catlass_compute_lse_indices(length, kv_split_num, batch_size, num_heads, dev
 
     return torch.tensor(indices, dtype=torch.long, device=device)
 
-def catlass_select_lse(lHost, idx_t, bsz, n_heads) -> torch.Tensor:
-    return lHost.index_select(0, idx_t).view(bsz, n_heads)
+
+def catlass_select_lse(l_host, idx_t, bsz, n_heads) -> torch.Tensor:
+    return l_host.index_select(0, idx_t).view(bsz, n_heads)
+
 
 def catlass_kernel_prepare(
     batch: int,
@@ -88,7 +98,9 @@ def catlass_kernel_prepare(
     min_num_blocks = batch * max_seq_len // block_size
 
     if num_blocks < min_num_blocks:
-        raise ValueError(f"num_blocks ({num_blocks}) is too small for the given batch size ({batch}) and max_seq_len ({max_seq_len}). It should be at least batch * max_seq_len / block_size.")
+        raise ValueError(
+            f"num_blocks ({num_blocks}) is too small for the given batch size ({batch}) and max_seq_len ({max_seq_len})."
+            f"It should be at least batch * max_seq_len / block_size.")
     
     kv_heads = 1 # -> Hard coded in kernel
 
@@ -119,7 +131,7 @@ def catlass_kernel_prepare(
         ),
         dtype=np.uint64
     )
-    # The shape of kernel_prep is (aic_core_num, kv_split_core_num, O_CORE_TEMP_SIZE, L_SIZE)
+    # The shape of kernel_prep is (aic_core_num, kv_split_core_num, o_core_temp_size, l_size)
 
     torch.npu.synchronize()
 
@@ -137,7 +149,9 @@ def catlass_kernel_prepare(
 
     return device_mem, lse_idxs
 
-def catlass_mla_run(q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, kv_lens, block_tables_pt, device_mem, dtype_str, softmax_scale = 0.08838834764831843):
+
+def catlass_mla_run(q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, kv_lens, 
+                    block_tables_pt, device_mem, dtype_str, softmax_scale=0.088388):
     return mla(
         q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, 
         int(kv_lens.max()), kv_lens, block_tables_pt, 
@@ -146,14 +160,18 @@ def catlass_mla_run(q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, kv_lens, block_t
         dtype_str, softmax_scale
         )
 
+
 dtype_map = {
     torch.float16: "float16",
     torch.bfloat16: "bf16",
     torch.int8: "int8"
 }
 
-def catlass_score_mla(q, q_rope, k, k_rope, kv_seq_lens, block_tables, device_mem, softmax_scale, return_lse = True, lse_idxs = None):
-    ret = catlass_mla_run(q, q_rope, k, k_rope, kv_seq_lens, block_tables, device_mem, dtype_map[q.dtype], softmax_scale = softmax_scale)
+
+def catlass_score_mla(q, q_rope, k, k_rope, kv_seq_lens, 
+                      block_tables, device_mem, softmax_scale, return_lse=True, lse_idxs=None):
+    ret = catlass_mla_run(q, q_rope, k, k_rope, kv_seq_lens, 
+        block_tables, device_mem, dtype_map[q.dtype], softmax_scale = softmax_scale)
 
     if return_lse:
         bsz = q.shape[0]

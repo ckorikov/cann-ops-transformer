@@ -1,3 +1,12 @@
+# -----------------------------------------------------------------------------------------------------------
+# Copyright (c) 2025 Huawei Technologies Co., Ltd.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# -----------------------------------------------------------------------------------------------------------
 
 import torch 
 import torch_npu
@@ -43,7 +52,8 @@ def typhoon_mla_prepare(bsz, seqlens, n_heads, kv_lora_rank, qk_rope_head_dim, b
     return catlass_ctx
 
 
-def typhoon_mla_run(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_cache, absorb_pe_cache, wkv_b1, wkv_b2, catlass_ctx, kv_seqlens, softmax_scale, run_in_single_stage=False):
+def typhoon_mla_run(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_cache, absorb_pe_cache, wkv_b1, wkv_b2,
+                    catlass_ctx, kv_seqlens, softmax_scale, run_in_single_stage=False):
     if run_in_single_stage:
         return _run_full_absorb(q_nope, q_rope, wkv_b1, wkv_b2) 
     else:
@@ -56,7 +66,8 @@ def typhoon_mla_run(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_c
             wkv_b1, wkv_b2, catlass_ctx, kv_seqlens, softmax_scale
         )
 
-def _run_in_2stage(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_cache, absorb_pe_cache, wkv_b1, wkv_b2, catlass_ctx, kv_seqlens, softmax_scale):
+def _run_in_2stage(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_cache, absorb_pe_cache, wkv_b1, wkv_b2, 
+                   catlass_ctx, kv_seqlens, softmax_scale):
     bsz = q_nope.shape[0]
     shared_kvlen = kv_seqlens[0]
     nonshared_kvlens = kv_seqlens[1:]
