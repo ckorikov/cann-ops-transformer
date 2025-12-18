@@ -177,7 +177,7 @@ public:
                 PipeBarrier<PIPE_V>();
                 Add<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), fp32_statebuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), binary_params);
                 PipeBarrier<PIPE_V>();
-                Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / (VEC_FLOAT), cast_params_f2h);
+                Cast<half, float, false>(fp16_statebuf_ci.get(cnt), tmpbuf.get(cnt), RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), cast_params_f2h);
                 PipeBarrier<PIPE_V>();
                 UB2UB(outbuf.get(cnt), tmpbuf.get(cnt), 1, ((int)shape.z_pervec / MTE_FLOAT), 0, 0);
                 PipeBarrier<PIPE_V>();
