@@ -294,7 +294,7 @@ aclnnStatus aclnnFusedInferAttentionScoreV4(
             <td>可选输入</td>
             <td>表示对key/value进行反量化的因子</td>
             <td>支持per-tensor、per-channel、per-token。</td>
-            <td>Q_S=1：FLOAT16、BFLOAT16、FLOAT32Q_S&gt;1：FLOAT16</td>
+            <td>Q_S=1：FLOAT16、BFLOAT16、FLOAT32、Q_S&gt;1：FLOAT16</td>
             <td>ND</td>
             <td>见<a href="#AntiQuant">伪量化参数</a></td>
             <td>-</td>
