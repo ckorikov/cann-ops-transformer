@@ -15,10 +15,9 @@
 
 #include "kernel_operator.h"
 #include "moe_update_expert.h"
-#include "moe_update_expert_tiling_key.h"
+
 using namespace AscendC;
 using namespace MoeUpdateExpertNamespace;
-using namespace Mc2Tiling;
 
 #define INVOKE_MOE_UPDATE_EXPERT_OP_IMPL()                                                                      \
     do {                                                                                                        \
@@ -28,7 +27,7 @@ using namespace Mc2Tiling;
         op.Process();                                                                                           \
     } while (0)
 
-template<int BalanceMode, int ExpertScalesDataType> __global__ __aicore__ void moe_update_expert(
+extern "C" __global__ __aicore__ void moe_update_expert(
     GM_ADDR expertIdsGM, GM_ADDR eplbTableGM, GM_ADDR expertScalesGM, GM_ADDR pruningThresholdGM, GM_ADDR activeMaskGM,
     GM_ADDR balancedExpertIdsOutGM, GM_ADDR balancedActiveMaskOutGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
@@ -38,21 +37,19 @@ template<int BalanceMode, int ExpertScalesDataType> __global__ __aicore__ void m
 
     TPipe pipe;
 
-    if constexpr (ExpertScalesDataType == TILINGKEY_FLOAT) {
+    if (TILING_KEY_IS(0)) {
         // 不使能专家裁剪，按rank_id负载均衡
-        if constexpr (BalanceMode == RANK_ID_BALANCING_MODE) {
-            MoeUpdateExpert<DTYPE_EXPERT_IDS, float, false> op;
-            INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
-        } else if constexpr (BalanceMode == TOKEN_ID_BALANCING_MODE) {
+        MoeUpdateExpert<DTYPE_EXPERT_IDS, float, false> op;
+        INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
+    } else if (TILING_KEY_IS(1)) {
         // 使能专家裁剪，按token_id负载均衡，expert_scales 参数类型 float
-            MoeUpdateExpert<DTYPE_EXPERT_IDS, float, true> op;
-            INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
-        } 
-    } else if constexpr (ExpertScalesDataType == TILINGKEY_HALF) {
+        MoeUpdateExpert<DTYPE_EXPERT_IDS, float, true> op;
+        INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
+    } else if (TILING_KEY_IS(11)) {
         // 使能专家裁剪，按token_id负载均衡，expert_scales 参数类型 half
         MoeUpdateExpert<DTYPE_EXPERT_IDS, half, true> op;
         INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
-    } else if constexpr (ExpertScalesDataType == TILINGKEY_BFLOAT16) {
+    } else if (TILING_KEY_IS(21)) {
         // 使能专家裁剪，按token_id负载均衡，expert_scales 参数类型 bfloat16_t
         MoeUpdateExpert<DTYPE_EXPERT_IDS, bfloat16_t, true> op;
         INVOKE_MOE_UPDATE_EXPERT_OP_IMPL();
