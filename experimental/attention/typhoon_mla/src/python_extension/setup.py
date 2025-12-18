@@ -36,8 +36,12 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
 
+        # Use subprocess to invoke CMake for configuring and building the extension.
+        # This executes external build commands in a controlled build directory.
         subprocess.check_call(["cmake", ext.sourcedir] +
                               cmake_args, cwd=self.build_temp)
+        
+        # Build the project using CMake-generated build files
         subprocess.check_call(
             ["cmake", "--build", ".", "-j"] + build_args, cwd=self.build_temp)
 
@@ -49,6 +53,7 @@ class CMakeBuild(build_ext):
         stubgen_bin = os.path.join(os.path.dirname(
             sys.executable), "pybind11-stubgen")
         try:
+            # Run pybind11-stubgen
             subprocess.check_call([stubgen_bin] + stubgen_args, cwd=extdir)
         except FileNotFoundError as e:
             logging.warning("No pybind11-stubgen found")

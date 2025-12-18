@@ -33,12 +33,13 @@ class BlockEpilogue<
 {
 public:
     // Type aliases
-    using DispatchPolicy = EpilogueAtlasA2MLASoftmax;
-    using ArchTag = typename DispatchPolicy::ArchTag;
     using ElementOutput = typename OutputType_::Element;
     using ElementInput = typename InputType_::Element;
     using ElementMask = typename MaskType_::Element;
 
+    using DispatchPolicy = EpilogueAtlasA2MLASoftmax;
+    using ArchTag = typename DispatchPolicy::ArchTag;
+    
     using LayoutOutput = typename OutputType_::Layout;
     using LayoutInput = typename InputType_::Layout;
     using LayoutMask = typename MaskType_::Layout;
