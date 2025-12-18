@@ -99,7 +99,7 @@ public:
                 
                 out_empty.wait();
                 in_ready.wait();
-                Process_calc(b_val, w_scale);
+                Process_calc(bd, b_val, w_scale);
                 out_ready.set();
                 in_empty.set();
 
@@ -132,7 +132,7 @@ public:
         }
     }
 
-    __aicore__ inline void Process_calc(float b_val, float w_scale){
+    __aicore__ inline void Process_calc(int bd, float b_val, float w_scale){
         Duplicate<float, false>(sumbuf.get(cnt), (float)0.0, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), 1, NUM_DBLK_FLOAT);
         PipeBarrier<PIPE_V>();
         LocalTensor<uint32_t> tmptsr_0 = offsetbuf.ReinterpretCast<uint32_t>();
@@ -143,10 +143,10 @@ public:
             Muls<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), (float)w_scale, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
             Add<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), tmpbuf.get(cnt), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), binary_params);
             PipeBarrier<PIPE_V>();
-            Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)4, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+            Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)FOUR, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
             PipeBarrier<PIPE_V>();
         }
-        Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * 4)), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
+        Adds<int32_t, false>(offsetbuf, offsetbuf, (int32_t)(-1 * (shape.W * FOUR)), MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
         PipeBarrier<PIPE_V>();
         Adds<float, false>(sumbuf.get(cnt), sumbuf.get(cnt), (float)b_val, MASK_PLACEHOLDER, ((int)shape.baseS / VEC_FLOAT), unary_params);
         PipeBarrier<PIPE_V>();
