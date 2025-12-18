@@ -1,4 +1,6 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
 declare -A NumCoresMap
 NumCoresMap["Ascend910A"]="32"

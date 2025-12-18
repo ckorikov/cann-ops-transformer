@@ -1,4 +1,7 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+#
 # This script sets up the required paths in order to use CANN libraries
 # Usage: source init_cann.sh [SOC_VERSION]
 

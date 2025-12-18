@@ -1,5 +1,8 @@
 
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+#
 # This script only compiles the AscendC operator and creates a shared library file in lib directory
 
 # `bisheng` CLI: https://www.hiascend.com/document/detail/zh/canncommercial/800/developmentguide/opdevg/BishengCompiler/atlas_bisheng_10_0003.html

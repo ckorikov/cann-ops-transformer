@@ -1,4 +1,7 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+#
 # This script builds the operator and installs a python torch extension package 'select_attn_decoding_ops'
 
 # build operator as shared lib (.so file)
