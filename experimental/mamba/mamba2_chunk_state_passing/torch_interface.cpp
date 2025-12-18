@@ -93,8 +93,7 @@ __global__ __aicore__ void kernel_cust_chunk_state_passing(GM_ADDR dacs, GM_ADDR
     }
 }
 
-std::tuple<at::Tensor, at::Tensor>
-mambav2_chunk_state_passing(const at::Tensor &dacs, const at::Tensor &init_states, const at::Tensor &states, const at::Tensor &ct){
+std::tuple<at::Tensor, at::Tensor> mambav2_chunk_state_passing(const at::Tensor &dacs, const at::Tensor &init_states, const at::Tensor &states, const at::Tensor &ct){
     auto ascendcPlatform = platform_ascendc::PlatformAscendCManager::GetInstance();
     uint32_t blockDims = 20;
     int devidx = states.device().index();
@@ -147,8 +146,7 @@ mambav2_chunk_state_passing(const at::Tensor &dacs, const at::Tensor &init_state
     return std::make_tuple(output, final_state);
 }
 
-std::tuple<torch::Tensor, torch::Tensor> 
-mambav2_chunk_state_passing_meta(const at::Tensor &dacs, const at::Tensor &init_states, const at::Tensor &states, const at::Tensor &ct)
+std::tuple<torch::Tensor, torch::Tensor> mambav2_chunk_state_passing_meta(const at::Tensor &dacs, const at::Tensor &init_states, const at::Tensor &states, const at::Tensor &ct)
 {
     TORCH_CHECK(dacs.defined(), "Input tensor at must be defined");
     TORCH_CHECK(states.defined(), "Input tensor dt must be defined");

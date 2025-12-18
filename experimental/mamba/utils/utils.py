@@ -17,6 +17,7 @@ import torch_npu
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def check_diff(x, y):
     diff = torch.abs(x - y)
     rel_diff = diff.max() / torch.abs(x.max())
