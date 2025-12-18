@@ -71,12 +71,23 @@ public:
                 int32_t num_kv_blocks_todo_curr_iter = min(num_kv_blocks_in_request - num_kv_blocks_completed, BLOCK_SIZE_);
                 for (int32_t blk = 0; blk < num_kv_blocks_todo_curr_iter; ++blk) {
 
+                    // tail check - set ntokens_to_reduce to the number of valid tokens in the current K block
+                    int32_t ntokens_to_reduce;
+                    if ((blk == num_kv_blocks_todo_curr_iter - 1) && 
+                        (meta_blk == num_meta_blocks_in_request - 1)) {
+                        // tail (last KV block) - do not reduce over all tokens!
+                        int32_t ntokens_reduced_so_far = (meta_blk * BLOCK_SIZE_  + blk) * BLOCK_SIZE_;
+                        ntokens_to_reduce = seq_len - ntokens_reduced_so_far;
+                    } else {
+                        ntokens_to_reduce = BLOCK_SIZE_;
+                    }
+                    
                     /* 1. Copy head-slice: 4-D [blocks, BLOCK_SIZE, N, D] → UB [BLOCK_SIZE, D] */
                     int32_t kv_block_id = block_tables_gm_.GetValue(r * MKBPR_ + num_kv_blocks_completed + blk); // MKBPR_ block slots exist for each request in block_tables 
                     int32_t kv_block_offset = (kv_block_id * BLOCK_SIZE_ * N_ * D_) + h * D_;                
                     LocalTensor<half> k_block_lt = k_block_in_q_.AllocTensor<half>();
                     DataCopyParams gm_ub_cp;
-                    gm_ub_cp.blockCount = BLOCK_SIZE_;
+                    gm_ub_cp.blockCount = ntokens_to_reduce;
                     gm_ub_cp.blockLen   = ceilDiv(D_ * sizeof(half), BYTES_DATA_BLOCK);
                     gm_ub_cp.srcStride  = ceilDiv((N_ - 1) * D_ * sizeof(half), BYTES_DATA_BLOCK); // skip other heads
                     gm_ub_cp.dstStride  = 0;
@@ -88,13 +99,13 @@ public:
                     uint64_t mask = D_; // D must be 128, otherwise everything breaks
                     CopyRepeatParams ub_ub_cp = { 1, 1, 8, 8 }; // contiguous --> contiguous copy
                     LocalTensor<half> work_lt = work_calc_q_.AllocTensor<half>();
-                    Copy(work_lt, k_block_lt, mask, BLOCK_SIZE_, ub_ub_cp);
-                    ReduceTokenDim<half, true>(work_lt, BLOCK_SIZE_ * D_);  // true -> Max
+                    Copy(work_lt, k_block_lt, mask, ntokens_to_reduce, ub_ub_cp);
+                    ReduceTokenDim<half, true>(work_lt, ntokens_to_reduce * D_);  // true -> Max
                     Copy(max_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  // copy the first D_ numbers which are per-channel maximum acrosss BLOCK_SIZE tokens in the K-block
 
                     /* 3. min-reduction (reuse work_lt) */
-                    Copy(work_lt, k_block_lt, mask, BLOCK_SIZE_, ub_ub_cp);
-                    ReduceTokenDim<half, false>(work_lt, BLOCK_SIZE_ * D_);  // false -> Min
+                    Copy(work_lt, k_block_lt, mask, ntokens_to_reduce, ub_ub_cp);
+                    ReduceTokenDim<half, false>(work_lt, ntokens_to_reduce * D_);  // false -> Min
                     Copy(min_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  // copy the first D_ numbers which are per-channel minimum acrosss BLOCK_SIZE tokens in the K-block
                     k_block_in_q_.FreeTensor(k_block_lt);
                     work_calc_q_.FreeTensor(work_lt);
@@ -143,17 +154,34 @@ private:
     template <typename T, bool isMax>
     __aicore__ void ReduceTokenDim(LocalTensor<T> vec_lt, int32_t initial_length)
     {
-        int32_t len = initial_length;
-        while (len > D_) {               // stop when we have only D elements left
-            int32_t half_len = len / 2;
-            if (isMax) {
-                Max(vec_lt[0], vec_lt[0], vec_lt[half_len], half_len);
-            } else {       
-                Min(vec_lt[0], vec_lt[0], vec_lt[half_len], half_len);
-            }
-            len = half_len;
-            AscendC::PipeBarrier<PIPE_V>();
+        if (initial_length != BLOCK_SIZE_ * D_)
+            AscendC::PipeBarrier<PIPE_V>();  // no need to synch otherwise for some reason
 
+        int32_t len = initial_length;
+
+        while (len > D_) {
+            int32_t num_vec = len / D_;
+            int32_t pair_vec = num_vec >> 1;
+            int32_t has_tail = num_vec & 1;
+
+            int32_t reduce_len = pair_vec * D_;
+
+            if (reduce_len > 0) {
+            if (isMax) {
+                    Max(vec_lt[0], vec_lt[0], vec_lt[reduce_len], reduce_len);
+            } else {       
+                    Min(vec_lt[0], vec_lt[0], vec_lt[reduce_len], reduce_len);
+            }
+            }
+            
+            // If odd number of vectors, move last one forward
+            if (has_tail) {
+                Copy(vec_lt[reduce_len], vec_lt[(num_vec - 1) * D_], D_, 1, { 1, 1, 8, 8 });
+                reduce_len += D_;
+            }
+
+            len = reduce_len;
+            AscendC::PipeBarrier<PIPE_V>();
         }
     }
 

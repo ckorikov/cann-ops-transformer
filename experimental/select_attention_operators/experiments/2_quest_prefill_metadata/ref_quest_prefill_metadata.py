@@ -53,8 +53,14 @@ def ref_quest_prefill_metadata(
     
             # iterate over one kv block (BLOCK_SIZE tokens)
             for blk in range(num_kv_blocks_todo_curr_iter):
+                if (blk == num_kv_blocks_todo_curr_iter - 1) and (meta_blk == num_meta_blocks_in_request - 1):
+                    # tail (last KV block) - do not reduce over all tokens!
+                    ntokens_reduced_so_far = meta_blk * BLOCK_SIZE * BLOCK_SIZE + blk * BLOCK_SIZE
+                    ntokens_to_reduce = seq_lens[r] - ntokens_reduced_so_far
+                else:
+                    ntokens_to_reduce = BLOCK_SIZE
                 kv_block_id = block_tables[r, meta_blk * BLOCK_SIZE + blk].item()   # global block id
-                kv_block = k_cache[kv_block_id, :, :, :]  # (BLOCK_SIZE, N, D)
+                kv_block = k_cache[kv_block_id, :ntokens_to_reduce, :, :]  # (BLOCK_SIZE, N, D)
                 maxblocks[meta_blk_id, blk, :, :] = kv_block.max(dim=0)[0]
                 minblocks[meta_blk_id, blk, :, :] = kv_block.min(dim=0)[0]
 

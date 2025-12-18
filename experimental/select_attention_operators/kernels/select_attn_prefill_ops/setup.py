@@ -5,7 +5,7 @@ from ascendc_extension import AscendCExtension
 CURRENT_DIR = os.path.dirname(__file__)
 
 package_name = 'select_attn_prefill_ops'
-version='0.3.0'
+version='0.3.1'
 num_cores=os.environ.get('NUM_CORES', 0)
 
 setup(

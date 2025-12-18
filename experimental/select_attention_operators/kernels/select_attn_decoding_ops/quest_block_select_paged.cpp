@@ -10,7 +10,9 @@
 #define NUM_DATA_BLOCKS(bytes) (DIV_ROUNDUP(bytes,BYTES_DATA_BLOCK))
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MINHALF -65504.0f
+#define MAXHALF 65504.0f
 #define MINFLOAT -3.4028235e38f
+#define MAXFLOAT 3.4028235e+38f
 
 constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_V200 = 8;
 constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_HALF_V220 = 4;
@@ -18,11 +20,14 @@ constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_FLOAT_V220 = 2;
 
 
 /**
- * @brief bfloat16 Kernel implementation for Quest KV block selection with paged metadata in AscendC
+ * @brief bfloat16 Kernel implementation for Quest KV block selection with 
+ * paged metadata in AscendC
  *
  * @param [in] query Pointer to the query vector [B,H,D]
- * @param [in] maxblocks Pointer to the quest metadata with the maximum vectors of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
- * @param [in] minblocks Pointer to the quest metadata with the minimum vectors of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
+ * @param [in] maxblocks Pointer to the quest metadata with the maximum vectors 
+ *             of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
+ * @param [in] minblocks Pointer to the quest metadata with the minimum vectors 
+ *             of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
  * @param [in] metadata_block_tables Pointer to metadata block tables [B,MMBPR]
  * @param [in] seq_lens Pointer to sequence lengths [B]
  * @param [out] selected_indices Pointer to output indices vector [B,N,k] 
@@ -31,9 +36,15 @@ constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_FLOAT_V220 = 2;
  * @param [in] H Number of attention heads (query heads)
  * @param [in] BLOCK_SIZE Number of vectors in maxblock and in minblock
  * @param [in] D head dimension
- * @param [in] k number of top indices to return for every KV head
- * @param [in] MMBPR Maximum number of metadata blocks per request
  * @param [in] num_meta_blocks Total number of metadata blocks
+ * @param [in] k number of top indices to return for every KV head
+ * @param [in] tokens_since_metadata_update - number of most recent tokens in 
+ *             the sequence, since the last update of the metadata (note the 
+ *             update is assumed to be computed only on the full multiple of 
+ *             BLOCK_SIZE which is below or equal to 
+ *            "seq_len - tokens_since_metadata_update")
+ *             set to -1 to disable the selection of sink and window kv blocks by this kernel.
+ * @param [in] MMBPR Maximum number of metadata blocks per request
  */
 extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
     GM_ADDR query,
@@ -49,6 +60,7 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
     int32_t D,
     int32_t MMBPR,
     int32_t num_meta_blocks,
+    int32_t tokens_since_metadata_update,
     int32_t k)
 
 {
@@ -247,6 +259,16 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
             index_local_lt.SetValue(i, i);
         }   
 
+        // (sink) Add high score to the first block, making sure that it will be selected
+        if (tokens_since_metadata_update >= 0) {
+            // AscendC::PipeBarrier<PIPE_ALL>();  // important synch
+            AscendC::SetFlag<AscendC::HardEvent::V_S>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID1);                 
+            accumulated_scores_lt.SetValue(0, MAXFLOAT);
+            AscendC::SetFlag<AscendC::HardEvent::S_V>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID1);        
+        }
+        
         // Sort all accumulated scores
         AscendC::Concat(concat_lt, accumulated_scores_lt, tmp_concat_lt, m_concatRepeatTimes);
         AscendC::PipeBarrier<PIPE_V>();  // important synch
@@ -254,6 +276,18 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
        
         // Extract top-k indices - need to convert back to bfloat16 for output if needed
         AscendC::Extract(selected_values_lt, selected_indices_lt, maxblock_float_lt, m_extractRepeatTimes);
+
+        // (local window) Add check whether last index should be added
+        if (tokens_since_metadata_update >= 0) {
+            int32_t mru = seq_len - tokens_since_metadata_update;  // mru = sequence length of this request at the most recent metadata update
+            // int32_t win_size = (mru % BLOCK_SIZE != 0) + (seq_len / BLOCK_SIZE) - (mru / BLOCK_SIZE); // win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
+            int32_t win_size = ((mru & 0x7f) != 0) + (seq_len >> 7) - (mru >> 7); // win_size - faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+            for (int w=1; w<=win_size; w++){
+                selected_indices_lt.SetValue(k - w, DIV_ROUNDUP(seq_len, BLOCK_SIZE) - w);
+            }
+            AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);
+            AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);            
+        }
 
         // Step 6: Copy out the results
         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID3);
@@ -265,11 +299,14 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
 }
 
 /**
- * @brief half-precison (float16) Kernel implementation for Quest KV block selection with paged metadata in AscendC
+ * @brief half-precison (float16) Kernel implementation for Quest KV block 
+ * selection with paged metadata in AscendC
  *
  * @param [in] query Pointer to the query vector [B,H,D]
- * @param [in] maxblocks Pointer to the quest metadata with the maximum vectors of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
- * @param [in] minblocks Pointer to the quest metadata with the minimum vectors of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
+ * @param [in] maxblocks Pointer to the quest metadata with the maximum vectors 
+ *             of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
+ * @param [in] minblocks Pointer to the quest metadata with the minimum vectors 
+ *             of every K block [num_meta_blocks,BLOCK_SIZE,N,D]
  * @param [in] metadata_block_tables Pointer to metadata block tables [B,MMBPR]
  * @param [in] seq_lens Pointer to sequence lengths [B]
  * @param [out] selected_indices Pointer to output indices vector [B,N,k] 
@@ -278,9 +315,14 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
  * @param [in] H Number of attention heads (query heads)
  * @param [in] BLOCK_SIZE Number of vectors in maxblock and in minblock
  * @param [in] D head dimension
- * @param [in] k number of top indices to return for every KV head
- * @param [in] MMBPR Maximum number of metadata blocks per request
  * @param [in] num_meta_blocks Total number of metadata blocks
+ * @param [in] k number of top indices to return for every KV head
+ * @param [in] tokens_since_metadata_update - number of most recent tokens in 
+ *             the sequence, since the last update of the metadata (note the 
+ *             update is assumed to be computed only on the full multiple of 
+ *             BLOCK_SIZE which is below or equal to 
+ *            "seq_len - tokens_since_metadata_update")
+ *             set to -1 to disable the selection of sink and window kv blocks by this kernel.
  */
 extern "C" __global__ __aicore__ void quest_block_select_paged_half(
     GM_ADDR query,
@@ -296,6 +338,7 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
     int32_t D,
     int32_t MMBPR,
     int32_t num_meta_blocks,
+    int32_t tokens_since_metadata_update,
     int32_t k)
 
 {
@@ -461,6 +504,16 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
             index_local_lt.SetValue(i, i);
         }   
 
+        // (sink) Add high score to the first block, making sure that it will be selected
+        if (tokens_since_metadata_update >= 0) {
+            // AscendC::PipeBarrier<PIPE_ALL>();  // important synch
+            AscendC::SetFlag<AscendC::HardEvent::V_S>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID1);                 
+            accumulated_scores_lt.SetValue(0, MAXHALF);
+            AscendC::SetFlag<AscendC::HardEvent::S_V>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID1);        
+        }        
+
         // Sort all accumulated scores
         AscendC::PipeBarrier<PIPE_V>(); // important synch because accumulated_scores_lt must be fully done
         AscendC::Concat(concat_lt, accumulated_scores_lt, tmp_concat_lt, m_concatRepeatTimes);
@@ -468,6 +521,18 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
         
         // Extract top-k indices
         AscendC::Extract(selected_values_lt, selected_indices_lt, maxblock_lt, m_extractRepeatTimes);
+
+        // (local window) Add check whether last index should be added
+        if (tokens_since_metadata_update >= 0) {
+            int32_t mru = seq_len - tokens_since_metadata_update;  // mru = sequence length of this request at the most recent metadata update
+            // int32_t win_size = (mru % BLOCK_SIZE != 0) + (seq_len / BLOCK_SIZE) - (mru / BLOCK_SIZE); // win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
+            int32_t win_size = ((mru & 0x7f) != 0) + (seq_len >> 7) - (mru >> 7); // win_size - faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+            for (int w=1; w<=win_size; w++){
+                selected_indices_lt.SetValue(k - w, DIV_ROUNDUP(seq_len, BLOCK_SIZE) - w);
+            }
+            AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);
+            AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);            
+        }        
 
         // Step 6: Copy out the results
         AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID3);
@@ -496,6 +561,7 @@ void launch_quest_block_select_paged(
     int32_t D,
     int32_t MMBPR,
     int32_t num_meta_blocks,    
+    int32_t tokens_since_metadata_update,
     int32_t k,
     bool is_bfloat16
 )
@@ -508,7 +574,7 @@ void launch_quest_block_select_paged(
             metadata_block_tables,
             seq_lens,
             selected_indices,
-            B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, k);
+            B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, tokens_since_metadata_update, k);
         } else {
         quest_block_select_paged_half<<<blockDim, l2ctrl, stream>>>(
             query,
@@ -517,6 +583,6 @@ void launch_quest_block_select_paged(
             metadata_block_tables,
             seq_lens,
             selected_indices,
-            B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, k);            
+            B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, tokens_since_metadata_update, k);            
         }
 }
