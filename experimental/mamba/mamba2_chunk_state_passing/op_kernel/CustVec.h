@@ -10,6 +10,7 @@
  
 #pragma once
 #include "tensorutils.h"
+#include "paramutils.h"
 
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkStatePassing {
