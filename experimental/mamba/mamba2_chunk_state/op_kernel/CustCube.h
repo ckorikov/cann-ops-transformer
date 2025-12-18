@@ -80,9 +80,9 @@ public:
         l1_empty.setall();
         l0_empty.setall();
         out_empty.setall();
-        int cs_input_cnt = 0;
-        int cs_output_cnt = 0;
-        int ws_cnt = 0;
+        cs_input_cnt = 0;
+        cs_output_cnt = 0;
+        ws_cnt = 0;
         CUBE_READY(0, PIPE_FIX);
         CUBE_READY(0, PIPE_FIX);
         CUBE_READY(0, PIPE_FIX);
@@ -94,28 +94,7 @@ public:
                 WAIT_VEC(0);
                 for (int madh=0; madh<8; madh+=1){
                     for (int k=0; k<shape.L; k+=shape.BASEK){
-                        l1_empty.wait();
-                        L1ND2NZ(cs_l1a.get(cs_input_cnt), vec_out[(((((ws_cnt % 3) * (((GetBlockNum() * 8) * shape.L) * 64)) + (((get_block_idx() * 8) * shape.L) * 64)) + ((madh * shape.L) * 64)) + (k * 64))], shape.BASEK, 64, 64, shape.BASEK);
-                        L1ND2NZ(cs_l1b.get(cs_input_cnt), xt_mtx[(((((((b * shape.C) + c) * shape.L) * shape.H) * shape.P) + ((k * shape.H) * shape.P)) + (((h * 8) + madh) * shape.P))], shape.BASEK, 64, (shape.H * shape.P), shape.BASEK);
-                        l1_ready.set();
-                        l0_empty.wait();
-                        l1_ready.wait();
-                        L0NZ2NN(cs_l0a.get(cs_input_cnt), cs_l1a.get(cs_input_cnt), shape.BASEK, 64, shape.BASEK, 64);
-                        L0NZ2ZN(cs_l0b.get(cs_input_cnt), cs_l1b.get(cs_input_cnt), shape.BASEK, 64, shape.BASEK, 64);
-                        l1_empty.set();
-                        l0_ready.set();
-                        out_empty.wait();
-                        l0_ready.wait();
-                        MMAD(cs_l0c.get(cs_output_cnt), cs_l0a.get(cs_input_cnt), cs_l0b.get(cs_input_cnt), 64, shape.BASEK, 64, (k == 0), 0);
-                        out_ready.set();
-                        l0_empty.set();
-                        cs_input_cnt = (cs_input_cnt + 1);
-                        out_ready.wait();
-                        if (((k + shape.BASEK) >= shape.L)){
-                            L0C2GM_NZ2ND(out_mtx[(((((((b * shape.C) + c) * shape.H) * shape.N) * shape.P) + ((((h * 8) + madh) * shape.N) * shape.P)) + (madn * shape.P))], cs_l0c.get(cs_output_cnt), 64, 64, shape.P, 64, 0);
-                            cs_output_cnt = (cs_output_cnt + 1);
-                        }
-                        out_empty.set();
+                        Process_cube(b, c, h, madh, madn);
                     }
                 }
                 CUBE_READY(0, PIPE_FIX);
@@ -126,9 +105,40 @@ public:
         l0_empty.release();
         out_empty.release();
     }
+
+    __aicore__ inline void Process_cube(int b, int c, int h, int madh, int madn){
+        l1_empty.wait();
+        L1ND2NZ(cs_l1a.get(cs_input_cnt), vec_out[(((((ws_cnt % THREE) * (((GetBlockNum() * BASEH) * shape.L) * CBASEM)) + (((get_block_idx() * BASEH) * shape.L) * CBASEM)) + ((madh * shape.L) * CBASEM)) + (k * CBASEM))], shape.BASEK, CBASEM, CBASEM, shape.BASEK);
+        L1ND2NZ(cs_l1b.get(cs_input_cnt), xt_mtx[(((((((b * shape.C) + c) * shape.L) * shape.H) * shape.P) + ((k * shape.H) * shape.P)) + (((h * BASEH) + madh) * shape.P))], shape.BASEK, CBASEN, (shape.H * shape.P), shape.BASEK);
+        l1_ready.set();
+
+        l0_empty.wait();
+        l1_ready.wait();
+        L0NZ2NN(cs_l0a.get(cs_input_cnt), cs_l1a.get(cs_input_cnt), shape.BASEK, CBASEM, shape.BASEK, CBASEM);
+        L0NZ2ZN(cs_l0b.get(cs_input_cnt), cs_l1b.get(cs_input_cnt), shape.BASEK, CBASEN, shape.BASEK, CBASEN);
+        l1_empty.set();
+        l0_ready.set();
+        out_empty.wait();
+        l0_ready.wait();
+        MMAD(cs_l0c.get(cs_output_cnt), cs_l0a.get(cs_input_cnt), cs_l0b.get(cs_input_cnt), CBASEM, shape.BASEK, CBASEN, (k == 0), 0);
+        out_ready.set();
+        l0_empty.set();
+        cs_input_cnt = (cs_input_cnt + 1);
+
+        out_ready.wait();
+        if (((k + shape.BASEK) >= shape.L)){
+            L0C2GM_NZ2ND(out_mtx[(((((((b * shape.C) + c) * shape.H) * shape.N) * shape.P) + ((((h * BASEH) + madh) * shape.N) * shape.P)) + (madn * shape.P))], cs_l0c.get(cs_output_cnt), CBASEM, CBASEN, shape.P, CBASEM, 0);
+            cs_output_cnt = (cs_output_cnt + 1);
+        }
+        out_empty.set();
+    }
     
 private:
     CustCubeShapeInfo shape;
+    // Global Params
+    int cs_input_cnt;
+    int cs_output_cnt;
+    int ws_cnt;
     // Global Tensors
     GlobalTensor<half> vec_out;
     GlobalTensor<half> xt_mtx;
