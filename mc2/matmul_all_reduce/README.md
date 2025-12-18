@@ -192,35 +192,35 @@
     <tr>
       <td>group</td>
       <td>属性</td>
-      <td><li>Host侧标识列组的字符串，通信域名称。</li><li>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</li></td>
+      <td><ul><li>Host侧标识列组的字符串，通信域名称。</li><li>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</li></ul></td>
       <td>CHAR*、STRING</td>
       <td>-</td>
     </tr>
     <tr>
       <td>reduceOp</td>
       <td>可选属性</td>
-      <td><li>reduce操作类型。</li><li>默认值为"sum"。</li></td>
+      <td><ul><li>reduce操作类型。</li><li>默认值为"sum"。</li></ul></td>
       <td>CHAR*、STRING</td>
       <td>-</td>
     </tr>
     <tr>
       <td>is_trans_a</td>
       <td>可选属性</td>
-      <td><li>决定x1是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></td>
+      <td><ul><li>决定x1是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></ul></td>
       <td>BOOL</td>
       <td>-</td>
     </tr>
     <tr>
       <td>is_trans_b</td>
       <td>可选属性</td>
-      <td><li>决定x2是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></td>
+      <td><ul><li>决定x2是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></ul></td>
       <td>BOOL</td>
       <td>-</td>
     </tr>
     <tr>
       <td>commTurn</td>
       <td>可选属性</td>
-      <td><li>通信数据切分数，即总数据量/单次通信量。</li><li>默认值为0。</li></td>
+      <td><ul><li>通信数据切分数，即总数据量/单次通信量。</li><li>默认值为0。</li></ul></td>
       <td>INT64</td>
       <td>-</td>
     </tr>
@@ -234,14 +234,14 @@
     <tr>
       <td>group_size</td>
       <td>可选属性</td>
-      <td><li>在输入张量 x1/x2 中，M、N、K 维度上的数值数量共同对应一个反量化系数。</li><li>默认值为0。</li><li>保留属性</li></td>
+      <td><ul><li>在输入张量 x1/x2 中，M、N、K 维度上的数值数量共同对应一个反量化系数。</li><li>默认值为0。</li><li>保留属性</li></ul></td>
       <td>INT64</td>
       <td>-</td>
     </tr>
     <tr>
       <td>comm_quant_mode</td>
       <td>可选属性</td>
-      <td><li>静态量化和动态量化的标志位，数值为0和1。</li><li>默认值为0。</li></td>
+      <td><ul><li>静态量化和动态量化的标志位，数值为0和1。</li><li>默认值为0。</li></ul></td>
       <td>INT64</td>
       <td>-</td>
     </tr>

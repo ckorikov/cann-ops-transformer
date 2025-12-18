@@ -126,63 +126,63 @@
     <tr>
       <td>y</td>
       <td>输出</td>
-      <td><li>mm + all_reduce + add的结果。</li></td>
+      <td><ul><li>mm + all_reduce + add的结果。</li></ul></td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>norm_out</td>
       <td>输出</td>
-      <td><li>公式中的输出normOut。</li><li>mm + all_reduce + add + rms_norm的结果。</li></td>
+      <td><ul><li>公式中的输出normOut。</li><li>mm + all_reduce + add + rms_norm的结果。</li></ul></td>
       <td>FLOAT16、BFLOAT16</td>
       <td>ND</td>
     </tr>
     <tr>
       <td>group</td>
       <td>属性</td>
-      <td><li>通信域名称。</li><li>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</li></td>
+      <td><ul><li>通信域名称。</li><li>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</li></ul></td>
       <td>CHAR*、STRING</td>
       <td>-</td>
     </tr>
     <tr>
       <td>reduceOp</td>
       <td>可选属性</td>
-      <td><li>reduce操作类型。</li><li>默认值为"sum"。</li></td>
+      <td><ul><li>reduce操作类型。</li><li>默认值为"sum"。</li></ul></td>
       <td>CHAR*、STRING</td>
       <td>-</td>
     </tr>
     <tr>
       <td>is_trans_a</td>
       <td>可选属性</td>
-      <td><li>决定x1是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></td>
+      <td><ul><li>决定x1是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></ul></td>
       <td>BOOL</td>
       <td>-</td>
     </tr>
     <tr>
       <td>is_trans_b</td>
       <td>可选属性</td>
-      <td><li>决定x2是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></td>
+      <td><ul><li>决定x2是否执行矩阵乘前进行转置。</li><li>默认值为false。</li></ul></td>
       <td>BOOL</td>
       <td>-</td>
     </tr>
     <tr>
       <td>commTurn</td>
       <td>可选属性</td>
-      <td><li>通信数据切分数，即总数据量/单次通信量。</li><li>默认值为0。</li></td>
+      <td><ul><li>通信数据切分数，即总数据量/单次通信量。</li><li>默认值为0。</li></ul></td>
       <td>INT64</td>
       <td>-</td>
     </tr>
     <tr>
       <td>antiquant_group_size</td>
       <td>可选属性</td>
-      <td><li>伪量化pergroup模式下，对x2进行反量化计算的groupSize输入。</li><li>默认值为0。</li></td>
+      <td><ul><li>伪量化pergroup模式下，对x2进行反量化计算的groupSize输入。</li><li>默认值为0。</li></ul></td>
       <td>INT64</td>
       <td>-</td>
     </tr>
     <tr>
       <td>epsilon</td>
       <td>可选属性</td>
-      <td><li>用于防止除0错误，即公式中的输入epsilon。</li><li>epsilon取值满足取值范围(0,1)。</li><li>默认值为1e-6。</li></td>
+      <td><ul><li>用于防止除0错误，即公式中的输入epsilon。</li><li>epsilon取值满足取值范围(0,1)。</li><li>默认值为1e-6。</li></ul></td>
       <td>DOUBLE</td>
       <td>-</td>
     </tr>
