@@ -171,7 +171,7 @@ public:
                 PipeBarrier<PIPE_V>();
                 Exp<float, false>(dacsbrcbbuf2.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, 1, unary_params);
                 PipeBarrier<PIPE_V>();
-                auto custparam = MakeDefaultBinaryRepeatParams;
+                auto custparam = MakeDefaultBinaryRepeatParams();
                 custparam.src1RepStride = 0;
                 Mul<float, false>(tmpbuf.get(cnt), tmpbuf.get(cnt), dacsbrcbbuf2.get(cnt), MASK_PLACEHOLDER, ((int)shape.z_pervec / VEC_FLOAT), custparam);
                 PipeBarrier<PIPE_V>();
