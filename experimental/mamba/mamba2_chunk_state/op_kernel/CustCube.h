@@ -92,7 +92,7 @@ public:
             int h = ((bch % ((int)(shape.C * shape.H) / BASEH)) % ((int)shape.H / BASEH));
             for (int madn=0; madn<shape.N; madn+=CBASEM){
                 WAIT_VEC(0);
-                for (int madh=0; madh<8; madh+=1){
+                for (int madh=0; madh<BASEH; madh+=1){
                     for (int k=0; k<shape.L; k+=shape.BASEK){
                         Process_cube(b, c, h, madh, madn, k);
                     }

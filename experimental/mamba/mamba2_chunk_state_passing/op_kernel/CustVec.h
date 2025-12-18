@@ -47,7 +47,7 @@ __aicore__ inline void tilingShapeCustVec(int B, int H, int S, int C, int L, int
     shape.stride_C = (shape.H * shape.Z);
     shape.stride_H = shape.Z;
     shape.headPerCore = CeilDiv((B * H),GetBlockNum());
-    shape.z_pervec = ((int)shape.Z / (int)4);
+    shape.z_pervec = ((int)shape.Z / (int)FOUR);
 }
 
 
