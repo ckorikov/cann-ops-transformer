@@ -1,16 +1,19 @@
-# ----------------------------------------------------------------------------
-# This program is free software, you can redistribute it and/or modify.
+# -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This file is a part of the CANN Open Software.
-# Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------
 #### CPACK to package run #####
 
 # download makeself package
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/third_party/makeself-fetch.cmake)
+
+# mc2_matmul KB install
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/runtimeKB.cmake)
 
 function(pack_custom)
   message(STATUS "System processor: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -51,6 +54,25 @@ function(pack_custom)
   endif()
 endfunction()
 
+function(pack_tiling_sink)
+  ExternalProject_Get_Property(tiling_sink_task BINARY_DIR)
+
+  if(ENABLE_BUILT_IN)
+    set(TRANSFORMER_OPMASTER_SO ${BINARY_DIR}/libtiling_device_transformer.so)
+    set(INSTALL_DIR "ops_transformer/built-in/op_impl/ai_core/tbe/op_tiling_device/lib")
+  else()
+    set(TRANSFORMER_OPMASTER_SO ${BINARY_DIR}/libcust_opmaster.so)
+    set(INSTALL_DIR "packages/vendors/${VENDOR_NAME}_transformer/op_impl/ai_core/tbe/op_master_device/lib")
+  endif()
+  install(CODE "
+    if(EXISTS \"${TRANSFORMER_OPMASTER_SO}\")
+      file(
+        INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${INSTALL_DIR}\"
+        TYPE FILE FILES \"${TRANSFORMER_OPMASTER_SO}\")
+    endif()
+  ")
+endfunction()
+
 function(pack_built_in)
   #### built-in package ####
   message(STATUS "System processor: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -66,7 +88,7 @@ function(pack_built_in)
 
   set(script_prefix ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts)
   install(DIRECTORY ${script_prefix}/
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
       FILE_PERMISSIONS
       OWNER_READ OWNER_WRITE OWNER_EXECUTE  # 文件权限
       GROUP_READ GROUP_EXECUTE
@@ -89,7 +111,7 @@ function(pack_built_in)
   )
 
   install(FILES ${SCRIPTS_FILES}
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
   )
   set(COMMON_FILES
       ${CMAKE_SOURCE_DIR}/scripts/package/common/sh/install_common_parser.sh
@@ -113,13 +135,13 @@ function(pack_built_in)
       ${CMAKE_SOURCE_DIR}/scripts/package/common/cfg/path.cfg
   )
   install(FILES ${CMAKE_SOURCE_DIR}/version.info
-      DESTINATION .
+      DESTINATION share/info/ops_transformer
   )
   install(FILES ${CONF_FILES}
       DESTINATION ops_transformer/conf
   )
   install(FILES ${PACKAGE_FILES}
-      DESTINATION ops_transformer/script
+      DESTINATION share/info/ops_transformer/script
   )
   install(FILES ${LATEST_MANGER_FILES}
       DESTINATION latest_manager
@@ -136,7 +158,7 @@ function(pack_built_in)
       ${CMAKE_SOURCE_DIR}/scripts/package/ops_transformer/scripts/setenv.fish
   )
   install(FILES ${BIN_FILES}
-      DESTINATION ops_transformer/bin
+      DESTINATION share/info/ops_transformer/bin
   )
 
   string(FIND "${ASCEND_COMPUTE_UNIT}" ";" SEMICOLON_INDEX)
@@ -150,24 +172,7 @@ function(pack_built_in)
   endif()
 
   message(STATUS "current compute_unit is: ${compute_unit}")
-  ExternalProject_Get_Property(tiling_sink_task BINARY_DIR)
-  set(310P_OPMASTER_SO ${BINARY_DIR}/Ascend310P-v${SYS_VERSION}-libopmaster.so)
-  install(CODE "
-    if(EXISTS \"${310P_OPMASTER_SO}\")
-      file(
-        INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib\"
-        TYPE FILE FILES \"${310P_OPMASTER_SO}\")
-    endif()
-  ")
-
-  set(OTHER_OPMASTER_SO ${BINARY_DIR}/Ascend-v${SYS_VERSION}-libopmaster.so)
-  install(CODE "
-    if(EXISTS \"${OTHER_OPMASTER_SO}\")
-      file(
-        INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/ops_transformer/built-in/op_impl/ai_core/tbe/op_master_device/lib\"
-        TYPE FILE FILES \"${OTHER_OPMASTER_SO}\")
-    endif()
-  ")
+  pack_tiling_sink()
 
   # ============= CPack =============
   set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
@@ -197,10 +202,11 @@ function(pack_built_in)
   set(CPACK_CMAKE_BINARY_DIR "${CMAKE_BINARY_DIR}")
   set(CPACK_CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
   set(CPACK_CMAKE_CURRENT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  # set(CPACK_COMPONENTS_ALL runtime documentation)
+  set(CPACK_MAKESELF_PATH "${MAKESELF_PATH}")
   set(CPACK_SOC "${compute_unit}")
   set(CPACK_ARCH "${ARCH}")
   set(CPACK_SET_DESTDIR ON)
+  set(CPACK_VERSION "${VERSION}")
   set(CPACK_GENERATOR External)
   if (ENABLE_BUILT_IN)
     set(CPACK_EXTERNAL_PACKAGE_SCRIPT "${CMAKE_SOURCE_DIR}/cmake/makeself_built_in.cmake")
