@@ -76,7 +76,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
           <td>x1</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
-          <td><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></td>
+          <td><ul><li>当前版本仅支持二维或者三维输入。</li><li>支持不转置场景。</li></ul></td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
           <td>2-3</td>
@@ -86,7 +86,7 @@ aclnnStatus aclnnWeightQuantMatmulAllReduce(
           <td>x2</td>
           <td>输入</td>
           <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></td>
+          <td><ul><li>当前版本仅支持二维输入。</li><li>支持转置/不转置场景。</li></ul></td>
           <td>-</td>
           <td>ND</td>
           <td>2</td>
