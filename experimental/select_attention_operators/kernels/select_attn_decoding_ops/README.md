@@ -2,10 +2,6 @@
 
 Operator `quest_block_select_paged` is implemented in this directory. The operator allows to predict the top k important KV-blocks based on their metadata (maxblocks and minblocks, arranged in blocks of BLOCK_SIZExBLOCK_SZIE) and the incoming query. The implementation is a vector-only kernel that follows the [Quest ICML2024 paper](https://arxiv.org/abs/2406.10774). We extend the original implementation with GQA support: query heads are grouped and averaged such that the prediction of the importnat k blocks are returned per KV-head and not per attention head. 
 
-
-
-![image info](images/quest_block_diagram_emphasize_block_select.png) 
-
 This operator works with arbitrary number of metadata blocks, which is essential for handling variable-length sequences efficiently in attention mechanisms. The metadaa is managed in VLLM-compatible metadata blocks, which can be stored in the same blocks as the KV-cache.
 
 ```text

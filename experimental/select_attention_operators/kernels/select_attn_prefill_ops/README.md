@@ -4,9 +4,6 @@
 
 Operator `quest_prefill_metadata` computes initial metadata from the K cache. Based on the paper [Quest ICML2024 paper](https://arxiv.org/abs/2406.10774). 
 
-![image info](images/quest_block_diagram_emphasize_prefill_metadata.png) 
-
-
 __Brief functionality description:__ in every K-cache block - a D-dimentional vector metadata-MAX-vector is computed (maximum along token dimension -> D to 1 reduction), and for BLOCK_SIZE of such blocks (16384 tokens) we obtain BLOCK_SIZE such metadata-MAX-vectors which are packed into a single metadata-MAX-block. This metadata-block is be written into a specially determined region _maxblocks_ in GM. Same procedure, but with minimum instead of maximum reduction, is performed to determine a metadata-MIN-block, which is stored in the _minblocks_ in the same specially predetermined block index. These special predetermined indices are an argument passed to the kernel "metadata_block_tables" - a 2D table with MMBPR indices per request.
 
 
