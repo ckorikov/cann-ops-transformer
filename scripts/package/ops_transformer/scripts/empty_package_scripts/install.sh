@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/bash
 # ----------------------------------------------------------------------------
 # This program is free software, you can redistribute it and/or modify.
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
@@ -8,21 +8,29 @@
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
+# error number and description
 
-set REAL_SHELL_PATH = `realpath $0`
-set MULTI_VERSION = $argv[1]
-set CANN_PATH = `cd $(dirname $REAL_SHELL_PATH)/../../../../ && pwd`
-if (-d "$CANN_PATH/opp") then
-    set INSATLL_PATH = `cd $(dirname $REAL_SHELL_PATH)/../../../../../ && pwd`
-    set _ASCEND_OPP_PATH = "${CANN_PATH}/opp"
-    if ($MULTI_VERSION == "multi_version") then
-        set _ASCEND_OPP_PATH = "${INSATLL_PATH}/latest/opp"
-    endif
-endif
+if [ "$(id -u)" != "0" ]; then
+  _LOG_PATH=$(echo "${HOME}")"/var/log/ascend_seclog"
+  _INSTALL_LOG_FILE="${_LOG_PATH}/ascend_install.log"
+else
+  _LOG_PATH="/var/log/ascend_seclog"
+  _INSTALL_LOG_FILE="${_LOG_PATH}/ascend_install.log"
+fi
 
-setenv ASCEND_OPP_PATH ${_ASCEND_OPP_PATH}
+# log functions
+getdate() {
+  _cur_date=$(date +"%Y-%m-%d %H:%M:%S")
+  echo "${_cur_date}"
+}
 
-pylib_path="${_ASCEND_OPP_PATH}/python/site-packages/"
-if ( -d ${pylib_path} ) then
-    setenv PYTHONPATH ${PYTHONPATH}:${pylib_path}
-endif
+logandprint() {
+  is_error_level=$(echo $1 | grep -E 'ERROR|WARN|INFO')
+  if [ "${is_quiet}" != "y" ] || [ "${is_error_level}" != "" ]; then
+    echo "[OpsTransformer] [$(getdate)] ""$1"
+  fi
+  echo "[OpsTransformer] [$(getdate)] ""$1" >>"${_INSTALL_LOG_FILE}"
+}
+logandprint "[INFO]: Opp package installed successfully! The new version takes effect immediately."
+
+exit 0

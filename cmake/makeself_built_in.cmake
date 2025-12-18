@@ -55,23 +55,23 @@ endif ()
 set(SCENE_OUT_PUT
     ${CPACK_CMAKE_BINARY_DIR}/scene.info
 )
-set(NN_VERSION_OUT_PUT
+set(TRANSFORMER_VERSION_OUT_PUT
     ${CPACK_CMAKE_BINARY_DIR}/ops_transformer_version.h
 )
 
 configure_file(
     ${SCENE_OUT_PUT}
-    ${STAGING_DIR}/ops_transformer/
+    ${STAGING_DIR}/share/info/ops_transformer/
     COPYONLY
 )
 configure_file(
     ${CSV_OUTPUT}
-    ${STAGING_DIR}/ops_transformer/script/
+    ${STAGING_DIR}/share/info/ops_transformer/script/
     COPYONLY
 )
 configure_file(
-    ${NN_VERSION_OUT_PUT}
-    ${STAGING_DIR}/ops_transformer/
+    ${TRANSFORMER_VERSION_OUT_PUT}
+    ${STAGING_DIR}/share/info/ops_transformer/
     COPYONLY
 )
 # makeself打包
@@ -79,10 +79,14 @@ file(STRINGS ${CPACK_CMAKE_BINARY_DIR}/makeself.txt script_output)
 string(REPLACE " " ";" makeself_param_string "${script_output}")
 string(REGEX MATCH "cann.*\\.run" package_name "${makeself_param_string}")
 
+message(STATUS "script output: ${script_output}")
+message(STATUS "makeself: ${makeself_param_string}")
+message(STATUS "package: ${package_name}")
+
 execute_process(COMMAND bash ${MAKESELF_EXE}
         --header ${MAKESELF_HEADER_EXE}
-        --help-header ops_transformer/script/help.info
-        ${makeself_param_string} ops_transformer/script/install.sh
+        --help-header share/info/ops_transformer/script/help.info
+        ${makeself_param_string} share/info/ops_transformer/script/install.sh
         WORKING_DIRECTORY ${STAGING_DIR}
         RESULT_VARIABLE EXEC_RESULT
         ERROR_VARIABLE  EXEC_ERROR
