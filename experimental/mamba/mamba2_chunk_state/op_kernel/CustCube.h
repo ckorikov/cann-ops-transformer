@@ -14,12 +14,6 @@
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkState {
 
-constexpr int BASEH = 8;
-constexpr int BASEL = 128;
-constexpr int CBASEM = 64;
-constexpr int CBASEN = 64;
-constexpr int CBASEK = 256;
-
 struct CustCubeShapeInfo{
     int BCH;
     int BCH_PER_CORE;
