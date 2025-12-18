@@ -41,6 +41,7 @@ constexpr int VEC_FLOAT = 64;
 constexpr int VEC_HALF = 128;
 
 constexpr int NUM_DBLK_FLOAT = 8; // num of data blocks
+constexpr int NUM_ELE_PERBLK_FLOAT = 8;
 
 __aicore__ constexpr HardEvent GetHardEventByPipe(pipe_t src, pipe_t dst){
     if (src==PIPE_MTE2){
