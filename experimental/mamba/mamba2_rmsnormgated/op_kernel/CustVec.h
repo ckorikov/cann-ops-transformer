@@ -83,10 +83,6 @@ public:
         out_empty.Init();
     }
     
-    __aicore__ inline void PreCompute(){
-        // TODO: User-defined pre-computation
-    }
-    
     __aicore__ inline void Compute(){
         in_empty.setall();
         out_empty.setall();
@@ -121,54 +117,7 @@ public:
                 
                 out_empty.wait();
                 in_ready.wait();
-                // calc silu
-                Duplicate<float, false>(fp32_dupbuf, 1.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
-                PipeBarrier<PIPE_V>();
-                Muls<float, false>(fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), -1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Exp<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                Adds<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), 1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
-                PipeBarrier<PIPE_V>();
-                auto custparam = MakeDefaultBinaryRepeatParams();
-                custparam.src0RepStride = 0; // 1,1,1,8,0,8
-                Div<float, false>(fp32_sigmoidbuf.get(cnt), fp32_dupbuf, fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), custparam);
-                PipeBarrier<PIPE_V>();
-                Mul<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
-                PipeBarrier<PIPE_V>();
-                Mul<float, false>(fp32_xbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
-                PipeBarrier<PIPE_V>();
-                // calc norm
-                Mul<float, false>(fp32_squarebuf.get(cnt), fp32_xbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
-                PipeBarrier<PIPE_V>();
-                Duplicate<float, false>(fp32_meanbuf.get(cnt), 0.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
-                PipeBarrier<PIPE_V>();
-                for (int base_g=0; base_g<shape.BASEG; ++base_g){
-                    ReduceSum<float>(fp32_meanbuf.get(cnt)[base_g], fp32_squarebuf.get(cnt)[(base_g * shape.group_size)], fp32_meantempbuf.get(cnt), shape.group_size);
-                    PipeBarrier<PIPE_V>();
-                }
-                Muls<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), scale, shape.BASEG);
-                PipeBarrier<PIPE_V>();
-                Adds<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), shape.eps, shape.BASEG);
-                PipeBarrier<PIPE_V>();
-                Sqrt<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), shape.BASEG);
-                PipeBarrier<PIPE_V>();
-                Div<float, false>(fp32_meanbuf.get(cnt), fp32_dupbuf, fp32_meanbuf.get(cnt), MASK_PLACEHOLDER, 1, custparam);
-                PipeBarrier<PIPE_V>();
-                // okay
-                Brcb(fp32_scaletempbuf.get(cnt), fp32_meanbuf.get(cnt), 1, {1, NUM_DBLK_FLOAT});
-                PipeBarrier<PIPE_V>();
-                Brcb(fp32_normscalebuf.get(cnt), fp32_scaletempbuf.get(cnt), shape.BASEG, {1, NUM_DBLK_FLOAT});
-                PipeBarrier<PIPE_V>();
-                
-                for (int base_g=0; base_g<shape.BASEG; ++base_g){
-                    int index = base_g * shape.group_size;
-                    Mul<float, false>(fp32_xbuf.get(cnt)[index], fp32_normscalebuf.get(cnt)[(base_g * BLK_SIZE)], fp32_xbuf.get(cnt)[index], MASK_PLACEHOLDER, (shape.group_size / VEC_FLOAT), custparam);
-                    PipeBarrier<PIPE_V>();
-                }
-                Mul<float, false>(outbuf.get(cnt), fp32_xbuf.get(cnt), fp32_wbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
-                PipeBarrier<PIPE_V>();
-                
+                Process_calc();
                 out_ready.set();
                 in_empty.set();
                 
@@ -179,10 +128,59 @@ public:
                 cnt = (cnt + 1);
             }
         }
-        // callback PreLoad signal
         
         in_empty.release();
         out_empty.release();
+    }
+
+    __aicore__ inline void Process_calc(){
+        // calc silu
+        Duplicate<float, false>(fp32_dupbuf, 1.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
+        PipeBarrier<PIPE_V>();
+        Muls<float, false>(fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), -1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Exp<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        Adds<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), 1.0f, MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), unary_params);
+        PipeBarrier<PIPE_V>();
+        auto custparam = MakeDefaultBinaryRepeatParams();
+        custparam.src0RepStride = 0; // 1,1,1,8,0,8
+        Div<float, false>(fp32_sigmoidbuf.get(cnt), fp32_dupbuf, fp32_sigmoidbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), custparam);
+        PipeBarrier<PIPE_V>();
+        Mul<float, false>(fp32_sigmoidbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_zbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
+        PipeBarrier<PIPE_V>();
+        Mul<float, false>(fp32_xbuf.get(cnt), fp32_sigmoidbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
+        PipeBarrier<PIPE_V>();
+        // calc norm
+        Mul<float, false>(fp32_squarebuf.get(cnt), fp32_xbuf.get(cnt), fp32_xbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
+        PipeBarrier<PIPE_V>();
+        Duplicate<float, false>(fp32_meanbuf.get(cnt), 0.000000f, MASK_PLACEHOLDER, 1, 1, NUM_DBLK_FLOAT);
+        PipeBarrier<PIPE_V>();
+        for (int base_g=0; base_g<shape.BASEG; ++base_g){
+            ReduceSum<float>(fp32_meanbuf.get(cnt)[base_g], fp32_squarebuf.get(cnt)[(base_g * shape.group_size)], fp32_meantempbuf.get(cnt), shape.group_size);
+            PipeBarrier<PIPE_V>();
+        }
+        Muls<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), scale, shape.BASEG);
+        PipeBarrier<PIPE_V>();
+        Adds<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), shape.eps, shape.BASEG);
+        PipeBarrier<PIPE_V>();
+        Sqrt<float>(fp32_meanbuf.get(cnt), fp32_meanbuf.get(cnt), shape.BASEG);
+        PipeBarrier<PIPE_V>();
+        Div<float, false>(fp32_meanbuf.get(cnt), fp32_dupbuf, fp32_meanbuf.get(cnt), MASK_PLACEHOLDER, 1, custparam);
+        PipeBarrier<PIPE_V>();
+        // okay
+        Brcb(fp32_scaletempbuf.get(cnt), fp32_meanbuf.get(cnt), 1, {1, NUM_DBLK_FLOAT});
+        PipeBarrier<PIPE_V>();
+        Brcb(fp32_normscalebuf.get(cnt), fp32_scaletempbuf.get(cnt), shape.BASEG, {1, NUM_DBLK_FLOAT});
+        PipeBarrier<PIPE_V>();
+        
+        for (int base_g=0; base_g<shape.BASEG; ++base_g){
+            int index = base_g * shape.group_size;
+            Mul<float, false>(fp32_xbuf.get(cnt)[index], fp32_normscalebuf.get(cnt)[(base_g * BLK_SIZE)], fp32_xbuf.get(cnt)[index], MASK_PLACEHOLDER, (shape.group_size / VEC_FLOAT), custparam);
+            PipeBarrier<PIPE_V>();
+        }
+        Mul<float, false>(outbuf.get(cnt), fp32_xbuf.get(cnt), fp32_wbuf.get(cnt), MASK_PLACEHOLDER, (shape.BASED / VEC_FLOAT), binary_params);
+        PipeBarrier<PIPE_V>();
     }
     
 private:
