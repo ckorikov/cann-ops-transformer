@@ -65,7 +65,7 @@ if __name__ == '__main__':
     S = 1024
     W = 4
 
-    device = torch.device("npu:0")
+    device = torch.device("npu:6")
        
     print('torch compute')
     tensor_xmtx = torch.randn([B, D, S], dtype=torch.float16, device=device) * 0.2
