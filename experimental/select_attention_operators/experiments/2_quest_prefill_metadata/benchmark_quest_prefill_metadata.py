@@ -1,11 +1,18 @@
-#!/usr/bin/env python3
-# benchmark_quest_prefill_metadata.py
 """
+This program is free software, you can redistribute it and/or modify it.
+Copyright (c) 2025 Huawei Technologies Co., Ltd.
+This file is a part of the CANN Open Software.
+Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+Please refer to the License for details. You may not use this file except in compliance with the License.
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+See LICENSE in the root of the software repository for the full text of the License.
+
 Benchmark driver for quest_prefill_metadata kernel (Ascend-C vs reference).
 
 Measures:
 *  latency (μs) – NPU timer
-*  effective bandwidth (TB/s) – bytes moved / time
+*  effective bandwidth (TB/s) - bytes moved / time
 *  correctness comparison with reference implementation
 """
 import torch
@@ -65,7 +72,7 @@ def bytes_moved_prefill(B: int, num_kv_heads: int, block_size: int, head_dim: in
     toks_per_meta_block = block_size * block_size
     num_effective_metadata_blocks = torch.sum(ceil_div(seq_lens, toks_per_meta_block)).item()
 
-    read_k   = num_effective_kv_blocks * block_size * num_kv_heads * head_dim * 2
+    read_k = num_effective_kv_blocks * block_size * num_kv_heads * head_dim * 2
     read_tbl = num_effective_kv_blocks * 4
     write_meta = 2 * (num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2)
     return read_k + read_tbl + write_meta
@@ -80,9 +87,9 @@ def benchmark_quest_prefill():
     n_repeat = 6
     n_warmup = 1
     
-    B_vals     = [10, 20, 24, 32]
-    N_vals     = [8]
-    MKBPR_vals = [63, 80, 94, 128, 150, 200, 256] # max_kv_blocks_per_request
+    batch_size_vals = [10, 20, 24, 32]
+    num_kv_heads_vals = [8]
+    mkbpr_vals = [63, 80, 94, 128, 150, 200, 256] # max_kv_blocks_per_request
     
     if not run_our and not run_ref:
         print("Nothing to run, must set run_our=True or run_ref=True")
@@ -94,7 +101,7 @@ def benchmark_quest_prefill():
     print(f"{'num_kv_heads':>3} {'B':>3} {'Seq_len':>10} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 106)
 
-    for n, b, mkbpr in itertools.product(N_vals, B_vals, MKBPR_vals):
+    for n, b, mkbpr in itertools.product(num_kv_heads_vals, batch_size_vals, mkbpr_vals):
         seq_len = mkbpr * block_size_default
         mmbpr = ceil_div(mkbpr, block_size_default)
         

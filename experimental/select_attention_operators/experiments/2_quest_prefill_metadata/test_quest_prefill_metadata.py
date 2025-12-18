@@ -1,4 +1,13 @@
 """
+This program is free software, you can redistribute it and/or modify it.
+Copyright (c) 2025 Huawei Technologies Co., Ltd.
+This file is a part of the CANN Open Software.
+Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+Please refer to the License for details. You may not use this file except in compliance with the License.
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+See LICENSE in the root of the software repository for the full text of the License.
+
 Single input testing (for debugging) -> Run this file with python <filename>
 Wide range testing (for validation) -> Run this file with pytest <filename>
 """
@@ -114,11 +123,11 @@ def construct_prefill_parameter_sets(dtype_vals, batch_size_vals, num_kv_heads_v
 # --------------------------------------------------------------------------- #
 # Test 1 – Basic functionality
 # ---------------------------------------------------------------------------#
-parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                  batch_size_vals = [1, 2], 
-                                                  num_kv_heads_vals = [4, 8], 
-                                                  mkbpr_vals = [1, 64, 126, 128], 
-                                                  ssar_vals = [True, False])
+parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                  batch_size_vals=[1, 2], 
+                                                  num_kv_heads_vals=[4, 8], 
+                                                  mkbpr_vals=[1, 64, 126, 128], 
+                                                  ssar_vals=[True, False])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
@@ -133,11 +142,11 @@ def test_basic_functionality(dtype: torch.dtype, batch_size: int, num_kv_heads: 
 # --------------------------------------------------------------------------- #
 # Test 2 – Edge cases
 # ---------------------------------------------------------------------------#
-parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                  batch_size_vals = [1, 2], 
-                                                  num_kv_heads_vals = [1, 2, 4, 7, 8, 9, 16, 21, 32, 33], 
-                                                  mkbpr_vals = [1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257], 
-                                                  ssar_vals = [True, False])
+parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                  batch_size_vals=[1, 2], 
+                                                  num_kv_heads_vals=[1, 2, 4, 7, 8, 9, 16, 21, 32, 33], 
+                                                  mkbpr_vals=[1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257], 
+                                                  ssar_vals=[True, False])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
@@ -152,11 +161,11 @@ def test_edge_cases(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbp
 # --------------------------------------------------------------------------- #
 # Test 3 – Test Large sequence
 # ---------------------------------------------------------------------------#
-parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                  batch_size_vals = [1, 2, 4, 8], 
-                                                  num_kv_heads_vals = [2, 4, 8], 
-                                                  mkbpr_vals = [1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512], 
-                                                  ssar_vals = [True, False])
+parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                  batch_size_vals=[1, 2, 4, 8], 
+                                                  num_kv_heads_vals=[2, 4, 8], 
+                                                  mkbpr_vals=[1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512], 
+                                                  ssar_vals=[True, False])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,
@@ -171,11 +180,11 @@ def test_large_lequence(dtype: torch.dtype, batch_size: int, num_kv_heads: int, 
 # --------------------------------------------------------------------------- #
 # Test 4 – Large batch
 # ---------------------------------------------------------------------------#
-parameter_sets = construct_prefill_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                  batch_size_vals = [16, 20, 24, 32], 
-                                                  num_kv_heads_vals = [4, 8, 16], 
-                                                  mkbpr_vals = [1, 64, 126, 128, 130, 141], 
-                                                  ssar_vals = [True, False])
+parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                  batch_size_vals=[16, 20, 24, 32], 
+                                                  num_kv_heads_vals=[4, 8, 16], 
+                                                  mkbpr_vals=[1, 64, 126, 128, 130, 141], 
+                                                  ssar_vals=[True, False])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_kv_heads, mkbpr, ssar", parameter_sets,

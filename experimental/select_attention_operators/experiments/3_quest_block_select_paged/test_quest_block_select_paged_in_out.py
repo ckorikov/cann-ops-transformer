@@ -1,7 +1,17 @@
 """
+This program is free software, you can redistribute it and/or modify it.
+Copyright (c) 2025 Huawei Technologies Co., Ltd.
+This file is a part of the CANN Open Software.
+Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+Please refer to the License for details. You may not use this file except in compliance with the License.
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+See LICENSE in the root of the software repository for the full text of the License.   
+
 Single input testing (for debugging) -> Run this file with python <filename>
 Wide range testing (for validation) -> Run this file with pytest <filename>
 """
+
 import pytest
 import torch
 import torch_npu
@@ -88,12 +98,12 @@ def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_
     return parameter_sets
 
 ########################### Test 1 - Basic functionality ###########################
-parameter_sets = construct_quest_paged_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                      batch_size_vals = [1, 2], 
-                                                      num_heads_vals = [8, 16], 
-                                                      num_kv_heads_vals = [4, 8], 
-                                                      mmbpr_vals = [1, 2, 3, 4], 
-                                                      k_vals = [8])
+parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                      batch_size_vals=[1, 2], 
+                                                      num_heads_vals=[8, 16], 
+                                                      num_kv_heads_vals=[4, 8], 
+                                                      mmbpr_vals=[1, 2, 3, 4], 
+                                                      k_vals=[8])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
@@ -106,12 +116,12 @@ def test_quest_paged_basic(dtype:torch.dtype, batch_size: int, num_heads: int, n
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 2 - Edge cases ###########################
-parameter_sets = construct_quest_paged_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                      batch_size_vals = [1], 
-                                                      num_heads_vals = [1, 2, 4, 8, 16, 32], 
-                                                      num_kv_heads_vals = [1, 2, 4, 8, 16], 
-                                                      mmbpr_vals = [1, 2, 4], 
-                                                      k_vals = [8, 16])
+parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                      batch_size_vals=[1], 
+                                                      num_heads_vals=[1, 2, 4, 8, 16, 32], 
+                                                      num_kv_heads_vals=[1, 2, 4, 8, 16], 
+                                                      mmbpr_vals=[1, 2, 4], 
+                                                      k_vals=[8, 16])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
@@ -124,12 +134,12 @@ def test_quest_paged_edge_cases(dtype:torch.dtype, batch_size: int, num_heads: i
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 3 - Extensive testing ###########################
-parameter_sets = construct_quest_paged_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                      batch_size_vals = [1, 2, 8], 
-                                                      num_heads_vals = [8, 16, 32, 64], 
-                                                      num_kv_heads_vals = [2, 4, 8, 16], 
-                                                      mmbpr_vals = [1, 2, 3, 4], 
-                                                      k_vals = [8, 16, 32])
+parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                      batch_size_vals=[1, 2, 8], 
+                                                      num_heads_vals=[8, 16, 32, 64], 
+                                                      num_kv_heads_vals=[2, 4, 8, 16], 
+                                                      mmbpr_vals=[1, 2, 3, 4], 
+                                                      k_vals=[8, 16, 32])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
@@ -142,12 +152,12 @@ def test_quest_paged_extensive(dtype:torch.dtype, batch_size: int, num_heads: in
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 4 - Large scale ###########################
-parameter_sets = construct_quest_paged_parameter_sets(dtype_vals = [torch.float16, torch.bfloat16], 
-                                                      batch_size_vals = [16, 20, 24, 32], 
-                                                      num_heads_vals = [32, 64, 128], 
-                                                      num_kv_heads_vals = [4, 8, 16, 32, 64], 
-                                                      mmbpr_vals = [1, 2, 4], 
-                                                      k_vals = [8, 32, 64])
+parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
+                                                      batch_size_vals=[16, 20, 24, 32], 
+                                                      num_heads_vals=[32, 64, 128], 
+                                                      num_kv_heads_vals=[4, 8, 16, 32, 64], 
+                                                      mmbpr_vals=[1, 2, 4], 
+                                                      k_vals=[8, 32, 64])
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,

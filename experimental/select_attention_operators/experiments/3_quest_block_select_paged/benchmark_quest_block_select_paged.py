@@ -1,6 +1,13 @@
-#!/usr/bin/env python3
-# benchmark_quest_block_select_paged.py
 """
+This program is free software, you can redistribute it and/or modify it.
+Copyright (c) 2025 Huawei Technologies Co., Ltd.
+This file is a part of the CANN Open Software.
+Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+Please refer to the License for details. You may not use this file except in compliance with the License.
+THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+See LICENSE in the root of the software repository for the full text of the License.
+
 Benchmark driver for quest_block_select_paged kernel.
 
 Measures:
@@ -64,10 +71,10 @@ def benchmark_quest_block_select_paged():
     n_repeat = 10
     n_warmup = 1
     
-    B_vals = [10, 20, 24, 32]
-    H_vals = [32]
-    N_vals = [8]
-    MMBPR_vals = [1, 2, 4, 6]  if torch.bfloat16 else [1, 2, 4, 8, 16]
+    batch_size_vals = [10, 20, 24, 32]
+    num_heads_vals = [32]
+    num_kv_heads_vals = [8]
+    mmbpr_vals = [1, 2, 4, 6] if torch.bfloat16 else [1, 2, 4, 8, 16]
     k_vals = [4, 8, 12, 16]
 
     if not run_our and not run_ref:
@@ -80,7 +87,7 @@ def benchmark_quest_block_select_paged():
     print(f"{'H':>3} {'N':>3} {'B':>3} {'MMBPR':>6} {'Max_seq_len':>12} {'k':>4} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 124)
 
-    for b, h, n, mmbpr, k in itertools.product(B_vals, H_vals, N_vals, MMBPR_vals, k_vals):
+    for b, h, n, mmbpr, k in itertools.product(batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, k_vals):
         
         ######## Check correctness #######
         are_equal = "N/A"
