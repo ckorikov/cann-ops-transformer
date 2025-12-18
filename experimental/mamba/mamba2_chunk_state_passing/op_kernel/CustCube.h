@@ -133,14 +133,14 @@ public:
             base_h = (bh_index % shape.H);
             base_g = ((int)base_h / (int)shape.groupsize);
             WAIT_VEC(0);
-            Process_calc(chunk_id);
+            Process_calc(chunk_id, base_b, base_h, base_g);
             CUBE_READY(0, PIPE_FIX);
             ws_cnt = (ws_cnt + 1);
             bh_index = (bh_index + 1);
         }
     }
 
-    __aicore__ inline void Process_calc(int chunk_id){
+    __aicore__ inline void Process_calc(int chunk_id, int base_b, int base_h, int base_g){
         for (int m=0; m<shape.CUBEM; m+=shape.BASEM){
             for (int n=0; n<shape.CUBEN; n+=shape.BASEN){
                 for (int k=0; k<shape.CUBEK; k+=shape.BASEK){
