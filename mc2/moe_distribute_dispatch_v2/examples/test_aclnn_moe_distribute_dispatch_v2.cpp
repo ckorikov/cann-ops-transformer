@@ -405,7 +405,7 @@ int run_example_on_A2(int rankId, const char* RANK_TABLE_FILE, const char* FIRST
     ret = HcclCommInitClusterInfo(RANK_TABLE_FILE, rank_id, &hcclComm);
     if (ret != HCCL_SUCCESS || hcclComm == nullptr) {
         std::cout << "[ERROR] HCCL CommInitClusterInfo failed. ret = " << ret << std::endl;
-        return 0;
+        return ret;
     }
     std::cout << "[INFO] HcclCommInitClusterInfo success, rank_id:" << rank_id << ", rankSize:" << DEV_NUM
               << ", hcclComm:" << hcclComm << std::endl;
