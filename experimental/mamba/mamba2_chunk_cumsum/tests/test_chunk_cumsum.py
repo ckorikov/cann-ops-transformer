@@ -46,7 +46,7 @@ if __name__ == '__main__':
     G = 8
     L = 256
     
-    device = torch.device("npu:0")
+    device = torch.device("npu:6")
 
     tensor_at = torch.randn([H], dtype=torch.float32, device=device) * 0.2
     tensor_dt = torch.randn([B, C, L, H], dtype=torch.float16, device=device) * 0.2
