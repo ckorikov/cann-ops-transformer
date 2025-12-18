@@ -14,6 +14,10 @@
  *  Loads each KV-block ONCE, keeps copy, reduces min & max logarithmically
  *******************************************************************************/
 #include "kernel_operator.h"
+
+#define DOUBLEBUFFER 2
+#define SINGLEBUFFER 1
+
 constexpr int32_t BYTES_UB_BLOCK = 32;
 constexpr int32_t BYTES_DATA_BLOCK = 32;
 constexpr int32_t NUM_PER_VECTOR = 128;
@@ -197,10 +201,10 @@ private:
     }
 
     TPipe pipe_;
-    TQue<TPosition::VECIN,   2> k_block_in_q_;
-    TQue<TPosition::VECCALC, 1> work_calc_q_;
-    TQue<TPosition::VECOUT,  1> max_out_q_;
-    TQue<TPosition::VECOUT,  1> min_out_q_;
+    TQue<TPosition::VECIN,   DOUBLEBUFFER> k_block_in_q_;
+    TQue<TPosition::VECCALC, SINGLEBUFFER> work_calc_q_;
+    TQue<TPosition::VECOUT,  SINGLEBUFFER> max_out_q_;
+    TQue<TPosition::VECOUT,  SINGLEBUFFER> min_out_q_;
 
     GlobalTensor<half> k_cache_gm_;
     GlobalTensor<half> maxblocks_gm_, minblocks_gm_;

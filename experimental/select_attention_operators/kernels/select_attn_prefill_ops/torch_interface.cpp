@@ -18,6 +18,11 @@
 #define BYTES_PER_IDX 4 // uint32_t
 #define BYTES_PER_VAL 2 // half
 #define BYTES_ASCEND_DATA_BLOCK 32
+#define DIM0 0
+#define DIM1 1
+#define DIM2 2
+#define DIM3 3
+#define DIM128 128
 
 extern void launch_quest_prefill_metadata(
     uint32_t blockDim, void *l2ctrl, void *stream,
@@ -69,24 +74,24 @@ void quest_prefill_metadata(at::Tensor k_cache,
 )
 {
     // infer tensor shapes
-    int32_t B = seq_lens.sizes()[0]; 
-    int32_t N = k_cache.sizes()[2];
-    int32_t BLOCK_SIZE = k_cache.sizes()[1];
-    int32_t D = k_cache.sizes()[3];
-    int32_t MKBPR = block_tables.sizes()[1]; // maximm kv-blocks specifiable per request
-    int32_t MMBPR = metadata_block_tables.sizes()[1]; // maximm metadata-blocks specifiable per request
+    int32_t B = seq_lens.sizes()[DIM0]; 
+    int32_t N = k_cache.sizes()[DIM2];
+    int32_t BLOCK_SIZE = k_cache.sizes()[DIM1];
+    int32_t D = k_cache.sizes()[DIM3];
+    int32_t MKBPR = block_tables.sizes()[DIM1]; // maximm kv-blocks specifiable per request
+    int32_t MMBPR = metadata_block_tables.sizes()[DIM1]; // maximm metadata-blocks specifiable per request
 
     // validate input shapes
-    TORCH_CHECK(D == 128, "D must be equal to 128 for high performance operations, got ", D);
-    TORCH_CHECK(BLOCK_SIZE == 128, "BLOCK_SIZE must be equal to 128 for high performance operations, got ", BLOCK_SIZE);
-    TORCH_CHECK(B == block_tables.size(0), "Batch size mismatch: expected ", B, " from query, got ", block_tables.size(0), " from block_tables");
-    TORCH_CHECK(B == metadata_block_tables.size(0), "Batch size mismatch: expected ", B, " from query, got ", metadata_block_tables.size(0), " from metadata_block_tables");
-    TORCH_CHECK(N == maxblocks.size(2), "N (num KV heads) mismatch: expected ", N, " from query, got ", maxblocks.size(2), " from maxblocks");
-    TORCH_CHECK(N == minblocks.size(2), "N (num KV heads) mismatch: expected ", N, " from query, got ", minblocks.size(2), " from minblocks");
-    TORCH_CHECK(BLOCK_SIZE == maxblocks.size(1), "BLOCK_SIZE mismatch: expected ", BLOCK_SIZE, ", got ", maxblocks.size(1), " from maxblocks");
-    TORCH_CHECK(BLOCK_SIZE == minblocks.size(1), "BLOCK_SIZE mismatch: expected ", BLOCK_SIZE, ", got ", minblocks.size(1), " from minblocks");
-    TORCH_CHECK(D == maxblocks.size(3), "Head dimension D mismatch: expected ", D, " from query, got ", maxblocks.size(3), " from maxblocks");
-    TORCH_CHECK(D == minblocks.size(3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(3), " from minblocks");
+    TORCH_CHECK(D == DIM128, "D must be equal to ", DIM128, " for high performance operations, got ", D);
+    TORCH_CHECK(BLOCK_SIZE == DIM128, "BLOCK_SIZE must be equal to ", DIM128, " for high performance operations, got ", BLOCK_SIZE);
+    TORCH_CHECK(B == block_tables.size(DIM0), "Batch size mismatch: expected ", B, " from query, got ", block_tables.size(DIM0), " from block_tables");
+    TORCH_CHECK(B == metadata_block_tables.size(DIM0), "Batch size mismatch: expected ", B, " from query, got ", metadata_block_tables.size(DIM0), " from metadata_block_tables");
+    TORCH_CHECK(N == maxblocks.size(DIM2), "N (num KV heads) mismatch: expected ", N, " from query, got ", maxblocks.size(DIM2), " from maxblocks");
+    TORCH_CHECK(N == minblocks.size(DIM2), "N (num KV heads) mismatch: expected ", N, " from query, got ", minblocks.size(DIM2), " from minblocks");
+    TORCH_CHECK(BLOCK_SIZE == maxblocks.size(DIM1), "BLOCK_SIZE mismatch: expected ", BLOCK_SIZE, ", got ", maxblocks.size(DIM1), " from maxblocks");
+    TORCH_CHECK(BLOCK_SIZE == minblocks.size(DIM1), "BLOCK_SIZE mismatch: expected ", BLOCK_SIZE, ", got ", minblocks.size(DIM1), " from minblocks");
+    TORCH_CHECK(D == maxblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", maxblocks.size(DIM3), " from maxblocks");
+    TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
 
     
     // allocate input tensors
