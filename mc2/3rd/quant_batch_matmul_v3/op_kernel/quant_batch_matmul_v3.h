@@ -1,6 +1,6 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This file is a part of the CANN Open Software.
  * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
  * \file quant_batch_matmul_v3.h
  * \brief
  */
-#ifndef QUANT_BATCH_MATMUL_V3_H
-#define QUANT_BATCH_MATMUL_V3_H
+#ifndef MC2_QUANT_BATCH_MATMUL_V3_H
+#define MC2_QUANT_BATCH_MATMUL_V3_H
 
 #include "quant_batch_matmul_v3_base.h"
 
@@ -48,7 +48,7 @@ public:
 
     __aicore__ inline void Init(GM_ADDR x1, GM_ADDR x2, GM_ADDR bias,
                                 GM_ADDR scale, GM_ADDR y, GM_ADDR workSpace,
-                                const QuantBatchMatmulV3TilingData* tilingData, TPipe* tPipe) {
+                                const Mc2QuantBatchMatmulV3TilingData* tilingData, TPipe* tPipe) {
         InitTilingData(tilingData);
 
         // init global buffer
@@ -175,7 +175,7 @@ protected:
 
     /** init function for TilingData of mm1 and mm2.
      */
-    __aicore__ inline void InitTilingData(const QuantBatchMatmulV3TilingData* tilingData) {
+    __aicore__ inline void InitTilingData(const Mc2QuantBatchMatmulV3TilingData* tilingData) {
         hasBias_ = tilingData->matmulTiling.isBias;
         batchA_ = tilingData->params.batchA;
         batchB_ = tilingData->params.batchB;

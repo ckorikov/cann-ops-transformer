@@ -14,7 +14,7 @@
  */
 #ifndef MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
 #define MATMUL_ALL_REDUCE_TILING_310_GENERAL_H
-#include "../matmul_all_reduce_tiling.h"
+#include "../matmul_all_reduce_tiling_base.h"
 namespace optiling {
 class MatmulAllReduceTiling310General : public MatmulAllReduceTilingBase
 {
@@ -31,7 +31,7 @@ protected:
     uint64_t GetTilingKey() const override;
 
     void DoMatmulTiling310(
-        matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, L2cacheTilePara& l2cacheTiling);
+        matmul_tiling::MultiCoreMatmulTiling& mm1, TCubeTiling& cubeTiling, Mc2L2cacheTilePara& l2cacheTiling);
 
     void DoWeightAntiQuantTiling();
 
