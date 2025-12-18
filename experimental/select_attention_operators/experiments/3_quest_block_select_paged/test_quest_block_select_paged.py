@@ -19,10 +19,10 @@ from ref_quest_block_select_paged import ref_quest_block_select_paged
 from gen_data_quest_block_select_paged import gen_quest_paged_inputs, compare_indices
 
 
-device = "npu:0"
-block_size_default = 128
-head_dim_default = 128
-same_seq_len_all_reqs = False
+DEVICE = "npu:0"
+BLOCK_SIZE = 128
+HEAD_DIM = 128
+SAME_SEQ_LEN_ALL_REQS = False
 
 
 # --------------------------------------------------------------------------- #
@@ -37,8 +37,8 @@ def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int,
     # Generate input data
     num_meta_blocks = batch_size * mmbpr
     query, maxblocks, minblocks, metadata_block_tables, seq_lens = gen_quest_paged_inputs(
-        batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, same_seq_len_all_reqs,
-        device, dtype
+        batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, SAME_SEQ_LEN_ALL_REQS,
+        DEVICE, dtype
     )
 
     # Run reference implementation
@@ -92,7 +92,7 @@ def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_
                     if n <= h and h % n == 0:
                         for mmbpr in mmbpr_vals:
                             for k in k_vals:
-                                parameter_sets.append((dtype, b, h, n, block_size_default, head_dim_default, mmbpr, k))
+                                parameter_sets.append((dtype, b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k))
     return parameter_sets
 
 ########################### Test 1 - Basic functionality ###########################

@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 """
 Benchmark driver for quest_prefill_metadata kernel (Ascend-C vs reference).
@@ -18,10 +24,10 @@ from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, ceil_div, 
 
 
 torch.npu.set_device("npu:0")
-dtype_default = torch.bfloat16
-block_size_default = 128
-head_dim_default = 128
-same_seq_len_all_reqs = True # to set equally long input length and avoid unknown actual size
+DTYPE = torch.bfloat16
+BLOCK_SIZE = 128
+HEAD_DIM = 128
+SAME_SEQ_LEN_ALL_REQS = True # to set equally long input length and avoid unknown actual size
 
 # --------------------------------------------------------------------------- #
 #  bytes-moved calculator
@@ -89,28 +95,28 @@ def benchmark_quest_prefill():
         return
 
     print("=" * 106)
-    print(f"  {dtype_default=}  {block_size_default=}  {head_dim_default=}  {same_seq_len_all_reqs=}")
+    print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 106)
     print(f"{'num_kv_heads':>3} {'B':>3} {'Seq_len':>10} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 106)
 
     for n, b, mkbpr in itertools.product(num_kv_heads_vals, batch_size_vals, mkbpr_vals):
-        seq_len = mkbpr * block_size_default
-        mmbpr = ceil_div(mkbpr, block_size_default)
+        seq_len = mkbpr * BLOCK_SIZE
+        mmbpr = ceil_div(mkbpr, BLOCK_SIZE)
         
         ######## Check correctness ########
         are_equal = "num_kv_heads/A"
         if run_our and run_ref:
             # Create fresh output tensors for correctness check
             k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our = gen_quest_prefill_inputs(
-                b, n, block_size_default, head_dim_default,
+                b, n, BLOCK_SIZE, HEAD_DIM,
                 num_kv_blocks=b * mkbpr,
                 num_meta_blocks=b * mmbpr,
                 mkbpr=mkbpr,
                 mmbpr=mmbpr,
-                same_seq_len_all_reqs=same_seq_len_all_reqs,
+                SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
                 device="npu:0", 
-                dtype=dtype_default)
+                dtype=DTYPE)
             max_out_ref = max_out_our.clone()
             min_out_ref = min_out_our.clone()
             # Run both implementations
@@ -129,14 +135,14 @@ def benchmark_quest_prefill():
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
                     gen_quest_prefill_inputs(
-                        b, n, block_size_default, head_dim_default,
+                        b, n, BLOCK_SIZE, HEAD_DIM,
                         num_kv_blocks=b * mkbpr,
                         num_meta_blocks=b * mmbpr,
                         mkbpr=mkbpr,
                         mmbpr=mmbpr,
-                        same_seq_len_all_reqs=same_seq_len_all_reqs,
+                        SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
                         device="npu:0", 
-                        dtype=dtype_default)
+                        dtype=DTYPE)
                 input_sets.append((k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out))
 
             # Our implementation - Warm-up runs
@@ -159,7 +165,7 @@ def benchmark_quest_prefill():
             torch.npu.synchronize()
             
             our_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_prefill(b, n, block_size_default, head_dim_default, mkbpr, mmbpr, seq_lens)
+            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE, HEAD_DIM, mkbpr, mmbpr, seq_lens)
             our_bw = total_bytes / our_duration / 1e6  # TB/s
 
         ############ Reference ###########
@@ -169,14 +175,14 @@ def benchmark_quest_prefill():
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
                     gen_quest_prefill_inputs(
-                        b, n, block_size_default, head_dim_default,
+                        b, n, BLOCK_SIZE, HEAD_DIM,
                         num_kv_blocks=b * mkbpr,
                         num_meta_blocks=b * mmbpr,
                         mkbpr=mkbpr,
                         mmbpr=mmbpr,
-                        same_seq_len_all_reqs=same_seq_len_all_reqs,
+                        SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
                         device="npu:0", 
-                        dtype=dtype_default)
+                        dtype=DTYPE)
                 input_sets.append((k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out))
 
             # Reference implementation - Warm-up runs
@@ -199,7 +205,7 @@ def benchmark_quest_prefill():
             torch.npu.synchronize()
             
             ref_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_prefill(b, n, block_size_default, head_dim_default, mkbpr, mmbpr, seq_lens)
+            total_bytes = bytes_moved_prefill(b, n, BLOCK_SIZE, HEAD_DIM, mkbpr, mmbpr, seq_lens)
             ref_bw = total_bytes / ref_duration / 1e6  # TB/s
         
         ####### Print results #######

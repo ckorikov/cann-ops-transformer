@@ -20,9 +20,9 @@ from ref_quest_prefill_metadata import ref_quest_prefill_metadata
 from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, compare_tensors, ceil_div
 
 
-device = "npu:0"
-block_size_default = 128
-d_default = 128
+DEVICE = "npu:0"
+BLOCK_SIZE = 128
+HEAD_DIM = 128
 
 
 # --------------------------------------------------------------------------- #
@@ -68,7 +68,7 @@ def test_prefill_kernel(dtype:torch.dtype,
         mmbpr=mmbpr,
         same_seq_len_all_reqs=ssar, 
         dtype=dtype,
-        device=device)
+        DEVICE=DEVICE)
     
     # ---- reference kernel ---- #
     max_ref = min_out.clone() 
@@ -136,7 +136,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
 )
 @torch.inference_mode()
 def test_basic_functionality(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
-    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, BLOCK_SIZE, HEAD_DIM, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
@@ -155,7 +155,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
 )
 @torch.inference_mode()
 def test_edge_cases(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
-    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, BLOCK_SIZE, HEAD_DIM, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
@@ -174,7 +174,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
 )
 @torch.inference_mode()
 def test_large_lequence(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
-    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, BLOCK_SIZE, HEAD_DIM, mkbpr, ssar)
 
 
 # --------------------------------------------------------------------------- #
@@ -193,7 +193,7 @@ parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, tor
 )
 @torch.inference_mode()
 def test_large_batch(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbpr: int, ssar: int):
-    test_prefill_kernel(dtype, batch_size, num_kv_heads, block_size_default, d_default, mkbpr, ssar)
+    test_prefill_kernel(dtype, batch_size, num_kv_heads, BLOCK_SIZE, HEAD_DIM, mkbpr, ssar)
 
 # --------------------------------------------------------------------------- #
 # Quick manual run (kept for copy-paste debugging)
