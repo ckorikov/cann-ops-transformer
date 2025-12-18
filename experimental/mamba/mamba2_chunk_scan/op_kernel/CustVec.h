@@ -10,6 +10,7 @@
 
 #pragma once
 #include "tensorutils.h"
+#include "paramutils.h"
 
 namespace npu_ops_transformer_ext {
 namespace Mambav2ChunkScan {
@@ -108,6 +109,12 @@ public:
         v1_cnt2 = 0;
         bc_now = v1_bc_now = 0;
         h_now = v1_h_now = 0;
+        
+        cast_params_h2f = CastHalf2FloatRepeatParams();
+        cast_params_f2h = CastFloat2HalfRepeatParams();
+        unary_params = MakeDefaultUnaryRepeatParams();
+        binary_params = MakeDefaultBinaryRepeatParams();
+        
         LocalTensor<uint32_t> tmptsr_0 = maskdiagbuf.ReinterpretCast<uint32_t>();
         Duplicate<uint32_t, false>(tmptsr_0, (uint32_t)0, MASK_PLACEHOLDER, CBASEM, 1, MTE_FLOAT);
         PipeBarrier<PIPE_V>();
@@ -185,32 +192,34 @@ public:
                 tensor_out_empty.wait();
                 tensor_in_ready.wait();
                 if ((m2 == 0)){
-                    Brcb(dacs_brcb, dacs_buf1.get(cnt1), ((int)shape.BASEL / EIGHT), {1, EIGHT});
+                    Brcb(dacs_brcb, dacs_buf1.get(cnt1), ((int)shape.BASEL / NUM_ELE_PERBLK_FLOAT), {1, NUM_DBLK_FLOAT});
                     PipeBarrier<PIPE_V>();
-                    Brcb(dacs_brcb2, dacs_brcb, shape.BASEL, {1, EIGHT});
+                    Brcb(dacs_brcb2, dacs_brcb, shape.BASEL, {1, NUM_DBLK_FLOAT});
                     PipeBarrier<PIPE_V>();
                 }
                 if ((m2 <= m1)){
-                    Sub<float, false>(da_out, dacs_brcb2, dacs_buf2.get(cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, 0});
+                    auto custparam = MakeDefaultBinaryRepeatParams();
+                    custparam.src1RepStride = 0;
+                    Sub<float, false>(da_out, dacs_brcb2, dacs_buf2.get(cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), custparam);
                     PipeBarrier<PIPE_V>();
-                    Exp<float, false>(da_out, da_out, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, EIGHT, EIGHT});
+                    Exp<float, false>(da_out, da_out, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), unary_params);
                     PipeBarrier<PIPE_V>();
-                    Mul<float, false>(da_out, da_out, cb_buf, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, EIGHT});
+                    Mul<float, false>(da_out, da_out, cb_buf, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), binary_params);
                     PipeBarrier<PIPE_V>();
-                    Mul<float, false>(da_out, da_out, dtout_buf.get(cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, 0});
+                    Mul<float, false>(da_out, da_out, dtout_buf.get(cnt2), MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), custparam);
                     PipeBarrier<PIPE_V>();
                     if ((m1 == m2)){
                         LocalTensor<uint16_t> tmptsr_2 = da_out.ReinterpretCast<uint16_t>();
                         LocalTensor<uint16_t> tmptsr_3 = da_out.ReinterpretCast<uint16_t>();
                         LocalTensor<uint16_t> tmptsr_4 = maskdiagbuf.ReinterpretCast<uint16_t>();
-                        And<uint16_t, false>(tmptsr_2, tmptsr_3, tmptsr_4, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, 1, EIGHT, EIGHT, EIGHT});
+                        And<uint16_t, false>(tmptsr_2, tmptsr_3, tmptsr_4, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), binary_params);
                         PipeBarrier<PIPE_V>();
                     }
-                    Cast<half, float, false>(da_out_half, da_out, RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), {1, 1, FOUR, EIGHT});
+                    Cast<half, float, false>(da_out_half, da_out, RoundMode::CAST_RINT, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_FLOAT), cast_params_f2h);
                     PipeBarrier<PIPE_V>();
                 }
                 else {
-                    Duplicate<half, false>(da_out_half, (half)0.0, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_HALF), 1, EIGHT);
+                    Duplicate<half, false>(da_out_half, (half)0.0, MASK_PLACEHOLDER, ((int)(shape.BASEL * shape.BASEL) / (int)VEC_HALF), 1, NUM_DBLK_FLOAT);
                     PipeBarrier<PIPE_V>();
                 }
                 out_ready.set();
@@ -301,6 +310,10 @@ private:
     int h_now;
     int v1_bc_now;
     int v1_h_now;
+    UnaryRepeatParams cast_params_h2f;
+    UnaryRepeatParams cast_params_f2h;
+    UnaryRepeatParams unary_params;
+    BinaryRepeatParams binary_params;
     // Global Tensors
     GlobalTensor<float> cb_ws;
     GlobalTensor<float> dacsmtx;
