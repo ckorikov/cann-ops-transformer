@@ -17,6 +17,7 @@
 #include <vector>
 #include <thread>
 #include <cstring>
+#include "hccl/hccl.h"
 #include "../op_api/aclnn_weight_quant_matmul_all_reduce.h"
 
 namespace {

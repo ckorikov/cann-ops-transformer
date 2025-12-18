@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include "hccl/hccl.h"
 #include "../op_api/aclnn_quant_matmul_all_reduce_v2.h"
 
 namespace {
