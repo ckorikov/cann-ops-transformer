@@ -15,7 +15,6 @@ include(ExternalProject)
 ExternalProject_Add(external_protobuf
   URL               ${_protobuf_url}
                     https://gitcode.com/cann-src-third-party/protobuf/releases/download/v25.1/protobuf-25.1.tar.gz
-  URL_MD5           1a6274bc4a65b55a6fa70e264d796490
   DOWNLOAD_DIR      download/protobuf
   PREFIX            third_party
   SOURCE_SUBDIR     cmake
