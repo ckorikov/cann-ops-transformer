@@ -146,12 +146,6 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     // memory clean-up
     aclrtFreeHost(tilingHost);
     aclrtFree(tilingDevice);
-    // aclrtFree(oCoreTmpDevice);
-    // aclrtFree(lDevice);
-    // aclrtFree(sDevice);
-    // aclrtFree(pDevice);
-    // aclrtFree(oTmpDevice);
-    // aclrtFree(globaloDevice);
 }
 
 std::vector<uint64_t> GetKVSplitKernel(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInfo)

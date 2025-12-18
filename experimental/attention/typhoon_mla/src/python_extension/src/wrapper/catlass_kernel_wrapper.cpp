@@ -80,22 +80,24 @@ at::Tensor RunMLA(
     MLAKernelInfo mlaKernelInfo;
     mlaKernelInfo.dTypeKey = dTypeKey;
     mlaKernelInfo.softmaxScale = softmax_scale;
-    mlaKernelInfo.inputAddr.resize(7);
-    mlaKernelInfo.inputAddr[0] = static_cast<uint8_t *>(const_cast<void *>(q.storage().data()));
-    mlaKernelInfo.inputAddr[1] = static_cast<uint8_t *>(const_cast<void *>(q_rope.storage().data()));
-    mlaKernelInfo.inputAddr[2] = static_cast<uint8_t *>(const_cast<void *>(k.storage().data()));
-    mlaKernelInfo.inputAddr[3] = static_cast<uint8_t *>(const_cast<void *>(k_rope.storage().data()));
-    mlaKernelInfo.inputAddr[4] = static_cast<uint8_t *>(const_cast<void *>(block_table.storage().data()));
-    mlaKernelInfo.inputAddr[5] = static_cast<uint8_t *>(const_cast<void *>(s.storage().data()));
-    mlaKernelInfo.inputAddr[6] = static_cast<uint8_t *>(const_cast<void *>(p.storage().data()));
 
+    mlaKernelInfo.inputAddr = {
+        static_cast<uint8_t *>(const_cast<void *>(q.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(q_rope.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(k.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(k_rope.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(block_table.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(s.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(p.storage().data()))
+    };
 
-    mlaKernelInfo.outputAddr.resize(5);
-    mlaKernelInfo.outputAddr[0] = static_cast<uint8_t *>(const_cast<void *>(result.storage().data()));
-    mlaKernelInfo.outputAddr[1] = static_cast<uint8_t *>(const_cast<void *>(result_temp.storage().data()));
-    mlaKernelInfo.outputAddr[2] = static_cast<uint8_t *>(const_cast<void *>(global_o.storage().data()));
-    mlaKernelInfo.outputAddr[3] = static_cast<uint8_t *>(const_cast<void *>(l.storage().data()));
-    mlaKernelInfo.outputAddr[4] = static_cast<uint8_t *>(const_cast<void *>(o_core_tmp.storage().data()));
+    mlaKernelInfo.outputAddr = {
+        static_cast<uint8_t *>(const_cast<void *>(result.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(result_temp.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(global_o.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(l.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(o_core_tmp.storage().data()))
+    };
 
     int32_t batch = q.sizes().at(0); // Q shape: [batch, kv_heads, head_size]
     int32_t qSeqLen = 1;  // NOTE: for now assume no spec-dec & MTP
@@ -182,22 +184,22 @@ std::vector<uint64_t> KernelGetKVSplit(
     // prepare inputs for kernel launch
     MLAKernelInfo mlaKernelInfo;
     mlaKernelInfo.dTypeKey = dTypeKey;
-    mlaKernelInfo.inputAddr.resize(7);
-    mlaKernelInfo.inputAddr[0] = static_cast<uint8_t *>(const_cast<void *>(q.storage().data()));
-    mlaKernelInfo.inputAddr[1] = static_cast<uint8_t *>(const_cast<void *>(q_rope.storage().data()));
-    mlaKernelInfo.inputAddr[2] = static_cast<uint8_t *>(const_cast<void *>(k.storage().data()));
-    mlaKernelInfo.inputAddr[3] = static_cast<uint8_t *>(const_cast<void *>(k_rope.storage().data()));
-    mlaKernelInfo.inputAddr[4] = static_cast<uint8_t *>(const_cast<void *>(block_table.storage().data()));
-    mlaKernelInfo.inputAddr[5] = static_cast<uint8_t *>(const_cast<void *>(s.storage().data()));
-    mlaKernelInfo.inputAddr[6] = static_cast<uint8_t *>(const_cast<void *>(p.storage().data()));
-
-
-    mlaKernelInfo.outputAddr.resize(5);
-    mlaKernelInfo.outputAddr[0] = static_cast<uint8_t *>(const_cast<void *>(result.storage().data()));
-    mlaKernelInfo.outputAddr[1] = static_cast<uint8_t *>(const_cast<void *>(result_temp.storage().data()));
-    mlaKernelInfo.outputAddr[2] = static_cast<uint8_t *>(const_cast<void *>(global_o.storage().data()));
-    mlaKernelInfo.outputAddr[3] = static_cast<uint8_t *>(const_cast<void *>(l.storage().data()));
-    mlaKernelInfo.outputAddr[4] = static_cast<uint8_t *>(const_cast<void *>(o_core_tmp.storage().data()));
+    mlaKernelInfo.inputAddr = {
+        static_cast<uint8_t *>(const_cast<void *>(q.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(q_rope.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(k.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(k_rope.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(block_table.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(s.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(p.storage().data()))
+    };
+    mlaKernelInfo.outputAddr = {
+        static_cast<uint8_t *>(const_cast<void *>(result.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(result_temp.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(global_o.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(l.storage().data())),
+        static_cast<uint8_t *>(const_cast<void *>(o_core_tmp.storage().data()))
+    };
 
     int32_t batch = q.sizes().at(0); // Q shape: [batch, kv_heads, head_size]
     int32_t qSeqLen = 1;  // NOTE: for now assume no spec-dec & MTP

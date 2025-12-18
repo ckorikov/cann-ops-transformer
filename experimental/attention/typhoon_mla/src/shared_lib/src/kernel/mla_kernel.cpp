@@ -429,17 +429,16 @@ public:
             uint32_t oFdOffset = 0;
             uint32_t lOffset = 0;
             uint32_t lHeadOffset = (qHeads == 64) ? qHeads * process : 0;
-            // if (kvSplitCoreNum != 1) {
-                uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + 11);
-                uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + 12);
-                uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
-                uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
-                uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
-                uint64_t FdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);
-                uint32_t headIdx = curStartHeadIdx + AscendC::GetSubBlockIdx() * qHeadSplitSizeActual / 2;
-                oFdOffset = FdAddr * kvSplitCoreNum + headIdx * embed * kvSplitCoreNum + curNIdx * embed;
-                lOffset = lAddr + headIdx * kvSplitCoreNum + curNIdx + lHeadOffset;
-            // }
+
+            uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + 11);
+            uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + 12);
+            uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
+            uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
+            uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
+            uint64_t FdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);
+            uint32_t headIdx = curStartHeadIdx + AscendC::GetSubBlockIdx() * qHeadSplitSizeActual / 2;
+            oFdOffset = FdAddr * kvSplitCoreNum + headIdx * embed * kvSplitCoreNum + curNIdx * embed;
+            lOffset = lAddr + headIdx * kvSplitCoreNum + curNIdx + lHeadOffset;
 
             uint64_t gmOffsetP = 0;
             uint64_t gmOffsetS = 0;

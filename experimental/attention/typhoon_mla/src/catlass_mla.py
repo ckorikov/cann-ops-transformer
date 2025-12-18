@@ -119,9 +119,9 @@ def catlass_kernel_prepare(
         ),
         dtype=np.uint64
     )
-    torch.npu.synchronize()
+    # The shape of kernel_prep is (aic_core_num, kv_split_core_num, O_CORE_TEMP_SIZE, L_SIZE)
 
-    # kernel_prep: [aic_core_num, kv_split_core_num, O_CORE_TEMP_SIZE, L_SIZE]
+    torch.npu.synchronize()
 
     kv_split_core_num = int(kernel_prep[1])
 
@@ -137,7 +137,6 @@ def catlass_kernel_prepare(
 
     return device_mem, lse_idxs
 
-# Default softmax scale = 1/sqrt(128)
 def catlass_mla_run(q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, kv_lens, block_tables_pt, device_mem, dtype_str, softmax_scale = 0.08838834764831843):
     return mla(
         q_nope_pt, q_rope_pt, k_nope_pt, k_rope_pt, 
