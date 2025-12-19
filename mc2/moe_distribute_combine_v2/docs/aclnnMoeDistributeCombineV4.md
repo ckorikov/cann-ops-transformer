@@ -127,7 +127,7 @@ aclnnStatus aclnnMoeDistributeCombineV4(
   <tr>
    <td>assistInfoForCombine</td>
    <td>输入</td>
-   <td>对应<code>aclnnMoeDistributeDispatchV3</code>的<code>assistInfoForCombineOut</code>输出。</td>
+   <td>对应<code>aclnnMoeDistributeDispatchV4</code>的<code>assistInfoForCombineOut</code>输出。</td>
    <td>要求是一个1D的Tensor。</td>
    <td>INT32</td>
    <td>ND</td>
@@ -137,7 +137,7 @@ aclnnStatus aclnnMoeDistributeCombineV4(
   <tr>
    <td>epSendCounts</td>
    <td>输入</td>
-   <td>对应<code>aclnnMoeDistributeDispatchV3</code>的<code>epRecvCounts</code>输出。</td>
+   <td>对应<code>aclnnMoeDistributeDispatchV4</code>的<code>epRecvCounts</code>输出。</td>
    <td>要求是一个1D的Tensor。</td>
    <td>INT32</td>
    <td>ND</td>
@@ -157,7 +157,7 @@ aclnnStatus aclnnMoeDistributeCombineV4(
   <tr>
    <td>tpSendCountsOptional</td>
    <td>输入</td>
-   <td>对应<code>aclnnMoeDistributeDispatchV3</code>的<code>tpRecvCounts</code>输出。</code>。
+   <td>对应<code>aclnnMoeDistributeDispatchV4</code>的<code>tpRecvCounts</code>输出。</code>。
    <td>有TP域通信时传参，否则传空指针。</td>
    <td>INT32</td>
    <td>ND</td>
@@ -207,7 +207,7 @@ aclnnStatus aclnnMoeDistributeCombineV4(
   <tr>
    <td>expandScalesOptional</td>
    <td>输入</td>
-   <td>对应<code>aclnnMoeDistributeDispatchV3</code>的<code>expandScales</code>输出。</td>
+   <td>对应<code>aclnnMoeDistributeDispatchV4</code>的<code>expandScales</code>输出。</td>
    <td>-</td>
    <td>FLOAT32</td>
    <td>ND</td>

@@ -22,7 +22,7 @@ $$
 > 说明：
 > `aclnnMoeDistributeCombineV4`、`aclnnMoeDistributeCombineAddRmsNormV2`算子在后续文档中统称为**CombineV3系列算子**。
 
-相较于`aclnnMoeDistributeDispatchV2`接口，该接口变更如下：
+相较于`aclnnMoeDistributeDispatchV3`接口，该接口变更如下：
 - 新增采集通信耗时工具，记录每张卡的通信时间，通过传入`performanceInfoOptional`参数使能该特性。该功能推荐结合[DeepXTrace](https://github.com/antgroup/DeepXTrace)工具使用。单次算子调用各卡通信耗时会累加到该Tensor上，用户使用前按需清零。
 
 ## 函数原型
