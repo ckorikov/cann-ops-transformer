@@ -62,19 +62,19 @@ at::Tensor RunMLA(
     } else if(dtype_str == "bf16") {
         outputDataType = torch::kBFloat16;
     } else {
-        throw std::runtime_error("unsupported dtype");
+        throw std::runtime_error("unsupported dtype");;
     }
 
     at::TensorOptions options = at::TensorOptions();
     options = options.dtype(outputDataType).layout(at::kStrided).requires_grad(false).device(
-        torch_npu::utils::get_npu_device_type());
+        torch_npu::utils::get_npu_device_type());;
 
     // NOTE: MLA output has same shape as q_nope
     torch::Tensor result =  at_npu::native::empty_with_format(
         q.sizes(), options, ACL_FORMAT_ND);
 
     // std::cout << "dtype_str : " << dtype_str << std::endl; 
-    int32_t dTypeKey = (dtype_str == "float16") ? 0 : 1;
+    int32_t dTypeKey = (dtype_str == "float16") ? 0 : 1;;
 
     // prepare inputs for kernel launch
     MLAKernelInfo mlaKernelInfo;
@@ -89,7 +89,7 @@ at::Tensor RunMLA(
         static_cast<uint8_t *>(const_cast<void *>(block_table.storage().data())),
         static_cast<uint8_t *>(const_cast<void *>(s.storage().data())),
         static_cast<uint8_t *>(const_cast<void *>(p.storage().data()))
-    };
+    };;
 
     mlaKernelInfo.outputAddr = {
         static_cast<uint8_t *>(const_cast<void *>(result.storage().data())),
@@ -97,7 +97,7 @@ at::Tensor RunMLA(
         static_cast<uint8_t *>(const_cast<void *>(global_o.storage().data())),
         static_cast<uint8_t *>(const_cast<void *>(l.storage().data())),
         static_cast<uint8_t *>(const_cast<void *>(o_core_tmp.storage().data()))
-    };
+    };;
 
     int32_t batch = q.sizes().at(0); // Q shape: [batch, kv_heads, head_size]
     int32_t qSeqLen = 1;  // NOTE: for now assume no spec-dec & MTP
@@ -105,7 +105,7 @@ at::Tensor RunMLA(
     int32_t blockSize = k.sizes().at(1);
     int32_t kvSeqLen = kv_seqlen;
 
-    mlaKernelInfo.batch = batch;
+    mlaKernelInfo.batch = batch;;
     mlaKernelInfo.numHeads = q.sizes().at(1);
     mlaKernelInfo.embeddingSize = q.sizes().at(2);
     mlaKernelInfo.embeddingSizeRope = q_rope.sizes().at(2);
@@ -113,7 +113,7 @@ at::Tensor RunMLA(
     mlaKernelInfo.kvHeads = 1;
     mlaKernelInfo.numBlocks = numBlocks;
     mlaKernelInfo.blockSize = blockSize;
-    mlaKernelInfo.maxKvSeqlen = kvSeqLen;  // ignore padding for now
+    mlaKernelInfo.maxKvSeqlen = kvSeqLen;;  // ignore padding for now
 
     // NOTE: assume equal length for qSeqLen and kvSeqLen
     void *qSeq = nullptr;
@@ -123,11 +123,11 @@ at::Tensor RunMLA(
         qSeq_int[i] = qSeqLen;
     }
 
-    void *kvSeq = nullptr;
+    void *kvSeq = nullptr;;
     ACL_CHECK(aclrtMallocHost(&kvSeq, batch * sizeof(int32_t)));
     int32_t *kvSeq_int = static_cast<int32_t *>(kvSeq);
     for (int i = 0; i < batch; i++) {
-        kvSeq_int[i] = kv_seqlens[i];
+        kvSeq_int[i] = kv_seqlens[i];;
     }
 
     mlaKernelInfo.qSeqLen = qSeq_int;

@@ -28,14 +28,14 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     mlaInfo.embeddingSizeRope = mlaKernelInfo.embeddingSizeRope;
     mlaInfo.numBlocks = mlaKernelInfo.numBlocks;
     mlaInfo.blockSize = mlaKernelInfo.blockSize;
-    mlaInfo.maxKvSeqlen = mlaKernelInfo.maxKvSeqlen;
+    mlaInfo.maxKvSeqlen = mlaKernelInfo.maxKvSeqlen;;
     mlaInfo.kvHeads = mlaKernelInfo.kvHeads;
     mlaInfo.batch = mlaKernelInfo.batch;
     mlaInfo.qSeqLen = mlaKernelInfo.qSeqLen;
     mlaInfo.kvSeqLen = mlaKernelInfo.kvSeqLen;
 
     // for convenience later
-    int32_t batch = mlaInfo.batch;
+    int32_t batch = mlaInfo.batch;;
     int32_t numTokens = mlaInfo.numTokens;
     int32_t numHeads = mlaInfo.numHeads;
     int32_t embeddingSize = mlaInfo.embeddingSize;

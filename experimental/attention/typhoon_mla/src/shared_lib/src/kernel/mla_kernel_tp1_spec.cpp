@@ -51,7 +51,7 @@ public:
 
     using ElementMask = half;
 
-    using ElementO = typename EpilogueMLARescaleO::ElementOutput;
+    using ElementO = typename EpilogueMLARescaleO::ElementOutput;;
     using LayoutO = typename EpilogueMLARescaleO::LayoutOutput;
 
     using ElementOTmp = typename EpilogueMLARescaleO::ElementInput;
@@ -62,7 +62,7 @@ public:
 
     static constexpr uint32_t KV_SPLIT_MAX = EpilogueMLAFDRescaleO::KV_SPLIT_MAX;
     static constexpr uint32_t HEADS_PROCESS_MAX = EpilogueMLAFDRescaleO::HEADS_PROCESS_MAX;
-    static constexpr uint32_t COMPUTE_ELE_NUM = EpilogueMLAFDRescaleO::COMPUTE_ELE_NUM;
+    static constexpr uint32_t COMPUTE_ELE_NUM = EpilogueMLAFDRescaleO::COMPUTE_ELE_NUM;;
 
     /// Parameters structure
     struct Params {
@@ -71,7 +71,7 @@ public:
         GM_ADDR qRope;
         GM_ADDR k;
         GM_ADDR kRope;
-        GM_ADDR blockTables;
+        GM_ADDR blockTables;;
         GM_ADDR o;
         GM_ADDR s;
         GM_ADDR p;
@@ -110,7 +110,7 @@ public:
         AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
         AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID1);
 
-        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+        AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);;
         AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
         AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID2);
         AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID3);
@@ -128,13 +128,13 @@ public:
         gK.SetGlobalBuffer((__gm__ ElementK *)params.k);
         AscendC::GlobalTensor<ElementK> gKRope;
         gKRope.SetGlobalBuffer((__gm__ ElementK *)params.kRope);
-        AscendC::GlobalTensor<int32_t> gblockTable;
+        AscendC::GlobalTensor<int32_t> gblockTable;;
         gblockTable.SetGlobalBuffer((__gm__ int32_t *)(params.blockTables));
         AscendC::GlobalTensor<ElementS> gS;
         gS.SetGlobalBuffer((__gm__ ElementS *)params.s);
         AscendC::GlobalTensor<ElementP> gP;
         gP.SetGlobalBuffer((__gm__ ElementP *)params.p);
-        AscendC::GlobalTensor<ElementOTmp> gOTmp;
+        AscendC::GlobalTensor<ElementOTmp> gOTmp;;
         gOTmp.SetGlobalBuffer((__gm__ ElementOTmp *)params.oTmp);
         AscendC::GlobalTensor<uint32_t> gTiling;
         gTiling.SetGlobalBuffer((__gm__ uint32_t *)params.tiling);
@@ -184,7 +184,7 @@ public:
             uint32_t curKVSeqlen = kvSplitPerCore;
             uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);
             if (curNIdx >= kvLoop) {
-                continue;
+                continue;;
             }
             if (curNIdx == (kvLoop - 1)) {
                 curKVSeqlen = kvSeqlen - curNIdx * kvSplitPerCore;
@@ -210,7 +210,7 @@ public:
                     uint32_t stackSeqTileRound = RoundUp<BLOCK_SIZE>(stackSeqTile);
                     LayoutQ layoutQ(rowNum, embed);
                     LayoutQ layoutQRope(rowNum, embedRope);
-                    LayoutK layoutK(embed, stackSeqTile);
+                    LayoutK layoutK(embed, stackSeqTile);;
                     LayoutK layoutKRope(embedRope, stackSeqTile);
                     LayoutS layoutS(rowNumRound, stackSeqTileRound);
                     GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed + embedRope};
@@ -234,7 +234,7 @@ public:
                     uint32_t stackSeqTileRound = RoundUp<BLOCK_SIZE>(stackSeqTile);
                     LayoutP layoutP(rowNum, stackSeqTile, stackSeqTileRound);
                     LayoutV layoutV(stackSeqTile, embed);
-                    LayoutOTmp layoutOTmp(rowNumRound, embedRound);
+                    LayoutOTmp layoutOTmp(rowNumRound, embedRound);;
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
                     uint32_t gPPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % 2;
                     uint64_t gmOffseP = (uint64_t)coreIdx * TMP_SIZE * 2 + (uint64_t)gPPingPongFlag * TMP_SIZE;
@@ -329,7 +329,7 @@ public:
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID2);
-        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID3);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID3);;
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID4);
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID5);
         AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID6);
@@ -346,7 +346,7 @@ public:
         AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID4);
         AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID5);
 
-        AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
+        AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);;
         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID1);
         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID4);
         AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID2);
@@ -359,7 +359,7 @@ public:
         gS.SetGlobalBuffer((__gm__ ElementS *)params.s);
         AscendC::GlobalTensor<ElementP> gP;
         gP.SetGlobalBuffer((__gm__ ElementP *)params.p);
-        AscendC::GlobalTensor<ElementOTmp> gOTmp;
+        AscendC::GlobalTensor<ElementOTmp> gOTmp;;
         gOTmp.SetGlobalBuffer((__gm__ ElementOTmp *)params.oTmp);
         AscendC::GlobalTensor<ElementOTmp> gOUpdate;
         gOUpdate.SetGlobalBuffer((__gm__ ElementOTmp *)params.oUpdate);
@@ -367,7 +367,7 @@ public:
         gOCoreTmp.SetGlobalBuffer((__gm__ ElementOTmp *)params.oCoreTmp);
         AscendC::GlobalTensor<ElementOTmp> gl;
         gl.SetGlobalBuffer((__gm__ ElementOTmp *)params.l);
-        AscendC::GlobalTensor<uint32_t> gTiling;
+        AscendC::GlobalTensor<uint32_t> gTiling;;
         gTiling.SetGlobalBuffer((__gm__ uint32_t *)params.tiling);
         AscendC::GlobalTensor<float> gTilingFp64;
         gTilingFp64.SetGlobalBuffer((__gm__ float *)params.tiling);
@@ -409,14 +409,14 @@ public:
             uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
             uint64_t gmOffsetO = curTokenWiseOffset * qHeads * embed;
             if (kvSeqlen == 0) {
-                continue;
+                continue;;
             }
             uint32_t kvSeqlenAlign = RoundUp(kvSeqlen, blockSize);
             uint32_t curNIdx = process % kvSplitCoreNum;
             uint32_t curKVSeqlen = kvSplitPerCore;
             uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);
             if (curNIdx >= kvLoop) {
-                continue;
+                continue;;
             }
             if (curNIdx == (kvLoop - 1)) {
                 curKVSeqlen = kvSeqlen - curNIdx * kvSplitPerCore;
@@ -448,7 +448,7 @@ public:
                     } else {
                         stackSeqTile = blockSize * UNIT_BLOCK_STACK_NUM;
                     }
-                    uint32_t stackSeqTileRound = RoundUp<BLOCK_SIZE>(stackSeqTile);
+                    uint32_t stackSeqTileRound = RoundUp<BLOCK_SIZE>(stackSeqTile);;
                     LayoutP layoutP(rowNum, stackSeqTile, stackSeqTileRound);
                     LayoutS layoutS(rowNum, stackSeqTile, stackSeqTileRound);
                     GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed};
@@ -460,7 +460,7 @@ public:
                                          (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % 2) * TMP_SIZE_DECODER * 2;
                     // Softmax one-stage calculation
                     epilogueMLATP1Softmax(gP[gmOffsetP], gS[gmOffsetS], layoutP,
-                                          layoutS, actualBlockShapeQK, nIdx, glFlag);
+                                          layoutS, actualBlockShapeQK, nIdx, glFlag);;
                     Arch::CrossCoreSetFlag<0x2, PIPE_MTE3>(softmaxReady);
                 }
 
@@ -473,7 +473,7 @@ public:
                     }
                     // Wait for P * V calculation to complete
                     Arch::CrossCoreWaitFlag(pvReady);
-                    LayoutO layoutO(rowNum, embed);
+                    LayoutO layoutO(rowNum, embed);;
                     LayoutOTmp layoutOTmp(rowNum, embed, embedRound);
                     LayoutUpdate layoutUpdate(rowNum, embed, embedRound);
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
@@ -585,7 +585,7 @@ public:
         AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID4);
         AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID5);
 
-        AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID4);
+        AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID4);;
         AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
         AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID1);
         AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID2);
@@ -593,7 +593,7 @@ public:
 
         // flash decoding
         if (kvSplitCoreNum != 1) {
-            Catlass::Arch::CrossCoreBarrier<0x0, PIPE_MTE3>();
+            Catlass::Arch::CrossCoreBarrier<0x0, PIPE_MTE3>();;
 
             AscendC::SetAtomicNone();
             AscendC::SetMaskNorm();
@@ -629,11 +629,11 @@ public:
                 uint64_t lOffset = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
                 uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
                 uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
-                uint64_t oFdOffset = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);
+                uint64_t oFdOffset = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);;
 
                 uint32_t actualHeads = headsProcess;
                 if (loopIdxInBatch == loopsPerBatch - 1) {
-                    actualHeads = qHeads - loopIdxInBatch * headsProcess;
+                    actualHeads = qHeads - loopIdxInBatch * headsProcess;;
                 }
 
                 epilogueMLAFDRescaleO(
@@ -641,7 +641,7 @@ public:
                     gOCoreTmp[oFdOffset * kvSplitCoreNum +
                               loopIdxInBatch * headsProcess * kvSplitCoreNum * embed],
                     gl[lOffset + loopIdxInBatch * headsProcess * kvSplitCoreNum],
-                    actualHeads, headsProcess, embed);
+                    actualHeads, headsProcess, embed);;
             }
         }
     }

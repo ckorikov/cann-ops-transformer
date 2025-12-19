@@ -19,38 +19,39 @@
 namespace CatlassKernelWrapper {
 
 at::Tensor RunMLA(
-    const at::Tensor &q,
-    const at::Tensor &q_rope,
-    const at::Tensor &k,
-    const at::Tensor &k_rope,
-    const int32_t kv_seqlen,
-    const std::vector<int32_t> &kv_seqlens,
-    const at::Tensor &block_table,
-    const at::Tensor &s,
-    const at::Tensor &p,
-    const at::Tensor &result_temp,
-    const at::Tensor &global_o,
-    const at::Tensor &l,
-    const at::Tensor &o_core_tmp,
-    const std::string &dtype_str,
-    const float softmax_scale
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const int32_t,
+    const std::vector<int32_t> &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const at::Tensor &,
+    const std::string &,
+    const float
 );
 
+using ConstTensorRef = const at::Tensor&;
 std::vector<uint64_t> KernelGetKVSplit(
-    const at::Tensor &q,
-    const at::Tensor &q_rope,
-    const at::Tensor &k,
-    const at::Tensor &k_rope,
-    const int32_t kv_seqlen,
-    const std::vector<int32_t> &kv_seqlens,
-    const at::Tensor &block_table,
-    const at::Tensor &s,
-    const at::Tensor &p,
-    const at::Tensor &result_temp,
-    const at::Tensor &global_o,
-    const at::Tensor &l,
-    const at::Tensor &o_core_tmp,
-    const std::string &dtype_str
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    const int32_t,
+    const std::vector<int32_t> &,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    ConstTensorRef,
+    const std::string &
 );
 
 } // namespace CatlassKernelWrapper

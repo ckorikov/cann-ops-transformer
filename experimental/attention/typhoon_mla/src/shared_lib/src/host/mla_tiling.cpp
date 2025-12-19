@@ -267,7 +267,7 @@ uint32_t _GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32
     uint32_t totalTaskNumSpec = tilingHost[TILING_TOTAL_QTOKENS];
 
     uint32_t formerTaskNum = totalTaskNumSpec;
-    uint32_t tailTaskNum = 0;
+    uint32_t tailTaskNum = 0;;
 
     uint32_t processLoop = totalTaskNumSpec / blockDim;
     formerTaskNum = processLoop * blockDim;
@@ -280,15 +280,11 @@ uint32_t _GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32
 
     tilingHost[TILING_FORMERTASKNUM] = formerTaskNum;
     tilingHost[TILING_TAILTASKNUM] = tailTaskNum;
-    // std::cout << "TILING_FORMERTASKNUM = " << tilingHost[TILING_FORMERTASKNUM] << std::endl;
-    // std::cout << "TILING_TAILTASKNUM = " << tilingHost[TILING_TAILTASKNUM] << std::endl;
 
     if (tailTaskNum == 0) {
         tilingHost[TILING_KVCORENUM] = 1;
         tilingHost[TILING_KVSPLIT] = tilingHost[TILING_MAX_KVSEQLEN];
-        // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-        // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
-        return blockDim;
+        return blockDim;;
     }
 
     uint32_t process = Lcm(tailTaskNum, blockDim);
@@ -297,17 +293,15 @@ uint32_t _GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32
     uint32_t kvSeqlenMaxAlign = RoundUp(tilingHost[TILING_MAX_KVSEQLEN], static_cast<uint32_t>(mlaInfo.blockSize));
     uint32_t kvSeqBlockNum = kvSeqlenMaxAlign / mlaInfo.blockSize;
     uint32_t kvBlockPerCore = CeilDiv(kvSeqBlockNum, kvSplitCoreNum);
-    uint32_t kvSplitPerCore = kvBlockPerCore * mlaInfo.blockSize;
+    uint32_t kvSplitPerCore = kvBlockPerCore * mlaInfo.blockSize;;
     kvSplitCoreNum = CeilDiv(tilingHost[TILING_MAX_KVSEQLEN], kvSplitPerCore);
 
     tilingHost[TILING_KVSPLIT] = kvSplitPerCore;
     tilingHost[TILING_KVCORENUM] = kvSplitCoreNum;
-    // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-    // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
 
     // Set lOffsetInfo and OfdOffsetInfo
     AddrOffsets addrOffsets;
-    int32_t prevTaskNum = 0;
+    int32_t prevTaskNum = 0;;
     for (int32_t seqIdx = 0; seqIdx < mlaInfo.batch; seqIdx++) {
         int32_t qSeqLen = mlaInfo.qSeqLen == nullptr ? 1 : *(mlaInfo.qSeqLen + seqIdx);
         for (int32_t qSeq = 0; qSeq < qSeqLen; qSeq++) {
@@ -318,7 +312,7 @@ uint32_t _GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32
             tilingHost[tilingOffset + NUM14] = GetLow32Bit(addrOffsets.addrOFdSeqOffset);
             addrOffsets.addrLSeqOffset += static_cast<uint64_t>(mlaInfo.numHeads * kvSplitCoreNum);
             addrOffsets.addrOFdSeqOffset += static_cast<uint64_t>(mlaInfo.numHeads * mlaInfo.embeddingSize);
-            prevTaskNum++;
+            prevTaskNum++;;
         }
     }
 
