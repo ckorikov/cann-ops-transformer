@@ -58,27 +58,37 @@ MC2HcomTopology &MC2HcomTopology::GetInstance()
     return instance;
 }
 
-HcclResult MC2HcomTopology::CallHcomGetCommHandleByGroup(const char *group, HcclComm *commHandle)
+MC2HcomTopology::MC2HcomTopology([[maybe_unused]] const char *libPath)
+{
+}
+
+HcclResult MC2HcomTopology::CallHcomGetCommHandleByGroup([[maybe_unused]] const char *group, 
+                                                         [[maybe_unused]] HcclComm *commHandle) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetNetLayers(HcclComm comm, uint32_t **netLayers, uint32_t *netLayerNum)
+HcclResult MC2HcomTopology::CallCommGetNetLayers([[maybe_unused]] HcclComm comm, [[maybe_unused]] uint32_t **netLayers, 
+                                                 [[maybe_unused]] uint32_t *netLayerNum) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetInstTopoTypeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *topoType)
+HcclResult MC2HcomTopology::CallCommGetInstTopoTypeByNetLayer([[maybe_unused]] HcclComm comm, 
+                                                              [[maybe_unused]] uint32_t netLayer, 
+                                                              [[maybe_unused]] uint32_t *topoType) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CallCommGetInstSizeByNetLayer(HcclComm comm, uint32_t netLayer, uint32_t *rankNum)
+HcclResult MC2HcomTopology::CallCommGetInstSizeByNetLayer([[maybe_unused]] HcclComm comm, 
+                                                          [[maybe_unused]] uint32_t netLayer, 
+                                                          [[maybe_unused]] uint32_t *rankNum) const
 {
     return HCCL_SUCCESS;
 }
 
-HcclResult MC2HcomTopology::CommGetInstSizeByGroup(const char *group, uint32_t *rankNum)
+HcclResult MC2HcomTopology::CallCommGetCCLBufSizeCfg([[maybe_unused]] HcclComm comm, uint64_t *cclBufferSize) const
 {
     constexpr static uint32_t DEFAULT_RANK_NUM = 8;
     *rankNum = MC2HcomTopologyMocker::GetInstance().GetValue("rankNum", DEFAULT_RANK_NUM);

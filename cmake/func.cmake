@@ -358,7 +358,8 @@ function(add_ops_src_copy)
         "all_gather_matmul;"
         "matmul_all_reduce;"
         "matmul_all_reduce_add_rms_norm;"
-        "inplace_matmul_all_reduce_add_rms_norm;") # mc2算子列表
+        "inplace_matmul_all_reduce_add_rms_norm;"
+    ) # mc2算子列表
 
     get_filename_component(FOLDER_NAME "${SRC_COPY_DST}" NAME_WE)
     list(FIND MC2_OPS_LIST "${FOLDER_NAME}" INDEX)
