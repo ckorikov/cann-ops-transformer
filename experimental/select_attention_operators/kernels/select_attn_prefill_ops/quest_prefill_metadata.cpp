@@ -280,17 +280,11 @@ quest_prefill_metadata(GM_ADDR k_cache,
  */
 void launch_quest_prefill_metadata(
     uint32_t blockDim, void *l2ctrl, void *stream,
-    uint8_t *k_cache,
-    uint8_t *block_tables,
-    uint8_t *seq_lens,
-    uint8_t *metadata_block_tables,
-    uint8_t *maxblocks,
-    uint8_t *minblocks,
-    int32_t B,
-    int32_t N,
-    int32_t BLOCK_SIZE,
-    int32_t D,
-    int32_t MKBPR,
+    uint8_t *k_cache, uint8_t *block_tables,
+    uint8_t *seq_lens, uint8_t *metadata_block_tables,
+    uint8_t *maxblocks, uint8_t *minblocks,
+    int32_t B, int32_t N, int32_t BLOCK_SIZE,
+    int32_t D, int32_t MKBPR,
     int32_t MMBPR)
 {
     quest_prefill_metadata<<<blockDim, l2ctrl, stream>>>(

@@ -220,7 +220,7 @@ def benchmark_quest_block_select_paged(custom_kernel: Callable, dtype: torch.dty
         max_seq_len = mmbpr * BLOCK_SIZE * BLOCK_SIZE
         print(f"{h:>3} {n:>3} {b:>3} {mmbpr:>6} {max_seq_len:>12} {k:>4} {are_equal:>15} ", end='')
         
-        if ref_duration and run_ref  is not None:
+        if ref_duration and run_ref is not None:
             print(f"{ref_duration:>18.2f} ", end='')
         else:
             print(f"{'N/A':>18} ", end='')

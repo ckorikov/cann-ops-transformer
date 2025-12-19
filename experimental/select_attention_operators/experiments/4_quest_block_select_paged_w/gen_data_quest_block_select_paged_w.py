@@ -79,7 +79,7 @@ def gen_quest_paged_w_inputs(batch_size: int,
 
 
 def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentage: float = 0.02, 
-                    verbose = False) -> bool:
+                    verbose: bool = False) -> bool:
     """
     Compares tensors of integer numbers, requiring the last dimension to contain 
     the same set of numbers.

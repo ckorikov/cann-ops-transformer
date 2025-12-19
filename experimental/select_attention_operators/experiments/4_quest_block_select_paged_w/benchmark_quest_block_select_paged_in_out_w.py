@@ -78,7 +78,7 @@ def benchmark_quest_block_select_paged():
     batch_size_vals = [10, 20, 24, 32]
     num_heads_vals = [32]
     num_kv_heads_vals = [8]
-    mmbpr_vals = [1, 2, 4, 6]  if torch.bfloat16 else [1, 2, 4, 8, 16]
+    mmbpr_vals = [1, 2, 4, 6] if torch.bfloat16 else [1, 2, 4, 8, 16]
     k_vals = [8, 16, 24, 32]
 
     if not run_our and not run_ref:

@@ -59,21 +59,10 @@ constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_FLOAT_V220 = 2;
  * @param [in] MMBPR Maximum number of metadata blocks per request
  */
 extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
-     GM_ADDR query,
-     GM_ADDR maxblocks,
-     GM_ADDR minblocks,
-     GM_ADDR metadata_block_tables,
-     GM_ADDR seq_lens,
-     GM_ADDR selected_indices,
-     int32_t B,
-     int32_t N,
-     int32_t H,
-     int32_t BLOCK_SIZE,
-     int32_t D,
-     int32_t MMBPR,
-     int32_t num_meta_blocks,
-     int32_t tokens_since_metadata_update,
-     int32_t k)
+     GM_ADDR query, GM_ADDR maxblocks, GM_ADDR minblocks, GM_ADDR metadata_block_tables,
+     GM_ADDR seq_lens, GM_ADDR selected_indices,
+     int32_t B, int32_t N, int32_t H, int32_t BLOCK_SIZE, int32_t D, int32_t MMBPR,
+     int32_t num_meta_blocks, int32_t tokens_since_metadata_update, int32_t k)
 
 {
     AscendC::SetAtomicNone();
@@ -258,21 +247,19 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
             }
         }
 
-        // Step 5: Find top-k indices across all metadata blocks for this request-head pair
+        // Find top-k indices across all metadata blocks for this request-head pair
         uint32_t total_elements = num_meta_blocks_in_request * BLOCK_SIZE;
         uint32_t m_concatRepeatTimes = DIV_ROUNDUP(total_elements, 32); // For float operations
-        // uint32_t m_concatRepeatTimes  =  DIV_ROUNDUP(total_elements, 16);
         uint32_t m_sortRepeatTimes = DIV_ROUNDUP(total_elements, 32);
         uint32_t m_extractRepeatTimes = DIV_ROUNDUP(total_elements, 32);
 
-        // Create index range [0...total_elements-1]
+        // Initialize index range [0...total_elements-1]
         for (uint32_t i = 0; i < total_elements; i++) {
             index_local_lt.SetValue(i, i);
         }   
 
-        // (sink) Add high score to the first block, making sure that it will be selected
+        // (add sink) Add high score to the first block, making sure that it will be selected
         if (tokens_since_metadata_update >= 0) {
-            // AscendC::PipeBarrier<PIPE_ALL>();  // important synch
             AscendC::SetFlag<AscendC::HardEvent::V_S>(EVENT_ID1);
             AscendC::WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID1);                 
             accumulated_scores_lt.SetValue(0, MAXFLOAT);
@@ -280,9 +267,9 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
             AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID1);        
         }
         
-        // Sort all accumulated scores
+        // Sort accumulated scores of the entire request
         AscendC::Concat(concat_lt, accumulated_scores_lt, tmp_concat_lt, m_concatRepeatTimes);
-        AscendC::PipeBarrier<PIPE_V>();  // important synch
+        AscendC::PipeBarrier<PIPE_V>();
         AscendC::Sort<float, true>(maxblock_float_lt, concat_lt, index_local_lt, sort_tmp_lt, m_sortRepeatTimes);  // Using float sort
        
         // Extract top-k indices - need to convert back to bfloat16 for output if needed
@@ -558,14 +545,10 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
  */
 void launch_quest_block_select_paged(
     uint32_t blockDim, void *l2ctrl, void *stream,
-    uint8_t *query,
-    uint8_t *maxblocks,
-    uint8_t *minblocks,
-    uint8_t *metadata_block_tables,
-    uint8_t *seq_lens,
-    uint8_t *selected_indices,
-    int32_t B,
-    int32_t N,
+    uint8_t *query, uint8_t *maxblocks,
+    uint8_t *minblocks, uint8_t *metadata_block_tables,
+    uint8_t *seq_lens, uint8_t *selected_indices,
+    int32_t B, int32_t N,
     int32_t H,
     int32_t BLOCK_SIZE,
     int32_t D,

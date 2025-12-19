@@ -13,15 +13,15 @@
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 #include "acl/acl.h"
 
-#define MAX(a,b) (((a)>(b))?(a):(b))
 #define DIV_ROUNDUP_MUL(x,y) ((((x)+(y)-1) / (y)) * (y))
-#define BYTES_PER_IDX 4
+#define MAX(a,b) (((a)>(b))?(a):(b))
 #define BYTES_PER_VAL 2
+#define BYTES_PER_IDX 4
 #define BYTES_ASCEND_DATA_BLOCK 32
-#define DIM0 0
-#define DIM1 1
-#define DIM2 2
 #define DIM3 3
+#define DIM2 2
+#define DIM1 1
+#define DIM0 0
 #define DIM128 128
 #define MAXMBPR 6
 
@@ -297,23 +297,23 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
     int32_t H = query.sizes()[DIM1];
     int32_t MMBPR = metadata_block_tables.sizes()[DIM1];
     int32_t D = query.sizes()[DIM2];
-    int32_t num_meta_blocks = maxblocks.sizes()[DIM0];
     int32_t k = selected_indices.sizes()[DIM2];
+    int32_t num_meta_blocks = maxblocks.sizes()[DIM0];
     int k_round = DIV_ROUNDUP_MUL(k * BYTES_PER_IDX, BYTES_ASCEND_DATA_BLOCK) / BYTES_PER_IDX;
 
     
     // validate input shapes
-    TORCH_CHECK(k == k_round, "last dimenstion (", DIM2, ") of selected_indices argument must be a multiple of 8. Given:", k);
     TORCH_CHECK(D == DIM128, "D must be equal to ", DIM128," for high performance operations, got ", D);
+    TORCH_CHECK(k == k_round, "last dimenstion (", DIM2, ") of selected_indices argument must be a multiple of 8. Given:", k);
     TORCH_CHECK(BLOCK_SIZE == DIM128, "BLOCK_SIZE must be equal to ", DIM128," for high performance operations, got ", BLOCK_SIZE);
-    TORCH_CHECK(H % N == 0, "H must be divisible by N (GQA/MHA requirement). H=", H, " N=", N);
     TORCH_CHECK(B == seq_lens.sizes()[DIM0], "Batch size mismatch: query batch=", B, " seq_lens batch=", seq_lens.size(DIM0));
+    TORCH_CHECK(H % N == 0, "H must be divisible by N (GQA/MHA requirement). H=", H, " N=", N);
     TORCH_CHECK(B == metadata_block_tables.size(DIM0), "Batch size mismatch: query batch=", B, " metadata_block_tables batch=", metadata_block_tables.size(DIM0));
-    TORCH_CHECK(N == minblocks.size(DIM2), "N (num KV heads) mismatch: expected ", N, " from query, got ", minblocks.size(DIM2), " from minblocks");
     TORCH_CHECK(BLOCK_SIZE == minblocks.size(DIM1), "BLOCK_SIZE mismatch: expected ", BLOCK_SIZE, " , got ", minblocks.size(DIM1), " from minblocks");
+    TORCH_CHECK(N == minblocks.size(DIM2), "N (num KV heads) mismatch: expected ", N, " from query, got ", minblocks.size(DIM2), " from minblocks");
     TORCH_CHECK(D == maxblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", maxblocks.size(DIM3), " from maxblocks");
-    TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
     TORCH_CHECK(num_meta_blocks == minblocks.size(DIM0), "num_meta_blocks mismatch: inferred ", num_meta_blocks, " from maxblocks, got ", minblocks.size(DIM0), " from minblocks");
+    TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
     TORCH_CHECK(k > 0, "k must be positive, got ", k);
     TORCH_CHECK(MMBPR <= 6, "maximum metablocks per request (MMBPR) cannot exceed 6 for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
     TORCH_CHECK(H / N <= BLOCK_SIZE, "H/N head group size cannot exceed BLOCK_SIZE=",BLOCK_SIZE, " given H/N=", H/N);
@@ -324,15 +324,15 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
 
     // validate data types
     bool use_bfloat16 = is_bfloat16(query);
-    TORCH_CHECK(use_bfloat16 == is_bfloat16(maxblocks), "query, maxblocks, minblocks input tensors must have the same data type");
     TORCH_CHECK(use_bfloat16 == is_bfloat16(minblocks), "query, maxblocks, minblocks input tensors must have the same data type");
+    TORCH_CHECK(use_bfloat16 == is_bfloat16(maxblocks), "query, maxblocks, minblocks input tensors must have the same data type");
 
     // allocate input tensors
     uint8_t *query_ptr = reinterpret_cast<uint8_t *>(query.storage().data_ptr().get());
-    uint8_t *maxblocks_ptr = reinterpret_cast<uint8_t *>(maxblocks.storage().data_ptr().get());
     uint8_t *minblocks_ptr = reinterpret_cast<uint8_t *>(minblocks.storage().data_ptr().get());
-    uint8_t *metadata_block_tables_ptr = reinterpret_cast<uint8_t *>(metadata_block_tables.storage().data_ptr().get());
+    uint8_t *maxblocks_ptr = reinterpret_cast<uint8_t *>(maxblocks.storage().data_ptr().get());
     uint8_t *seq_lens_ptr = reinterpret_cast<uint8_t *>(seq_lens.storage().data_ptr().get());
+    uint8_t *metadata_block_tables_ptr = reinterpret_cast<uint8_t *>(metadata_block_tables.storage().data_ptr().get());
     uint8_t *selected_indices_ptr = reinterpret_cast<uint8_t *>(selected_indices.storage().data_ptr().get());
 
     // set up launch parameters
@@ -345,22 +345,9 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
     // launch the kernel
     launch_quest_block_select_paged(
         blockDims, nullptr, aclStream,
-        query_ptr,
-        maxblocks_ptr,
-        minblocks_ptr,
-        metadata_block_tables_ptr,
-        seq_lens_ptr,
-        selected_indices_ptr,
-        B,
-        N,
-        H,
-        BLOCK_SIZE,
-        D,
-        MMBPR,
-        num_meta_blocks,
-        tokens_since_metadata_update,
-        k_round,
-        use_bfloat16
+        query_ptr, maxblocks_ptr, minblocks_ptr, metadata_block_tables_ptr, seq_lens_ptr,
+        selected_indices_ptr, B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, tokens_since_metadata_update,
+        k_round, use_bfloat16
     );
 
 }
@@ -413,11 +400,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
     m.def("quest_block_select_paged_in_out", &quest_block_select_paged_in_out,
         R"DOC(
-        Alternative interface to the `quest_block_select_paged` kernel which predicts 
-        the sparsity mask during decoding in the form of top-k important kv-block 
-        indices for every KV-head in every request. The returned KV block ids 
-        are not the indices in the KV-cache, but rather from their enumeration 
-        from 0 to number of blocks in the sequence length being decoded.
+        Alternative interface to the `quest_block_select_paged`, extended
+        with the following features:
 
         FEATURE 1) WITH PREALLOCATED OUTPUT TENSOR (selected_indices)
 
@@ -459,11 +443,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
     m.def("quest_block_select_paged_in_out_w", &quest_block_select_paged_in_out_w,
             R"DOC(
-            Alternative interface to the `quest_block_select_paged` kernel which predicts 
-            the sparsity mask during decoding in the form of top-k important kv-block 
-            indices for every KV-head in every request. The returned KV block ids 
-            are not the indices in the KV-cache, but rather from their enumeration 
-            from 0 to number of blocks in the sequence length being decoded.
+            Alternative interface to the `quest_block_select_paged`, extended
+            with the following features:
 
             FEATURE 1) WITH PREALLOCATED OUTPUT TENSOR (selected_indices)
             
@@ -476,21 +457,22 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
                 maxblocks (torch.Tensor): Quest metadata with maximum vectors of 
                                         every key-cache block of shape 
                                         [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
-                                        important: zeroes must be in place of metadata of non-existing kv blocks
+                                        important: zeroes must be in place of metadata of 
+                                        non-existing kv blocks
                 minblocks (torch.Tensor): Quest metadata with minimum vectors of 
                                         every key-cache block of shape 
                                         [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
-                                        important: zeroes must be in place of metadata of non-existing kv blocks
+                                        important: zeroes must be in place of metadata of 
+                                        non-existing kv blocks
                 metadata_block_tables (torch.Tensor): Metadata block tables of 
                                                     shape [B, MMBPR] (int32)
                 seq_lens (torch.Tensor): Sequence length of each request in the batch
                                     of shape [B] (int32)
-                tokens_since_metadata_update (int) - number of tokens that were decoeded 
-                                    since the last metadata update (note metadata update is 
-                                    done only on the multiple of BLOCK_SIZE tokens whcih is 
-                                    lower or equal to the sequence length at the moment of update)
-                                    set to -1 to disable selection of KV blocks for which the 
-                                    metadata doesn't exist.
+                tokens_since_metadata_update (int) - number of tokens that were decoeded since the 
+                                    last metadata update (note metadata update is done only on the 
+                                    multiple of BLOCK_SIZE tokens whcih is lower or equal to the 
+                                    sequence length at the moment of update) set to -1 to disable 
+                                    selection of KV blocks for which the metadata doesn't exist.
                 selected_indices (torch.Tensor): Selected indices vector of shape [B, N, k] (int32): 
                                         Number of highest indices to return for every KV head
 
