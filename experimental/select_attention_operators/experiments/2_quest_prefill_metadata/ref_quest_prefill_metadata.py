@@ -7,8 +7,8 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
-import torch
 from typing import Tuple
+import torch
 from gen_data_quest_prefill_metadata import ceil_div
 
 

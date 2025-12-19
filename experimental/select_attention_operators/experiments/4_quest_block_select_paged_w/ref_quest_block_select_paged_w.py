@@ -11,9 +11,11 @@
 import torch
 import math
 
+
 def ceil_div(a, b):
     """Ceiling division: ceil(a / b)"""
     return -(a // -b)
+
 
 def ref_quest_block_select_paged_w(query: torch.Tensor,         # (batch_size, num_heads, head_dim)
                                  maxblocks: torch.Tensor,       # (num_meta_blocks, block_size, num_kv_heads, head_dim)
@@ -136,7 +138,7 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
                 scores = torch.sum(channel_max_product, dim=1)  # (block_size,)
                 
                 # Store scores with their global indices
-                all_scores[block_idx*block_size:(block_idx+1)*block_size] = scores
+                all_scores[block_idx * block_size: (block_idx + 1) * block_size] = scores
             
             # add sink
             if (tokens_since_metadata_update >= 0): 
@@ -152,7 +154,7 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
                 # mru = sequence length of this request at the most recent metadata update
                 mru = seq_lens[b] - tokens_since_metadata_update;  
 
-                # win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
+                # win_size = number of the most recent KV-blocks in the sequence, which are not yet in the metadata
                 win_size = (mru % block_size != 0) + (seq_lens[b] // block_size) - (mru // block_size); 
                 
                 # faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
@@ -161,6 +163,7 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
                     selected_indices[b, n, k - w] = ((seq_lens[b] + block_size - 1) // block_size) - w
 
     return selected_indices
+
 
 def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
                          maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)

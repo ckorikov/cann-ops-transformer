@@ -9,9 +9,9 @@
 #
 # synthetic data factory for quest_prefill_metadata
 
+from typing import Tuple
 import torch
 import torch_npu
-from typing import Tuple
 
 SEED = 42
 
@@ -69,7 +69,7 @@ def gen_quest_prefill_inputs(
     # ---- request statistics ---- #
     max_seq_len = mkbpr * block_size
     if same_seq_len_all_reqs:
-        seq_lens = torch.tensor([max_seq_len]*batch_size, dtype=torch.int32, device=device)
+        seq_lens = torch.tensor([max_seq_len] * batch_size, dtype=torch.int32, device=device)
     else:
         seq_lens = torch.randint(low=0, high=max_seq_len + 1, size=(batch_size,), dtype=torch.int32, device=device)
 

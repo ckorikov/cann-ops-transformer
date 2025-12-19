@@ -120,5 +120,5 @@ def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentag
     return test_ok
 
 
-def ceil_div(x:int ,y:int) -> int:
+def ceil_div(x: int ,y: int) -> int:
     return (x + y - 1) // y

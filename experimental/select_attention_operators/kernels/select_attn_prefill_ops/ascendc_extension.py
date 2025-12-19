@@ -17,7 +17,7 @@ PYTORCH_NPU_INSTALL_PATH = os.path.dirname(os.path.abspath(torch_npu.__file__))
 PLATFORM_ARCH = platform.machine() + "-linux"
 
 
-def AscendcExtension(name, sources, extra_library_dirs, extra_libraries, extra_link_args, runtime_library_dirs, 
+def ascendc_extension(name, sources, extra_library_dirs, extra_libraries, extra_link_args, runtime_library_dirs, 
                      extra_compile_args):
     kwargs = {}
     cann_home = os.environ['ASCEND_TOOLKIT_HOME']

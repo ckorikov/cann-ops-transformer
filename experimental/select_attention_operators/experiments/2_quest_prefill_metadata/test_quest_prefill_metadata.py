@@ -111,14 +111,14 @@ def construct_prefill_parameter_sets(dtype_vals, batch_size_vals, num_kv_heads_v
     Build legal (batch_size, num_kv_heads, mkbpr) tuples.
     block_size & head_dim are global constants.
     """
-    sets = []
+    param_set_lst = []
     for dtype in dtype_vals:
         for b in batch_size_vals:
             for n in num_kv_heads_vals:
                 for mkbpr in mkbpr_vals:
                     for ssar in ssar_vals:
-                        sets.append((dtype, b, n, mkbpr, ssar))
-    return sets
+                        param_set_lst.append((dtype, b, n, mkbpr, ssar))
+    return param_set_lst
 
 
 # --------------------------------------------------------------------------- #

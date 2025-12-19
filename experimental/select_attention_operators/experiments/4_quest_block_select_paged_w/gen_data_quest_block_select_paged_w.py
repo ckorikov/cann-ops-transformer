@@ -15,6 +15,7 @@ from typing import Tuple, List
 
 SEED = 42
 
+
 def gen_quest_paged_w_inputs(batch_size: int, 
                            num_heads: int,  # number of query heads
                            num_kv_heads: int,  # number of KV heads
@@ -61,7 +62,7 @@ def gen_quest_paged_w_inputs(batch_size: int,
     # Sequence lengths should be reasonable values (e.g., between 1 and some max length)
     max_seq_len = mmbpr * block_size * block_size
     if same_seq_len_all_reqs:
-        seq_lens = torch.tensor([max_seq_len]*batch_size, dtype=torch.int32, device=device)
+        seq_lens = torch.tensor([max_seq_len] * batch_size, dtype=torch.int32, device=device)
         tokens_since_metadata_update = 0
     else:
         seq_lens = torch.randint(low=0, high=max_seq_len + 1, size=(batch_size,), dtype=torch.int32, device=device)
@@ -77,7 +78,7 @@ def gen_quest_paged_w_inputs(batch_size: int,
     return query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update
 
 
-def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentage:float=0.02, verbose=False) -> bool:
+def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentage: float = 0.02, verbose = False) -> bool:
     """
     Compares tensors of integer numbers, requiring the last dimension to contain 
     the same set of numbers.
@@ -123,5 +124,5 @@ def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentag
     return test_ok
 
 
-def ceil_div(x:int ,y:int) -> int:
+def ceil_div(x: int ,y: int) -> int:
     return (x + y - 1) // y

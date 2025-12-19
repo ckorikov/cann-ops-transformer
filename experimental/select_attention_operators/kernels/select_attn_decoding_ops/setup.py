@@ -10,7 +10,7 @@
 import os
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension
-from ascendc_extension import AscendcExtension
+from ascendc_extension import ascendc_extension
 CURRENT_DIR = os.path.dirname(__file__)
 
 PACKAGE_NAME = 'select_attn_decoding_ops'
@@ -21,7 +21,7 @@ setup(
     name=PACKAGE_NAME,
     VERSION=VERSION,
     ext_modules=[
-        AscendcExtension(
+        ascendc_extension(
             name=PACKAGE_NAME,
             sources=['torch_interface.cpp'],
             extra_library_dirs=[os.path.join(CURRENT_DIR, 'lib')],  # location of custom lib{name}.so file

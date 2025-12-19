@@ -130,7 +130,7 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
                 scores = torch.sum(channel_max_product, dim=1)  # (block_size,)
                 
                 # Store scores with their global indices
-                all_scores[block_idx*block_size:(block_idx+1)*block_size] = scores
+                all_scores[block_idx * block_size: (block_idx + 1) * block_size] = scores
             
             eff_num_scores = len(all_scores)
             eff_k = min(k, eff_num_scores)            

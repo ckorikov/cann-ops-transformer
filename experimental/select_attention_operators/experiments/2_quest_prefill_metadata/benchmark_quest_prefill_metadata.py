@@ -107,7 +107,7 @@ def benchmark_quest_prefill():
         mmbpr = ceil_div(mkbpr, BLOCK_SIZE)
         
         ######## Check correctness ########
-        are_equal = "N/A"
+        are_equal = "num_kv_heads/A"
         if run_our and run_ref:
             # Create fresh output tensors for correctness check
             k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our = gen_quest_prefill_inputs(
@@ -179,8 +179,7 @@ def benchmark_quest_prefill():
             input_sets = []
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
-                    gen_quest_prefill_inputs(
-                        b, n, BLOCK_SIZE, HEAD_DIM,
+                    gen_quest_prefill_inputs(b, n, BLOCK_SIZE, HEAD_DIM,
                         num_kv_blocks=b * mkbpr,
                         num_meta_blocks=b * mmbpr,
                         mkbpr=mkbpr,
