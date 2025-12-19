@@ -101,16 +101,13 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
         num_kv_blocks_with_metadata = (seq_lens[b] - tokens_since_metadata_update) // block_size 
         num_valid_blocks = ceil_div(num_kv_blocks_with_metadata, block_size)
         num_valid_blocks = min(num_valid_blocks, mmbpr)  # Cap at mmbpr
-        
-        # Collect all block scores for this batch across all valid blocks
-        all_block_scores = []
 
         for n in range(num_kv_heads):
             # Get current grouped query vector
             current_query = grouped_query[b, n, :]  # Shape: (head_dim,)
             
             # Process each valid metadata block
-            all_scores = torch.zeros(num_valid_blocks * block_size, dtype=torch.float16, device=query.device)
+            all_scores = torch.zeros(num_valid_blocks * block_size, dtype=query.dtype, device=query.device)
             
             for block_idx in range(num_valid_blocks):
                 # Get the actual metadata block index

@@ -97,23 +97,22 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
 
         for n in range(num_kv_heads):
             current_query = grouped_query[b, n, :]  # Shape: (head_dim,)
-            all_scores = torch.zeros(num_valid_blocks * block_size, dtype=torch.float16, device=query.device)
+            all_scores = torch.zeros(num_valid_blocks * block_size, 
+                                     dtype=query.dtype if query.dtype == torch.float16 else torch.float32, 
+                                     device=query.device)
             
             for block_idx in range(num_valid_blocks):
                 meta_block_id = metadata_block_tables[b, block_idx].item()
                 maxblock = maxblocks[meta_block_id, :, n, :]  # (block_size, head_dim)
                 minblock = minblocks[meta_block_id, :, n, :]  # (block_size, head_dim)
 
+                if minblock.dtype == torch.bfloat16:
+                    minblock = minblock.float()     
                 if maxblock.dtype == torch.bfloat16:
                     maxblock = maxblock.float()                
-                if minblock.dtype == torch.bfloat16:
-                    minblock = minblock.float()      
 
-                # Elementwise multiply grouped_query with maxblock and minblock
                 prod_max = current_query.unsqueeze(0) * maxblock  # (block_size, head_dim)
                 prod_min = current_query.unsqueeze(0) * minblock  # (block_size, head_dim)
-                
-                # Elementwise max between prod_min and prod_max
                 channel_max_product = torch.maximum(prod_max, prod_min)  # (block_size, head_dim)
                 
                 # Reduce sum the last dimension (head_dim to 1)
@@ -155,7 +154,7 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
     # Output tensor for selected indices
     selected_indices = torch.zeros(batch_size, num_kv_heads, k, dtype=torch.int32, device=query.device) - 1
     
-    # Process each batch
+    # Process each request in the batch
     for b in range(batch_size):
         num_valid_blocks = min(ceil_div(seq_lens[b].item(), block_size * block_size), mmbpr)
         if num_valid_blocks == 0:
@@ -167,16 +166,14 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         # Get grouped query for this batch [num_kv_heads, head_dim]
         batch_query = grouped_query[b]  # [num_kv_heads, head_dim]
         
-        # Get all relevant maxblocks and minblocks [num_valid_blocks, block_size, num_kv_heads, head_dim]
+        # Focus on relevant maxblocks and minblocks [num_valid_blocks, block_size, num_kv_heads, head_dim]
         relevant_maxblocks = maxblocks[meta_block_ids]  # [num_valid_blocks, block_size, num_kv_heads, head_dim]
         relevant_minblocks = minblocks[meta_block_ids]  # [num_valid_blocks, block_size, num_kv_heads, head_dim]
 
-        if relevant_maxblocks.dtype == torch.bfloat16:
-            relevant_maxblocks = relevant_maxblocks.float()
-        if relevant_minblocks.dtype == torch.bfloat16:
-            relevant_minblocks = relevant_minblocks.float()
+        if relevant_maxblocks.dtype == torch.bfloat16: relevant_maxblocks = relevant_maxblocks.float()
+        if relevant_minblocks.dtype == torch.bfloat16: relevant_minblocks = relevant_minblocks.float()
 
-        # Reshape for broadcasting: [num_kv_heads, head_dim] -> [1, 1, num_kv_heads, head_dim]
+        # Reshape [num_kv_heads, head_dim] -> [1, 1, num_kv_heads, head_dim] easier to do fast multiplication
         batch_query_reshaped = batch_query.unsqueeze(0).unsqueeze(0)  # [1, 1, num_kv_heads, head_dim]
         
         # Elementwise multiply [num_valid_blocks, block_size, num_kv_heads, head_dim]

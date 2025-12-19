@@ -39,7 +39,7 @@ def gen_quest_paged_w_inputs(batch_size: int,
     - seq_lens: [batch_size]
     - tokens_since_metadata_update: int
     """
-    assert(num_meta_blocks >= batch_size*mmbpr)
+    assert(num_meta_blocks >= batch_size * mmbpr)
 
     # reset the SEED each time to be able to reproduce individual failed tests 
     # out of a loop of tests

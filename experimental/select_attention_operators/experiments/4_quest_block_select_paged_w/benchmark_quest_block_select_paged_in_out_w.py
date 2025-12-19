@@ -123,13 +123,11 @@ def benchmark_quest_block_select_paged():
             for i in range(n_warmup + n_repeat):
                 query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update = \
                     gen_quest_paged_w_inputs(
-                        b, h, n, BLOCK_SIZE, HEAD_DIM,
-                        num_meta_blocks=b * mmbpr,
-                        mmbpr=mmbpr,
-                        same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
-                        device="npu:0", 
-                        dtype=DTYPE)
-                input_sets.append((query, maxblocks, minblocks, metadata_block_tables, seq_lens, 
+                        b, h, n, BLOCK_SIZE, HEAD_DIM, num_meta_blocks=b * mmbpr,
+                        mmbpr=mmbpr, same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
+                        device="npu:0", dtype=DTYPE)
+                input_sets.append((query, maxblocks, minblocks, 
+                                   metadata_block_tables, seq_lens, 
                                    tokens_since_metadata_update))
             
             # Our implementation - Warm-up runs

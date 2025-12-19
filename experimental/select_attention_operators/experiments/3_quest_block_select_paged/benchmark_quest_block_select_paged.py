@@ -216,23 +216,26 @@ def benchmark_quest_block_select_paged(custom_kernel: Callable, dtype: torch.dty
             total_bytes_moved = bytes_moved_paged_select(b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k, seq_lens)
             ref_bw = total_bytes_moved / ref_duration / 1e6  # TB/s
         
-        ####### Print results #######
+        ####### Print results row into the table #######
         max_seq_len = mmbpr * BLOCK_SIZE * BLOCK_SIZE
         print(f"{h:>3} {n:>3} {b:>3} {mmbpr:>6} {max_seq_len:>12} {k:>4} {are_equal:>15} ", end='')
         
-        if run_ref and ref_duration is not None:
+        if ref_duration and run_ref  is not None:
             print(f"{ref_duration:>18.2f} ", end='')
         else:
             print(f"{'N/A':>18} ", end='')
-        if run_our and our_duration is not None:
+
+        if our_duration and run_our is not None:
             print(f"{our_duration:>18.2f} ", end='')
         else:
             print(f"{'N/A':>18} ", end='')
-        if run_ref and ref_bw is not None:
+
+        if ref_bw and run_ref is not None:
             print(f"{ref_bw:>16.3f} ", end='')
         else:
             print(f"{'N/A':>16} ", end='')
-        if run_our and our_bw is not None:
+
+        if our_bw and run_our is not None:
             print(f"{our_bw:>16.3f}")
         else:
             print(f"{'N/A':>16}")

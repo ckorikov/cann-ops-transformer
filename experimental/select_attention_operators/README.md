@@ -1,5 +1,5 @@
 # Select Attention Operators
-Ascend-910B kernels for sparse attention. The kernels can be launched through python interface which we provide - see kernel usage examples in the [experiments](experiments) directory.
+High performance Ascend-910B kernels for sparse attention pattern prediction for efficient LLM decoding. The kernels can be launched through python interface which we provide - see kernel usage examples in the [experiments](experiments) directory.
 
 ## Repo structure:
 
@@ -10,7 +10,7 @@ Ascend-910B kernels for sparse attention. The kernels can be launched through py
 |   |-- 3_quest_block_select_paged - quest sparse mask predictor using metadata
 |   |-- 4_quest_block_select_paged_w -  quest sparse mask predictor using metadata with extra sink+window features
 |-- kernels - python packages, each having one or more ascendc kernels + 1 torch interface
-|   |-- select_attn_decoding_ops - predictor kernels
+|   |-- select_attn_decoding_ops - predictor kernels (quest predictor)
 |   `-- select_attn_prefill_ops - metadata construction kernels 
 `-- scripts
     |-- build_kernels.sh - builds all kernels
@@ -65,13 +65,15 @@ quest_block_select_paged_in_out_w(...) method of builtins.PyCapsule instance
     quest_block_select_paged_in_out_w(query: torch.Tensor, maxblocks: torch.Tensor, minblocks: torch.Tensor, metadata_block_tables: torch.Tensor, seq_lens: torch.Tensor, tokens_since_metadata_update: int, selected_indices: torch.Tensor) -> None
     
     
-    Interface to the `quest_block_select_paged` kernel which predicts the
-    sparsity mask during decoding in the form of top-k important kv-block 
+    Alternative interface to the `quest_block_select_paged` kernel which predicts 
+    the sparsity mask during decoding in the form of top-k important kv-block 
     indices for every KV-head in every request. The returned KV block ids 
     are not the indices in the KV-cache, but rather from their enumeration 
     from 0 to number of blocks in the sequence length being decoded.
     
-    **FEATURE** "w" 2 stands for "window" i.e. the kernel decides whether to add local 
+    FEATURE 1) WITH PREALLOCATED OUTPUT TENSOR (selected_indices)
+    
+    FEATURE 2) "w" 2 stands for "window" i.e. the kernel decides whether to add local 
     window blocks ids to the selected indices based on the number of tokens 
     since the last update and based on th esequence length
     
@@ -80,9 +82,11 @@ quest_block_select_paged_in_out_w(...) method of builtins.PyCapsule instance
         maxblocks (torch.Tensor): Quest metadata with maximum vectors of 
                                 every key-cache block of shape 
                                 [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
+                                important: zeroes must be in place of metadata of non-existing kv blocks
         minblocks (torch.Tensor): Quest metadata with minimum vectors of 
                                 every key-cache block of shape 
                                 [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
+                                important: zeroes must be in place of metadata of non-existing kv blocks
         metadata_block_tables (torch.Tensor): Metadata block tables of 
                                             shape [B, MMBPR] (int32)
         seq_lens (torch.Tensor): Sequence length of each request in the batch
