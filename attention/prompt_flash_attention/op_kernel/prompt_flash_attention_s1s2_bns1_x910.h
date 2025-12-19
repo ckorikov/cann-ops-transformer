@@ -2050,7 +2050,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::Bmm1ResDoVecBmm2C
             this->SoftmaxLseCopyOut(this->softmaxSumUb_, this->softmaxMaxUb_);
         }
         // Reuse softmaxExp Ub to copy sum.
-        LocalTensor<float> softmaxSumTmp = this->softmaxExpUb_.template Get<float>(this->softmaxSumSize);
+        LocalTensor<float> softmaxSumTmp = this->softmaxExpBuff_.template Get<float>(this->softmaxSumSize);
         DataCopy(softmaxSumTmp, this->softmaxSumUb_, this->softmaxSumSize);
         PipeBarrier<PIPE_V>();
         this->copyOutPrevIter = true;
