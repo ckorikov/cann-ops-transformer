@@ -371,12 +371,6 @@ mc2_moe@ops-transformer:
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/op_kernel/
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/CMakeLists.txt
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/README.md
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/op_host/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/op_api/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/op_graph/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/op_kernel/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/CMakeLists.txt
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/README.md
                 - ops/ops-transformer/mc2/moe_update_expert/op_host/
                 - ops/ops-transformer/mc2/moe_update_expert/op_api/
                 - ops/ops-transformer/mc2/moe_update_expert/op_graph/
@@ -389,18 +383,6 @@ mc2_moe@ops-transformer:
                 - ops/ops-transformer/mc2/distribute_barrier/op_kernel/
                 - ops/ops-transformer/mc2/distribute_barrier/CMakeLists.txt
                 - ops/ops-transformer/mc2/distribute_barrier/README.md
-                - ops/ops-transformer/mc2/elastic_receivable_test/op_host/
-                - ops/ops-transformer/mc2/elastic_receivable_test/op_api/
-                - ops/ops-transformer/mc2/elastic_receivable_test/op_graph/
-                - ops/ops-transformer/mc2/elastic_receivable_test/op_kernel/
-                - ops/ops-transformer/mc2/elastic_receivable_test/CMakeLists.txt
-                - ops/ops-transformer/mc2/elastic_receivable_test/README.md
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/op_host/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/op_api/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/op_graph/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/op_kernel/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/CMakeLists.txt
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/README.md
             opensource_style: null 
             kernel_style: null  
         unrelease:
@@ -414,21 +396,12 @@ mc2_moe@ops-transformer:
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/tests/
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/examples/
                 - ops/ops-transformer/mc2/moe_distribute_combine_add_rms_norm/docs/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/tests/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/examples/
-                - ops/ops-transformer/mc2/moe_distribute_buffer_reset/docs/
                 - ops/ops-transformer/mc2/moe_update_expert/tests/
                 - ops/ops-transformer/mc2/moe_update_expert/examples/
                 - ops/ops-transformer/mc2/moe_update_expert/docs/
                 - ops/ops-transformer/mc2/distribute_barrier/tests/
                 - ops/ops-transformer/mc2/distribute_barrier/examples/
                 - ops/ops-transformer/mc2/distribute_barrier/docs/
-                - ops/ops-transformer/mc2/elastic_receivable_test/tests/
-                - ops/ops-transformer/mc2/elastic_receivable_test/examples/
-                - ops/ops-transformer/mc2/elastic_receivable_test/docs/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/tests/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/examples/
-                - ops/ops-transformer/mc2/elastic_receivable_info_collect/docs/  
             non_delivery: null  
             open_source:
                 - ops/ops-transformer/mc2/3rd/batch_mat_mul_v3/ 
