@@ -843,22 +843,6 @@ mc2:
       options:
         - batch_mat_mul_reduce_scatter_allto_all
 
-    grouped_mat_mul_all_reduce:
-      module: True
-      src:
-        - mc2/grouped_mat_mul_all_reduce
-        - mc2/common
-        - mc2/3rd
-      exclude:
-        - mc2/grouped_mat_mul_all_reduce/docs
-        - mc2/grouped_mat_mul_all_reduce/README.md
-      ut_cov_exclude:
-        - mc2/grouped_mat_mul_all_reduce
-      test:
-        examples: False
-      options:
-        - grouped_mat_mul_all_reduce
-
     grouped_mat_mul_allto_allv:
       module: True
       src:
@@ -963,38 +947,6 @@ mc2:
       options:
         - matmul_reduce_scatter_v2
 
-    quant_all_reduce:
-      module: True
-      src:
-        - mc2/quant_all_reduce
-        - mc2/common
-        - mc2/3rd
-      exclude:
-        - mc2/quant_all_reduce/docs
-        - mc2/quant_all_reduce/README.md
-      ut_cov_exclude:
-        - mc2/quant_all_reduce
-      test:
-        examples: False
-      options:
-        - quant_all_reduce
-
-    quant_reduce_scatter:
-      module: True
-      src:
-        - mc2/quant_reduce_scatter
-        - mc2/common
-        - mc2/3rd
-      exclude:
-        - mc2/quant_reduce_scatter/docs
-        - mc2/quant_reduce_scatter/README.md
-      ut_cov_exclude:
-        - mc2/quant_reduce_scatter
-      test:
-        examples: False
-      options:
-        - quant_reduce_scatter
-
   moe_distribute:
     distribute_barrier:
       module: True
@@ -1012,66 +964,6 @@ mc2:
         - distribute_barrier
         - moe_distribute_dispatch_v2
         - moe_distribute_combine_v2
-
-    elastic_receivable_info_collect:
-      module: True
-      src:
-        - mc2/elastic_receivable_info_collect
-        - mc2/common
-      exclude:
-        - mc2/elastic_receivable_info_collect/docs
-        - mc2/elastic_receivable_info_collect/README.md
-      ut_cov_exclude:
-        - mc2/elastic_receivable_info_collect
-      test:
-        examples: False
-      options:
-        - elastic_receivable_info_collect
-
-    elastic_receivable_test:
-      module: True
-      src:
-        - mc2/elastic_receivable_test
-        - mc2/common
-      exclude:
-        - mc2/elastic_receivable_test/docs
-        - mc2/elastic_receivable_test/README.md
-      ut_cov_exclude:
-        - mc2/elastic_receivable_test
-      test:
-        examples: False
-      options:
-        - elastic_receivable_test
-    
-    ffn_to_attention:
-      module: True
-      src:
-        - mc2/ffn_to_attention
-        - mc2/common
-      exclude:
-        - mc2/ffn_to_attention/docs
-        - mc2/ffn_to_attention/README.md
-      ut_cov_exclude:
-        - mc2/ffn_to_attention
-      test:
-        examples: False
-      options:
-        - ffn_to_attention
-
-    moe_distribute_buffer_reset:
-      module: True
-      src:
-        - mc2/moe_distribute_buffer_reset
-        - mc2/common
-      exclude:
-        - mc2/moe_distribute_buffer_reset/docs
-        - mc2/moe_distribute_buffer_reset/README.md
-      ut_cov_exclude:
-        - mc2/moe_distribute_buffer_reset
-      test:
-        examples: False
-      options:
-        - moe_distribute_buffer_reset
 
     moe_distribute_combine:
       module: True
@@ -1170,18 +1062,3 @@ mc2:
         - moe_update_expert
         - moe_distribute_dispatch_v2
         - moe_distribute_combine_add_rms_norm
-    
-    attention_to_ffn:
-      module: True
-      src:
-        - mc2/attention_to_ffn
-        - mc2/common
-      exclude:
-        - mc2/attention_to_ffn/docs
-        - mc2/attention_to_ffn/README.md
-      ut_cov_exclude:
-        - mc2/attention_to_ffn
-      test:
-        examples: False
-      options:
-        - attention_to_ffn
