@@ -107,7 +107,7 @@ def benchmark_quest_prefill():
         mmbpr = ceil_div(mkbpr, BLOCK_SIZE)
         
         ######## Check correctness ########
-        are_equal = "num_kv_heads/A"
+        are_equal = "N/A"
         if run_our and run_ref:
             # Create fresh output tensors for correctness check
             k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our = gen_quest_prefill_inputs(
@@ -116,7 +116,7 @@ def benchmark_quest_prefill():
                 num_meta_blocks=b * mmbpr,
                 mkbpr=mkbpr,
                 mmbpr=mmbpr,
-                SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
+                same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
                 device="npu:0", 
                 dtype=DTYPE)
             max_out_ref = max_out_our.clone()
@@ -145,7 +145,7 @@ def benchmark_quest_prefill():
                         num_meta_blocks=b * mmbpr,
                         mkbpr=mkbpr,
                         mmbpr=mmbpr,
-                        SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
+                        same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
                         device="npu:0", 
                         dtype=DTYPE)
                 input_sets.append((k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out))
@@ -180,13 +180,9 @@ def benchmark_quest_prefill():
             for i in range(n_warmup + n_repeat):
                 k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out = \
                     gen_quest_prefill_inputs(b, n, BLOCK_SIZE, HEAD_DIM,
-                        num_kv_blocks=b * mkbpr,
-                        num_meta_blocks=b * mmbpr,
-                        mkbpr=mkbpr,
-                        mmbpr=mmbpr,
-                        SAME_SEQ_LEN_ALL_REQS=SAME_SEQ_LEN_ALL_REQS,
-                        device="npu:0", 
-                        dtype=DTYPE)
+                        num_kv_blocks=b * mkbpr, num_meta_blocks=b * mmbpr, mkbpr=mkbpr,
+                        mmbpr=mmbpr, same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
+                        device="npu:0", dtype=DTYPE)
                 input_sets.append((k_cache, block_tables, seq_lens, metadata_block_tables, max_out, min_out))
 
             # Reference implementation - Warm-up runs
@@ -218,22 +214,22 @@ def benchmark_quest_prefill():
         if run_ref and ref_duration is not None:
             print(f"{ref_duration:>18.2f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>18} ", end='')
+            print(f"{'N/A':>18} ", end='')
         
         if run_our and our_duration is not None:
             print(f"{our_duration:>18.2f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>18} ", end='')
+            print(f"{'N/A':>18} ", end='')
         
         if run_ref and ref_bw is not None:
             print(f"{ref_bw:>16.3f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>16} ", end='')
+            print(f"{'N/A':>16} ", end='')
         
         if run_our and our_bw is not None:
             print(f"{our_bw:>16.3f}")
         else:
-            print(f"{'num_kv_heads/A':>16}")
+            print(f"{'N/A':>16}")
 
     print("=" * 106)
 

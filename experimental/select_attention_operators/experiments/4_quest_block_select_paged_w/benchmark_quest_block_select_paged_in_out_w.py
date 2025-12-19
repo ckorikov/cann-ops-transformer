@@ -229,22 +229,22 @@ def benchmark_quest_block_select_paged():
         if run_ref and ref_duration is not None:
             print(f"{ref_duration:>18.2f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>18} ", end='')
+            print(f"{'N/A':>18} ", end='')
         
         if run_our and our_duration is not None:
             print(f"{our_duration:>18.2f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>18} ", end='')
+            print(f"{'N/A':>18} ", end='')
         
         if run_ref and ref_bw is not None:
             print(f"{ref_bw:>16.3f} ", end='')
         else:
-            print(f"{'num_kv_heads/A':>16} ", end='')
+            print(f"{'N/A':>16} ", end='')
         
         if run_our and our_bw is not None:
             print(f"{our_bw:>16.3f}")
         else:
-            print(f"{'num_kv_heads/A':>16}")
+            print(f"{'N/A':>16}")
 
     print("=" * 124)
 

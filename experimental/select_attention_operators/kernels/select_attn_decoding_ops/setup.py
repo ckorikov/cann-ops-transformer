@@ -8,8 +8,10 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
 import os
+import sys
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from ascendc_extension import ascendc_extension
 CURRENT_DIR = os.path.dirname(__file__)
 
@@ -19,7 +21,7 @@ num_cores=os.environ.get('NUM_CORES', 0)
 
 setup(
     name=PACKAGE_NAME,
-    VERSION=VERSION,
+    version=VERSION,
     ext_modules=[
         ascendc_extension(
             name=PACKAGE_NAME,
