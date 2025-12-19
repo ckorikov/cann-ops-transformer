@@ -29,16 +29,18 @@ SAME_SEQ_LEN_ALL_REQS = False
 # Central test worker  (assertion crashes <--> test failed)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="Skipping direct invocation of the main test_quest_paged_kernel function")
-def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                            mmbpr: int, k: int, verbose: bool = False) -> None:
+def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, 
+                            head_dim: int, mmbpr: int, k: int, verbose: bool = False) -> None:
     """
     Main test function for paged quest kernel
     """
     # Generate input data
     num_meta_blocks = batch_size * mmbpr
-    query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update = gen_quest_paged_w_inputs(
-        batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, SAME_SEQ_LEN_ALL_REQS,
-        DEVICE, dtype
+    query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update = (
+        gen_quest_paged_w_inputs(
+            batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, SAME_SEQ_LEN_ALL_REQS,
+            DEVICE, dtype
+        )
     )
 
     # Run reference implementation
@@ -78,7 +80,8 @@ def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int,
     # Assert all comparisons pass
     assert indices_match, f"Indices comparison failed for {cfg_str}"
 
-def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, k_vals):
+def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, 
+                                         k_vals):
     """
     Construct parameter sets for paged Quest kernel testing with constraints:
     - head_dim, block_size are fixed
@@ -107,12 +110,13 @@ parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16,
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
-    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, head_dim={d}, mmbpr={mmbpr}, k={k}" 
+    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, "
+         f"head_dim={d}, mmbpr={mmbpr}, k={k}" 
          for dtype, b, h, n, block_size, d, mmbpr, k in parameter_sets]    
 )
 @torch.inference_mode()
-def test_quest_paged_basic(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                           mmbpr: int, k: int) -> None:
+def test_quest_paged_basic(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                           block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 2 - Edge cases ###########################
@@ -125,12 +129,13 @@ parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16,
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
-    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, head_dim={d}, mmbpr={mmbpr}, k={k}" 
+    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, "
+         f"head_dim={d}, mmbpr={mmbpr}, k={k}" 
          for dtype, b, h, n, block_size, d, mmbpr, k in parameter_sets]  
 )
 @torch.inference_mode()
-def test_quest_paged_edge_cases(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                                mmbpr: int, k: int) -> None:
+def test_quest_paged_edge_cases(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                                block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 3 - Extensive testing ###########################
@@ -143,12 +148,13 @@ parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16,
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
-    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, head_dim={d}, mmbpr={mmbpr}, k={k}" 
+    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, "
+         f"head_dim={d}, mmbpr={mmbpr}, k={k}" 
          for dtype, b, h, n, block_size, d, mmbpr, k in parameter_sets]  
 )
 @torch.inference_mode()
-def test_quest_paged_extensive(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                              mmbpr: int, k: int) -> None:
+def test_quest_paged_extensive(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                               block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 ########################### Test 4 - Large scale ###########################
@@ -161,12 +167,13 @@ parameter_sets = construct_quest_paged_parameter_sets(dtype_vals=[torch.float16,
 
 @pytest.mark.parametrize(
     "dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k", parameter_sets,
-    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, head_dim={d}, mmbpr={mmbpr}, k={k}" 
+    ids=[f"dtype={dtype}, batch_size={b}, num_heads={h}, num_kv_heads={n}, block_size={block_size}, head_dim={d}, "
+         f"mmbpr={mmbpr}, k={k}" 
          for dtype, b, h, n, block_size, d, mmbpr, k in parameter_sets]  
 )
 @torch.inference_mode()
-def test_quest_paged_large_scale(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, 
-                                 head_dim: int, mmbpr: int, k: int) -> None:
+def test_quest_paged_large_scale(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                                 block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
 
@@ -174,6 +181,7 @@ def test_quest_paged_large_scale(dtype: torch.dtype, batch_size: int, num_heads:
 # Quick manual run (kept for copy-paste debugging)
 # ---------------------------------------------------------------------------#
 if __name__ == "__main__":
-    test_quest_paged_kernel(dtype=torch.bfloat16, batch_size=20, num_heads=32, num_kv_heads=8, block_size=128, head_dim=128, mmbpr=1, k=8, verbose=True)  # fails bfloat16
+    test_quest_paged_kernel(dtype=torch.bfloat16, batch_size=20, num_heads=32, num_kv_heads=8, block_size=128, 
+                            head_dim=128, mmbpr=1, k=8, verbose=True)  # fails bfloat16
     print("Manual smoke test PASSED")
 

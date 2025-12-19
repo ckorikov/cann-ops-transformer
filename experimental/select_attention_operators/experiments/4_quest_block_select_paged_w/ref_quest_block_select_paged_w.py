@@ -15,9 +15,9 @@ def ceil_div(a, b):
     """Ceiling division: ceil(a / b)"""
     return -(a // -b)
 
-def ref_quest_block_select_paged_w(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
-                                 maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
-                                 minblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
+def ref_quest_block_select_paged_w(query: torch.Tensor,         # (batch_size, num_heads, head_dim)
+                                 maxblocks: torch.Tensor,       # (num_meta_blocks, block_size, num_kv_heads, head_dim)
+                                 minblocks: torch.Tensor,       # (num_meta_blocks, block_size, num_kv_heads, head_dim)
                                  metadata_block_tables: torch.Tensor,  # (batch_size, mmbpr)
                                  seq_lens: torch.Tensor,           # (batch_size)
                                  tokens_since_metadata_update: int,
@@ -49,9 +49,11 @@ def ref_quest_block_select_paged_w(query: torch.Tensor,              # (batch_si
     3. Return selected_indices
     """
     if fast:
-        return ref_quest_paged_fast(query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update, k)
+        return ref_quest_paged_fast(query, maxblocks, minblocks, metadata_block_tables, seq_lens, 
+                                    tokens_since_metadata_update, k)
     else:
-        return ref_quest_paged_slow(query, maxblocks, minblocks, metadata_block_tables, seq_lens, tokens_since_metadata_update, k)
+        return ref_quest_paged_slow(query, maxblocks, minblocks, metadata_block_tables, seq_lens, 
+                                    tokens_since_metadata_update, k)
 
 
 def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
@@ -65,10 +67,10 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
     SLOW paged quest reference functionality - explicit nested loop implementation
     """        
     batch_size, num_heads, head_dim = query.shape
-    num_meta_blocks, block_size, num_kv_heads, D_blocks = maxblocks.shape
+    num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
     mmbpr = metadata_block_tables.shape[1]
     
-    assert head_dim == D_blocks, f"Query dimension {head_dim} doesn't match block dimension {D_blocks}"
+    assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}"
 
     if query.dtype == torch.bfloat16:
         query = query.float()    
@@ -93,7 +95,9 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
     # Step 2: Process each batch and head
     for b in range(batch_size):
         # Determine how many metadata blocks are valid for this request
-        num_kv_blocks_with_metadata = (seq_lens[b] - tokens_since_metadata_update) // block_size # yes, floor divide - assuming we created metadata tokens_since_metadata_update tokens ago, and only for the round  multiple of block_size tokens 
+        # yes, floor divide - assuming we created metadata tokens_since_metadata_update tokens ago, and only for the 
+        # round  multiple of block_size tokens 
+        num_kv_blocks_with_metadata = (seq_lens[b] - tokens_since_metadata_update) // block_size 
         num_valid_blocks = ceil_div(num_kv_blocks_with_metadata, block_size)
         num_valid_blocks = min(num_valid_blocks, mmbpr)  # Cap at mmbpr
         
@@ -142,11 +146,17 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
             eff_k = min(k, eff_num_scores)            
             selected_indices[b, n, :] = torch.topk(all_scores, eff_k, dim=-1)[1] 
 
-            # Add check whether last index should be added based on not-yet-updated metadata (as indicated by tokens_since_metadata_update and seq_len)
+            # Add check whether last index should be added based on not-yet-updated metadata (as indicated by 
+            # tokens_since_metadata_update and seq_len)
             if (tokens_since_metadata_update >= 0): 
-                mru = seq_lens[b] - tokens_since_metadata_update;  # mru = sequence length of this request at the most recent metadata update
-                win_size = (mru % block_size != 0) + (seq_lens[b] // block_size) - (mru // block_size); # win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
-                # int32_t win_size = ((mru & 0x7f) != 0) + (seq_lens[b] >> 7) - (mru >> 7); # win_size - faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+                # mru = sequence length of this request at the most recent metadata update
+                mru = seq_lens[b] - tokens_since_metadata_update;  
+
+                # win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
+                win_size = (mru % block_size != 0) + (seq_lens[b] // block_size) - (mru // block_size); 
+                
+                # faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+                # int32_t win_size = ((mru & 0x7f) != 0) + (seq_lens[b] >> 7) - (mru >> 7); 
                 for w in range(1, win_size + 1):
                     selected_indices[b, n, k - w] = ((seq_lens[b] + block_size - 1) // block_size) - w
 
@@ -163,10 +173,10 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
     FAST paged quest reference functionality - vectorized implementation
     """
     batch_size, num_heads, head_dim = query.shape
-    num_meta_blocks, block_size, num_kv_heads, D_blocks = maxblocks.shape
+    num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
     mmbpr = metadata_block_tables.shape[1]
     
-    assert head_dim == D_blocks, f"Query dimension {head_dim} doesn't match block dimension {D_blocks}"
+    assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}"
     
     # Step 1: Reduce query across num_heads dimension to get grouped_query [batch_size, num_kv_heads, head_dim]
     heads_per_group = num_heads // num_kv_heads
@@ -174,7 +184,8 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
     if query.dtype == torch.bfloat16:
         query = query.float()
 
-    grouped_query = query.view(batch_size, num_kv_heads, heads_per_group, head_dim).mean(dim=2)  # [batch_size, num_kv_heads, head_dim]
+    # [batch_size, num_kv_heads, head_dim]
+    grouped_query = query.view(batch_size, num_kv_heads, heads_per_group, head_dim).mean(dim=2)  
 
     # Output tensor for selected indices
     selected_indices = torch.zeros(batch_size, num_kv_heads, k, dtype=torch.int32, device=query.device) - 1
@@ -214,7 +225,8 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         block_scores = torch.sum(channel_max_product, dim=-1)
         
         # Reshape to combine blocks and block_size [num_valid_blocks * block_size, num_kv_heads]
-        all_scores = block_scores.permute(2, 0, 1).reshape(num_kv_heads, -1)  # [num_kv_heads, num_valid_blocks * block_size]
+        # [num_kv_heads, num_valid_blocks * block_size]
+        all_scores = block_scores.permute(2, 0, 1).reshape(num_kv_heads, -1)  
 
         # add sink
         if (tokens_since_metadata_update >= 0): 
@@ -225,11 +237,17 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         eff_k = min(k, eff_num_scores)    
         selected_indices[b, :, :eff_k] = torch.topk(all_scores, eff_k, dim=-1)[1]
 
-        # Add check whether last index should be added based on not-yet-updated metadata (as indicated by tokens_since_metadata_update and seq_len)
+        # Add check whether last index should be added based on not-yet-updated metadata (as indicated by 
+        # tokens_since_metadata_update and seq_len)
         if (tokens_since_metadata_update >= 0): 
-            mru = seq_lens[b] - tokens_since_metadata_update;  # mru = sequence length of this request at the most recent metadata update
-            win_size = (mru % block_size != 0) + (seq_lens[b] // block_size) - (mru // block_size); # win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
-            # int32_t win_size = ((mru & 0x7f) != 0) + (seq_lens[b] >> 7) - (mru >> 7); # win_size - faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+            # mru = sequence length of this request at the most recent metadata update
+            mru = seq_lens[b] - tokens_since_metadata_update;  
+
+            # number of the most recent KV-blocks in the sequence, which are not yet registered by the metadata
+            win_size = (mru % block_size != 0) + (seq_lens[b] // block_size) - (mru // block_size); 
+            
+            # faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
+            # int32_t win_size = ((mru & 0x7f) != 0) + (seq_lens[b] >> 7) - (mru >> 7); 
             for w in range(1, win_size + 1):
                 selected_indices[b, :, k - w] = ((seq_lens[b] + block_size - 1) // block_size) - w        
     

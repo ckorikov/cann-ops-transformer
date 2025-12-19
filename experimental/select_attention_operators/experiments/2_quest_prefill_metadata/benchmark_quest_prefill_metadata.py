@@ -33,14 +33,14 @@ SAME_SEQ_LEN_ALL_REQS = True # to set equally long input length and avoid unknow
 # --------------------------------------------------------------------------- #
 #  bytes-moved calculator
 # --------------------------------------------------------------------------- #
-def bytes_moved_prefill(B: int, num_kv_heads: int, block_size: int, head_dim: int,
+def bytes_moved_prefill(batch_size: int, num_kv_heads: int, block_size: int, head_dim: int,
                         mkbpr: int, mmbpr: int, 
                         seq_lens: torch.Tensor) -> int:
     """
     Global-memory traffic (read + write) for quest_prefill_metadata.
 
     Arguments:
-        B - batch size
+        batch_size - batch size
         num_kv_heads - number of KV heads
         block_size - number of tokens per block (equal for metadata block and 
                      kv-cache block)
@@ -50,7 +50,7 @@ def bytes_moved_prefill(B: int, num_kv_heads: int, block_size: int, head_dim: in
 
     Reads
     -----
-    seq_lens              :  B * 4                                              (int32)
+    seq_lens              :  batch_size * 4                                              (int32)
     k_cache               :  num_effective_kv_blocks * block_size * num_kv_heads * head_dim * 2   (fp16)
     block_tables          :  num_effective_kv_blocks * 4                        (int32)
     metadata_block_tables :  num_effective_kv_blocks * 4                        (int32)
@@ -98,7 +98,8 @@ def benchmark_quest_prefill():
     print("=" * 106)
     print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 106)
-    print(f"{'num_kv_heads':>3} {'B':>3} {'Seq_len':>10} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
+    print(f"{'num_kv_heads':>3} {'batch_size':>3} {'Seq_len':>10} {'Outputs_equal':>15} "
+          f"{'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 106)
 
     for n, b, mkbpr in itertools.product(num_kv_heads_vals, batch_size_vals, mkbpr_vals):
@@ -106,7 +107,7 @@ def benchmark_quest_prefill():
         mmbpr = ceil_div(mkbpr, BLOCK_SIZE)
         
         ######## Check correctness ########
-        are_equal = "num_kv_heads/A"
+        are_equal = "N/A"
         if run_our and run_ref:
             # Create fresh output tensors for correctness check
             k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our = gen_quest_prefill_inputs(
@@ -124,7 +125,10 @@ def benchmark_quest_prefill():
             ref_quest_prefill_metadata(k_cache, block_tables, seq_lens, metadata_block_tables, max_out_ref, min_out_ref)
             quest_prefill_metadata(k_cache, block_tables, seq_lens, metadata_block_tables, max_out_our, min_out_our)
             
-            if compare_tensors(max_out_ref, max_out_our, verbose=False) and compare_tensors(min_out_ref, min_out_our, verbose=False):
+            if (
+                compare_tensors(max_out_ref, max_out_our, verbose=False)
+                and compare_tensors(min_out_ref, min_out_our, verbose=False)
+            ):
                 are_equal = "yes"
             else:
                 are_equal = "no"

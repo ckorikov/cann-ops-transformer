@@ -10,19 +10,19 @@
 import os
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension
-from ascendc_extension import AscendCExtension
+from ascendc_extension import AscendcExtension
 CURRENT_DIR = os.path.dirname(__file__)
 
-package_name = 'select_attn_decoding_ops'
-version='0.3.1'
+PACKAGE_NAME = 'select_attn_decoding_ops'
+VERSION='0.3.1'
 num_cores=os.environ.get('NUM_CORES', 0)
 
 setup(
-    name=package_name,
-    version=version,
+    name=PACKAGE_NAME,
+    VERSION=VERSION,
     ext_modules=[
-        AscendCExtension(
-            name=package_name,
+        AscendcExtension(
+            name=PACKAGE_NAME,
             sources=['torch_interface.cpp'],
             extra_library_dirs=[os.path.join(CURRENT_DIR, 'lib')],  # location of custom lib{name}.so file
             extra_libraries=['quest_block_select', 'quest_block_select_paged'],  # names of custom lib{name}.so files

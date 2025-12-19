@@ -45,8 +45,6 @@ def ref_quest_prefill_metadata(
     num_kv_heads = k_cache.shape[2]
     head_dim = k_cache.shape[3]
 
-    MMBPR = metadata_block_tables.shape[1]
-
     assert(block_size == 128)
     assert(head_dim == 128)
 

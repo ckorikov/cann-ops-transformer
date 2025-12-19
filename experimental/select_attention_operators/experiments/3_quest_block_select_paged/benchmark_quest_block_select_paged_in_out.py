@@ -42,8 +42,10 @@ def bytes_moved_paged_select(batch_size: int, num_heads: int, num_kv_heads: int,
 
     Reads:
     - query: [batch_size, num_heads, head_dim] - batch_size * num_heads * head_dim * 2 bytes (FP16)
-    - maxblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2 bytes (FP16)
-    - minblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * num_kv_heads * head_dim * 2 bytes (FP16)
+    - maxblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * 
+                                                            num_kv_heads * head_dim * 2 bytes (FP16)
+    - minblocks: [?, block_size, num_kv_heads, head_dim] - num_effective_metadata_blocks * block_size * 
+                                                            num_kv_heads * head_dim * 2 bytes (FP16)
     - metadata_block_tables: [batch_size, mmbpr] - batch_size * mmbpr * 4 bytes (INT32)
     - seq_lens: [batch_size] - batch_size * 4 bytes (INT32)
 
@@ -86,13 +88,14 @@ def benchmark_quest_block_select_paged():
     print("=" * 124)
     print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 124)
-    print(f"{'num_heads':>3} {'num_kv_heads':>3} {'batch_size':>3} {'mmbpr':>6} {'Max_seq_len':>12} {'k':>4} {'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
+    print(f"{'num_heads':>3} {'num_kv_heads':>3} {'batch_size':>3} {'mmbpr':>6} {'Max_seq_len':>12} {'k':>4} "
+          f"{'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 124)
 
     for b, h, n, mmbpr, k in itertools.product(batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, k_vals):
         
         ######## Check correctness #######
-        are_equal = "num_kv_heads/A"
+        are_equal = "N/A"
         if run_our and run_ref:
             query, maxblocks, minblocks, metadata_block_tables, seq_lens = gen_quest_paged_inputs(
                     b, h, n, BLOCK_SIZE, HEAD_DIM,

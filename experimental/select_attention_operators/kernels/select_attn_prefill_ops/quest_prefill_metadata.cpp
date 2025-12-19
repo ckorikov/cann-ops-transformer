@@ -52,7 +52,7 @@ public:
         maxblocks_gm_.SetGlobalBuffer((__gm__ half *)maxblocks);
         minblocks_gm_.SetGlobalBuffer((__gm__ half *)minblocks);
 
-        int32_t tileBytes = ceilDivMul(BLOCK_SIZE * D * sizeof(half), BYTES_UB_BLOCK); // bytes needed for metadata of one kv-head
+        int32_t tileBytes = ceilDivMul(BLOCK_SIZE * D * sizeof(half), BYTES_UB_BLOCK); // bytes for metadata 1 kv-head
         pipe_.InitBuffer(k_block_in_q_, 2, tileBytes);   // original tile of K block
         pipe_.InitBuffer(work_calc_q_,  1, tileBytes);   // working copy of K block - for reductions
         pipe_.InitBuffer(max_out_q_,    1, tileBytes);
@@ -98,7 +98,8 @@ public:
                     }
                     
                     /* 1. Copy head-slice: 4-D [blocks, BLOCK_SIZE, N, D] → UB [BLOCK_SIZE, D] */
-                    int32_t kv_block_id = block_tables_gm_.GetValue(r * MKBPR_ + num_kv_blocks_completed + blk); // MKBPR_ block slots exist for each request in block_tables 
+                    // MKBPR_ block slots exist for each request in block_tables 
+                    int32_t kv_block_id = block_tables_gm_.GetValue(r * MKBPR_ + num_kv_blocks_completed + blk); 
                     int32_t kv_block_offset = (kv_block_id * BLOCK_SIZE_ * N_ * D_) + h * D_;                
                     LocalTensor<half> k_block_lt = k_block_in_q_.AllocTensor<half>();
                     DataCopyParams gm_ub_cp;
@@ -116,12 +117,14 @@ public:
                     LocalTensor<half> work_lt = work_calc_q_.AllocTensor<half>();
                     Copy(work_lt, k_block_lt, mask, ntokens_to_reduce, ub_ub_cp);
                     ReduceTokenDim<half, true>(work_lt, ntokens_to_reduce * D_);  // true -> Max
-                    Copy(max_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  // copy the first D_ numbers which are per-channel maximum acrosss BLOCK_SIZE tokens in the K-block
+                    // copy the first D_ numbers which are per-channel maximum acrosss BLOCK_SIZE tokens in the K-block
+                    Copy(max_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  
 
                     /* 3. min-reduction (reuse work_lt) */
                     Copy(work_lt, k_block_lt, mask, ntokens_to_reduce, ub_ub_cp);
                     ReduceTokenDim<half, false>(work_lt, ntokens_to_reduce * D_);  // false -> Min
-                    Copy(min_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  // copy the first D_ numbers which are per-channel minimum acrosss BLOCK_SIZE tokens in the K-block
+                    // copy the first D_ numbers which are per-channel minimum acrosss BLOCK_SIZE tokens in the K-block
+                    Copy(min_lt[blk * D_], work_lt, mask, 1, ub_ub_cp);  
                     k_block_in_q_.FreeTensor(k_block_lt);
                     work_calc_q_.FreeTensor(work_lt);
                 }
@@ -129,8 +132,10 @@ public:
                 // Tail filling with zero
                 int32_t num_unused_metadata_rows = BLOCK_SIZE_ - num_kv_blocks_todo_curr_iter;
                 if (num_unused_metadata_rows > 0) {
-                    Duplicate<half>(max_lt[num_kv_blocks_todo_curr_iter * D_], (half)(0.0f), num_unused_metadata_rows * D_);
-                    Duplicate<half>(min_lt[num_kv_blocks_todo_curr_iter * D_], (half)(0.0f), num_unused_metadata_rows * D_);
+                    Duplicate<half>(max_lt[num_kv_blocks_todo_curr_iter * D_], (half)(0.0f), 
+                                    num_unused_metadata_rows * D_);
+                    Duplicate<half>(min_lt[num_kv_blocks_todo_curr_iter * D_], (half)(0.0f), 
+                                    num_unused_metadata_rows * D_);
                 }
                 AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
@@ -140,10 +145,14 @@ public:
                 int32_t meta_offset = (meta_blk_id * BLOCK_SIZE_ * N_ * D_) + h * D_;
 
                 // struct DataCopyParams:
-                // blockCount: Specifies the number of consecutive "data blocks" contained in the command. The value range is blockCount[1, 4095].
-                // blockLen:   Specifies the length of each consecutive "data block" transferred by the instruction. The unit is data block (32 bytes). Value range: blockLen=1, 65535.
-                // srcStride:  Source operand, interval between adjacent consecutive data blocks. (The interval between the tail of the previous block and the head of the suMKBPRuent block).
-                // dstStride:  Destination operand, which is the interval between adjacent consecutive data blocks. (The interval between the tail of the previous block and the head of the suMKBPRuent block).
+                // blockCount: Specifies the number of consecutive "data blocks" contained in the 
+                //             command. The value range is blockCount[1, 4095].
+                // blockLen:   Specifies the length of each consecutive "data block" transferred by 
+                //             the instruction. The unit is data block (32 bytes). Value range: blockLen=1, 65535.
+                // srcStride:  Source operand, interval between adjacent consecutive data blocks. (The interval 
+                //             between the tail of the previous block and the head of the subsequent block).
+                // dstStride:  Destination operand, which is the interval between adjacent consecutive data blocks. 
+                //             (The interval between the tail of the previous block and the head of the suMKBPRuent block).
                 DataCopyParams ub_gm_cp;
                 ub_gm_cp.blockCount = BLOCK_SIZE_; 
                 ub_gm_cp.blockLen   = ceilDiv(D_ * sizeof(half), BYTES_UB_BLOCK);

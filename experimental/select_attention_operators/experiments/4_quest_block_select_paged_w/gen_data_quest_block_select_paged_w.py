@@ -13,18 +13,22 @@ import torch_npu
 import math
 from typing import Tuple, List
 
-seed = 42
+SEED = 42
 
 def gen_quest_paged_w_inputs(batch_size: int, 
                            num_heads: int,  # number of query heads
                            num_kv_heads: int,  # number of KV heads
                            block_size: int, 
                            head_dim: int,
-                           num_meta_blocks: int,  # number of metadata blocks to allocate (not all of them will be used. Effectively, only just-enough blocks needed for the sequence length of each request will be actually loaded by the quest_block_select_paged kernel)
+                           num_meta_blocks: int,  # number of metadata blocks to allocate (not all of them will be 
+                                                  # used. Effectively, only just-enough blocks needed for the 
+                                                  # sequence length of each request will be actually loaded by the 
+                                                  # quest_block_select_paged kernel)
                            mmbpr: int,  # Max Metadata Blocks Per Request
                            same_seq_len_all_reqs: bool = True,
                            device: str = 'npu:0',
-                           dtype: torch.dtype = torch.float16) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int]:
+                           dtype: torch.dtype = torch.float16) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, 
+                                                                        torch.Tensor, torch.Tensor, int]:
     """
     Produces random matrices for paged Quest block selection operation:
     - query: [batch_size, num_heads, head_dim] 
@@ -36,9 +40,9 @@ def gen_quest_paged_w_inputs(batch_size: int,
     """
     assert(num_meta_blocks >= batch_size*mmbpr)
 
-    # reset the seed each time to be able to reproduce individual failed tests 
+    # reset the SEED each time to be able to reproduce individual failed tests 
     # out of a loop of tests
-    torch.manual_seed(seed)
+    torch.manual_seed(SEED)
 
     # Generate query tensor [batch_size, num_heads, head_dim]
     query = torch.empty(batch_size, num_heads, head_dim, dtype=dtype).uniform_(-1, 1)

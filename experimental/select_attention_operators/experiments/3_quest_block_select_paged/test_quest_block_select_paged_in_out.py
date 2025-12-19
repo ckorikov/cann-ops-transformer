@@ -25,15 +25,15 @@ SAME_SEQ_LEN_ALL_REQS = False
 # Central test worker  (assertion crashes <--> test failed)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="Skipping direct invocation of the main test_quest_paged_kernel function")
-def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                            mmbpr: int, k: int, verbose: bool = False) -> None:
+def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                            block_size: int, head_dim: int, mmbpr: int, k: int, verbose: bool = False) -> None:
     """
     Main test function for paged quest kernel
     """
     # Generate input data
     num_meta_blocks = batch_size * mmbpr
     query, maxblocks, minblocks, metadata_block_tables, seq_lens = gen_quest_paged_inputs(
-        batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, same_seq_len_all_reqs,
+        batch_size, num_heads, num_kv_heads, block_size, head_dim, num_meta_blocks, mmbpr, SAME_SEQ_LEN_ALL_REQS,
         DEVICE, dtype
     )
 
@@ -81,7 +81,7 @@ def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_
     - num_kv_heads ≤ num_heads
     - num_heads is a multiple of num_kv_heads (num_heads = num_kv_heads * G for natural G)
     """
-    parameter_sets = []
+    param_set_lst = []
     for dtype in dtype_vals:
         for b in batch_size_vals:
             for h in num_heads_vals:
@@ -90,8 +90,8 @@ def construct_quest_paged_parameter_sets(dtype_vals, batch_size_vals, num_heads_
                     if n <= h and h % n == 0:
                         for mmbpr in mmbpr_vals:
                             for k in k_vals:
-                                parameter_sets.append((dtype, b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k))
-    return parameter_sets
+                                param_set_lst.append((dtype, b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k))
+    return param_set_lst
 
 
 ########################### Test 1 - Basic functionality ###########################

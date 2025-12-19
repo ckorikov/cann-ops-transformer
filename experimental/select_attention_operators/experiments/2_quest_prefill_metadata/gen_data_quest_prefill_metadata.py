@@ -13,7 +13,7 @@ import torch
 import torch_npu
 from typing import Tuple
 
-seed = 42
+SEED = 42
 
 
 def gen_quest_prefill_inputs(
@@ -58,9 +58,9 @@ def gen_quest_prefill_inputs(
 
     device = torch.device(device)
     
-    # reset the seed each time to be able to reproduce individual failed tests 
+    # reset the SEED each time to be able to reproduce individual failed tests 
     # out of a loop of tests
-    torch.manual_seed(seed)    
+    torch.manual_seed(SEED)    
 
     # ---- K-cache ---- #
     k_cache = torch.randn(num_kv_blocks, block_size, num_kv_heads, head_dim,

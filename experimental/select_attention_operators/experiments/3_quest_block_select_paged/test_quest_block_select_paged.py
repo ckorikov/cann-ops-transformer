@@ -29,8 +29,8 @@ SAME_SEQ_LEN_ALL_REQS = False
 # Central test worker  (assertion crashes <--> test failed)
 # --------------------------------------------------------------------------- #
 @pytest.mark.skip(reason="Skipping direct invocation of the main test_quest_paged_kernel function")
-def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, block_size: int, head_dim: int, 
-                            mmbpr: int, k: int, verbose: bool = False) -> None:
+def test_quest_paged_kernel(dtype: torch.dtype, batch_size: int, num_heads: int, num_kv_heads: int, 
+                            block_size: int, head_dim: int, mmbpr: int, k: int, verbose: bool = False) -> None:
     """
     Main test function for paged quest kernel
     """

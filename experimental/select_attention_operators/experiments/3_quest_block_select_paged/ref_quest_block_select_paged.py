@@ -16,9 +16,9 @@ def ceil_div(a, b):
     return -(a // -b)
 
 
-def ref_quest_block_select_paged(query: torch.Tensor,              # (batch_size, num_heads, head_dim)
-                                 maxblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
-                                 minblocks: torch.Tensor,          # (num_meta_blocks, block_size, num_kv_heads, head_dim)
+def ref_quest_block_select_paged(query: torch.Tensor,           # (batch_size, num_heads, head_dim)
+                                 maxblocks: torch.Tensor,       # (num_meta_blocks, block_size, num_kv_heads, head_dim)
+                                 minblocks: torch.Tensor,       # (num_meta_blocks, block_size, num_kv_heads, head_dim)
                                  metadata_block_tables: torch.Tensor,  # (batch_size, mmbpr)
                                  seq_lens: torch.Tensor,           # (batch_size)
                                  k: int,
@@ -159,7 +159,8 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
     if query.dtype == torch.bfloat16:
         query = query.float()
 
-    grouped_query = query.view(batch_size, num_kv_heads, heads_per_group, head_dim).mean(dim=2)  # [batch_size, num_kv_heads, head_dim]
+    # [batch_size, num_kv_heads, head_dim]
+    grouped_query = query.view(batch_size, num_kv_heads, heads_per_group, head_dim).mean(dim=2)
 
     # Output tensor for selected indices
     selected_indices = torch.zeros(batch_size, num_kv_heads, k, dtype=torch.int32, device=query.device) - 1

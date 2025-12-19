@@ -68,7 +68,7 @@ def test_prefill_kernel(dtype: torch.dtype,
         mmbpr=mmbpr,
         same_seq_len_all_reqs=ssar, 
         dtype=dtype,
-        DEVICE=DEVICE)
+        device=DEVICE)
     
     # ---- reference kernel ---- #
     max_ref = min_out.clone() 
@@ -94,7 +94,8 @@ def test_prefill_kernel(dtype: torch.dtype,
         print(f"{min_ref=}")
         print(f"{min_out=}")    
         print(" ==================== SUMMARY =================== ")
-        print(f"{batch_size=} {num_kv_heads=} {block_size=} {head_dim=} {mkbpr=} {mmbpr=} {dtype=} {num_kv_blocks=} {num_meta_blocks=}")
+        print(f"{batch_size=} {num_kv_heads=} {block_size=} {head_dim=} "
+              f"{mkbpr=} {mmbpr=} {dtype=} {num_kv_blocks=} {num_meta_blocks=}")
         print("maxblocks - ", end='')
         compare_tensors(max_ref, max_out)    
         print("minblocks - ", end='')
@@ -146,7 +147,8 @@ def test_basic_functionality(dtype: torch.dtype, batch_size: int, num_kv_heads: 
 parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
                                                   batch_size_vals=[1, 2], 
                                                   num_kv_heads_vals=[1, 2, 4, 7, 8, 9, 16, 21, 32, 33], 
-                                                  mkbpr_vals=[1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 150, 255, 256, 257], 
+                                                  mkbpr_vals=[1, 2, 3, 63, 64, 65, 126, 127, 128, 129, 
+                                                              150, 255, 256, 257], 
                                                   ssar_vals=[True, False])
 
 
@@ -166,7 +168,8 @@ def test_edge_cases(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkbp
 parameter_sets = construct_prefill_parameter_sets(dtype_vals=[torch.float16, torch.bfloat16], 
                                                   batch_size_vals=[1, 2, 4, 8], 
                                                   num_kv_heads_vals=[2, 4, 8], 
-                                                  mkbpr_vals=[1, 64, 126, 128, 130, 135, 150, 151, 170, 200, 210, 211, 212, 256, 300, 400, 512], 
+                                                  mkbpr_vals=[1, 64, 126, 128, 130, 135, 150, 151, 170, 
+                                                              200, 210, 211, 212, 256, 300, 400, 512], 
                                                   ssar_vals=[True, False])
 
 
@@ -203,5 +206,6 @@ def test_large_batch(dtype: torch.dtype, batch_size: int, num_kv_heads: int, mkb
 # Quick manual run (kept for copy-paste debugging)
 # ---------------------------------------------------------------------------#
 if __name__ == "__main__":
-    test_prefill_kernel(dtype=torch.bfloat16, batch_size=20, num_kv_heads=8, block_size=128, head_dim=128, mkbpr=128, ssar=False, verbose=True) # passes 
+    test_prefill_kernel(dtype=torch.bfloat16, batch_size=20, num_kv_heads=8, block_size=128, 
+                        head_dim=128, mkbpr=128, ssar=False, verbose=True) # passes 
     print("Manual smoke test PASSED")
