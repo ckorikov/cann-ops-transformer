@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file aclnn_quant_matmul_all_reduce_v4.cpp
@@ -25,6 +25,7 @@
 #include "opdev/make_op_executor.h"
 #include "opdev/op_log.h"
 #include "opdev/platform.h"
+#include "mc2_aclnn_util.h"
 #include "matmul_all_reduce_util.h"
 #include "aclnn_kernels/contiguous.h"
 #include "matmul_all_reduce_util.h"
@@ -34,6 +35,13 @@ using namespace op;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+enum class NnopbaseHcclServerType : uint32_t {
+    NNOPBASE_HCCL_SERVER_TYPE_AICPU = 0,
+    NNOPBASE_HCCL_SERVER_TYPE_MTE,
+    NNOPBASE_HCCL_SERVER_TYPE_CCU,
+    NNOPBASE_HCCL_SERVER_TYPE_END
+};
 
 extern aclnnStatus aclnnInnerMatmulAllReduceGetWorkspaceSize(
     const aclTensor* x1, const aclTensor* x2, const aclTensor* bias, const aclTensor* x3,
@@ -47,6 +55,7 @@ extern aclnnStatus aclnnInnerMatmulAllReduce(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream);
 extern "C" uint64_t NnopbaseMsprofSysTime();
 extern "C" void NnopbaseReportApiInfo(const uint64_t beginTime, NnopbaseDfxId& dfxId);
+extern "C" void __attribute__((weak)) NnopbaseSetHcclServerType(void *executor, NnopbaseHcclServerType sType);
 
 // 根据API定义，需要列出所能支持的所有dtype
 static const std::initializer_list<op::DataType> DTYPE_SUPPORT_LIST_BIAS = {
@@ -218,6 +227,15 @@ static bool CheckShape(
     outShape.SetDim(x1Len - 1, x2Dim1);
     OP_CHECK_SHAPE_NOT_EQUAL_WITH_EXPECTED_SIZE(output, outShape, return false);
 
+    // 判断output是否为空tensor
+    if (output->IsEmpty()) {
+        OP_LOGE(
+            ACLNN_ERR_PARAM_INVALID, 
+            "Output is empty tensor, output shape is: %s",
+            op::ToString(output->GetViewShape()).GetString());
+        return false;
+    }
+
     // x1 shape [s,m,k], x2 shape [k,n], output shape [s,m,n], bias shape [n]
     if (bias != nullptr) {
         OP_CHECK_WRONG_DIMENSION(bias, ONE_DIM, return false);
@@ -315,30 +333,34 @@ aclnnStatus aclnnQuantMatmulAllReduceV4GetWorkspaceSize(
     int64_t antiquantGroupSize = 0;
     auto tempX2 = x2;
     if (op::GetCurrentPlatformInfo().GetSocVersion() != op::SocVersion::ASCEND310P && IsWeightNZFormat(x2)) {
-        if(x2->GetTensor() == nullptr){
+        if (x2->GetTensor() == nullptr) {
             OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Tensor of x2 is null.");
             return ACLNN_ERR_INNER_NULLPTR;
         }
         tempX2 = CopyTensor(x2);
     }
     auto transX2 = tempX2;
+    auto transX2Scale = x2Scale;
     if (transposeX2) {
-        if(tempX2->GetTensor() == nullptr){
+        if (tempX2->GetTensor() == nullptr) {
             OP_LOGE(ACLNN_ERR_INNER_NULLPTR, "Tensor is null.");
             return ACLNN_ERR_INNER_NULLPTR;
         }
         transX2 = QuantMatmulAllReduceTransTensor(tempX2);
+        // mxfp是3维scale，转置的是前两维，需要特殊判断，perblock场景复用判断转置接口
+        if (MC2Aclnn::IsNeedScaleTrans(x2Scale)) {
+            transX2Scale = QuantMatmulAllReduceTransTensor(x2Scale);
+        }
     }
 
     uint64_t yDtype = static_cast<uint64_t>(output->GetDataType());
     aclnnStatus ret = aclnnInnerMatmulAllReduceGetWorkspaceSize(
-        x1, transX2, biasOptional, x3Optional, scale, offset, dequant, x1ScaleOptional, commQuantScale1Optional,
+        x1, transX2, biasOptional, x3Optional, scale, offset, transX2Scale, x1ScaleOptional, commQuantScale1Optional,
         commQuantScale2Optional, group, reduceOp, transposeX1, transposeX2, commTurn, antiquantGroupSize, groupSize,
         yDtype, commQuantMode, output, workspaceSize, executor);
 
     OP_LOGI(
-        "Group=%s, reduce op=%s, transposeX1=%u, transposeX2=%u, ret=%d.", group, reduceOp, transposeX1, transposeX2,
-        ret);
+        "Group=%s, reduce op=%s, transposeX1=%u, transposeX2=%u, ret=%d.", group, reduceOp, transposeX1, transposeX2, ret);
     static NnopbaseDfxId dfxId = {0x60000, __func__, false};
     NnopbaseReportApiInfo(timeStamp, dfxId);
     return ret;
@@ -348,7 +370,11 @@ aclnnStatus aclnnQuantMatmulAllReduceV4(
     void* workspace, uint64_t workspaceSize, aclOpExecutor* executor, const aclrtStream stream)
 {
     uint64_t timeStamp = NnopbaseMsprofSysTime();
-
+    if (NnopbaseSetHcclServerType) {
+        if (op::GetCurrentPlatformInfo().GetSocVersion() == op::SocVersion::ASCEND910_95) {
+            NnopbaseSetHcclServerType(executor, NnopbaseHcclServerType::NNOPBASE_HCCL_SERVER_TYPE_CCU);
+        }
+    }
     aclnnStatus ret = aclnnInnerMatmulAllReduce(workspace, workspaceSize, executor, stream);
     OP_LOGD("QuantMatmulAllReduce, aclnnQuantMatmulAllReduceV4 ret=%d.", ret);
 
