@@ -38,6 +38,12 @@ using namespace CatlassKernel;
 
 namespace CatlassKernelWrapper {
 
+
+static const uint32_t Q_NUMHEAD_IND = 1;
+static const uint32_t Q_EMBEDDING_IND = 2;
+
+
+
 at::Tensor RunMLA(
     const at::Tensor &q,
     const at::Tensor &q_rope,
@@ -106,9 +112,9 @@ at::Tensor RunMLA(
     int32_t kvSeqLen = kv_seqlen;
 
     mlaKernelInfo.batch = batch;;
-    mlaKernelInfo.numHeads = q.sizes().at(1);
-    mlaKernelInfo.embeddingSize = q.sizes().at(2);
-    mlaKernelInfo.embeddingSizeRope = q_rope.sizes().at(2);
+    mlaKernelInfo.numHeads = q.sizes().at(Q_NUMHEAD_IND);
+    mlaKernelInfo.embeddingSize = q.sizes().at(Q_EMBEDDING_IND);
+    mlaKernelInfo.embeddingSizeRope = q_rope.sizes().at(Q_EMBEDDING_IND);
     mlaKernelInfo.numTokens = batch * qSeqLen;
     mlaKernelInfo.kvHeads = 1;
     mlaKernelInfo.numBlocks = numBlocks;
@@ -209,9 +215,9 @@ std::vector<uint64_t> KernelGetKVSplit(
     int32_t kvSeqLen = kv_seqlen;
 
     mlaKernelInfo.batch = batch;
-    mlaKernelInfo.numHeads = q.sizes().at(1);
-    mlaKernelInfo.embeddingSize = q.sizes().at(2);
-    mlaKernelInfo.embeddingSizeRope = q_rope.sizes().at(2);
+    mlaKernelInfo.numHeads = q.sizes().at(Q_NUMHEAD_IND);
+    mlaKernelInfo.embeddingSize = q.sizes().at(Q_EMBEDDING_IND);
+    mlaKernelInfo.embeddingSizeRope = q_rope.sizes().at(Q_EMBEDDING_IND);
     mlaKernelInfo.numTokens = batch * qSeqLen;
     mlaKernelInfo.kvHeads = 1;
     mlaKernelInfo.numBlocks = numBlocks;

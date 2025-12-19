@@ -16,8 +16,6 @@
 #include "catlass/gemm/dispatch_policy.hpp"
 #include "catlass/gemm/gemm_type.hpp"
 
-#define NO_DUPLICATE 1 // Duplicate code is intentional to avoid cross-module dependency.
-
 #include "catlass/arch/cross_core_sync.hpp"
 #include "catlass/arch/resource.hpp"
 #include "catlass/epilogue/dispatch_policy.hpp"
@@ -26,6 +24,7 @@
 #include "epilogue/block/block_epilogue.hpp"
 
 #include "kernel_common.hpp"
+
 
 using namespace Catlass;
 /*
@@ -63,6 +62,21 @@ public:
     static constexpr uint32_t KV_SPLIT_MAX = EpilogueMLAFDRescaleO::KV_SPLIT_MAX;
     static constexpr uint32_t HEADS_PROCESS_MAX = EpilogueMLAFDRescaleO::HEADS_PROCESS_MAX;
     static constexpr uint32_t COMPUTE_ELE_NUM = EpilogueMLAFDRescaleO::COMPUTE_ELE_NUM;;
+
+    static constexpr uint32_t TILING_OFFSET_KVSEQLEN = 2;
+    static constexpr uint32_t TILING_OFFSET_QADDRHIGH = 4;
+    static constexpr uint32_t TILING_OFFSET_QADDRLOW = 5;
+    static constexpr uint32_t TILING_OFFSET_QROPEADDRHIGH = 6;
+    static constexpr uint32_t TILING_OFFSET_QROPEADDRLOW = 7;
+    static constexpr uint32_t TILING_OFFSET_OADDRHIGH = 4;
+    static constexpr uint32_t TILING_OFFSET_OADDRLOW = 5;
+    static constexpr uint32_t TILING_OFFSET_LADDRHIGH = 11;
+    static constexpr uint32_t TILING_OFFSET_LADDRLOW = 12;
+    static constexpr uint32_t TILING_OFFSET_OFDADDRHIGH = 13;
+    static constexpr uint32_t TILING_OFFSET_OFDADDRLOW = 14;
+
+    static constexpr uint32_t ADDR_HALF_WIDTH = 32;
+    static constexpr uint32_t MOD_2 = 2;
 
     /// Parameters structure
     struct Params {
@@ -172,7 +186,7 @@ public:
             uint32_t offsetTiling = tilingHeadSize + tilingParaSize * taskIdx;
             uint32_t curBatch = gTiling.GetValue(offsetTiling);
             uint32_t curTokenWiseOffset = gTiling.GetValue(offsetTiling + 1);
-            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
+            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + TILING_OFFSET_KVSEQLEN);
             uint64_t gmOffsetQ = (uint64_t)(curTokenWiseOffset * strideQO);
             uint64_t gmOffsetQRope = (uint64_t)(curTokenWiseOffset * strideQORope);
 
@@ -214,7 +228,7 @@ public:
                     LayoutK layoutKRope(embedRope, stackSeqTile);
                     LayoutS layoutS(rowNumRound, stackSeqTileRound);
                     GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed + embedRope};
-                    uint32_t gSPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM) % 2;
+                    uint32_t gSPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM) % MOD_2;
                     uint64_t gmOffseS =
                         (uint64_t)coreIdx * TMP_SIZE_DECODER * 4 + (uint64_t)gSPingPongFlag * TMP_SIZE_DECODER * 2;
                     // Calculate Q * K^T
@@ -236,7 +250,7 @@ public:
                     LayoutV layoutV(stackSeqTile, embed);
                     LayoutOTmp layoutOTmp(rowNumRound, embedRound);;
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
-                    uint32_t gPPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % 2;
+                    uint32_t gPPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % MOD_2;
                     uint64_t gmOffseP = (uint64_t)coreIdx * TMP_SIZE * 2 + (uint64_t)gPPingPongFlag * TMP_SIZE;
                     uint64_t gmOffseOtmp = gmOffseP;
                     // Calculate P * V
@@ -255,7 +269,7 @@ public:
             uint32_t offsetTiling = tilingHeadSize + tilingParaSize * process;
             uint32_t curBatch = gTiling.GetValue(offsetTiling);
             uint32_t curTokenWiseOffset = gTiling.GetValue(offsetTiling + 1);
-            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
+            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + TILING_OFFSET_KVSEQLEN);
             uint64_t gmOffsetQ = (uint64_t)(curTokenWiseOffset * strideQO);
             uint64_t gmOffsetQRope = (uint64_t)(curTokenWiseOffset * strideQORope);
 
@@ -286,7 +300,7 @@ public:
                     LayoutK layoutKRope(embedRope, stackSeqTile);
                     LayoutS layoutS(rowNumRound, stackSeqTileRound);
                     GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed + embedRope};
-                    uint32_t gSPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM) % 2;
+                    uint32_t gSPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM) % MOD_2;
                     uint64_t gmOffseS =
                         (uint64_t)coreIdx * TMP_SIZE_DECODER * 4 + (uint64_t)gSPingPongFlag * TMP_SIZE_DECODER * 2;
                     // Calculate Q * K^T
@@ -307,7 +321,7 @@ public:
                     LayoutV layoutV(stackSeqTile, embed);
                     LayoutOTmp layoutOTmp(rowNumRound, embedRound);
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
-                    uint32_t gPPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % 2;
+                    uint32_t gPPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % MOD_2;
                     uint64_t gmOffseP = (uint64_t)coreIdx * TMP_SIZE * 2 + (uint64_t)gPPingPongFlag * TMP_SIZE;
                     uint64_t gmOffseOtmp = gmOffseP;
                     // Calculate P * V
@@ -406,7 +420,7 @@ public:
             uint32_t offsetTiling = tilingHeadSize + tilingParaSize * taskIdx;
             uint32_t curBatch = gTiling.GetValue(offsetTiling);
             uint32_t curTokenWiseOffset = gTiling.GetValue(offsetTiling + 1);
-            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
+            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + TILING_OFFSET_KVSEQLEN);
             uint64_t gmOffsetO = curTokenWiseOffset * qHeads * embed;
             if (kvSeqlen == 0) {
                 continue;;
@@ -429,12 +443,12 @@ public:
             uint32_t oFdOffset = 0;
             uint32_t lOffset = 0;
 
-            uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + 11);
-            uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + 12);
-            uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
-            uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
-            uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
-            uint64_t fdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);
+            uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRHIGH);
+            uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRLOW);
+            uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << ADDR_HALF_WIDTH | lAddrLow32);
+            uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRHIGH);
+            uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRLOW);
+            uint64_t fdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << ADDR_HALF_WIDTH | oFdAddrLow32);
             uint32_t headIdx = AscendC::GetSubBlockIdx() * qHeads / 2;
             oFdOffset = fdAddr * kvSplitCoreNum + headIdx * embed * kvSplitCoreNum + curNIdx * embed;
             lOffset = lAddr + headIdx * kvSplitCoreNum + curNIdx;
@@ -478,7 +492,7 @@ public:
                     LayoutUpdate layoutUpdate(rowNum, embed, embedRound);
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
                     uint32_t isLastNTile = (nIdx >= nLoop) ? 1 : 0;
-                    uint32_t rescaleOPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % 2;
+                    uint32_t rescaleOPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % MOD_2;
                     uint64_t gmOffsetOTmp = (uint64_t)(coreIdx * TMP_SIZE * 2 + rescaleOPingPongFlag * TMP_SIZE);
                     uint64_t gmOffsetUpdate = (uint64_t)(coreIdx * TMP_SIZE);
                     // Softmax two-stage update
@@ -499,7 +513,7 @@ public:
             uint32_t offsetTiling = tilingHeadSize + tilingParaSize * process;
             uint32_t curBatch = gTiling.GetValue(offsetTiling);
             uint32_t curTokenWiseOffset = gTiling.GetValue(offsetTiling + 1);
-            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
+            uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + TILING_OFFSET_KVSEQLEN);
             uint64_t gmOffsetO = curTokenWiseOffset * qHeads * embed;
             if (kvSeqlen == 0) {
                 continue;
@@ -513,12 +527,12 @@ public:
             
             uint32_t curNIdx = process;
 
-            uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + 11);
-            uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + 12);
-            uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
-            uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
-            uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
-            uint64_t fdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);
+            uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRHIGH);
+            uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRLOW);
+            uint64_t lAddr = (uint64_t)(((uint64_t)lAddrHigh32) << ADDR_HALF_WIDTH | lAddrLow32);
+            uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRHIGH);
+            uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRLOW);
+            uint64_t fdAddr = (uint64_t)(((uint64_t)oFdAddrHigh32) << ADDR_HALF_WIDTH | oFdAddrLow32);
             uint32_t headIdx = AscendC::GetSubBlockIdx() * qHeads / 2;
             oFdOffset = fdAddr * kvSplitCoreNum + headIdx * embed * kvSplitCoreNum + curNIdx * embed;
             lOffset = lAddr + headIdx * kvSplitCoreNum + curNIdx;
@@ -541,10 +555,10 @@ public:
                     GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed};
                     uint32_t gmOffsetP = (uint64_t)coreIdx * TMP_SIZE * 2 +
                                          (uint64_t)subBlockIdx * rowNum / 2 * stackSeqTileRound +
-                                         (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % 2) * TMP_SIZE;
+                                         (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % MOD_2) * TMP_SIZE;
                     uint32_t gmOffsetS = (int64_t)coreIdx * TMP_SIZE_DECODER * 4 +
                                          (int64_t)subBlockIdx * rowNum / 2 * stackSeqTileRound +
-                                         (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % 2) * TMP_SIZE_DECODER * 2;
+                                         (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % MOD_2) * TMP_SIZE_DECODER * 2;
                     // Softmax one-stage calculation
                     epilogueMLATP1Softmax(gP[gmOffsetP], gS[gmOffsetS], layoutP,
                                           layoutS, actualBlockShapeQK, nIdx, glFlag);
@@ -565,7 +579,7 @@ public:
                     LayoutUpdate layoutUpdate(rowNum, embed, embedRound);
                     GemmCoord actualBlockShapePV{rowNum, embed, stackSeqTile};
                     uint32_t isLastNTile = (nIdx >= nLoop) ? 1 : 0;
-                    uint32_t rescaleOPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % 2;
+                    uint32_t rescaleOPingPongFlag = (nIdx / UNIT_BLOCK_STACK_NUM - 1) % MOD_2;
                     uint64_t gmOffsetOTmp = (uint64_t)(coreIdx * TMP_SIZE * 2 + rescaleOPingPongFlag * TMP_SIZE);
                     uint64_t gmOffsetUpdate = (uint64_t)(coreIdx * TMP_SIZE);
                     // Softmax two-stage update
@@ -616,7 +630,7 @@ public:
                 uint32_t loopIdxInBatch = loopIdx % loopsPerBatch;
 
                 uint32_t offsetTiling = tilingHeadSize + tilingParaSize * taskIdx;
-                uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + 2);
+                uint32_t kvSeqlen = gTiling.GetValue(offsetTiling + TILING_OFFSET_KVSEQLEN);
 
                 if (kvSeqlen == 0) {
                     continue;
@@ -624,12 +638,12 @@ public:
 
                 uint32_t curTokenWiseOffset = gTiling.GetValue(offsetTiling + 1);
                 uint64_t oAddr = curTokenWiseOffset * qHeads * embed;
-                uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + 11);
-                uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + 12);
-                uint64_t lOffset = (uint64_t)(((uint64_t)lAddrHigh32) << 32 | lAddrLow32);
-                uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + 13);
-                uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + 14);
-                uint64_t oFdOffset = (uint64_t)(((uint64_t)oFdAddrHigh32) << 32 | oFdAddrLow32);;
+                uint32_t lAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRHIGH);
+                uint32_t lAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_LADDRLOW);
+                uint64_t lOffset = (uint64_t)(((uint64_t)lAddrHigh32) << ADDR_HALF_WIDTH | lAddrLow32);
+                uint32_t oFdAddrHigh32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRHIGH);
+                uint32_t oFdAddrLow32 = gTiling.GetValue(offsetTiling + TILING_OFFSET_OFDADDRLOW);
+                uint64_t oFdOffset = (uint64_t)(((uint64_t)oFdAddrHigh32) << ADDR_HALF_WIDTH | oFdAddrLow32);;
 
                 uint32_t actualHeads = headsProcess;
                 if (loopIdxInBatch == loopsPerBatch - 1) {
@@ -652,7 +666,6 @@ private:
     Arch::CrossCoreFlag softmaxReady{SOFTMAX_READY_ID};
     Arch::CrossCoreFlag pvReady{PV_READY_ID};
 };
-
 
 CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
                                 GM_ADDR q, GM_ADDR qRope,
@@ -686,7 +699,7 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     using LayoutUpdate = layout::RowMajor;
 
     // L1TileShape::K must be embdding
-    using L1TileShape = GemmShape<128, 128, 576>;;
+    using L1TileShape = GemmShape<L1_TILE_DIM_0, L1_TILE_DIM_1, L1_TILE_DIM_2>;;
     using L0TileShape = L1TileShape;
 
     // GEMM Block模块，实现Flash MLA的Q * K^T
@@ -770,7 +783,7 @@ CATLASS_GLOBAL void MLATp1SpecBf16(uint64_t fftsAddr,
     using LayoutUpdate = layout::RowMajor;
 
     // L1TileShape::K must be embdding
-    using L1TileShape = GemmShape<128, 128, 576>;
+    using L1TileShape = GemmShape<L1_TILE_DIM_0, L1_TILE_DIM_1, L1_TILE_DIM_2>;
     using L0TileShape = L1TileShape;
 
     // GEMM Block模块，实现Flash MLA的Q * K^T

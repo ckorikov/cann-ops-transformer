@@ -18,6 +18,11 @@
 
 namespace CatlassKernel {
 
+const uint32_t TILINGKEY_FP16 = 0;
+const uint32_t TILINGKEY_BFP16 = 1;
+const uint32_t TILINGKEY_TP1_SPEC_FP16 = 4;
+const uint32_t TILINGKEY_TP1_SPEC_BFP16 = 5;
+
 void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInfo)
 {
     // construct MLAInfo on host
@@ -91,22 +96,22 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
 
     // use Tp1Spec kernel to get better performance when numHeads = 128
     switch (tilingKey) {
-        case 0:
+        case TILINGKEY_FP16:
             MLAFp16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
                                                    blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
                                                    globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
             break;
-        case 1:
+        case TILINGKEY_BFP16:
             MLABf16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
                                                    blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
                                                    globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
             break;
-        case 4:
+        case TILINGKEY_TP1_SPEC_FP16:
             MLATp1SpecFp16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
                                                           blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
                                                           globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
             break;
-        case 5:
+        case TILINGKEY_TP1_SPEC_BFP16:
             MLATp1SpecBf16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
                                                           blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
                                                           globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
