@@ -187,13 +187,10 @@ def benchmark_quest_block_select_paged(custom_kernel: Callable, dtype: torch.dty
             input_sets = []
             for i in range(n_warmup + n_repeat):
                 query, maxblocks, minblocks, metadata_block_tables, seq_lens = \
-                    gen_quest_paged_inputs(
-                        b, h, n, BLOCK_SIZE, HEAD_DIM,
+                    gen_quest_paged_inputs(b, h, n, BLOCK_SIZE, HEAD_DIM,
                         num_meta_blocks=b * mmbpr,
-                        mmbpr=mmbpr,
-                        same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
-                        device="npu:0", 
-                        dtype=dtype)
+                        mmbpr=mmbpr, same_seq_len_all_reqs=SAME_SEQ_LEN_ALL_REQS,
+                        device="npu:0", dtype=dtype)
                 input_sets.append((query, maxblocks, minblocks, metadata_block_tables, seq_lens))
             
             # Reference implementation - Warm-up runs
@@ -209,15 +206,15 @@ def benchmark_quest_block_select_paged(custom_kernel: Callable, dtype: torch.dty
             end = torch.npu.Event(enable_timing=True)
             
             start.record()
-            for i in range(n_warmup, n_warmup + n_repeat):
-                query, maxblocks, minblocks, metadata_block_tables, seq_lens = input_sets[i]
+            for repetition in range(n_warmup, n_warmup + n_repeat):
+                query, maxblocks, minblocks, metadata_block_tables, seq_lens = input_sets[repetition]
                 ref_quest_block_select_paged(query, maxblocks, minblocks, metadata_block_tables, seq_lens, k)
             end.record()
             torch.npu.synchronize()
             
             ref_duration = start.elapsed_time(end) / n_repeat * 1000  # ms to μs
-            total_bytes = bytes_moved_paged_select(b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k, seq_lens)
-            ref_bw = total_bytes / ref_duration / 1e6  # TB/s
+            total_bytes_moved = bytes_moved_paged_select(b, h, n, BLOCK_SIZE, HEAD_DIM, mmbpr, k, seq_lens)
+            ref_bw = total_bytes_moved / ref_duration / 1e6  # TB/s
         
         ####### Print results #######
         max_seq_len = mmbpr * BLOCK_SIZE * BLOCK_SIZE
@@ -227,17 +224,14 @@ def benchmark_quest_block_select_paged(custom_kernel: Callable, dtype: torch.dty
             print(f"{ref_duration:>18.2f} ", end='')
         else:
             print(f"{'N/A':>18} ", end='')
-        
         if run_our and our_duration is not None:
             print(f"{our_duration:>18.2f} ", end='')
         else:
             print(f"{'N/A':>18} ", end='')
-        
         if run_ref and ref_bw is not None:
             print(f"{ref_bw:>16.3f} ", end='')
         else:
             print(f"{'N/A':>16} ", end='')
-        
         if run_our and our_bw is not None:
             print(f"{our_bw:>16.3f}")
         else:

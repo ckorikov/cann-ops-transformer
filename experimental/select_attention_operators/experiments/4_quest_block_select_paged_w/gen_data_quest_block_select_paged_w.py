@@ -99,28 +99,26 @@ def compare_indices(reference: torch.Tensor, custom: torch.Tensor, tol_percentag
      True <--> reference and custom contain the same (within tolerance)
     """
 
-    sorted_reference = torch.sort(reference, dim=-1).values
     sorted_custom = torch.sort(custom, dim=-1).values
+    sorted_reference = torch.sort(reference, dim=-1).values
 
     # Precompute the difference count: number of elements in custom not in reference for each [b, n]
     batch_size, num_kv_heads, k = reference.shape
     diff_count = torch.zeros((batch_size, num_kv_heads), dtype=torch.int32, device=reference.device)
-
     tol_count = int(math.ceil(batch_size * num_kv_heads * k * tol_percentage))
 
-    # Iterate over each element in the batch and the second dimension
     for b in range(batch_size):
         for n in range(num_kv_heads):
             ref_set = set(reference[b, n].cpu().numpy())
             custom_set = set(custom[b, n].cpu().numpy())
             diff_count[b, n] = len(ref_set - custom_set)
-    n_violating_elems = diff_count.sum().sum()
+    n_incorrect_items = diff_count.sum().sum()
     
     # test summary
-    test_ok = n_violating_elems <= tol_count
+    test_ok = n_incorrect_items <= tol_count
     if verbose: 
         print(f"{'PASSED' if test_ok else 'FAILED'} - ", end='')
-        print(f"{n_violating_elems}/{reference.numel()} indices are incorrect (allowed:{tol_count})")    
+        print(f"{n_incorrect_items}/{reference.numel()} indices are incorrect (allowed:{tol_count})")    
     
     return test_ok
 

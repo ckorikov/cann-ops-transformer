@@ -59,26 +59,26 @@ constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_FLOAT_V220 = 2;
  * @param [in] MMBPR Maximum number of metadata blocks per request
  */
 extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
-    GM_ADDR query,
-    GM_ADDR maxblocks,
-    GM_ADDR minblocks,
-    GM_ADDR metadata_block_tables,
-    GM_ADDR seq_lens,
-    GM_ADDR selected_indices,
-    int32_t B,
-    int32_t N,
-    int32_t H,
-    int32_t BLOCK_SIZE,
-    int32_t D,
-    int32_t MMBPR,
-    int32_t num_meta_blocks,
-    int32_t tokens_since_metadata_update,
-    int32_t k)
+     GM_ADDR query,
+     GM_ADDR maxblocks,
+     GM_ADDR minblocks,
+     GM_ADDR metadata_block_tables,
+     GM_ADDR seq_lens,
+     GM_ADDR selected_indices,
+     int32_t B,
+     int32_t N,
+     int32_t H,
+     int32_t BLOCK_SIZE,
+     int32_t D,
+     int32_t MMBPR,
+     int32_t num_meta_blocks,
+     int32_t tokens_since_metadata_update,
+     int32_t k)
 
 {
     AscendC::SetAtomicNone();
     
-    // Tile across AI cores - each core processes one batch*N combination
+    // Tiling strategy - each core processes one batch*N combination
     int32_t num_blocks = AscendC::GetBlockNum() * AscendC::GetTaskRation();
     int32_t num_batch_heads = B * N;
     int32_t num_batch_heads_per_block = DIV_ROUNDUP(num_batch_heads, num_blocks);
@@ -151,13 +151,12 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
 
     for (int32_t batch_head_idx = AscendC::GetBlockIdx(); batch_head_idx < num_batch_heads; batch_head_idx += num_blocks) {
 
-        int32_t batch_idx = batch_head_idx / N; 
         int32_t head_idx = batch_head_idx % N;  // kv-head aka kv-group index within the batch index
         int32_t query_head_start_idx = head_idx * G; // index of the first query-head of the current kv-head
+        int32_t batch_idx = batch_head_idx / N; 
 
         // Calculate GM offsets specific to the current batch_head_idx
         int32_t query_offset = batch_idx * H * D + query_head_start_idx * D;
-        int32_t metadata_block_table_offset = batch_idx * MMBPR;
         int32_t output_offset = batch_head_idx * k;
 
         // Step 1: Load sequence length and metadata block table for this request
@@ -433,15 +432,14 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
 
         // Calculate GM offsets specific to the current batch_head_idx
         int32_t query_offset = batch_idx * H * D + query_head_start_idx * D;
-        int32_t metadata_block_table_offset = batch_idx * MMBPR;
         int32_t output_offset = batch_head_idx * k;
 
-        // Step 1: Load sequence length and metadata block table for this request
+        // Load sequence length and metadata block table for this request
         int32_t seq_len = seq_lens_gm.GetValue(batch_idx);
         int32_t num_tokens_per_meta_block = BLOCK_SIZE * BLOCK_SIZE;
         int32_t num_meta_blocks_in_request = DIV_ROUNDUP(seq_len, num_tokens_per_meta_block);
 
-        // Step 2: Reduce queries across H dimension to get grouped_query [B,N,D]
+        // Reduce queries across H dimension to get grouped_query [B,N,D]
         uint16_t query_copy_block_len = NUM_DATA_BLOCKS(G * D * sizeof(half));
         auto query_copy_params = AscendC::DataCopyParams(1, query_copy_block_len, 0, 0);
         AscendC::DataCopy(query_lt, query_gm[query_offset], query_copy_params);
@@ -460,11 +458,11 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
         half scale = (half)((float)1.0 / (float)G);
         AscendC::Muls<half>(grouped_query_lt, grouped_query_lt, scale, D);
 
-        // Step 3: Initialize accumulated scores buffer
+        // Initialize accumulated scores buffer
         AscendC::Duplicate(accumulated_scores_lt, (half)(MINHALF), MMBPR * num_meta_blocks_in_request);
         AscendC::PipeBarrier<PIPE_V>();
 
-        // Step 4: Process each metadata block for this request-head pair
+        // Process each metadata block for this request-head pair
         for (int32_t meta_blk = 0; meta_blk < num_meta_blocks_in_request; meta_blk++) {
             int32_t meta_blk_id = metadata_block_tables_gm.GetValue(batch_idx * MMBPR + meta_blk);
             

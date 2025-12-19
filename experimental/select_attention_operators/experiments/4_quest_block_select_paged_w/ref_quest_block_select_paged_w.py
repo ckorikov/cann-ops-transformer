@@ -72,27 +72,26 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
     num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
     mmbpr = metadata_block_tables.shape[1]
     
-    assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}"
+    if query.dtype == torch.bfloat16: query = query.float()   
 
-    if query.dtype == torch.bfloat16:
-        query = query.float()    
+    assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}" 
     
     # Output tensor for selected indices
     selected_indices = torch.zeros(batch_size, num_kv_heads, k, dtype=torch.int32, device=query.device) - 1
     
-    # Step 1: Reduce query across num_heads dimension to get grouped_query [batch_size, num_kv_heads, head_dim]
-    heads_per_group = num_heads // num_kv_heads
+    # Reduce query across num_heads dimension to get grouped_query [batch_size, num_kv_heads, head_dim]
+    group_size = num_heads // num_kv_heads
     grouped_query = torch.zeros(batch_size, num_kv_heads, head_dim, dtype=query.dtype, device=query.device)
     
     for group in range(num_kv_heads):
         # Sum all heads in this group
         group_sum = torch.zeros(batch_size, head_dim, dtype=query.dtype, device=query.device)
-        for n in range(heads_per_group):
-            head_idx = group * heads_per_group + n
+        for n in range(group_size):
+            head_idx = group * group_size + n
             group_sum += query[:, head_idx, :]
         
         # Average to get grouped query
-        grouped_query[:, group, :] = group_sum / heads_per_group
+        grouped_query[:, group, :] = group_sum / group_size
     
     # Step 2: Process each batch and head
     for b in range(batch_size):
@@ -175,20 +174,21 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
     """
     FAST paged quest reference functionality - vectorized implementation
     """
-    batch_size, num_heads, head_dim = query.shape
-    num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
     mmbpr = metadata_block_tables.shape[1]
+    num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
+    batch_size, num_heads, head_dim = query.shape
+
+    if query.dtype == torch.bfloat16:
+        query = query.float()
     
     assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}"
     
     # Step 1: Reduce query across num_heads dimension to get grouped_query [batch_size, num_kv_heads, head_dim]
-    heads_per_group = num_heads // num_kv_heads
+    group_size = num_heads // num_kv_heads
 
-    if query.dtype == torch.bfloat16:
-        query = query.float()
 
     # [batch_size, num_kv_heads, head_dim]
-    grouped_query = query.view(batch_size, num_kv_heads, heads_per_group, head_dim).mean(dim=2)  
+    grouped_query = query.view(batch_size, num_kv_heads, group_size, head_dim).mean(dim=2)  
 
     # Output tensor for selected indices
     selected_indices = torch.zeros(batch_size, num_kv_heads, k, dtype=torch.int32, device=query.device) - 1

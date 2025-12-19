@@ -211,25 +211,17 @@ def benchmark_quest_prefill():
         ####### Print results #######
         print(f"{n:>3} {b:>3} {seq_len:>10} {are_equal:>15} ", end='')
         
-        if run_ref and ref_duration is not None:
-            print(f"{ref_duration:>18.2f} ", end='')
-        else:
-            print(f"{'N/A':>18} ", end='')
+        if run_ref and ref_duration is not None: print(f"{ref_duration:>18.2f} ", end='')
+        else: print(f"{'N/A':>18} ", end='')
         
-        if run_our and our_duration is not None:
-            print(f"{our_duration:>18.2f} ", end='')
-        else:
-            print(f"{'N/A':>18} ", end='')
+        if run_our and our_duration is not None: print(f"{our_duration:>18.2f} ", end='')
+        else: print(f"{'N/A':>18} ", end='')
         
-        if run_ref and ref_bw is not None:
-            print(f"{ref_bw:>16.3f} ", end='')
-        else:
-            print(f"{'N/A':>16} ", end='')
+        if run_ref and ref_bw is not None: print(f"{ref_bw:>16.3f} ", end='')
+        else: print(f"{'N/A':>16} ", end='')
         
-        if run_our and our_bw is not None:
-            print(f"{our_bw:>16.3f}")
-        else:
-            print(f"{'N/A':>16}")
+        if run_our and our_bw is not None: print(f"{our_bw:>16.3f}")
+        else: print(f"{'N/A':>16}")
 
     print("=" * 106)
 

@@ -93,23 +93,14 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
     for b in range(batch_size):
         # Determine how many metadata blocks are valid for this request
         num_valid_blocks = ceil_div(seq_lens[b].item(), block_size * block_size)
-        num_valid_blocks = min(num_valid_blocks, mmbpr)  # Cap at mmbpr
-        
-        # Collect all block scores for this batch across all valid blocks
-        all_block_scores = []
+        num_valid_blocks = min(num_valid_blocks, mmbpr)
 
         for n in range(num_kv_heads):
-            # Get current grouped query vector
             current_query = grouped_query[b, n, :]  # Shape: (head_dim,)
-            
-            # Process each valid metadata block
             all_scores = torch.zeros(num_valid_blocks * block_size, dtype=torch.float16, device=query.device)
             
             for block_idx in range(num_valid_blocks):
-                # Get the actual metadata block index
                 meta_block_id = metadata_block_tables[b, block_idx].item()
-
-                # Get max and min blocks for this metadata block
                 maxblock = maxblocks[meta_block_id, :, n, :]  # (block_size, head_dim)
                 minblock = minblocks[meta_block_id, :, n, :]  # (block_size, head_dim)
 
@@ -117,14 +108,13 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
                     maxblock = maxblock.float()                
                 if minblock.dtype == torch.bfloat16:
                     minblock = minblock.float()      
-                     
-                
+
                 # Elementwise multiply grouped_query with maxblock and minblock
-                product_max = current_query.unsqueeze(0) * maxblock  # (block_size, head_dim)
-                product_min = current_query.unsqueeze(0) * minblock  # (block_size, head_dim)
+                prod_max = current_query.unsqueeze(0) * maxblock  # (block_size, head_dim)
+                prod_min = current_query.unsqueeze(0) * minblock  # (block_size, head_dim)
                 
-                # Elementwise max between product_min and product_max
-                channel_max_product = torch.maximum(product_max, product_min)  # (block_size, head_dim)
+                # Elementwise max between prod_min and prod_max
+                channel_max_product = torch.maximum(prod_max, prod_min)  # (block_size, head_dim)
                 
                 # Reduce sum the last dimension (head_dim to 1)
                 scores = torch.sum(channel_max_product, dim=1)  # (block_size,)
@@ -190,11 +180,11 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         batch_query_reshaped = batch_query.unsqueeze(0).unsqueeze(0)  # [1, 1, num_kv_heads, head_dim]
         
         # Elementwise multiply [num_valid_blocks, block_size, num_kv_heads, head_dim]
-        product_max = batch_query_reshaped * relevant_maxblocks
-        product_min = batch_query_reshaped * relevant_minblocks
+        prod_max = batch_query_reshaped * relevant_maxblocks
+        prod_min = batch_query_reshaped * relevant_minblocks
         
         # Elementwise max [num_valid_blocks, block_size, num_kv_heads, head_dim]
-        channel_max_product = torch.maximum(product_max, product_min)
+        channel_max_product = torch.maximum(prod_max, prod_min)
         
         # Reduce sum along head_dim dimension [num_valid_blocks, block_size, num_kv_heads]
         block_scores = torch.sum(channel_max_product, dim=-1)

@@ -16,8 +16,8 @@ from ascendc_extension import ascendc_extension
 CURRENT_DIR = os.path.dirname(__file__)
 
 PACKAGE_NAME = 'select_attn_decoding_ops'
-VERSION='0.3.1'
-num_cores=os.environ.get('NUM_CORES', 0)
+VERSION = '0.3.1'
+num_cores = os.environ.get('NUM_CORES', 0)
 
 setup(
     name=PACKAGE_NAME,
@@ -26,7 +26,7 @@ setup(
         ascendc_extension(
             name=PACKAGE_NAME,
             sources=['torch_interface.cpp'],
-            extra_library_dirs=[os.path.join(CURRENT_DIR, 'lib')],  # location of custom lib{name}.so file
+            extra_library_dirs=[os.path.join(CURRENT_DIR, 'lib')],  # location of custom lib{name}.so 
             extra_libraries=['quest_block_select', 'quest_block_select_paged'],  # names of custom lib{name}.so files
             extra_link_args=[
                 '-L', os.path.join(CURRENT_DIR, 'lib'),  # Linker path to the shared library dir
