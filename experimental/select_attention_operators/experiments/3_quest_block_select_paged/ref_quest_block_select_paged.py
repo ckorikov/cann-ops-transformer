@@ -200,7 +200,8 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         block_scores = torch.sum(channel_max_product, dim=-1)
         
         # Reshape to combine blocks and block_size [num_valid_blocks * block_size, num_kv_heads]
-        all_scores = block_scores.permute(2, 0, 1).reshape(num_kv_heads, -1)  # [num_kv_heads, num_valid_blocks * block_size]
+        # [num_kv_heads, num_valid_blocks * block_size]
+        all_scores = block_scores.permute(2, 0, 1).reshape(num_kv_heads, -1)
 
         # Get top-k indices from the global indices
         eff_num_scores = all_scores.shape[-1]

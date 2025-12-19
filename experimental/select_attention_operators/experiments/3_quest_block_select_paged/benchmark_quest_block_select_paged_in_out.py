@@ -89,7 +89,8 @@ def benchmark_quest_block_select_paged():
     print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 124)
     print(f"{'num_heads':>3} {'num_kv_heads':>3} {'batch_size':>3} {'mmbpr':>6} {'Max_seq_len':>12} {'k':>4} "
-          f"{'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
+          f"{'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} "
+          f"{'Our_BW_[TB/sec]':>16}")
     print("-" * 124)
 
     for b, h, n, mmbpr, k in itertools.product(batch_size_vals, num_heads_vals, num_kv_heads_vals, mmbpr_vals, k_vals):
@@ -130,7 +131,8 @@ def benchmark_quest_block_select_paged():
             for i in range(n_warmup):
                 query, maxblocks, minblocks, metadata_block_tables, seq_lens = input_sets[i]
                 if run_our:
-                    quest_block_select_paged_in_out(query, maxblocks, minblocks, metadata_block_tables, seq_lens, our_ids)
+                    quest_block_select_paged_in_out(query, maxblocks, minblocks, metadata_block_tables, seq_lens, 
+                                                    our_ids)
                 if run_ref:
                     ref_quest_block_select_paged(query, maxblocks, minblocks, metadata_block_tables, seq_lens, k)
             torch.npu.synchronize()

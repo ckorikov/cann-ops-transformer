@@ -131,7 +131,7 @@ parameter_sets = construct_quest_paged_parameter_sets(custom_kernel_vals=[quest_
 
 
 @torch.inference_mode()
-def test_quest_paged_basic(custom_kernel: Callable,dtype: torch.dtype, batch_size: int, num_heads: int, 
+def test_quest_paged_basic(custom_kernel: Callable, dtype: torch.dtype, batch_size: int, num_heads: int, 
                            num_kv_heads: int, block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(custom_kernel, dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
@@ -155,7 +155,7 @@ parameter_sets = construct_quest_paged_parameter_sets(custom_kernel_vals=[quest_
 
 
 @torch.inference_mode()
-def test_quest_paged_edge_cases(custom_kernel: Callable,dtype: torch.dtype, batch_size: int, num_heads: int, 
+def test_quest_paged_edge_cases(custom_kernel: Callable, dtype: torch.dtype, batch_size: int, num_heads: int, 
                                 num_kv_heads: int, block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(custom_kernel, dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
@@ -179,7 +179,7 @@ parameter_sets = construct_quest_paged_parameter_sets(custom_kernel_vals=[quest_
 
 
 @torch.inference_mode()
-def test_quest_paged_extensive(custom_kernel: Callable,dtype: torch.dtype, batch_size: int, num_heads: int, 
+def test_quest_paged_extensive(custom_kernel: Callable, dtype: torch.dtype, batch_size: int, num_heads: int, 
                                num_kv_heads: int, block_size: int, head_dim: int, mmbpr: int, k: int) -> None:
     test_quest_paged_kernel(custom_kernel, dtype, batch_size, num_heads, num_kv_heads, block_size, head_dim, mmbpr, k)
 
