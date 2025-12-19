@@ -2674,7 +2674,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::ProcessLastSouter
             this->copyOutPrevIter = false;
             return;
         }
-        LocalTensor<float> softmaxSumTmp = this->softmaxExpUb_.template Get<float>(this->softmaxSumSize);
+        LocalTensor<float> softmaxSumTmp = this->softmaxExpBuff_.template Get<float>(this->softmaxSumSize);
         LocalTensor<computeType> bmm2ResPreUb = this->tempBmm2Buff_.template Get<computeType>(this->bmm2ResUbSize);
         LocalTensor<computeType>& FinalResUb = bmm2ResPreUb;
         uint32_t resShapeSize;
