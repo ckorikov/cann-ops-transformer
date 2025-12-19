@@ -144,20 +144,21 @@ at::Tensor RunMLA(
     return result;
 }
 
+using ConstTensorRef = const at::Tensor&;
 std::vector<uint64_t> KernelGetKVSplit(
-    const at::Tensor &q,
-    const at::Tensor &q_rope,
-    const at::Tensor &k,
-    const at::Tensor &k_rope,
+    ConstTensorRef q,
+    ConstTensorRef q_rope,
+    ConstTensorRef k,
+    ConstTensorRef k_rope,
     const int32_t kv_seqlen,
     const std::vector<int32_t> &kv_seqlens,
-    const at::Tensor &block_table,
-    const at::Tensor &s,
-    const at::Tensor &p,
-    const at::Tensor &result_temp,
-    const at::Tensor &global_o,
-    const at::Tensor &l,
-    const at::Tensor &o_core_tmp,
+    ConstTensorRef block_table,
+    ConstTensorRef s,
+    ConstTensorRef p,
+    ConstTensorRef result_temp,
+    ConstTensorRef global_o,
+    ConstTensorRef l,
+    ConstTensorRef o_core_tmp,
     const std::string &dtype_str
 )
 {

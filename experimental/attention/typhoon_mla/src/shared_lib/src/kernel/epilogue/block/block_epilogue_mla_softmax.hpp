@@ -112,14 +112,14 @@ public:
         uint64_t temp = len % FLOAT_VECTOR_SIZE;
         for (int64_t i = 0; i < temp; i++) {
             mask |= one << i;
-        }
+        };
         if (len == VECTOR_SIZE) {
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         } else if (len >= FLOAT_VECTOR_SIZE) {
             AscendC::SetVectorMask<int8_t>(mask, (uint64_t)-1);
         } else {
             AscendC::SetVectorMask<int8_t>(0x0, mask);
-        }
+        };
     }
 
     CATLASS_DEVICE

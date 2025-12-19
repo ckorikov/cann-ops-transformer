@@ -41,14 +41,14 @@ public:
 
     using LayoutOutput = typename OutputType_::Layout;
     using LayoutUpdate = typename UpdateType_::Layout;
-    using LayoutInput = typename InputType_::Layout;
+    using LayoutInput = typename InputType_::Layout;;
 
     static constexpr uint32_t HALF_ELENUM_PER_BLK = 16;
     static constexpr uint32_t HALF_ELENUM_PER_VECCALC = 128;
     static constexpr uint32_t FLOAT_ELENUM_PER_VECCALC = 64;
     static constexpr uint32_t HALF_ELENUM_PER_LINE = 256;
     static constexpr uint32_t FLOAT_ELENUM_PER_LINE = 128;
-    static constexpr uint32_t MULTIPLIER = 2;
+    static constexpr uint32_t MULTIPLIER = 2;;
     static constexpr uint32_t FLOAT_BLOCK_SIZE = 8;
     static constexpr uint32_t FLOAT_VECTOR_SIZE = 64;
     static constexpr uint32_t UB_UINT8_LINE_SIZE = 512;

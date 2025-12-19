@@ -182,7 +182,7 @@ public:
             uint32_t kvSeqlenAlign = RoundUp(kvSeqlen, blockSize);
             uint32_t curNIdx = process % kvSplitCoreNum;
             uint32_t curKVSeqlen = kvSplitPerCore;
-            uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);
+            uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);;
             if (curNIdx >= kvLoop) {
                 continue;;
             }
@@ -451,7 +451,7 @@ public:
                     uint32_t stackSeqTileRound = RoundUp<BLOCK_SIZE>(stackSeqTile);;
                     LayoutP layoutP(rowNum, stackSeqTile, stackSeqTileRound);
                     LayoutS layoutS(rowNum, stackSeqTile, stackSeqTileRound);
-                    GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed};
+                    GemmCoord actualBlockShapeQK{rowNum, stackSeqTile, embed};;
                     uint32_t gmOffsetP = (uint64_t)coreIdx * TMP_SIZE * 2 +
                                          (uint64_t)subBlockIdx * rowNum / 2 * stackSeqTileRound +
                                          (uint64_t)((nIdx / UNIT_BLOCK_STACK_NUM) % 2) * TMP_SIZE;
@@ -655,24 +655,17 @@ private:
 
 
 CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
-                                GM_ADDR q,
-                                GM_ADDR qRope,
-                                GM_ADDR k,
-                                GM_ADDR kRope,
+                                GM_ADDR q, GM_ADDR qRope,
+                                GM_ADDR k, GM_ADDR kRope,
                                 GM_ADDR blockTables,
-                                GM_ADDR o,
-                                GM_ADDR s,
-                                GM_ADDR p,
-                                GM_ADDR oTmp,
-                                GM_ADDR oUpdate,
-                                GM_ADDR oCoreTmp,
-                                GM_ADDR l,
-                                GM_ADDR tiling)
+                                GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                                GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp,
+                                GM_ADDR l, GM_ADDR tiling)
 {
     // Set FFTS address
-    AscendC::SetSyncBaseAddr(fftsAddr);
+    AscendC::SetSyncBaseAddr(fftsAddr);;
 
-    using ArchTag = Arch::AtlasA2;
+    using ArchTag = Arch::AtlasA2;;
     using ElementQ = half;
     using LayoutQ = layout::RowMajor;
     using ElementK = half;
@@ -693,7 +686,7 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     using LayoutUpdate = layout::RowMajor;
 
     // L1TileShape::K must be embdding
-    using L1TileShape = GemmShape<128, 128, 576>;
+    using L1TileShape = GemmShape<128, 128, 576>;;
     using L0TileShape = L1TileShape;
 
     // GEMM Block模块，实现Flash MLA的Q * K^T
@@ -701,32 +694,32 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     using QType = Gemm::GemmType<ElementQ, LayoutQ>;
     using KType = Gemm::GemmType<ElementK, LayoutK>;
     using SType = Gemm::GemmType<ElementS, LayoutS>;
-    using BlockMmadQK = Gemm::Block::BlockMmad<DispatchPolicyQK, L1TileShape, L0TileShape, QType, KType, SType>;
+    using BlockMmadQK = Gemm::Block::BlockMmad<DispatchPolicyQK, L1TileShape, L0TileShape, QType, KType, SType>;;
 
     // Epilogue Block模块，实现Flash MLA中当前S基块的softmax
     using PType = Gemm::GemmType<ElementP, LayoutP>;
     using MaskType = Gemm::GemmType<ElementMask, LayoutMask>;
     using EpilogueMLASoftmax =
-        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLATP1Softmax, PType, SType, MaskType>;
+        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLATP1Softmax, PType, SType, MaskType>;;
 
     // GEMM Block模块，实现Flash MLA的P * V
     using DispatchPolicyPV = Gemm::MmadAtlasA2MLAPVTp1Spec;
     using VType = Gemm::GemmType<ElementV, LayoutV>;
     using OTmpType = Gemm::GemmType<ElementOTmp, LayoutOTmp>;
-    using BlockMmadPV = Gemm::Block::BlockMmad<DispatchPolicyPV, L1TileShape, L0TileShape, PType, VType, OTmpType>;
+    using BlockMmadPV = Gemm::Block::BlockMmad<DispatchPolicyPV, L1TileShape, L0TileShape, PType, VType, OTmpType>;;
 
     // Epilogue Block模块，实现Flash MLA中当前O基块的更新
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using OUpdateType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
     using EpilogueMLARescaleO =
-        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLATP1RescaleO, OType, OUpdateType, OTmpType>;
+        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLATP1RescaleO, OType, OUpdateType, OTmpType>;;
 
     // Epilogue Block模块，实现Flash MLA中flash decoding
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
     constexpr uint32_t ComputeEleNum = 6144;
     using EpilogueMLAFDRescaleO =
-        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
+        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;;
 
     // Kernel level
     using MLAKernel = MLAKernelTp1Spec<BlockMmadQK, BlockMmadPV, EpilogueMLASoftmax,
@@ -734,7 +727,7 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     typename MLAKernel::Params params{q, qRope, k, kRope, blockTables, o, s, p, oTmp, oUpdate, oCoreTmp, l, tiling};
 
     // call kernel
-    MLAKernel mla;
+    MLAKernel mla;;
     mla(params);
 }
 

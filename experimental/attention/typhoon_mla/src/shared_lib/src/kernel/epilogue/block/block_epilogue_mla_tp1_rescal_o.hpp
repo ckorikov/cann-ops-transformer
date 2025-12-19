@@ -35,7 +35,7 @@ public:
     using LayoutUpdate = typename UpdateType_::Layout;
     using LayoutInput = typename InputType_::Layout;
 
-    static constexpr uint32_t HALF_ELENUM_PER_BLK = 16;
+    static constexpr uint32_t HALF_ELENUM_PER_BLK = 16;;
     static constexpr uint32_t HALF_ELENUM_PER_VECCALC = 128;
     static constexpr uint32_t FLOAT_ELENUM_PER_VECCALC = 64;
     static constexpr uint32_t HALF_ELENUM_PER_LINE = 256;
@@ -92,14 +92,14 @@ public:
         uint64_t temp = len % FLOAT_VECTOR_SIZE;
         for (int64_t i = 0; i < temp; i++) {
             mask |= one << i;
-        }
+        };
 
         if (len == VECTOR_SIZE) {
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         } else if (len >= FLOAT_VECTOR_SIZE) {
             AscendC::SetVectorMask<int8_t>(mask, (uint64_t)-1);
         } else {
-            AscendC::SetVectorMask<int8_t>(0x0, mask);
+            AscendC::SetVectorMask<int8_t>(0x0, mask);;
         }
     }
 
@@ -208,7 +208,7 @@ public:
                                                                        embedRound / FLOAT_BLOCK_SIZE, 1));
                 AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
             }
-            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::PipeBarrier<PIPE_V>();;
 
             if (kvSplitCoreNum != 1) {
                 // log(l)
@@ -217,7 +217,7 @@ public:
                     tvUbTensor,
                     (uint64_t)0,
                     curRowNum,
-                    AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
+                    AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
                 AscendC::Brcb(
                     hmUbTensor.ReinterpretCast<uint32_t>(),
@@ -232,13 +232,13 @@ public:
                     hmUbTensor,
                     (uint64_t)0,
                     curRowNum,
-                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
+                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
 
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
                     AscendC::DataCopyExtParams(curRowNum, 4, 0, (kvSplitCoreNum - 1) * 4, 0));
-                AscendC::PipeBarrier<PIPE_ALL>();
+                AscendC::PipeBarrier<PIPE_ALL>();;
                 
                 if (glFlag == 0) {
                     AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID2);
@@ -247,13 +247,12 @@ public:
                 uint32_t srcGap = ((embed % 16 <= 8) && (embed % 16 > 0)) ? 1 : 0;
                 AscendC::DataCopyPad(gOCoreTmp, goUbTensor32[oUbOffset],
                     AscendC::DataCopyExtParams(curRowNum, embed * 4, srcGap, (kvSplitCoreNum - 1) * embed * 4, 0));
-                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID3);
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID3);;
                 AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID3);
                 AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID1);
                 AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID1);
             } else {
-                
-                AscendC::PipeBarrier<PIPE_ALL>();
+                AscendC::PipeBarrier<PIPE_ALL>();;
                 AscendC::Ln<float, false>(
                     tvUbTensor,
                     tvUbTensor,
@@ -274,13 +273,13 @@ public:
                     hmUbTensor,
                     (uint64_t)0,
                     curRowNum,
-                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
+                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
 
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
                     AscendC::DataCopyExtParams(curRowNum, 4, 0, (kvSplitCoreNum - 1) * 4, 0));
-                AscendC::PipeBarrier<PIPE_ALL>();
+                AscendC::PipeBarrier<PIPE_ALL>();;
 
                 // *** go = castfp32to16(go)
                 if (std::is_same<ElementOutput, bfloat16_t>::value) {
@@ -288,7 +287,7 @@ public:
                         goUbTensor16[oUbOffset * 2], goUbTensor32[oUbOffset],
                         AscendC::RoundMode::CAST_RINT, (uint64_t)0,
                         (curRowNum * embedRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
-                        AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8)); 
+                        AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8));;
                 } else {
                     AscendC::Cast<ElementOutput, float, false>(
                         goUbTensor16[oUbOffset * 2], goUbTensor32[oUbOffset],
@@ -297,11 +296,11 @@ public:
                         AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8));
                 }
                 AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
-                AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+                AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);;
 
                 // ********************* move O to GM ************************
                 AscendC::DataCopyPad(gOutput, goUbTensor16[oUbOffset * 2],
-                                     AscendC::DataCopyExtParams(curRowNum, embed * 2, 0, 0, 0));
+                                     AscendC::DataCopyExtParams(curRowNum, embed * 2, 0, 0, 0));;
             }
         } else if (needRowLoop) {
             AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID5);
@@ -310,7 +309,7 @@ public:
                               AscendC::DataCopyParams(1, curRowNum * embedRound / FLOAT_BLOCK_SIZE, 0, 0));
         }
         AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(oPingPangFlag + 4);
-        oPingPangFlag = 1 - oPingPangFlag;
+        oPingPangFlag = 1 - oPingPangFlag;;
     }
 
     CATLASS_DEVICE
@@ -320,7 +319,7 @@ public:
                     const LayoutUpdate &layoutUpdate, const LayoutOutput &layoutOutput, GemmCoord actualBlockShape,
                     uint32_t nIdx, uint32_t isLastNTile, uint32_t rescaleOPingPongFlag, uint32_t &glFlag)
     {
-        uint32_t embed = layoutInput.shape(1);
+        uint32_t embed = layoutInput.shape(1);;
         uint32_t rowActual = actualBlockShape.m();
         uint32_t columnActual = actualBlockShape.n();
 

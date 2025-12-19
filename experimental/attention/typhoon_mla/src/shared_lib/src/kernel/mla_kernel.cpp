@@ -213,7 +213,7 @@ public:
             uint32_t kvSeqlenAlign = RoundUp(kvSeqlen, blockSize);
             uint32_t curNIdx = process % kvSplitCoreNum;
             uint32_t curKVSeqlen = kvSplitPerCore;
-            uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);
+            uint32_t kvLoop = CeilDiv(kvSeqlen, kvSplitPerCore);;
             if (curNIdx >= kvLoop) {
                 continue;
             }
@@ -336,7 +336,7 @@ public:
         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID1);
         AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID4);
         AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID2);
-        AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
+        AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);;
 
         // Get the memory offset address of the input on Global Memory
         AscendC::GlobalTensor<ElementO> gO;
@@ -591,7 +591,7 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
                         GM_ADDR tiling)
 {
     // Set FFTS address
-    AscendC::SetSyncBaseAddr(fftsAddr);
+    AscendC::SetSyncBaseAddr(fftsAddr);;
 
     using ArchTag = Arch::AtlasA2;
     using ElementQ = half;
@@ -599,7 +599,7 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
     using ElementK = half;
     using LayoutK = layout::ColumnMajor;
     using ElementV = half;
-    using LayoutV = layout::RowMajor;
+    using LayoutV = layout::RowMajor;;
     using ElementS = float;
     using LayoutS = layout::RowMajor;
     using ElementP = half;
@@ -607,7 +607,7 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
     using ElementO = half;
     using LayoutO = layout::RowMajor;
     using ElementMask = half;
-    using LayoutMask = layout::RowMajor;
+    using LayoutMask = layout::RowMajor;;
     using ElementOTmp = float;
     using LayoutOTmp = layout::RowMajor;
     using ElementUpdate = float;
@@ -615,14 +615,14 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
 
     // L1TileShape::K must be embdding
     using L1TileShape = GemmShape<128, 128, 576>;
-    using L0TileShape = L1TileShape;
+    using L0TileShape = L1TileShape;;
 
     // GEMM Block模块，实现Flash MLA的Q * K^T
     using DispatchPolicyQK = Gemm::MmadAtlasA2MLAQK;
     using QType = Gemm::GemmType<ElementQ, LayoutQ>;
     using KType = Gemm::GemmType<ElementK, LayoutK>;
     using SType = Gemm::GemmType<ElementS, LayoutS>;
-    using BlockMmadQK = Gemm::Block::BlockMmad<DispatchPolicyQK, L1TileShape, L0TileShape, QType, KType, SType>;
+    using BlockMmadQK = Gemm::Block::BlockMmad<DispatchPolicyQK, L1TileShape, L0TileShape, QType, KType, SType>;;
 
     // Epilogue Block模块，实现Flash MLA中当前S基块的softmax
     using PType = Gemm::GemmType<ElementP, LayoutP>;
@@ -631,28 +631,28 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLASoftmax, PType, SType, MaskType>;
 
     // GEMM Block模块，实现Flash MLA的P * V
-    using DispatchPolicyPV = Gemm::MmadAtlasA2MLAPV;
+    using DispatchPolicyPV = Gemm::MmadAtlasA2MLAPV;;
     using VType = Gemm::GemmType<ElementV, LayoutV>;
     using OTmpType = Gemm::GemmType<ElementOTmp, LayoutOTmp>;
     using BlockMmadPV = Gemm::Block::BlockMmad<DispatchPolicyPV, L1TileShape, L0TileShape, PType, VType, OTmpType>;
 
     // Epilogue Block模块，实现Flash MLA中当前O基块的更新
     using OType = Gemm::GemmType<ElementO, LayoutO>;
-    using OUpdateType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
+    using OUpdateType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;;
     using EpilogueMLARescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLARescaleO, OType, OUpdateType, OTmpType>;
 
     // Epilogue Block模块，实现Flash MLA中flash decoding
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
-    constexpr uint32_t ComputeEleNum = 6144;
+    constexpr uint32_t ComputeEleNum = 6144;;
     using EpilogueMLAFDRescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
 
     // Kernel level
     using MLAKernel = MLAKernel<BlockMmadQK, BlockMmadPV, EpilogueMLASoftmax,
                                 EpilogueMLARescaleO, EpilogueMLAFDRescaleO>;
-    typename MLAKernel::Params params{q, qRope, k, kRope, blockTables, o, s, p, oTmp, oUpdate, oCoreTmp, l, tiling};
+    typename MLAKernel::Params params{q, qRope, k, kRope, blockTables, o, s, p, oTmp, oUpdate, oCoreTmp, l, tiling};;
 
     // call kernel
     MLAKernel mla;
