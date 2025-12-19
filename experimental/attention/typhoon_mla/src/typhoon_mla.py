@@ -8,12 +8,13 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import torch 
-import torch_npu
-import numpy as np
 import os
 import csv
 import argparse
+
+import torch 
+import torch_npu
+import numpy as np
 
 from src.catlass_mla import catlass_kernel_prepare, catlass_score_mla
 
@@ -29,9 +30,10 @@ def typhoon_mla_prepare(bsz, seqlens, n_heads, kv_lora_rank, qk_rope_head_dim, b
     max_seq_len = max(seqlens)
     num_blocks = bsz * max_seq_len // block_size
 
-    block_tables = np.arange(num_blocks, dtype=np.int32)
-    block_tables = torch.from_numpy(block_tables.reshape(-1).astype(np.int32)).to(device=device)
-
+    # block_tables = np.arange(num_blocks, dtype=np.int32)
+    # block_tables = torch.from_numpy(block_tables.reshape(-1).astype(np.int32)).to(torch.get_default_device())
+    block_tables = torch.arange(num_blocks, dtype=torch.int32).to(device)
+    
     device_mem, lse_idxs = catlass_kernel_prepare(
         batch = bsz,
         num_heads = n_heads,
@@ -65,6 +67,7 @@ def typhoon_mla_run(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_c
             absorb_pe_cache,
             wkv_b1, wkv_b2, catlass_ctx, kv_seqlens, softmax_scale
         )
+
 
 def _run_in_2stage(q, q_nope, q_rope, naive_k_cache, naive_v_cache, absorb_kv_cache, absorb_pe_cache, wkv_b1, wkv_b2, 
                    catlass_ctx, kv_seqlens, softmax_scale):

@@ -8,9 +8,6 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-
-// Duplicate code is intentional to avoid cross-module dependency.
-// NOLINT(duplicate-code)
 #include "catlass/catlass.hpp"
 #include "catlass/arch/arch.hpp"
 #include "catlass/layout/layout.hpp"
@@ -18,6 +15,8 @@
 #include "catlass/gemm/block/block_mmad.hpp"
 #include "catlass/gemm/dispatch_policy.hpp"
 #include "catlass/gemm/gemm_type.hpp"
+
+#define NO_DUPLICATE 1 // Duplicate code is intentional to avoid cross-module dependency.
 
 #include "catlass/arch/cross_core_sync.hpp"
 #include "catlass/arch/resource.hpp"
@@ -45,7 +44,7 @@ public:
     using ElementS = typename BlockMmadQK::ElementC;
     using LayoutS = typename BlockMmadQK::LayoutC;
 
-    using ElementP = typename BlockMmadPV::ElementA;
+    using ElementP = typename BlockMmadPV::ElementA;;
     using LayoutP = typename BlockMmadPV::LayoutA;
     using ElementV = typename BlockMmadPV::ElementB;
     using LayoutV = typename BlockMmadPV::LayoutB;
@@ -80,7 +79,7 @@ public:
         GM_ADDR oUpdate;
         GM_ADDR oCoreTmp;
         GM_ADDR l;
-        GM_ADDR tiling;
+        GM_ADDR tiling;;
 
         // Methods
         CATLASS_DEVICE

@@ -28,6 +28,9 @@ if __name__ == "__main__":
     device = torch.device("npu:0") 
     dtype = torch.bfloat16
 
+    torch.set_default_device(device)
+    torch.set_default_dtype(dtype)
+
     block_size = 128 # Block size for paged KV-cache
 
     bsz = 4 # Batch size
@@ -41,38 +44,30 @@ if __name__ == "__main__":
     seqlens = [shared_seqlen] + [nonshared_seqlen] * bsz 
 
     # query vectors
-    q_nope = torch.randn(size=[bsz, n_heads, qk_nope_head_dim], device=device, dtype=dtype)
-    q_rope = torch.randn(size=[bsz, n_heads, qk_rope_head_dim], device=device, dtype=dtype)
+    q_nope = torch.randn(size=[bsz, n_heads, qk_nope_head_dim])
+    q_rope = torch.randn(size=[bsz, n_heads, qk_rope_head_dim])
     q = torch.cat([q_nope, q_rope], dim=-1)
 
     # KV up-scaling projection matrix
-    wkv_b = torch.randn(size=[n_heads * (qk_nope_head_dim + v_head_dim), kv_lora_rank], dtype=dtype, device=device)
+    wkv_b = torch.randn(size=[n_heads * (qk_nope_head_dim + v_head_dim), kv_lora_rank])
     wkv_b1, wkv_b2 = wkv_b.view(
         n_heads, (qk_nope_head_dim + v_head_dim), kv_lora_rank
     ).split([qk_nope_head_dim, v_head_dim], dim=1)
 
     # KV-cache for the shared sequence (in naive formulation)
     naive_k_cache = torch.randn(
-        size=(seqlens[0], n_heads, qk_nope_head_dim + qk_rope_head_dim), 
-        dtype=dtype, 
-        device=device
+        size=(seqlens[0], n_heads, qk_nope_head_dim + qk_rope_head_dim)
     )
     naive_v_cache = torch.randn(
-        size=(seqlens[0], n_heads, qk_nope_head_dim), 
-        dtype=dtype, 
-        device=device
+        size=(seqlens[0], n_heads, qk_nope_head_dim)
     )
 
     # KV and PE cache for the non-shared sequence (in absorb formulation)
     absorb_kv_cache = torch.randn(
-        (sum(seqlens[1:]) // block_size, block_size, 1, kv_lora_rank), 
-        dtype=dtype, 
-        device=device
+        (sum(seqlens[1:]) // block_size, block_size, 1, kv_lora_rank)
     )
     absorb_pe_cache = torch.randn(
-        (sum(seqlens[1:]) // block_size, block_size, 1, qk_rope_head_dim), 
-        dtype=dtype, 
-        device=device
+        (sum(seqlens[1:]) // block_size, block_size, 1, qk_rope_head_dim)
     )
 
     # Allocate memory required for CATLASS kernel
