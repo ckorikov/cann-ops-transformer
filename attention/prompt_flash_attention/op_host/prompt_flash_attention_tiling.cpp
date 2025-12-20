@@ -37,6 +37,10 @@
 #include <algorithm>
 #include <graph/utils/type_utils.h>
 #include "register/tilingdata_base.h"
+// For debugging (mmarz)
+#include <cerrno>
+#include <climits>
+#include <cstring>
 
 using namespace ge;
 using namespace AscendC;
@@ -6712,31 +6716,216 @@ ge::graphStatus PromptFlashAttentionTiling::AdjustCVTilingCVDiff(int64_t ubSize,
     return ge::GRAPH_SUCCESS;
 }
 
-PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* context) {
+// For simulating block sparsity
+
+static inline int64_t ReadEnvI64(const char* name, int64_t defVal)
+{
+    const char* s = std::getenv(name);
+    if (!s || !*s) return defVal;
+
+    char* end = nullptr;
+    errno = 0;
+    long long v = std::strtoll(s, &end, 10);
+    if (errno != 0 || end == s) return defVal;
+    return static_cast<int64_t>(v);
+}
+
+static inline int32_t ReadEnvI32(const char* name, int32_t defVal)
+{
+    const char* s = std::getenv(name);
+    if (!s || !*s) return defVal;
+
+    char* end = nullptr;
+    errno = 0;
+    long long v = std::strtoll(s, &end, 10);
+    if (errno != 0 || end == s) return defVal;
+
+    if (v < (std::numeric_limits<int32_t>::min)()) return (std::numeric_limits<int32_t>::min)();
+    if (v > (std::numeric_limits<int32_t>::max)()) return (std::numeric_limits<int32_t>::max)();
+    return static_cast<int32_t>(v);
+}
+
+static inline uint64_t AlignUp(uint64_t x, uint64_t a)
+{
+    // assume a > 0
+    return (x + a - 1) / a * a;
+}
+
+static inline bool ParseDims3(const std::string& s, uint32_t& d0, uint32_t& d1, uint32_t& d2)
+{
+    // expects "2x3x4" (spaces tolerated around numbers)
+    unsigned long a = 0, b = 0, c = 0;
+    if (std::sscanf(s.c_str(), " %lux%lux%lu ", &a, &b, &c) != 3) return false;
+
+    // reject zero and overflow into uint32_t
+    if (a == 0 || b == 0 || c == 0) return false;
+    if (a > (std::numeric_limits<uint32_t>::max)()) return false;
+    if (b > (std::numeric_limits<uint32_t>::max)()) return false;
+    if (c > (std::numeric_limits<uint32_t>::max)()) return false;
+
+    d0 = static_cast<uint32_t>(a);
+    d1 = static_cast<uint32_t>(b);
+    d2 = static_cast<uint32_t>(c);
+    return true;
+}
+
+static inline std::vector<int32_t> ParseI32Csv(const char* s)
+{
+    std::vector<int32_t> out;
+    if (!s || !*s) return out;
+
+    const char* p = s;
+    while (*p) {
+        // skip separators/whitespace
+        while (*p == ' ' || *p == '\t' || *p == ',') ++p;
+        if (!*p) break;
+
+        char* end = nullptr;
+        errno = 0;
+        long long v = std::strtoll(p, &end, 10);  // <-- strtoll here
+        if (end == p) break;                      // invalid token
+        if (errno != 0) {
+            // overflow/underflow: clamp
+            if (v < 0) v = (std::numeric_limits<int32_t>::min)();
+            else       v = (std::numeric_limits<int32_t>::max)();
+        }
+
+        // clamp to int32_t
+        if (v < (std::numeric_limits<int32_t>::min)()) v = (std::numeric_limits<int32_t>::min)();
+        if (v > (std::numeric_limits<int32_t>::max)()) v = (std::numeric_limits<int32_t>::max)();
+
+        out.push_back(static_cast<int32_t>(v));
+        p = end;
+
+        // optionally allow trailing spaces before comma
+        while (*p == ' ' || *p == '\t') ++p;
+        if (*p == ',') ++p;
+    }
+
+    return out;
+}
+
+// Parse "D=2x3x4;V=1,2,3,..."
+static inline bool ParseDebugT3Env(const char* env,
+                                  uint32_t& d0, uint32_t& d1, uint32_t& d2,
+                                  std::vector<int32_t>& flat)
+{
+    if (!env || !*env) return false;
+    std::string str(env);
+
+    const auto dPos = str.find("D=");
+    const auto vPos = str.find("V=");
+    if (dPos == std::string::npos || vPos == std::string::npos) return false;
+
+    // dims substring between "D=" and ';'
+    const auto semi = str.find(';', dPos);
+    if (semi == std::string::npos) return false;
+
+    const std::string dims = str.substr(dPos + 2, semi - (dPos + 2)); // e.g. "2x3x4"
+    if (!ParseDims3(dims, d0, d1, d2)) return false;
+
+    // values substring after "V="
+    const std::string vals = str.substr(vPos + 2);
+    flat = ParseI32Csv(vals.c_str());
+    return true;
+}
+
+PFA_EXTERN_C ge::graphStatus TilingPromptFlashAttention(gert::TilingContext* context)
+{
     if (context == nullptr) {
         OP_LOGE("PromptFlashAttention", "tiling context is nullptr!");
         return ge::GRAPH_FAILED;
     }
-    if (context->GetRawTilingData() == nullptr) {
+
+    auto* raw = context->GetRawTilingData();
+    if (raw == nullptr || raw->GetData() == nullptr) {
         OP_LOGE("PromptFlashAttention", "tiling context GetRawTilingData is nullptr!");
         return ge::GRAPH_FAILED;
     }
 
-    PromptFlashAttentionTilingData* tilingData = context->GetTilingData<PromptFlashAttentionTilingData>();
-    OP_CHECK_IF(memset_s(context->GetRawTilingData()->GetData(), context->GetRawTilingData()->GetCapacity(),
-               0, context->GetRawTilingData()->GetCapacity()) != EOK,
-               OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to memset tiling data"),
-               return ge::GRAPH_FAILED);
+    OP_CHECK_IF(memset_s(raw->GetData(), raw->GetCapacity(),
+                0, raw->GetCapacity()) != EOK,
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to memset tiling data"),
+                return ge::GRAPH_FAILED);
+
+    PromptFlashAttentionTilingData* tilingData =
+        context->GetTilingData<PromptFlashAttentionTilingData>();
+    OP_CHECK_IF(tilingData == nullptr,
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to GetTilingData<PromptFlashAttentionTilingData>"),
+                return ge::GRAPH_FAILED);
+
     ContextParamsForPFATiling contextParamsForPFATiling;
     uint64_t tilingKey = 7;  // 7: default tiling key
-    uint32_t blockDimToBeSet;
+    uint32_t blockDimToBeSet = 0;
+
     auto ret = ConvertContextToPFAParams(context, contextParamsForPFATiling);
-    OP_CHECK_IF(ret == ge::GRAPH_FAILED, OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
-        return ge::GRAPH_FAILED);
+    OP_CHECK_IF(ret == ge::GRAPH_FAILED,
+                OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "fail to convert to PFAParams"),
+                return ge::GRAPH_FAILED);
 
     PromptFlashAttentionTiling flashTiling(nullptr);
+    ret = flashTiling.RunBigKernelTilingWithParams(contextParamsForPFATiling,
+                                                   tilingKey,
+                                                   blockDimToBeSet,
+                                                   tilingData);
 
-    ret = flashTiling.RunBigKernelTilingWithParams(contextParamsForPFATiling, tilingKey, blockDimToBeSet, tilingData);
+    tilingData->promptAttentionBaseParams.debugSlice =
+        ReadEnvI64("PFA_BAND", tilingData->promptAttentionBaseParams.debugSlice);
+    tilingData->promptAttentionBaseParams.debugSInnerFirstToken =
+        ReadEnvI64("SINNER_FIRST", tilingData->promptAttentionBaseParams.debugSInnerFirstToken);
+    tilingData->promptAttentionBaseParams.debugSInnerLastToken =
+        ReadEnvI64("SINNER_LAST", tilingData->promptAttentionBaseParams.debugSInnerLastToken);
+
+    tilingData->promptAttentionBaseParams.debugT3Len = 0;
+    tilingData->promptAttentionBaseParams.debugT3OffsetBytes = 0;
+    tilingData->promptAttentionBaseParams.debugT3D0 = 0;
+    tilingData->promptAttentionBaseParams.debugT3D1 = 0;
+    tilingData->promptAttentionBaseParams.debugT3D2 = 0;
+
+    if (const char* env = std::getenv("PFA_BLOCKS")) {
+        uint32_t d0 = 0, d1 = 0, d2 = 0;
+        std::vector<int32_t> flat;
+
+        if (ParseDebugT3Env(env, d0, d1, d2, flat) && d0 && d1 && d2) {
+            const uint64_t want = uint64_t(d0) * uint64_t(d1) * uint64_t(d2);
+
+            // Avoid overflow in bytes calculation
+            if (want <= (std::numeric_limits<uint64_t>::max)() / sizeof(int32_t)) {
+                const uint64_t bytes = want * sizeof(int32_t);
+
+                // Normalize vector length to exactly "want"
+                if (flat.size() < want) {
+                    flat.resize(static_cast<size_t>(want), 0);
+                } else if (flat.size() > want) {
+                    flat.resize(static_cast<size_t>(want));
+                }
+
+                // Append after struct; align to 16 for safety.
+                uint8_t* base = reinterpret_cast<uint8_t*>(raw->GetData());
+                const uint64_t cap = raw->GetCapacity();
+                const uint64_t off = AlignUp(sizeof(PromptFlashAttentionTilingData), 16);
+                const uint64_t used = off + bytes;
+
+                // Make sure used size fits in buffer and SetDataSize takes a sane value
+                if (used <= cap && used <= (std::numeric_limits<uint32_t>::max)()) {
+                    std::memcpy(base + off, flat.data(), static_cast<size_t>(bytes));
+
+                    tilingData->promptAttentionBaseParams.debugT3D0 = d0;
+                    tilingData->promptAttentionBaseParams.debugT3D1 = d1;
+                    tilingData->promptAttentionBaseParams.debugT3D2 = d2;
+                    tilingData->promptAttentionBaseParams.debugT3Len = static_cast<uint32_t>(want);
+                    tilingData->promptAttentionBaseParams.debugT3OffsetBytes = static_cast<uint32_t>(off);
+
+                    // Ensure the runtime copies the tail bytes (struct + appended int32 array).
+                    raw->SetDataSize(static_cast<uint32_t>(used));
+                } else {
+                    // Leave disabled if it doesn't fit
+                    tilingData->promptAttentionBaseParams.debugT3Len = 0;
+                    tilingData->promptAttentionBaseParams.debugT3OffsetBytes = 0;
+                }
+            }
+        }
+    }
     context->SetTilingKey(tilingKey);
     context->SetBlockDim(blockDimToBeSet);
     flashTiling.PromptFlashAttentionSetTilingData(context, tilingData);

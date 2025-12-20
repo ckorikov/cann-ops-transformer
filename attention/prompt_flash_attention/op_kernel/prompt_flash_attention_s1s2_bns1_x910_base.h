@@ -492,6 +492,7 @@ public:
 
 protected:
     const PromptFlashAttentionTilingData* __restrict tilingData;
+    __gm__ const uint8_t* __restrict gmTilingBase; 
     TPipe* pipe;
     // define the que
     TQue<QuePosition::VECIN, 1> tempBmm2Queue;
@@ -1692,6 +1693,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910Base<PFAT>::Init(__gm__ u
 
     // init global buffer
     tilingData = tiling;
+    gmTilingBase = gmTiling;
     key_ptr = key;
     value_ptr = value;
 

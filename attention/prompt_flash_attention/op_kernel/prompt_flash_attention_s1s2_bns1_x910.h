@@ -17,6 +17,66 @@
 
 #include "prompt_flash_attention_s1s2_bns1_x910_base.h"
 
+struct I32VecView {
+    const __gm__ int32_t* ptr = nullptr;
+    uint32_t len = 0;
+
+    __aicore__ inline bool IsValid() const { return ptr != nullptr && len != 0; }
+    __aicore__ inline int32_t Get(uint32_t i) const { return ptr[i]; }
+};
+
+struct I32T3View {
+    const __gm__ int32_t* base = nullptr;
+    uint32_t d0 = 0, d1 = 0, d2 = 0;
+    uint32_t totalLen = 0; // <-- add this
+
+    __aicore__ inline I32VecView At(uint32_t i0, uint32_t i1) const {
+        I32VecView v{};
+        if (base == nullptr || d2 == 0 || totalLen == 0) return v;
+        if (i0 >= d0 || i1 >= d1) return v;
+
+        const uint64_t idx = (static_cast<uint64_t>(i0) * d1 + i1) * d2;
+        const uint64_t end = idx + d2;
+        if (end > totalLen) return v;
+
+        v.ptr = base + idx;
+        v.len = d2;
+        return v;
+    }
+};
+
+__aicore__ inline int32_t LastValidIndex(const I32VecView& v)
+{
+    if (!v.IsValid()) return -1;
+    for (int32_t i = static_cast<int32_t>(v.len) - 1; i >= 0; --i) {
+        if (v.ptr[i] != -1) return i;
+    }
+    return -1;
+}
+
+__aicore__ inline int32_t LastValidLowerThan(const I32VecView& v, int32_t limit)
+{
+    if (!v.IsValid()) return -1;
+    for (int32_t i = static_cast<int32_t>(v.len) - 1; i >= 0; --i) {
+        int32_t x = v.ptr[i];
+        if (x == -1) continue;
+        if (x < limit) return i;
+    }
+    return -1;
+}
+
+__aicore__ inline int32_t FirstGreaterEqual(const I32VecView& v, int32_t lower)
+{
+    if (!v.IsValid()) return -1;
+
+    for (uint32_t i = 0; i < v.len; ++i) {
+        const int32_t x = v.ptr[i];
+        if (x == -1) break;                // reached padding
+        if (x >= lower) return (int32_t)i; // first >= lower
+    }
+    return -1;
+}
+
 using namespace matmul;
 template<typename PFAT>
 class PromptFlashAttentionS1s2Bns1X910 : public PromptFlashAttentionS1s2Bns1X910Base<PFAT> {
@@ -52,7 +112,7 @@ protected:
 
     __aicore__ inline void ComputeEachCoreSInnerLoop();
 
-    __aicore__ inline void SInnerLoopFunc(int64_t sInnerFirstToken, int64_t sInnerEndToken, int curBatch, int64_t preTokens, int64_t nextTokens);
+    __aicore__ inline void SInnerLoopFunc(int64_t sInnerFirstToken, int64_t sInnerEndToken, int curBatch, int64_t preTokens, int64_t nextTokens, I32VecView rowSabi = {});
 
     __aicore__ inline void ComputeEachCore(uint32_t coreIdx);
 
@@ -2087,7 +2147,7 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::CheckRowInvalid(i
 
 template<typename PFAT>
 __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::SInnerLoopFunc(int64_t sInnerFirstToken, int64_t sInnerLastToken, int curBatch,
-                                                                            int64_t preTokens, int64_t nextTokens) {
+                                                                            int64_t preTokens, int64_t nextTokens, I32VecView rowSabi) {
     // params passing on references. When tailParams, params also update accordingly.
     PFAComputeParam *&params = this->tailParams;                // Configure new tasks, which will be placed at the end of the queue. Use tailParams.
     int32_t basicSInnerSize = (int32_t)(params->singleProcessSInnerSize);
@@ -2116,128 +2176,267 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::SInnerLoopFunc(in
     params->isSecondInnerIter = true;
     params->taskBatch = curBatch;
     this->isSoftmaxLseNeedUpdate = false;
-    for (int32_t sInnerLoopIdx = startIndex; sInnerLoopIdx < endIndex; sInnerLoopIdx++) {
-        params->sInnerLoopOffset = sInnerLoopIdx;  // S2 Align offset
-        params->isFirstInnerIter = (sInnerLoopIdx == startIndex);
-        params->isSecondInnerIter = (sInnerLoopIdx == (startIndex + 1));
-        params->isLastInnerIter = (sInnerLoopIdx == endIndex - 1);
-        if constexpr (PFAT::enablePrefix) {
-            params->isPrefixInnerIter = sInnerLoopIdx * basicSInnerSize < this->actualKVPrefixLen;
-        } else {
-            params->isPrefixInnerIter = 0;
-        }
-        if (unlikely(isS2Load)) {
-            params->isInnerTail = true;
-        } else {
-            params->isInnerTail = (sInnerLoopIdx == (int32_t)this->maxInnerLoopTimes - 1) || (sInnerLoopIdx == (int32_t)this->maxInnerLoopPrefixTimes - 1);
-        }
 
-        if (unlikely(params->isInnerTail)) {
-            if (!params->isPrefixInnerIter) {
-                lastInnerMargin = (sInnerLoopIdx * basicSInnerSize + params->unalignSInner - sInnerLastToken)
-                    / softmaxInnerBasicSize * softmaxInnerBasicSize;
-                lastInnerMargin = (lastInnerMargin > 0) ? lastInnerMargin : 0;
-                if constexpr (PFAT::enablePrefix) {
-                    lastInnerMargin = 0;
-                }
-                params->mm1SingleCoreN = params->singleProcessSInnerSizeTail - lastInnerMargin;
-                params->singleProcessSInnerSizeNow = params->singleProcessSInnerSizeTail - lastInnerMargin;
-                params->singleProcessSInnerBmmTail = params->unalignSInner - lastInnerMargin;
-                params->maskCopyInCol = params->maskInnerTailAlign - lastInnerMargin;
-                params->pseShiftCopyInCol = params->pseShiftInnerTailAlign - lastInnerMargin;
-            } else {
-                if constexpr (PFAT::enablePrefix) {
-                    params->mm1SingleCoreN = params->singleProcessSInnerPrefixSizeTail;
-                    params->singleProcessSInnerSizeNow = params->singleProcessSInnerPrefixSizeTail;
-                    params->singleProcessSInnerBmmTail = params->unalignSInnerPrefix;
-                    params->maskCopyInCol = params->maskInnerPrefixTailAlign;
-                    params->pseShiftCopyInCol = params->pseShiftInnerPrefixTailAlign;
-                }
-            }
-        } else {
-            params->mm1SingleCoreN = params->singleProcessSInnerSize;
-            params->singleProcessSInnerSizeNow = params->singleProcessSInnerSize;
-            params->singleProcessSInnerBmmTail = params->singleProcessSInnerSize;
-            params->maskCopyInCol = params->singleProcessSInnerSize;
-            params->pseShiftCopyInCol = params->singleProcessSInnerSize;
-            if (params->isLastInnerIter) {
-                if constexpr (PFAT::enablePrefix) {
-                    lastInnerMargin = 0;
-                }
-                params->mm1SingleCoreN -= lastInnerMargin;
-                params->singleProcessSInnerSizeNow -= lastInnerMargin;
-                params->singleProcessSInnerBmmTail -= lastInnerMargin;
-                params->maskCopyInCol -= lastInnerMargin;
-                params->pseShiftCopyInCol -= lastInnerMargin;
-            }
-        }
-        params->mm2SingleKAlign = (params->mm1SingleCoreN + MM2_SINGLE_K_ALIGN_SIZE - 1) / MM2_SINGLE_K_ALIGN_SIZE * MM2_SINGLE_K_ALIGN_SIZE;
-        if (params->isFirstInnerIter) {
+    if (!rowSabi.IsValid()) {    // old loop
+        for (int32_t sInnerLoopIdx = startIndex; sInnerLoopIdx < endIndex; sInnerLoopIdx++) {
+            params->sInnerLoopOffset = sInnerLoopIdx;  // S2 Align offset
+            params->isFirstInnerIter = (sInnerLoopIdx == startIndex);
+            params->isSecondInnerIter = (sInnerLoopIdx == (startIndex + 1));
+            params->isLastInnerIter = (sInnerLoopIdx == endIndex - 1);
             if constexpr (PFAT::enablePrefix) {
-                firstInnerMargin = 0;
+                params->isPrefixInnerIter = sInnerLoopIdx * basicSInnerSize < this->actualKVPrefixLen;
+            } else {
+                params->isPrefixInnerIter = 0;
             }
-            params->mm1SingleCoreN -= firstInnerMargin;
-            params->singleProcessSInnerSizeNow -= firstInnerMargin;
-            params->singleProcessSInnerBmmTail -= firstInnerMargin;
-            params->maskCopyInCol -= firstInnerMargin;
-            params->pseShiftCopyInCol -= firstInnerMargin;
-            params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, firstInnerMargin);
-            this->ComputeOffset(params, sInnerLoopIdx, firstInnerMargin);
-        } else {
-            params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, 0);
-            this->ComputeOffset(params, sInnerLoopIdx, 0);
-        }
+            if (unlikely(isS2Load)) {
+                params->isInnerTail = true;
+            } else {
+                params->isInnerTail = (sInnerLoopIdx == (int32_t)this->maxInnerLoopTimes - 1) || (sInnerLoopIdx == (int32_t)this->maxInnerLoopPrefixTimes - 1);
+            }
 
-        if (this->attentionMaskType == 2 || this->attentionMaskType == 3) {
-            params->useMask = ((sInnerFirstToken + params->singleProcessSOuterSize) > ((int64_t)sInnerLoopIdx * (int64_t)basicSInnerSize)
-                || (sInnerLastToken - params->singleProcessSOuterSize < ((int64_t)(sInnerLoopIdx + 1) * (int64_t)basicSInnerSize)));
-        }
+            if (unlikely(params->isInnerTail)) {
+                if (!params->isPrefixInnerIter) {
+                    lastInnerMargin = (sInnerLoopIdx * basicSInnerSize + params->unalignSInner - sInnerLastToken)
+                        / softmaxInnerBasicSize * softmaxInnerBasicSize;
+                    lastInnerMargin = (lastInnerMargin > 0) ? lastInnerMargin : 0;
+                    if constexpr (PFAT::enablePrefix) {
+                        lastInnerMargin = 0;
+                    }
+                    params->mm1SingleCoreN = params->singleProcessSInnerSizeTail - lastInnerMargin;
+                    params->singleProcessSInnerSizeNow = params->singleProcessSInnerSizeTail - lastInnerMargin;
+                    params->singleProcessSInnerBmmTail = params->unalignSInner - lastInnerMargin;
+                    params->maskCopyInCol = params->maskInnerTailAlign - lastInnerMargin;
+                    params->pseShiftCopyInCol = params->pseShiftInnerTailAlign - lastInnerMargin;
+                } else {
+                    if constexpr (PFAT::enablePrefix) {
+                        params->mm1SingleCoreN = params->singleProcessSInnerPrefixSizeTail;
+                        params->singleProcessSInnerSizeNow = params->singleProcessSInnerPrefixSizeTail;
+                        params->singleProcessSInnerBmmTail = params->unalignSInnerPrefix;
+                        params->maskCopyInCol = params->maskInnerPrefixTailAlign;
+                        params->pseShiftCopyInCol = params->pseShiftInnerPrefixTailAlign;
+                    }
+                }
+            } else {
+                params->mm1SingleCoreN = params->singleProcessSInnerSize;
+                params->singleProcessSInnerSizeNow = params->singleProcessSInnerSize;
+                params->singleProcessSInnerBmmTail = params->singleProcessSInnerSize;
+                params->maskCopyInCol = params->singleProcessSInnerSize;
+                params->pseShiftCopyInCol = params->singleProcessSInnerSize;
+                if (params->isLastInnerIter) {
+                    if constexpr (PFAT::enablePrefix) {
+                        lastInnerMargin = 0;
+                    }
+                    params->mm1SingleCoreN -= lastInnerMargin;
+                    params->singleProcessSInnerSizeNow -= lastInnerMargin;
+                    params->singleProcessSInnerBmmTail -= lastInnerMargin;
+                    params->maskCopyInCol -= lastInnerMargin;
+                    params->pseShiftCopyInCol -= lastInnerMargin;
+                }
+            }
+            params->mm2SingleKAlign = (params->mm1SingleCoreN + MM2_SINGLE_K_ALIGN_SIZE - 1) / MM2_SINGLE_K_ALIGN_SIZE * MM2_SINGLE_K_ALIGN_SIZE;
+            if (params->isFirstInnerIter) {
+                if constexpr (PFAT::enablePrefix) {
+                    firstInnerMargin = 0;
+                }
+                params->mm1SingleCoreN -= firstInnerMargin;
+                params->singleProcessSInnerSizeNow -= firstInnerMargin;
+                params->singleProcessSInnerBmmTail -= firstInnerMargin;
+                params->maskCopyInCol -= firstInnerMargin;
+                params->pseShiftCopyInCol -= firstInnerMargin;
+                params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, firstInnerMargin);
+                this->ComputeOffset(params, sInnerLoopIdx, firstInnerMargin);
+            } else {
+                params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, 0);
+                this->ComputeOffset(params, sInnerLoopIdx, 0);
+            }
 
-        // Determine whether the row invalidation OptimizationMode is enabled in the core.
-        CheckRowInvalid(preTokens, nextTokens, params);
- 
-        if (this->attentionMaskType == 4) {
-            int32_t sOuterOffset = params->attenMaskOffset / SPARSE_ATTENTION_MASK_SIZE;
-            int32_t sInnerOffset = params->attenMaskOffset % SPARSE_ATTENTION_MASK_SIZE;
-            params->sparseBandSelect0 = (sOuterOffset < (sInnerOffset + (int32_t)params->maskCopyInCol));
-            sOuterOffset = params->attenMaskOffsetPre / SPARSE_ATTENTION_MASK_SIZE;
-            sInnerOffset = params->attenMaskOffsetPre % SPARSE_ATTENTION_MASK_SIZE;
-            params->sparseBandSelect1 = (sOuterOffset > (sInnerOffset - (int32_t)params->singleProcessSOuterSize));
-            params->useMask = params->sparseBandSelect0 || params->sparseBandSelect1;
-        } else {        // In Non band OptimizationMode，not involved sparseBandSelect0 and sparseBandSelect1. Set all to true to ensure that it does not affect public processes.
-            params->sparseBandSelect0 = true;
-            params->sparseBandSelect1 = true;
-        }
+            if (this->attentionMaskType == 2 || this->attentionMaskType == 3) {
+                params->useMask = ((sInnerFirstToken + params->singleProcessSOuterSize) > ((int64_t)sInnerLoopIdx * (int64_t)basicSInnerSize)
+                    || (sInnerLastToken - params->singleProcessSOuterSize < ((int64_t)(sInnerLoopIdx + 1) * (int64_t)basicSInnerSize)));
+            }
 
-        if (this->queSize >= this->queSizeLimit) {
-            // When the queue is full, task is triggered. The task specified by headParams starts to send instructions.
-            ComputeEachCoreSInnerLoop();
+            // Determine whether the row invalidation OptimizationMode is enabled in the core.
+            CheckRowInvalid(preTokens, nextTokens, params);
+    
+            if (this->attentionMaskType == 4) {
+                int32_t sOuterOffset = params->attenMaskOffset / SPARSE_ATTENTION_MASK_SIZE;
+                int32_t sInnerOffset = params->attenMaskOffset % SPARSE_ATTENTION_MASK_SIZE;
+                params->sparseBandSelect0 = (sOuterOffset < (sInnerOffset + (int32_t)params->maskCopyInCol));
+                sOuterOffset = params->attenMaskOffsetPre / SPARSE_ATTENTION_MASK_SIZE;
+                sInnerOffset = params->attenMaskOffsetPre % SPARSE_ATTENTION_MASK_SIZE;
+                params->sparseBandSelect1 = (sOuterOffset > (sInnerOffset - (int32_t)params->singleProcessSOuterSize));
+                params->useMask = params->sparseBandSelect0 || params->sparseBandSelect1;
+            } else {        // In Non band OptimizationMode，not involved sparseBandSelect0 and sparseBandSelect1. Set all to true to ensure that it does not affect public processes.
+                params->sparseBandSelect0 = true;
+                params->sparseBandSelect1 = true;
+            }
 
-            // prehead update
-            this->preHeadParams = this->headParams;
+            if (this->queSize >= this->queSizeLimit) {
+                // When the queue is full, task is triggered. The task specified by headParams starts to send instructions.
+                ComputeEachCoreSInnerLoop();
 
-            // head out of queue
-            this->headId = (this->headId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
-            this->headParams = &this->pfaParamsQueue[this->headId];
+                // prehead update
+                this->preHeadParams = this->headParams;
 
-            // tail join the queue
-            this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
-            PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
-            if ((sInnerLoopIdx - startIndex) < PFA_PARAMS_QUEUE_CAPBABILITY - 1) {
+                // head out of queue
+                this->headId = (this->headId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                this->headParams = &this->pfaParamsQueue[this->headId];
+
+                // tail join the queue
+                this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
+                if ((sInnerLoopIdx - startIndex) < PFA_PARAMS_QUEUE_CAPBABILITY - 1) {
+                    // Overwrite the old head parameter. The next tail is not assigned a value outside the Inner loop and has no parameters. We need to copy the parameters that will be recorded outside the loop.
+                    this->CopyParamsAttrOutOfInnerLoop(nextTailParams, this->tailParams);
+                }
+                nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
+                this->tailParams = nextTailParams;
+            }
+            else {// tail join the queue
+                this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
                 // Overwrite the old head parameter. The next tail is not assigned a value outside the Inner loop and has no parameters. We need to copy the parameters that will be recorded outside the loop.
                 this->CopyParamsAttrOutOfInnerLoop(nextTailParams, this->tailParams);
+                nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
+                this->tailParams = nextTailParams;
+                this->queSize++;
             }
-            nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
-            this->tailParams = nextTailParams;
         }
-        else {// tail join the queue
-            this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
-            PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
-            // Overwrite the old head parameter. The next tail is not assigned a value outside the Inner loop and has no parameters. We need to copy the parameters that will be recorded outside the loop.
-            this->CopyParamsAttrOutOfInnerLoop(nextTailParams, this->tailParams);
-            nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
-            this->tailParams = nextTailParams;
-            this->queSize++;
+    } else {
+        // Right now we use endIndex and startIndex are additional constraints that can "slice" the SABI blocks, excluding some
+        // Normally, they should be 0 and len(kv chunks), so they practically have no impact, unless someone changes the caller 
+        int32_t firstSabiIdx = FirstGreaterEqual(rowSabi, startIndex);
+        int32_t lastSabiIdx = LastValidLowerThan(rowSabi, endIndex);
+        if (firstSabiIdx < 0 || lastSabiIdx < firstSabiIdx) {
+            // nothing to do, shouldn't happen
+            return;
+        }
+        // Use sabi block indices
+        int32_t computedBlocks = 0;
+        for (int32_t  chunkIdx = firstSabiIdx; chunkIdx <= lastSabiIdx; ++chunkIdx, ++computedBlocks) {
+            int32_t sInnerLoopIdx = rowSabi.Get(static_cast<uint32_t>(chunkIdx));
+            params->sInnerLoopOffset = sInnerLoopIdx;  // S2 Align offset
+            params->isFirstInnerIter = (chunkIdx == firstSabiIdx);
+            params->isSecondInnerIter = (chunkIdx == (firstSabiIdx + 1));
+            params->isLastInnerIter = (chunkIdx == lastSabiIdx);
+            if constexpr (PFAT::enablePrefix) {
+                params->isPrefixInnerIter = sInnerLoopIdx * basicSInnerSize < this->actualKVPrefixLen;
+            } else {
+                params->isPrefixInnerIter = 0;
+            }
+            if (unlikely(isS2Load)) {
+                params->isInnerTail = true;
+            } else {
+                params->isInnerTail = (sInnerLoopIdx == (int32_t)this->maxInnerLoopTimes - 1) || (sInnerLoopIdx == (int32_t)this->maxInnerLoopPrefixTimes - 1);
+            }
+
+            if (unlikely(params->isInnerTail)) {
+                if (!params->isPrefixInnerIter) {
+                    lastInnerMargin = (sInnerLoopIdx * basicSInnerSize + params->unalignSInner - sInnerLastToken)
+                        / softmaxInnerBasicSize * softmaxInnerBasicSize;
+                    lastInnerMargin = (lastInnerMargin > 0) ? lastInnerMargin : 0;
+                    if constexpr (PFAT::enablePrefix) {
+                        lastInnerMargin = 0;
+                    }
+                    params->mm1SingleCoreN = params->singleProcessSInnerSizeTail - lastInnerMargin;
+                    params->singleProcessSInnerSizeNow = params->singleProcessSInnerSizeTail - lastInnerMargin;
+                    params->singleProcessSInnerBmmTail = params->unalignSInner - lastInnerMargin;
+                    params->maskCopyInCol = params->maskInnerTailAlign - lastInnerMargin;
+                    params->pseShiftCopyInCol = params->pseShiftInnerTailAlign - lastInnerMargin;
+                } else {
+                    if constexpr (PFAT::enablePrefix) {
+                        params->mm1SingleCoreN = params->singleProcessSInnerPrefixSizeTail;
+                        params->singleProcessSInnerSizeNow = params->singleProcessSInnerPrefixSizeTail;
+                        params->singleProcessSInnerBmmTail = params->unalignSInnerPrefix;
+                        params->maskCopyInCol = params->maskInnerPrefixTailAlign;
+                        params->pseShiftCopyInCol = params->pseShiftInnerPrefixTailAlign;
+                    }
+                }
+            } else {
+                params->mm1SingleCoreN = params->singleProcessSInnerSize;
+                params->singleProcessSInnerSizeNow = params->singleProcessSInnerSize;
+                params->singleProcessSInnerBmmTail = params->singleProcessSInnerSize;
+                params->maskCopyInCol = params->singleProcessSInnerSize;
+                params->pseShiftCopyInCol = params->singleProcessSInnerSize;
+                if (params->isLastInnerIter) {
+                    if constexpr (PFAT::enablePrefix) {
+                        lastInnerMargin = 0;
+                    }
+                    params->mm1SingleCoreN -= lastInnerMargin;
+                    params->singleProcessSInnerSizeNow -= lastInnerMargin;
+                    params->singleProcessSInnerBmmTail -= lastInnerMargin;
+                    params->maskCopyInCol -= lastInnerMargin;
+                    params->pseShiftCopyInCol -= lastInnerMargin;
+                }
+            }
+            params->mm2SingleKAlign = (params->mm1SingleCoreN + MM2_SINGLE_K_ALIGN_SIZE - 1) / MM2_SINGLE_K_ALIGN_SIZE * MM2_SINGLE_K_ALIGN_SIZE;
+            if (params->isFirstInnerIter) {
+                if constexpr (PFAT::enablePrefix) {
+                    firstInnerMargin = 0;
+                }
+                params->mm1SingleCoreN -= firstInnerMargin;
+                params->singleProcessSInnerSizeNow -= firstInnerMargin;
+                params->singleProcessSInnerBmmTail -= firstInnerMargin;
+                params->maskCopyInCol -= firstInnerMargin;
+                params->pseShiftCopyInCol -= firstInnerMargin;
+                params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, firstInnerMargin);
+                this->ComputeOffset(params, sInnerLoopIdx, firstInnerMargin);
+            } else {
+                params->tensorBOffset = this->GetBmm1TensorBOffset(params, sInnerLoopIdx, 0);
+                this->ComputeOffset(params, sInnerLoopIdx, 0);
+            }
+
+            if (this->attentionMaskType == 2 || this->attentionMaskType == 3) {
+                params->useMask = ((sInnerFirstToken + params->singleProcessSOuterSize) > ((int64_t)sInnerLoopIdx * (int64_t)basicSInnerSize)
+                    || (sInnerLastToken - params->singleProcessSOuterSize < ((int64_t)(sInnerLoopIdx + 1) * (int64_t)basicSInnerSize)));
+            }
+
+            // Determine whether the row invalidation OptimizationMode is enabled in the core.
+            CheckRowInvalid(preTokens, nextTokens, params);
+    
+            if (this->attentionMaskType == 4) {
+                int32_t sOuterOffset = params->attenMaskOffset / SPARSE_ATTENTION_MASK_SIZE;
+                int32_t sInnerOffset = params->attenMaskOffset % SPARSE_ATTENTION_MASK_SIZE;
+                params->sparseBandSelect0 = (sOuterOffset < (sInnerOffset + (int32_t)params->maskCopyInCol));
+                sOuterOffset = params->attenMaskOffsetPre / SPARSE_ATTENTION_MASK_SIZE;
+                sInnerOffset = params->attenMaskOffsetPre % SPARSE_ATTENTION_MASK_SIZE;
+                params->sparseBandSelect1 = (sOuterOffset > (sInnerOffset - (int32_t)params->singleProcessSOuterSize));
+                params->useMask = params->sparseBandSelect0 || params->sparseBandSelect1;
+            } else {        // In Non band OptimizationMode，not involved sparseBandSelect0 and sparseBandSelect1. Set all to true to ensure that it does not affect public processes.
+                params->sparseBandSelect0 = true;
+                params->sparseBandSelect1 = true;
+            }
+
+            if (this->queSize >= this->queSizeLimit) {
+                // When the queue is full, task is triggered. The task specified by headParams starts to send instructions.
+                ComputeEachCoreSInnerLoop();
+
+                // prehead update
+                this->preHeadParams = this->headParams;
+
+                // head out of queue
+                this->headId = (this->headId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                this->headParams = &this->pfaParamsQueue[this->headId];
+
+                // tail join the queue
+                this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
+                if (computedBlocks < PFA_PARAMS_QUEUE_CAPBABILITY - 1) {
+                    // Overwrite the old head parameter. The next tail is not assigned a value outside the Inner loop and has no parameters. We need to copy the parameters that will be recorded outside the loop.
+                    this->CopyParamsAttrOutOfInnerLoop(nextTailParams, this->tailParams);
+                }
+                nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
+                this->tailParams = nextTailParams;
+            }
+            else {// tail join the queue
+                this->tailId = (this->tailId + 1) % PFA_PARAMS_QUEUE_CAPBABILITY;
+                PFAComputeParam *nextTailParams = &this->pfaParamsQueue[this->tailId];
+                // Overwrite the old head parameter. The next tail is not assigned a value outside the Inner loop and has no parameters. We need to copy the parameters that will be recorded outside the loop.
+                this->CopyParamsAttrOutOfInnerLoop(nextTailParams, this->tailParams);
+                nextTailParams->gmPingpong = this->tailParams->gmPingpong ^ 1;
+                this->tailParams = nextTailParams;
+                this->queSize++;
+            }
         }
     }
 }
@@ -2463,7 +2662,42 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::ComputeEachCoreBa
                               this->tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize - 1) /
                               this->tilingData->promptAttentionSingleCoreParams.singleProcessSOuterSize;
     int64_t sNumMulHeadNum = this->tilingData->promptAttentionBaseParams.headNumSize * sNum;
-    int64_t totalTilingN = sNumMulHeadNum * sOuterBlockNum;
+    int64_t totalTilingN = sNumMulHeadNum * sOuterBlockNum; //total number of Qblocks * number of heads Qblocks = L/128
+
+    int64_t sInnerFirstToken;
+    int64_t sInnerLastToken;
+
+    // For vertical bands (mmarz)
+    const int64_t debugSlice = this->tilingData->promptAttentionBaseParams.debugSlice;
+    const int64_t dbgFirst = this->tilingData->promptAttentionBaseParams.debugSInnerFirstToken;
+    const int64_t dbgLast  = this->tilingData->promptAttentionBaseParams.debugSInnerLastToken;
+    
+    // For SABI blocks
+    I32VecView sabiRow{};  // per-iteration, reset later
+
+    const uint32_t d0  = this->tilingData->promptAttentionBaseParams.debugT3D0;
+    const uint32_t d1  = this->tilingData->promptAttentionBaseParams.debugT3D1;
+    const uint32_t d2  = this->tilingData->promptAttentionBaseParams.debugT3D2;
+    const uint32_t len = this->tilingData->promptAttentionBaseParams.debugT3Len;
+    const uint32_t off = this->tilingData->promptAttentionBaseParams.debugT3OffsetBytes;
+
+    // Validate SABI metadata once
+    uint64_t want64 = 0;
+    bool sabiMetaOk = false;
+    if (off != 0 && len != 0 && d0 != 0 && d1 != 0 && d2 != 0) {
+        want64 = uint64_t(d0) * uint64_t(d1) * uint64_t(d2);
+        // strict match for debug payload
+        sabiMetaOk = (want64 == uint64_t(len));
+    }
+
+    const bool isSabi = sabiMetaOk;
+
+    I32T3View t3{};
+    if (isSabi) {
+        const __gm__ int32_t* base =
+            reinterpret_cast<const __gm__ int32_t*>(this->gmTilingBase + off);
+        t3 = I32T3View{ base, d0, d1, d2, len };
+    }
 
     for (int64_t tilingIdx = coreIdx; tilingIdx < totalTilingN; tilingIdx += (blockNum - (tilingIdx % blockNum)) * 2 - 1) {
         int64_t sIdxMulbatchNOffset = tilingIdx % sNumMulHeadNum;
@@ -2473,6 +2707,8 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::ComputeEachCoreBa
         int64_t sOuterLoopIdx = sOuterBlockNum - 1 - (tilingIdx / sNumMulHeadNum);
         this->GetSingleCoreParam(sIdx);
         this->GetSparseParam(&preTokens, &nextTokens, sIdx, params);
+
+        sabiRow = {};
         if (this->tilingData->promptAttentionBaseParams.isLayoutSH) {    // SH format offset
             params->multiSeqOffset = 0;
             for (int i = 0; i < sIdx; i++) {
@@ -2494,14 +2730,28 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910<PFAT>::ComputeEachCoreBa
             this->singleProcessSOuterSizeWhole * this->singleProcessSOuterSizeWhole)) {
                 continue;
         }
-        int64_t sInnerFirstToken = ClipSInnerToken(params->sOuterOffset - preTokens, 0, params->actualSeqLengthKVPerBatch + this->actualKVPrefixLen);
-        int64_t sInnerLastToken = ClipSInnerToken(params->sOuterOffset + nextTokens + params->singleProcessSOuterSize, 0, params->actualSeqLengthKVPerBatch + this->actualKVPrefixLen);
+        if (debugSlice) {
+            // Vertical band
+            sInnerFirstToken = dbgFirst;
+            sInnerLastToken  = dbgLast;
+        } else {
+            // Default behavior
+            sInnerFirstToken = ClipSInnerToken(params->sOuterOffset - preTokens, 0, params->actualSeqLengthKVPerBatch + this->actualKVPrefixLen);
+            sInnerLastToken = ClipSInnerToken(params->sOuterOffset + nextTokens + params->singleProcessSOuterSize, 0, params->actualSeqLengthKVPerBatch + this->actualKVPrefixLen);
+            
+            // Block sparsity
+            if (isSabi) {
+                const uint32_t headIdx = static_cast<uint32_t>(params->batchNOffset);
+                const uint32_t queryChunkRow = static_cast<uint32_t>(sOuterLoopIdx);
+                sabiRow = t3.At(headIdx, queryChunkRow);
+            }
+        }
         if (sInnerLastToken <= sInnerFirstToken) {
             continue;
         }
 
         this->LoopSOuterOffsetInit(params->multiSeqOffset, sIdx);
-        this->SInnerLoopFunc(sInnerFirstToken, sInnerLastToken, sIdx, preTokens, nextTokens);
+        this->SInnerLoopFunc(sInnerFirstToken, sInnerLastToken, sIdx, preTokens, nextTokens, sabiRow);
     }
 }
 

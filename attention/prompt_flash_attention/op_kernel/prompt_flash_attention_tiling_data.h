@@ -81,6 +81,17 @@ public:
     uint32_t qkHeadSize = 0;
     uint32_t vHeadSize = 0;
     uint32_t gOfMla = 0;
+    // Passing parameters through environment variables (host-filled)
+    // For vertical bands
+    int64_t debugSlice = 0;
+    int64_t debugSInnerFirstToken = 0;
+    int64_t debugSInnerLastToken  = 0;
+    // For SABI tensor
+    uint32_t debugT3Len = 0;           // total elements = d0*d1*d2
+    uint32_t debugT3OffsetBytes = 0;   // byte offset from tilingPtr to int32 data
+    uint32_t debugT3D0 = 0;
+    uint32_t debugT3D1 = 0;
+    uint32_t debugT3D2 = 0;
 
     // ========================
     // Getter & Setter 方法
