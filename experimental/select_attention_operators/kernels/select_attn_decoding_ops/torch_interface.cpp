@@ -368,15 +368,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         Args:
             query (torch.Tensor): Query vector of shape [B, H, D] (fp16 or bf16)
             maxblocks (torch.Tensor): Quest metadata with maximum vectors of 
-                                    every key-cache block of shape 
-                                    [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
+                                    every key-cache block of shape [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
                                     important: zeroes must be in place of metadata of non-existing kv blocks
             minblocks (torch.Tensor): Quest metadata with minimum vectors of 
-                                    every key-cache block of shape 
-                                    [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
+                                    every key-cache block of shape  [num_meta_blocks, BLOCK_SIZE, N, D] (fp16 or bf16)
                                     important: zeroes must be in place of metadata of non-existing kv blocks
-            metadata_block_tables (torch.Tensor): Metadata block tables of 
-                                                shape [B, MMBPR] (int32)
+            metadata_block_tables (torch.Tensor): Metadata block tables of shape [B, MMBPR] (int32)
             seq_lens (torch.Tensor): Sequence length of each request in the batch
                                    of shape [B] (int32)
             k (int): Number of highest indices to return for every KV head
@@ -479,17 +476,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
             Returns:
                 <fills out the selected_indices tensor>
                 
-
-            Limitations: due to kernel's internal buffer design on 910B:
+            Limitations: 
                 D = 128
-                BLOCK_SIZE = 128
                 H / N <= BLOCK_SIZE
+                BLOCK_SIZE = 128
                 MMBPR < 7 (below 5 is the most stable)
                 k % 8 == 0
             )DOC",
-            py::arg("query"),
-            py::arg("maxblocks"),
-            py::arg("minblocks"),
+            py::arg("query"), py::arg("maxblocks"), py::arg("minblocks"),
             py::arg("metadata_block_tables"),
             py::arg("seq_lens"),
             py::arg("tokens_since_metadata_update"),

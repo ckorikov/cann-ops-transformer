@@ -239,7 +239,8 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
             for (int32_t sub_meta_block_id = 0; sub_meta_block_id < masks_per_D; sub_meta_block_id++) {
                 int32_t block_scores_offset = sub_meta_block_id * NUM_FLOAT_ELEMS_PER_VECTOR;
                 int32_t accumulated_offset = meta_blk * BLOCK_SIZE + block_scores_offset;
-                AscendC::Copy(accumulated_scores_lt[accumulated_offset], block_scores_lt[block_scores_offset], seq_len_curr_meta_blk - sub_meta_block_id * NUM_FLOAT_ELEMS_PER_VECTOR, 1, {1,1,8,8});
+                AscendC::Copy(accumulated_scores_lt[accumulated_offset], block_scores_lt[block_scores_offset], 
+                              seq_len_curr_meta_blk - sub_meta_block_id * NUM_FLOAT_ELEMS_PER_VECTOR, 1, {1,1,8,8});
                 if (meta_blk < num_meta_blocks_in_request - 1){
                     AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
                     AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);     
@@ -275,14 +276,12 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_bfloat16(
         // Extract top-k indices - need to convert back to bfloat16 for output if needed
         AscendC::Extract(selected_values_lt, selected_indices_lt, maxblock_float_lt, m_extractRepeatTimes);
 
-        // (local window) Add check whether last index should be added
+        // (local window at the end) Add check whether last index should be added
         if (tokens_since_metadata_update >= 0) {
             int32_t mru = seq_len - tokens_since_metadata_update;  // mru = sequence length of this request at the most recent metadata update
-            // int32_t win_size = (mru % BLOCK_SIZE != 0) + (seq_len / BLOCK_SIZE) - (mru / BLOCK_SIZE); // win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
             int32_t win_size = ((mru & 0x7f) != 0) + (seq_len >> 7) - (mru >> 7); // win_size - faster computation version due to statically known fact that BLOCK_SZIE is a powers of two --> 7
-            for (int w=1; w<=win_size; w++){
-                selected_indices_lt.SetValue(k - w, DIV_ROUNDUP(seq_len, BLOCK_SIZE) - w);
-            }
+            // int32_t win_size = (mru % BLOCK_SIZE != 0) + (seq_len / BLOCK_SIZE) - (mru / BLOCK_SIZE); // win_size = number of the most recent KV-blocks in the sequence, which are not yet registered by the  metadata
+            for (int w=1; w<=win_size; w++){selected_indices_lt.SetValue(k - w, DIV_ROUNDUP(seq_len, BLOCK_SIZE) - w);}
             AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);
             AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);            
         }
@@ -483,7 +482,8 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
             // Store scores in accumulated buffer with offset for this metadata block 
             int32_t accumulated_offset = meta_blk * BLOCK_SIZE;
             uint64_t seq_len_curr_meta_blk = MIN(seq_len - (meta_blk * num_tokens_per_meta_block), BLOCK_SIZE); // (account for tail, which might not be exactly BLOCK_SIZE)
-            AscendC::Copy(accumulated_scores_lt[accumulated_offset], block_scores_lt, seq_len_curr_meta_blk, 1, {1,1,8,8});
+            AscendC::Copy(accumulated_scores_lt[accumulated_offset], block_scores_lt, 
+                          seq_len_curr_meta_blk, 1, {1,1,8,8});
             if (meta_blk < num_meta_blocks_in_request - 1){
                 AscendC::SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);
                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID2);     
@@ -492,18 +492,15 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
 
         // Step 5: Find top-k indices across all metadata blocks for this request-head pair
         uint32_t total_elements = num_meta_blocks_in_request * BLOCK_SIZE;
-        uint32_t m_concatRepeatTimes = DIV_ROUNDUP(total_elements, 32);
         uint32_t m_sortRepeatTimes = DIV_ROUNDUP(total_elements, 32);
+        uint32_t m_concatRepeatTimes = DIV_ROUNDUP(total_elements, 32);
         uint32_t m_extractRepeatTimes = DIV_ROUNDUP(total_elements, 32);
 
-        // Create index range [0...total_elements-1]
-        for (uint32_t i = 0; i < total_elements; i++) {
-            index_local_lt.SetValue(i, i);
-        }   
+        // Create indices range [0...total_elements-1]
+        for (uint32_t i = 0; i < total_elements; i++) {index_local_lt.SetValue(i, i);}   
 
         // (sink) Add high score to the first block, making sure that it will be selected
         if (tokens_since_metadata_update >= 0) {
-            // AscendC::PipeBarrier<PIPE_ALL>();  // important synch
             AscendC::SetFlag<AscendC::HardEvent::V_S>(EVENT_ID1);
             AscendC::WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID1);                 
             accumulated_scores_lt.SetValue(0, MAXHALF);
@@ -527,8 +524,8 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
             for (int w=1; w<=win_size; w++){
                 selected_indices_lt.SetValue(k - w, DIV_ROUNDUP(seq_len, BLOCK_SIZE) - w);
             }
-            AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);
-            AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID2);            
+            AscendC::SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID3);
+            AscendC::WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID3);            
         }        
 
         // Step 6: Copy out the results
