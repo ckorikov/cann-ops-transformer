@@ -86,7 +86,7 @@ function(op_add_subdirectory OP_LIST OP_DIR_LIST)
                 "${CMAKE_CURRENT_SOURCE_DIR}/posembedding/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/moe/**/op_host/CMakeLists.txt"
                 "${CMAKE_CURRENT_SOURCE_DIR}/ffn/**/op_host/CMakeLists.txt"
-                #"${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
+                "${CMAKE_CURRENT_SOURCE_DIR}/mc2/**/op_host/CMakeLists.txt"
             )
             List(APPEND OP_HOST_CMAKE_FILES ${CANNDEV_OPS_HOST_CMAKE_FILES})
         endif()
@@ -389,12 +389,6 @@ function(add_ops_src_copy)
         "matmul_all_reduce;"
         "matmul_all_reduce_add_rms_norm;"
         "inplace_matmul_all_reduce_add_rms_norm;"
-        "quant_reduce_scatter;"
-        "quant_all_reduce;"
-        "matmul_allto_all;"
-        "allto_all_matmul;"
-        "attention_to_ffn;"
-        "ffn_to_attention;"
     ) # mc2算子列表
 
     get_filename_component(FOLDER_NAME "${SRC_COPY_DST}" NAME_WE)
