@@ -195,20 +195,8 @@ private:
     uint64_t combineOuterCntOffset;
     uint64_t combineOuterCntIndexOffset;
 
-    uint32_t maxBSInUBForInner_{0};
-    uint32_t innerExpIdSizeInUB_{0};
-    uint32_t innerCntSizeInUB_{0};
-    uint32_t innerExpIdNumInUB_{0};
-    uint32_t innerCntNumInUB_{0};
-    uint32_t innerOffsetNumInUB_{0};
     uint32_t innerTableSize_{0};
 
-    uint32_t maxBSInUBForOuter_{0};
-    uint32_t outerSendTokenInfoNumInUB_{0};
-    uint32_t outerSendTokenInfoSizeInUB_{0};
-    uint32_t outerCntNumInUB_{0};
-    uint32_t outerCntSizeInUB_{0};
-    uint32_t outerOffsetNumInUB_{0};
     // RDMA预留给Inner表的空间
     uint32_t innerTableDataOffset_{0};
     uint32_t innerTableFlagOffset_{0};
@@ -639,11 +627,11 @@ CreateInnerReduceInfo(uint32_t serverIdx)
         DataCopyExtParams innerCntWriteCountsParams{1, static_cast<uint32_t>(currentBS * sizeof(uint16_t)), 0, 0, 0};
         SyncFunc<AscendC::HardEvent::MTE2_MTE3>();
         SyncFunc<AscendC::HardEvent::S_MTE3>();
-        DataCopyPad(combineInnerCnt[BS_BLOCK_SIZE + innerCntNumInUB_ * batchIndex], innerCntLt, innerCntWriteCountsParams);
+        DataCopyPad(combineInnerCnt[BS_BLOCK_SIZE + maxBsInUB * batchIndex], innerCntLt, innerCntWriteCountsParams);
 
         DataCopyExtParams innerOffsetWriteCountsParams{1, static_cast<uint32_t>(currentBS * axisK_ * sizeof(int32_t)),
                                             0, 0, 0};
-        DataCopyPad(combineInnerOffset[innerOffsetNumInUB_ * batchIndex], innerOffsetLt, innerOffsetWriteCountsParams);
+        DataCopyPad(combineInnerOffset[maxBsInUB * axisK_ * batchIndex], innerOffsetLt, innerOffsetWriteCountsParams);
         leftBS -= currentBS;
     }
 }
@@ -701,14 +689,13 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
         }
         DataCopyExtParams outerCntWriteCountsParams{1, static_cast<uint32_t>(currentBS * sizeof(int32_t)), 0, 0, 0};
         SyncFunc<AscendC::HardEvent::S_MTE3>();
-        DataCopyPad(combineOuterCnt[outerCntNumInUB_ * batchIndex], outerCntLt, outerCntWriteCountsParams);
+        DataCopyPad(combineOuterCnt[maxBsInUB * batchIndex], outerCntLt, outerCntWriteCountsParams);
         DataCopyExtParams outerOffsetWriteCountsParams{1, static_cast<uint32_t>(currentBS * serverNum * sizeof(int32_t)),
             0, 0, 0};
-        DataCopyPad(combineOuterOffset[outerOffsetNumInUB_ * batchIndex], outerOffsetLt, outerOffsetWriteCountsParams);
+        DataCopyPad(combineOuterOffset[maxBsInUB * serverNum * batchIndex], outerOffsetLt, outerOffsetWriteCountsParams);
         leftBS -= currentBS;
     }
 }
-
 
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::ReorderTokens()
