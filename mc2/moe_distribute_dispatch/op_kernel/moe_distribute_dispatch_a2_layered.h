@@ -495,7 +495,7 @@ CreateInnerReduceInfo(uint32_t serverIdx)
 
     // 计算TBUF能存放最大多少BS的Inner表信息
     uint32_t maxBsInUB = PreloadForReduceInfo<uint16_t, int32_t>(axisK_, axisK_ * sizeof(int32_t),
-        UB_32B_ALIGN + RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK) * sizeof(int32_t)); // innerAxisBSLt + expCntMap
+        BITS16_PER_BLOCK * sizoef(uint16_t) + RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK) * sizeof(int32_t)); // innerAxisBSLt + expCntMap
 
     LocalTensor<int32_t> expertIdsI32Tensor = tBuf.GetWithOffset<int32_t>(maxBsInUB * axisK_, baseBuffOffset);
     baseBuffOffset += maxBsInUB * axisK_ * sizeof(int32_t);
