@@ -39,6 +39,9 @@ set(ASCEND_ALL_COMPUTE_UNIT       "ascend910b;ascend910_93;ascend910_95;kirinx90
 set(SOC_VERSION_LIST ascend910b ascend910_93 ascend910_95 kirinx90)
 set(ARCH_DIRECTORY_LIST arch32 arch32 arch35 arch32)
 
+get_filename_component(OPEN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../open_source" REALPATH)
+get_filename_component(OPEN_SOURCE_DIR_BAK "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../open_source" REALPATH)
+
 foreach(SOC_VERSION ${ASCEND_COMPUTE_UNIT})
   list(FIND SOC_VERSION_LIST ${SOC_VERSION} INDEX)
   if(NOT INDEX EQUAL -1)
@@ -113,6 +116,8 @@ if (BUILD_OPEN_PROJECT)
         include(cmake/dependencies.cmake)
         include(cmake/variables.cmake)
         include(cmake/obj_func.cmake)
+        include(cmake/third_party/abseil-cpp.cmake)
+        include(cmake/third_party/ascend_protobuf.cmake)
 
         include(cmake/third_party/makeself-fetch.cmake)
         include(cmake/custom_build.cmake)
