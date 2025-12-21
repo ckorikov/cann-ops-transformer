@@ -636,9 +636,9 @@ __aicore__ inline void MoeDistributeCombineA2Layered<TemplateMC2TypeA2layeredFun
     uint32_t baseBuffOffset = TBUF_TEMP_OFFSET;
     uint32_t realBS = static_cast<uint32_t>(countInnerGlobal_.GetValue(globalBs * serverId_));
 
-    LocalTensor<int16_t> countReduceLocal  = tBuf.GetWithOffset<int16_t>(RoundUp(realBS,
+    LocalTensor<uint16_t> countReduceLocal  = tBuf.GetWithOffset<uint16_t>(RoundUp(realBS,
         B16_PER_BLOCK), baseBuffOffset);
-    baseBuffOffset += sizeof(int16_t) * RoundUp(realBS, B16_PER_BLOCK); // 需要32字节对齐
+    baseBuffOffset += sizeof(uint16_t) * RoundUp(realBS, B16_PER_BLOCK); // 需要32字节对齐
 
     LocalTensor<int32_t> offsetReduceLocal = tBuf.GetWithOffset<int32_t>(RoundUp(realBS * axisK_,
         B32_PER_BLOCK), baseBuffOffset);
