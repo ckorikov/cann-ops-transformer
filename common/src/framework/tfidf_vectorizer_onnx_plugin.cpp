@@ -16,8 +16,10 @@ namespace domi {
 static Status ParseParamsTfIdfVectorizer(const Message* op_src, ge::Operator& op_dest) {
   const ge::onnx::NodeProto* node = dynamic_cast<const ge::onnx::NodeProto*>(op_src);
   if (node == nullptr) {
-    ge::ReportPredefinedErrMsg("E50058", {"op_name", "description"}, 
-                               {"TfIdfVectorizer", "Dynamic cast failed!"});
+    std::string reportErrorCode = "E50058";
+    std::vector<const char*> errKeys = {"op_name", "description"};
+    std::vector<const char*> errValues = {"TfIdfVectorizer", "Dynamic cast op_src to NodeProto failed!"};
+    ge::ReportPredefinedErrMsg(reportErrorCode.c_str(), errKeys, errValues);
     return FAILED;
   }
 
