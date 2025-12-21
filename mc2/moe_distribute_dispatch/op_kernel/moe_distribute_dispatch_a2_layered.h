@@ -483,7 +483,7 @@ CreateInnerReduceInfo(uint32_t serverIdx)
     Duplicate<int32_t>(expCntMap, int32_t(0), RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK));
     
     LocalTensor<uint16_t> innerAxisBSLt = tBuf.GetWithOffset<uint16_t>(BITS16_PER_BLOCK, baseBuffOffset);
-    LocalTensor<uint8_t> innerAxisBSU8Lt = innerAxisBSLt.ReinterpretCast<uint8_t>;
+    LocalTensor<uint8_t> innerAxisBSU8Lt = innerAxisBSLt.ReinterpretCast<uint8_t>();
     baseBuffOffset += BITS16_PER_BLOCK * sizeof(int16_t);
 
     // 将BS信息先写入RDMA空间
