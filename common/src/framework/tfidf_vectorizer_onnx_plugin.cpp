@@ -16,21 +16,12 @@ namespace domi {
 static Status ParseParamsTfIdfVectorizer(const Message* op_src, ge::Operator& op_dest) {
   const ge::onnx::NodeProto* node = dynamic_cast<const ge::onnx::NodeProto*>(op_src);
   if (node == nullptr) {
-    ge::ReportPredefinedErrMsg("E50058", {"op_name", "description"}, 
-                               {"TfIdfVectorizer", "Dynamic cast failed!"});
+    std::string reportErrorCode = "E50058";
+    std::vector<const char*> errKeys = {"op_name", "description"};
+    std::vector<const char*> errValues = {"TfIdfVectorizer", "Dynamic cast op_src to NodeProto failed!"};
+    ge::ReportPredefinedErrMsg(reportErrorCode.c_str(), errKeys, errValues);
     return FAILED;
   }
-
-  // 辅助函数：处理数组类型属性
-  auto handleArrayAttr = [&](const auto& attr, const std::string& name) {
-    if (attr.type() == ge::onnx::AttributeProto::INTS) {
-      op_dest.SetAttr(name.c_str(), std::vector<int64_t>{attr.ints().begin(), attr.ints().end()});
-    } else if (attr.type() == ge::onnx::AttributeProto::FLOATS) {
-      op_dest.SetAttr(name.c_str(), std::vector<float>{attr.floats().begin(), attr.floats().end()});
-    } else if (attr.type() == ge::onnx::AttributeProto::STRINGS) {
-      op_dest.SetAttr(name.c_str(), std::vector<std::string>{attr.strings().begin(), attr.strings().end()});
-    }
-  };
 
   for (const auto& attr : node->attribute()) {
     const std::string& name = attr.name();
@@ -38,18 +29,16 @@ static Status ParseParamsTfIdfVectorizer(const Message* op_src, ge::Operator& op
       if (name == "max_gram_length" || name == "max_skip_count" || name == "min_gram_length") {
         op_dest.SetAttr(name.c_str(), attr.i());
       }
-    } else if (attr.type() == ge::onnx::AttributeProto::STRING) {
-      if (name == "mode") op_dest.SetAttr(name.c_str(), attr.s());
-    } else if (name == "weights") {
-      handleArrayAttr(attr, name);
-    } else if (name == "ngram_counts" || name == "ngram_indexes" || name == "pool_int64s") {
-      if (attr.type() == ge::onnx::AttributeProto::INTS) {
+    } else if (name == "mode" && attr.type() == ge::onnx::AttributeProto::STRING) {
+      op_dest.SetAttr(name.c_str(), attr.s());
+    } else if (name == "weights" && attr.type() == ge::onnx::AttributeProto::FLOATS) {
+      op_dest.SetAttr(name.c_str(), std::vector<float>{attr.floats().begin(), attr.floats().end()});
+    } else if (attr.type() == ge::onnx::AttributeProto::INTS) {
+      if (name == "ngram_counts" || name == "ngram_indexes" || name == "pool_int64s") {
         op_dest.SetAttr(name.c_str(), std::vector<int64_t>{attr.ints().begin(), attr.ints().end()});
       }
-    } else if (name == "pool_strings") {
-      if (attr.type() == ge::onnx::AttributeProto::STRINGS) {
-        op_dest.SetAttr(name.c_str(), std::vector<std::string>{attr.strings().begin(), attr.strings().end()});
-      }
+    } else if (name == "pool_strings" && attr.type() == ge::onnx::AttributeProto::STRINGS) {
+      op_dest.SetAttr(name.c_str(), std::vector<std::string>{attr.strings().begin(), attr.strings().end()});
     }
   }
 
