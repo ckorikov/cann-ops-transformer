@@ -68,6 +68,15 @@ inline __aicore__ T RoundUp(const T val, const T align) {
     return (val + align - 1) / align * align;
 }
 
+template<typename CntType, typename OffsetType>
+__aicore__ inline uint32_t PreloadForReduceInfo(uint32_t freeBufSize, uint32_t offsetNumPerCnt, uint32_t needSizePerCnt, uint32_t reservedSize)
+{
+    uint32_t cntNumPerBlock = UB_32B_ALIGN / sizeof(CntType);
+    uint32_t elementSizePerBlock = cntNumPerBlock * sizeof(CntType) + cntNumPerBlock * offsetNumPerCnt * sizeof(OffsetType) + cntNumPerBlock * needSizePerCnt;
+    uint32_t maxBsInUB = (freeBufSize - reservedSize) / elementSizePerBlock * cntNumPerBlock;
+    return cntNumPerBlock;
+}
+
 public:
     __aicore__ inline MoeDistributeDispatchA2Layered() {};
     __aicore__ inline void Init(GM_ADDR x, GM_ADDR expertIds, GM_ADDR scales, GM_ADDR expertScales, GM_ADDR performanceInfo,
@@ -459,15 +468,6 @@ __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFu
     PipeBarrier<PIPE_ALL>();
 }
 
-template<typename CntType, typename OffsetType>
-__aicore__ inline uint32_t PreloadForReduceInfo(uint32_t freeBufSize, uint32_t offsetNumPerCnt, uint32_t needSizePerCnt, uint32_t reservedSize)
-{
-    uint32_t cntNumPerBlock = UB_32B_ALIGN / sizeof(CntType);
-    uint32_t elementSizePerBlock = cntNumPerBlock * sizeof(CntType) + cntNumPerBlock * offsetNumPerCnt * sizeof(OffsetType) + cntNumPerBlock * needSizePerCnt;
-    uint32_t maxBsInUB = (freeBufSize - reservedSize) / elementSizePerBlock * cntNumPerBlock;
-    return cntNumPerBlock;
-}
-
 template <TemplateMC2TypeA2layeredClass>
 __aicore__ inline void MoeDistributeDispatchA2Layered<TemplateMC2TypeA2layeredFunc>::
 CreateInnerReduceInfo(uint32_t serverIdx)
@@ -496,7 +496,7 @@ CreateInnerReduceInfo(uint32_t serverIdx)
 
     // 计算TBUF能存放最大多少BS的Inner表信息
     uint32_t maxBsInUB = PreloadForReduceInfo<uint16_t, int32_t>(TBUF_SIZE - TBUF_TEMP_OFFSET, axisK_, axisK_ * sizeof(int32_t),
-        BITS16_PER_BLOCK * sizoef(uint16_t) + RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK) * sizeof(int32_t)); // innerAxisBSLt + expCntMap
+        BITS16_PER_BLOCK * sizeof(uint16_t) + RoundUp(moeExpertNumInServer_, BITS32_PER_BLOCK) * sizeof(int32_t)); // innerAxisBSLt + expCntMap
 
     LocalTensor<int32_t> expertIdsI32Tensor = tBuf.GetWithOffset<int32_t>(maxBsInUB * axisK_, baseBuffOffset);
     baseBuffOffset += maxBsInUB * axisK_ * sizeof(int32_t);
