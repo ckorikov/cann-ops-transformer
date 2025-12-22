@@ -388,7 +388,6 @@ public:
         uint32_t kvSplitPerCore = gTiling.GetValue(TILING_KVSPLIT);
         uint32_t kvSplitCoreNum = gTiling.GetValue(TILING_KVCORENUM);
         
-
         uint32_t strideQO = qHeads * embed;
         uint32_t embedRound = RoundUp<BLOCK_SIZE>(embed);
         uint32_t glFlag = 1;
@@ -597,18 +596,12 @@ static constexpr uint64_t L1_TILE_DIM_1 = 128;
 static constexpr uint64_t L1_TILE_DIM_2 = 576;
 
 CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
-                        GM_ADDR q,
-                        GM_ADDR qRope,
-                        GM_ADDR k,
-                        GM_ADDR kRope,
+                        GM_ADDR q, GM_ADDR qRope,
+                        GM_ADDR k, GM_ADDR kRope,
                         GM_ADDR blockTables,
-                        GM_ADDR o,
-                        GM_ADDR s,
-                        GM_ADDR p,
-                        GM_ADDR oTmp,
-                        GM_ADDR oUpdate,
-                        GM_ADDR oCoreTmp,
-                        GM_ADDR l,
+                        GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                        GM_ADDR oTmp, GM_ADDR oUpdate,
+                        GM_ADDR oCoreTmp, GM_ADDR l,
                         GM_ADDR tiling)
 {
     // Set FFTS address
@@ -682,17 +675,11 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
 
 
 CATLASS_GLOBAL void MLABf16(uint64_t fftsAddr,
-                        GM_ADDR q,
-                        GM_ADDR qRope,
-                        GM_ADDR k,
-                        GM_ADDR kRope,
+                        GM_ADDR q, GM_ADDR qRope,
+                        GM_ADDR k, GM_ADDR kRope,
                         GM_ADDR blockTables,
-                        GM_ADDR o,
-                        GM_ADDR s,
-                        GM_ADDR p,
-                        GM_ADDR oTmp,
-                        GM_ADDR oUpdate,
-                        GM_ADDR oCoreTmp,
+                        GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                        GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp, 
                         GM_ADDR l,
                         GM_ADDR tiling)
 {
@@ -706,7 +693,7 @@ CATLASS_GLOBAL void MLABf16(uint64_t fftsAddr,
     using LayoutK = layout::ColumnMajor;
     using ElementV = __bf16;
     using LayoutV = layout::RowMajor;
-    using ElementS = float;
+    using ElementS = float;;
     using LayoutS = layout::RowMajor;
     using ElementP = __bf16;
     using LayoutP = layout::RowMajor;

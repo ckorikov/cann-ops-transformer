@@ -143,7 +143,7 @@ public:
         uint64_t subMask = ((uint64_t)1 << len) - 1;
         uint64_t maskValue = subMask;
         for (int i = 1; i < VECTOR_MASK_WIDTH / VECTOR_OPERAND_WIDTH; i++){
-            maskValue += subMask << i * VECTOR_OPERAND_WIDTH;
+            maskValue += subMask << (i * VECTOR_OPERAND_WIDTH);
         }
 
         AscendC::SetVectorMask<int8_t>(maskValue, maskValue);
@@ -179,7 +179,6 @@ public:
                            const AscendC::LocalTensor<float> &tvUbTensor, uint32_t numRowsRound, uint32_t numElems,
                            uint32_t numElemsAligned)
     {
-        
         AscendC::BlockReduceSum<float, false>(tvUbTensor, srcUb, numRowsRound * numElemsAligned / FLOAT_VECTOR_SIZE, 0,
                                               1, 1, SRC_REP_STRIDE_8);
         AscendC::PipeBarrier<PIPE_V>();

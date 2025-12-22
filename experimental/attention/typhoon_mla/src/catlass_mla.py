@@ -20,6 +20,7 @@ import torch_npu
 
 from torch_catlass_attention import catlass_mla_prepare, mla
 
+
 def catlass_device_malloc(device, aic_core_num, o_core_temp_size, l_size):
     aic_core_num = aic_core_num.astype(np.int64)
     l_size = l_size.astype(np.int64)
@@ -171,7 +172,7 @@ dtype_map = {
 def catlass_score_mla(q, q_rope, k, k_rope, kv_seq_lens, 
                       block_tables, device_mem, softmax_scale, return_lse=True, lse_idxs=None):
     ret = catlass_mla_run(q, q_rope, k, k_rope, kv_seq_lens, 
-        block_tables, device_mem, dtype_map[q.dtype], softmax_scale = softmax_scale)
+        block_tables, device_mem, dtype_map[q.dtype], softmax_scale=softmax_scale)
 
     if return_lse:
         bsz = q.shape[0]

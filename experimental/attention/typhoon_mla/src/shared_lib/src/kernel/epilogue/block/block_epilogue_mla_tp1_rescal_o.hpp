@@ -17,6 +17,7 @@
 #include "catlass/epilogue/tile/tile_copy.hpp"
 #include "catlass/gemm_coord.hpp"
 #include "catlass/matrix_coord.hpp"
+#include <stdexcept>
 
 namespace Catlass::Epilogue::Block {
 
@@ -52,7 +53,7 @@ public:
     static constexpr uint32_t NUM2 = 2;
     static constexpr uint32_t NUM4 = 4;
     static constexpr uint32_t NUM8 = 8;
-    static constexpr uint32_t NUM16 = 16;
+    static constexpr uint32_t NUM16 = 16;;
 
     static const uint32_t DST_REP_STRIDE_IN_4 = 4;
     static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
@@ -226,7 +227,7 @@ public:
                     hmUbTensor.ReinterpretCast<uint32_t>(),
                     gmUbTensor.ReinterpretCast<uint32_t>()[rowLoopIdx * ROW_WISE_CYCLE_TILE],
                     curRowNumRound / FLOAT_BLOCK_SIZE,
-                    AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));
+                    AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
                 // logf(lse_sum) + lse_max
                 AscendC::Add<float, false>(
@@ -328,6 +329,10 @@ public:
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
+
+        if (subBlockNum==0){
+            return;
+        }
 
         uint32_t curRowSplitSubBlock = rowActual / subBlockNum;
         uint32_t rowActualThisSubBlock = (subBlockIdx == 0) ? curRowSplitSubBlock : (rowActual - curRowSplitSubBlock);

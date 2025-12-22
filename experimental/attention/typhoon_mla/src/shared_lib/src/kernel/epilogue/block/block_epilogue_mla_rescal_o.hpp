@@ -17,6 +17,7 @@
 #include "catlass/epilogue/tile/tile_copy.hpp"
 #include "catlass/gemm_coord.hpp"
 #include "catlass/matrix_coord.hpp"
+#include <stdexcept>
 
 namespace Catlass::Epilogue::Block {
 
@@ -61,8 +62,9 @@ public:
     static constexpr uint32_t NUM4 = 4;
     static constexpr uint32_t NUM8 = 8;
     static constexpr uint32_t NUM16 = 16;
+    static constexpr uint32_t NUM64 = 64;
 
-    static const uint32_t DST_REP_STRIDE_IN_4 = 4;
+    static const uint32_t DST_REP_STRIDE_IN_4 = 4;;
     static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
     static const uint32_t SRC1_REP_STRIDE_IN_4 = 4;
     static const uint32_t DST_REP_STRIDE_IN_8 = 8;
@@ -95,9 +97,7 @@ public:
     }
 
     CATLASS_DEVICE
-    ~BlockEpilogue()
-    {
-    }
+    ~BlockEpilogue(){};
 
     CATLASS_DEVICE
     void SetMask(int32_t len)
@@ -251,7 +251,7 @@ public:
                     glUbTensor,
                     llUbTensor[llUbOffsetCurCycle],
                     AscendC::DataCopyParams(
-                        1, 64 / FLOAT_BLOCK_SIZE, 0, 0));
+                        1, NUM64 / FLOAT_BLOCK_SIZE, 0, 0));
                 AscendC::PipeBarrier<PIPE_V>();
             }
             AscendC::DataCopy(
@@ -294,26 +294,26 @@ public:
                     curRowNum,
                     AscendC::BinaryRepeatParams(
                         1, 1, 0, embedRound / FLOAT_BLOCK_SIZE, embedRound / FLOAT_BLOCK_SIZE, 1));
-                AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1); // fix hidden_size=96
+                AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
             }
             AscendC::PipeBarrier<PIPE_V>();
 
             if (kvSplitCoreNum != 1) {
-                // log(l)
+                // calculate log(l) 
                 AscendC::Ln<float, false>(
                     tvUbTensor,
                     tvUbTensor,
                     (uint64_t)0,
                     curRowNum,
                     AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
                 AscendC::Brcb(
                     hmUbTensor.ReinterpretCast<uint32_t>(),
                     gmUbTensor.ReinterpretCast<uint32_t>()[rowLoopIdx * ROW_WISE_CYCLE_TILE],
                     curRowNumRound / FLOAT_BLOCK_SIZE,
-                    AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));
-                AscendC::PipeBarrier<PIPE_V>();
-                // logf(lse_sum) + lse_max
+                    AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));;
+                AscendC::PipeBarrier<PIPE_V>();;
+                // calculate logf(lse_sum) + lse_max
                 AscendC::Add<float, false>(
                     tvUbTensor,
                     tvUbTensor,
@@ -362,7 +362,7 @@ public:
                     hmUbTensor,
                     (uint64_t)0,
                     curRowNum,
-                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));
+                    AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
@@ -452,8 +452,20 @@ public:
         uint32_t rowActual = actualBlockShape.m();    // curHeadNum * tokenNumPerHead
         uint32_t columnActual = actualBlockShape.n(); // embed
 
+        if (tokenNumPerHead==0){
+            return;
+        }
+
+        if (embed==0){
+            return;
+        }
+        
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
+
+        if (subBlockNum==0){
+            return;
+        }
 
         uint32_t curHeadSplitSubBlock = curHeadNum / subBlockNum;
         uint32_t curHeadThisSubBlock = (subBlockIdx == 0) ? curHeadSplitSubBlock : (curHeadNum - curHeadSplitSubBlock);

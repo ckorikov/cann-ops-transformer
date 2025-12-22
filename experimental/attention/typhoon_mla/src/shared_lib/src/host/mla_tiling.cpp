@@ -263,70 +263,15 @@ uint32_t GetKVSplitParam(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_t *t
     return decoderBatch * kvSplitCoreNum;
 }
 
-uint32_t _GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_t *tilingHost)
-{
-    // Tp1 senario specialization
-    // Calculate the tiling parameters related to flash decoding
-    uint32_t totalTaskNumSpec = tilingHost[TILING_TOTAL_QTOKENS];
-
-    uint32_t formerTaskNum = totalTaskNumSpec;
-    uint32_t tailTaskNum = 0;;
-
-    uint32_t processLoop = totalTaskNumSpec / blockDim;
-    formerTaskNum = processLoop * blockDim;
-    tailTaskNum = totalTaskNumSpec - formerTaskNum;
-
-    if (tailTaskNum >= blockDim * SPLITKV_RATION) {
-        formerTaskNum = totalTaskNumSpec;
-        tailTaskNum = 0;
-    }
-
-    tilingHost[TILING_FORMERTASKNUM] = formerTaskNum;
-    tilingHost[TILING_TAILTASKNUM] = tailTaskNum;
-
-    if (tailTaskNum == 0) {
-        tilingHost[TILING_KVCORENUM] = 1;
-        tilingHost[TILING_KVSPLIT] = tilingHost[TILING_MAX_KVSEQLEN];
-        return blockDim;;
-    }
-
-    uint32_t process = Lcm(tailTaskNum, blockDim);
-    uint32_t kvSplitCoreNum = process / tailTaskNum;
-
-    uint32_t kvSeqlenMaxAlign = RoundUp(tilingHost[TILING_MAX_KVSEQLEN], static_cast<uint32_t>(mlaInfo.blockSize));
-    uint32_t kvSeqBlockNum = kvSeqlenMaxAlign / mlaInfo.blockSize;
-    uint32_t kvBlockPerCore = CeilDiv(kvSeqBlockNum, kvSplitCoreNum);
-    uint32_t kvSplitPerCore = kvBlockPerCore * mlaInfo.blockSize;;
-    kvSplitCoreNum = CeilDiv(tilingHost[TILING_MAX_KVSEQLEN], kvSplitPerCore);
-
-    tilingHost[TILING_KVSPLIT] = kvSplitPerCore;
-    tilingHost[TILING_KVCORENUM] = kvSplitCoreNum;
-
-    // Set lOffsetInfo and OfdOffsetInfo
-    AddrOffsets addrOffsets;
-    int32_t prevTaskNum = 0;;
-    for (int32_t seqIdx = 0; seqIdx < mlaInfo.batch; seqIdx++) {
-        int32_t qSeqLen = mlaInfo.qSeqLen == nullptr ? 1 : *(mlaInfo.qSeqLen + seqIdx);
-        for (int32_t qSeq = 0; qSeq < qSeqLen; qSeq++) {
-            int32_t tilingOffset = TILING_HEAD_SIZE + PARA_TILING_ELENUM_SPEC * prevTaskNum;
-            tilingHost[tilingOffset + NUM11] = GetHigh32Bit(addrOffsets.addrLSeqOffset);;
-            tilingHost[tilingOffset + NUM12] = GetLow32Bit(addrOffsets.addrLSeqOffset);
-            tilingHost[tilingOffset + NUM13] = GetHigh32Bit(addrOffsets.addrOFdSeqOffset);
-            tilingHost[tilingOffset + NUM14] = GetLow32Bit(addrOffsets.addrOFdSeqOffset);
-            addrOffsets.addrLSeqOffset += static_cast<uint64_t>(mlaInfo.numHeads * kvSplitCoreNum);
-            addrOffsets.addrOFdSeqOffset += static_cast<uint64_t>(mlaInfo.numHeads * mlaInfo.embeddingSize);
-            prevTaskNum++;;
-        }
-    }
-
-    return tailTaskNum * kvSplitCoreNum;
-}
-
 uint32_t GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_t *tilingHost)
 {
     // Tp1 senario specialization
     // Calculate the tiling parameters related to flash decoding
     uint32_t totalTaskNumSpec = tilingHost[TILING_TOTAL_QTOKENS];
+
+    if (blockDim==0){
+        throw std::runtime_error("blockDim can not be zero");
+    }
 
     uint32_t formerTaskNum = totalTaskNumSpec;
     uint32_t tailTaskNum = 0;

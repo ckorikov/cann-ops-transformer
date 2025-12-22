@@ -13,7 +13,7 @@ import sysconfig
 import torch
 import torch_npu
 
-from torch_catlass._C import *
+from torch_catlass._C import catlass_mla_prepare, mla
 
 __all__ = []
 

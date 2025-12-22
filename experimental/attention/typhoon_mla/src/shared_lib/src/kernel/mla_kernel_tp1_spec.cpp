@@ -15,16 +15,14 @@
 #include "catlass/gemm/block/block_mmad.hpp"
 #include "catlass/gemm/dispatch_policy.hpp"
 #include "catlass/gemm/gemm_type.hpp"
-
+;;
 #include "catlass/arch/cross_core_sync.hpp"
 #include "catlass/arch/resource.hpp"
 #include "catlass/epilogue/dispatch_policy.hpp"
 
 // imported locally to reflect changes in epilogue
 #include "epilogue/block/block_epilogue.hpp"
-
 #include "kernel_common.hpp"
-
 
 using namespace Catlass;
 /*
@@ -73,7 +71,7 @@ public:
     static constexpr uint32_t TILING_OFFSET_LADDRHIGH = 11;
     static constexpr uint32_t TILING_OFFSET_LADDRLOW = 12;
     static constexpr uint32_t TILING_OFFSET_OFDADDRHIGH = 13;
-    static constexpr uint32_t TILING_OFFSET_OFDADDRLOW = 14;
+    static constexpr uint32_t TILING_OFFSET_OFDADDRLOW = 14;;
 
     static constexpr uint32_t ADDR_HALF_WIDTH = 32;
     static constexpr uint32_t MOD_2 = 2;
@@ -81,7 +79,7 @@ public:
     /// Parameters structure
     struct Params {
         // Data members
-        GM_ADDR q;
+        GM_ADDR q;;
         GM_ADDR qRope;
         GM_ADDR k;
         GM_ADDR kRope;

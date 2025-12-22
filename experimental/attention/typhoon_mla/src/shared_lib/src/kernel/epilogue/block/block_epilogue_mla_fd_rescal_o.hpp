@@ -153,7 +153,7 @@ public:
                 AscendC::BrcbRepeatParams(KV_SPLIT_MAX / FLOAT_BLOCK_SIZE,
                                           NUM8 * KV_SPLIT_MAX / FLOAT_BLOCK_SIZE));
         }
-        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::PipeBarrier<PIPE_V>();;
 
         SetMask(kvSplitCoreNum);
         AscendC::Sub<float, false>(

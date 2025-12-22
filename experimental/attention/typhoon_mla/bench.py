@@ -41,16 +41,9 @@ if __name__ == "__main__":
                     seqlens = [shared_seqlen] + [nonshared_seqlen] * bsz
                     
                     test_typhoon_mla = TyphoonMLA(
-                        bsz, 
-                        seqlens, 
-                        n_heads, 
-                        qk_nope_head_dim, 
-                        qk_rope_head_dim, 
-                        kv_lora_rank, 
-                        v_head_dim, 
-                        softmax_scale, 
-                        device, 
-                        dtype
+                        bsz, seqlens, n_heads, qk_nope_head_dim, qk_rope_head_dim, 
+                        kv_lora_rank, v_head_dim, softmax_scale, 
+                        device, dtype
                     )
                     
                     typhoonmla_elapsed = test_typhoon_mla.perf(warm_up=25, n_repeat=100)
@@ -59,17 +52,9 @@ if __name__ == "__main__":
                     seqlens = [shared_seqlen + nonshared_seqlen] * bsz
                     
                     test_torchnpu_paged_mla = TorchNPUPagedMLA(
-                        bsz, 
-                        seqlens, 
-                        n_heads, 
-                        qk_nope_head_dim, 
-                        qk_rope_head_dim, 
-                        kv_lora_rank, 
-                        v_head_dim, 
-                        softmax_scale, 
-                        device, 
-                        dtype
-                    
+                        bsz, seqlens, n_heads, qk_nope_head_dim, qk_rope_head_dim, 
+                        kv_lora_rank, v_head_dim, softmax_scale, 
+                        device, dtype
                     )
                     torchnpu_elapsed = test_torchnpu_paged_mla.perf(warm_up=25, n_repeat=100)
                     torchnpu_tgr = bsz / (torchnpu_elapsed * 1e-3) * 1e-3 # ktoken/s

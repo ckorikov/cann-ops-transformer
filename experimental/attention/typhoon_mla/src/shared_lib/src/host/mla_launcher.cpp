@@ -64,7 +64,6 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     ACL_CHECK(aclrtMemcpy(tilingDevice, tilingSize, tilingHost, tilingSize, ACL_MEMCPY_HOST_TO_DEVICE));
 
     // temporary variable on device
-    // TODO: prepare all temp variables during pytorch preprocessing, to reduce overhead
     uint32_t aicCoreNum = blockNum;
     uint32_t kvSplitCoreNum = *((uint32_t *)tilingHost + MLATiling::TILING_KVCORENUM);
     uint64_t oFdSize = embeddingSize * numHeads * numTokens * kvSplitCoreNum * sizeof(float);
@@ -119,8 +118,6 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
         default:
             break;
     }
-    // ACL_CHECK(aclrtSynchronizeStream(stream));  // TODO: remove the sync for timing
-
     // memory clean-up
     aclrtFreeHost(tilingHost);
     aclrtFree(tilingDevice);

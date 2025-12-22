@@ -38,11 +38,8 @@ using namespace CatlassKernel;
 
 namespace CatlassKernelWrapper {
 
-
 static const uint32_t Q_NUMHEAD_IND = 1;
 static const uint32_t Q_EMBEDDING_IND = 2;
-
-
 
 at::Tensor RunMLA(
     const at::Tensor &q,

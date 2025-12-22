@@ -26,24 +26,23 @@ dtype_map = {
     torch.int8: "int8"
 }
 
+
 def typhoon_mla_prepare(bsz, seqlens, n_heads, kv_lora_rank, qk_rope_head_dim, block_size, device, dtype):
     max_seq_len = max(seqlens)
     num_blocks = bsz * max_seq_len // block_size
 
-    # block_tables = np.arange(num_blocks, dtype=np.int32)
-    # block_tables = torch.from_numpy(block_tables.reshape(-1).astype(np.int32)).to(torch.get_default_device())
     block_tables = torch.arange(num_blocks, dtype=torch.int32).to(device)
     
     device_mem, lse_idxs = catlass_kernel_prepare(
-        batch = bsz,
-        num_heads = n_heads,
-        head_size = kv_lora_rank,
-        head_size_rope = qk_rope_head_dim,
-        num_blocks = num_blocks,
-        block_size = block_size,
-        kv_lens = np.array(seqlens),
-        device = device,
-        dtype_str = dtype_map[dtype]
+        batch=bsz,
+        num_heads=n_heads,
+        head_size=kv_lora_rank,
+        head_size_rope=qk_rope_head_dim,
+        num_blocks=num_blocks,
+        block_size=block_size,
+        kv_lens=np.array(seqlens),
+        device=device,
+        dtype_str=dtype_map[dtype]
     )
     catlass_ctx = {
         "num_blocks": num_blocks,
