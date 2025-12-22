@@ -594,6 +594,8 @@ private:
 static constexpr uint64_t L1_TILE_DIM_0 = 128;
 static constexpr uint64_t L1_TILE_DIM_1 = 128;
 static constexpr uint64_t L1_TILE_DIM_2 = 576;
+constexpr uint32_t ComputeEleNum = 6144;
+
 
 CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
                         GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
@@ -604,7 +606,6 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
     // Set FFTS address
     AscendC::SetSyncBaseAddr(fftsAddr);;
 
-    using ArchTag = Arch::AtlasA2;
     using ElementQ = half;
     using LayoutQ = layout::RowMajor;
     using ElementK = half;
@@ -654,8 +655,7 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLARescaleO, OType, OUpdateType, OTmpType>;
 
     // Epilogue Block模块，实现Flash MLA中flash decoding
-    using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
-    constexpr uint32_t ComputeEleNum = 6144;;
+    using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;;
     using EpilogueMLAFDRescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
 
@@ -679,7 +679,6 @@ CATLASS_GLOBAL void MLABf16(uint64_t fftsAddr,
     // Set FFTS address
     AscendC::SetSyncBaseAddr(fftsAddr);
 
-    using ArchTag = Arch::AtlasA2;
     using ElementQ = __bf16;
     using LayoutQ = layout::RowMajor;
     using ElementK = __bf16;
@@ -731,7 +730,7 @@ CATLASS_GLOBAL void MLABf16(uint64_t fftsAddr,
     // Epilogue Block模块，实现Flash MLA中flash decoding
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
-    constexpr uint32_t ComputeEleNum = 6144;
+    
     using EpilogueMLAFDRescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
 
