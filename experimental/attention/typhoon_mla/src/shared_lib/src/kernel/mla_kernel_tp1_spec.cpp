@@ -665,6 +665,8 @@ private:
     Arch::CrossCoreFlag pvReady{PV_READY_ID};
 };
 
+constexpr uint32_t ComputeEleNum = 6144;
+
 CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
                                 GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
                                 GM_ADDR blockTables, GM_ADDR o, GM_ADDR s, GM_ADDR p,
@@ -674,7 +676,6 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     // Set FFTS address
     AscendC::SetSyncBaseAddr(fftsAddr);;
 
-    using ArchTag = Arch::AtlasA2;;
     using ElementQ = half;
     using LayoutQ = layout::RowMajor;
     using ElementK = half;
@@ -726,7 +727,6 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     // Epilogue Block模块，实现Flash MLA中flash decoding
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
-    constexpr uint32_t ComputeEleNum = 6144;
     using EpilogueMLAFDRescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;;
 
@@ -749,7 +749,6 @@ CATLASS_GLOBAL void MLATp1SpecBf16(uint64_t fftsAddr,
     // Set FFTS address
     AscendC::SetSyncBaseAddr(fftsAddr);
 
-    using ArchTag = Arch::AtlasA2;
     using ElementQ = bfloat16_t;
     using LayoutQ = layout::RowMajor;
     using ElementK = bfloat16_t;
@@ -801,7 +800,6 @@ CATLASS_GLOBAL void MLATp1SpecBf16(uint64_t fftsAddr,
     // Epilogue Block模块，实现Flash MLA中flash decoding
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
-    constexpr uint32_t ComputeEleNum = 6144;
     using EpilogueMLAFDRescaleO =
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
 

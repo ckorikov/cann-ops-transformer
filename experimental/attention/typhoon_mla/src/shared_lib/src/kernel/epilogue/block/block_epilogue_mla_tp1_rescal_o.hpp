@@ -278,7 +278,6 @@ public:
                     curRowNum,
                     AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();;
-
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
                     AscendC::DataCopyExtParams(curRowNum, NUM4, 0, (kvSplitCoreNum - 1) * NUM4, 0));
@@ -331,7 +330,7 @@ public:
         if (subBlockNum==0){
             return;
         }
-        
+
         uint32_t curRowSplitSubBlock = rowActual / subBlockNum;
         uint32_t rowActualThisSubBlock = (subBlockIdx == 0) ? curRowSplitSubBlock : (rowActual - curRowSplitSubBlock);
         uint32_t rowOffsetSubBlock = subBlockIdx * curRowSplitSubBlock;

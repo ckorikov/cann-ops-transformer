@@ -43,6 +43,16 @@ MLATiling::MLAInfo CreateMlaInfo(MLAKernelInfo& mlaKernelInfo){
 }   
 
 
+struct InputTensors{
+    uint8_t *q, *qRope, *k, *kRope, *blockTable, *s, *p;
+};
+
+
+struct OutputTensors{
+    uint8_t *o, *oTmp, *globalO, *l, *oCoreTmp;
+};
+
+
 void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInfo)
 {
     MLATiling::MLAInfo mlaInfo = CreateMlaInfo(mlaKernelInfo);
@@ -71,38 +81,34 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     // 3 bits for tilingKey(specStraKey : 1, dTypeKey : 2)
     int32_t tilingKey = (specStraKey << MLATiling::NUM2) + mlaKernelInfo.dTypeKey;
 
-    uint8_t *qDevice = mlaKernelInfo.inputAddr[0];
-    uint8_t *qRopeDevice = mlaKernelInfo.inputAddr[1];
-    uint8_t *kDevice = mlaKernelInfo.inputAddr[2];
-    uint8_t *kRopeDevice = mlaKernelInfo.inputAddr[3];
-    uint8_t *blockTableDevice = mlaKernelInfo.inputAddr[4];
-    uint8_t *sDevice = mlaKernelInfo.inputAddr[5];
-    uint8_t *pDevice = mlaKernelInfo.inputAddr[6];
+    std::vector<uint8_t *> inAddrs = mlaKernelInfo.inputAddr;
+    InputTensors inputs{inAddrs[0], inAddrs[1], inAddrs[2], inAddrs[3], inAddrs[4], inAddrs[5], inAddrs[6]};
     
-    uint8_t *oDevice = mlaKernelInfo.outputAddr[0];
-    uint8_t *oTmpDevice = mlaKernelInfo.outputAddr[1];
-    uint8_t *globaloDevice = mlaKernelInfo.outputAddr[2];
-    uint8_t *lDevice = mlaKernelInfo.outputAddr[3];
-    uint8_t *oCoreTmpDevice = mlaKernelInfo.outputAddr[4];
+    std::vector<uint8_t *> outAddrs = mlaKernelInfo.outputAddr;
+    OutputTensors outputs{outAddrs[0], outAddrs[1], outAddrs[2], outAddrs[3], outAddrs[4]};
 
     // use Tp1Spec kernel to get better performance when numHeads = 128
     switch (tilingKey) {
         case TILINGKEY_FP16:
-            MLAFp16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
+            MLAFp16<<<blockNum, nullptr, stream>>>(fftsAddr, inputs.q, inputs.qRope, inputs.k, inputs.kRope,
+                                                inputs.blockTable, outputs.o, inputs.s, inputs.p, outputs.oTmp,
+                                                outputs.globalO, outputs.oCoreTmp, outputs.l, tilingDevice); 
+            break;
         case TILINGKEY_BFP16:
-            MLABf16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
+            MLABf16<<<blockNum, nullptr, stream>>>(fftsAddr, inputs.q, inputs.qRope, inputs.k, inputs.kRope,
+                                                inputs.blockTable, outputs.o, inputs.s, inputs.p, outputs.oTmp,
+                                                outputs.globalO, outputs.oCoreTmp, outputs.l, tilingDevice); 
+            break;
         case TILINGKEY_TP1_SPEC_FP16:
-            MLATp1SpecFp16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
+            MLATp1SpecFp16<<<blockNum, nullptr, stream>>>(fftsAddr, inputs.q, inputs.qRope, inputs.k, inputs.kRope,
+                                                inputs.blockTable, outputs.o, inputs.s, inputs.p, outputs.oTmp,
+                                                outputs.globalO, outputs.oCoreTmp, outputs.l, tilingDevice); 
+            break;
         case TILINGKEY_TP1_SPEC_BFP16:
-            MLATp1SpecBf16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
+            MLATp1SpecBf16<<<blockNum, nullptr, stream>>>(fftsAddr, inputs.q, inputs.qRope, inputs.k, inputs.kRope,
+                                                inputs.blockTable, outputs.o, inputs.s, inputs.p, outputs.oTmp,
+                                                outputs.globalO, outputs.oCoreTmp, outputs.l, tilingDevice); 
+            break;
         default: break;
     }
     // memory clean-up
