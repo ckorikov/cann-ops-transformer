@@ -180,12 +180,15 @@ ge::graphStatus GMMTiling::PrepareTilingData(const gert::TilingContext* context)
 ge::graphStatus GMMTiling::GMMGetTensorShapeSplitM(const gert::TilingContext* context, const gert::Shape &xShape,
     const gert::Shape &wShape) {
     if (isSingleX_ && isSingleWeight_ && isSingleY_) {  // split M, s-s-s
+      sameN_ = true;
       return SplitMSingleXSingleWeightSingleY(xShape, wShape);
     }
     if (isSingleX_ && !isSingleWeight_ && isSingleY_) {  // split M, s-m-s
+      sameN_ = true;
       return SplitMSingleXSeparatedWeight(context, xShape);
     }
     if (isSingleX_ && !isSingleWeight_ && !isSingleY_) {  // splitM, s-m-m
+      sameN_ = true;
       return SplitMSingleXSeparatedWeight(context, xShape);
     }
     if (!isSingleX_ && !isSingleWeight_ && isSingleY_) {  // split M, m-m-s
@@ -248,6 +251,10 @@ ge::graphStatus GMMTiling::SplitMSingleXSeparatedWeight(const gert::TilingContex
     groupNum_ += 1U;
     kList_[i] = static_cast<int32_t>(k);
     int64_t n = wShape.GetDim(weightNDim_) * nzFactor_;
+    if (preN_ != -1) {
+      sameN_ = sameN_ && (n == preN_);
+    }
+    preN_ = n;
     nList_[i] = static_cast<int32_t>(n);
     maxN_ = std::max(maxN_, n);
   }
@@ -1032,6 +1039,7 @@ void GMMTiling::GMMSetTplTilingKey(gert::TilingContext* context) {
                                                 GetTplDataType(yDtype_),
                                                 transposeX_? 1UL : 0UL,
                                                 transposeWeight_? 1UL : 0UL,
+                                                sameN_,
                                                 groupListType_,
                                                 isStaticTilingApi,
                                                 a8w4KernelTemplate,

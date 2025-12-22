@@ -35,7 +35,7 @@
 #elif defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
 
 #include "grouped_matmul_quant.h"
-
+#include "grouped_matmul_same_weight.h"
 #endif
 
 
@@ -423,7 +423,7 @@ namespace {
 
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
 
-#define GMM_CUBE_IMPL_A100(transA, transB, sync, cfg)                                                              \
+#define GMM_CUBE_IMPL_A100(processClass, transA, transB, sync, cfg)                                                \
     do {                                                                                                           \
         using matmulType = MMImplType<xType<transA>, weightType<transB>, yType, biasType, cfg>;                    \
         matmulType::MT mm;                                                                                         \
@@ -434,7 +434,7 @@ namespace {
         GMMCompute<matmulType, sync> computeOp(mm);                                                                \
         computeOp.Init(x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale,  \
                        y, user1,  &gmmBaseParams_, &mmTilingData_, &tPipe);                                        \
-        GMMProcess<decltype(computeOp)> op(computeOp);                                                             \
+        processClass<decltype(computeOp)> op(computeOp);                                                           \
         op.Init(&gmmBaseParams_, &mmTilingData_, gmmArrayAddr_, groupList, tiling);                                \
         op.Process();                                                                                              \
     } while (0)
@@ -457,7 +457,7 @@ namespace {
 
 #endif
 
-template <int D_T_A, int D_T_B, int D_T_Y, int TRANS_A, int TRANS_B, int GROUP_LIST_TYPE,
+template <int D_T_A, int D_T_B, int D_T_Y, int TRANS_A, int TRANS_B, int SAME_WEIGHT, int GROUP_LIST_TYPE,
           int IS_STATIC_TILING_API, int A8W4_KERNEL_TEMPLATE, int A16W8_KERNEL_TEMPLATE, int AIV_AIC_RATIO>
 __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bias, GM_ADDR scale,
                                                      GM_ADDR offset, GM_ADDR antiquantScale, GM_ADDR antiquantOffset,
@@ -468,12 +468,16 @@ __global__ __aicore__ void grouped_matmul(GM_ADDR x, GM_ADDR weight, GM_ADDR bia
 
 #if defined(__CCE_AICORE__) && __CCE_AICORE__ == 100
 #if defined(GMM_QUANT_FLOAT16)
-    if constexpr (D_T_A == GMM_TPL_INT8 && D_T_B == GMM_TPL_INT8 && TRANS_B == 1) {
+    if constexpr (D_T_A == GMM_TPL_INT8 && D_T_B == GMM_TPL_INT8 && TRANS_B == 1 && SAME_WEIGHT == 0) {
         GMM_IMPL_A100(GMMQuantCompute, GMMProcess, false, true, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
+    } else if constexpr (D_T_A == GMM_TPL_INT8 && D_T_B == GMM_TPL_INT8 && TRANS_B == 1 && SAME_WEIGHT == 1) {
+        GMM_IMPL_A100(GMMQuantCompute, GMMGroupProcessSameWeight, false, true, false, NZ_CFG_MDL, xType, weightType, yTypeMSD);
     }
 #elif defined(GMM_FLOAT)
-    if constexpr (D_T_A == GMM_TPL_FLOAT16 && D_T_B == GMM_TPL_FLOAT16 && TRANS_B == 1) {
-        GMM_CUBE_IMPL_A100(false, true, false, NZ_CFG_MDL);
+    if constexpr (D_T_A == GMM_TPL_FLOAT16 && D_T_B == GMM_TPL_FLOAT16 && TRANS_B == 1 && SAME_WEIGHT == 0) {
+        GMM_CUBE_IMPL_A100(GMMProcess, false, true, false, NZ_CFG_MDL);
+    } else if constexpr (D_T_A == GMM_TPL_FLOAT16 && D_T_B == GMM_TPL_FLOAT16 && TRANS_B == 1 && SAME_WEIGHT == 1) {
+        GMM_CUBE_IMPL_A100(GMMGroupProcessSameWeight, false, true, false, NZ_CFG_MDL);
     }
 #endif
 #else

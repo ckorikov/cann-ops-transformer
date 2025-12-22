@@ -298,6 +298,8 @@ private:
     int64_t tuningConfig_ = 0L;
     bool isA4W4_ = false;
     bool isA8W4FakeA8W8_ = false;
+    int64_t preN_ = -1;
+    bool sameN_ = false;
     uint64_t A8W4noMsdSpace_ = 0;
 
     ge::DataType xDType_ = ge::DT_UNDEFINED;
