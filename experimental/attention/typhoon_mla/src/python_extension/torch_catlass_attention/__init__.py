@@ -8,14 +8,14 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
+__all__ = []
+
 import os
 import sysconfig
 import torch
 import torch_npu
 
 from torch_catlass._C import catlass_mla_prepare, mla
-
-__all__ = []
 
 
 def _load_depend_libs():

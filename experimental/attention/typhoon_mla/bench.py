@@ -7,12 +7,12 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
+import logging 
+import pytest 
 
 import torch 
 import torch_npu
 import numpy as np
-import pytest 
-import logging 
 
 from src.typhoon_mla import typhoon_mla_prepare, typhoon_mla_run
 

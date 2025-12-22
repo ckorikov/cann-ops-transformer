@@ -8,10 +8,11 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
+import logging 
+
 import torch 
 import torch_npu
 import numpy as np
-import logging 
 
 from src.typhoon_mla import typhoon_mla_prepare, typhoon_mla_run
 

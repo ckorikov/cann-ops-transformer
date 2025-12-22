@@ -263,13 +263,13 @@ public:
                     (uint64_t)0,
                     curRowNum,
                     AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
                 AscendC::Brcb(
                     hmUbTensor.ReinterpretCast<uint32_t>(),
                     gmUbTensor.ReinterpretCast<uint32_t>()[rowLoopIdx * ROW_WISE_CYCLE_TILE],
                     curRowNumRound / FLOAT_BLOCK_SIZE,
                     AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
                 // logf(lse_sum) + lse_max
                 AscendC::Add<float, false>(
                     tvUbTensor,
@@ -278,7 +278,7 @@ public:
                     (uint64_t)0,
                     curRowNum,
                     AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
 
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,

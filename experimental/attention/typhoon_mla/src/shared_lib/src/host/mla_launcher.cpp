@@ -71,9 +71,6 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     // 3 bits for tilingKey(specStraKey : 1, dTypeKey : 2)
     int32_t tilingKey = (specStraKey << MLATiling::NUM2) + mlaKernelInfo.dTypeKey;
 
-    // temp variable name for device kernel
-    uint32_t blockDim = blockNum;
-
     uint8_t *qDevice = mlaKernelInfo.inputAddr[0];
     uint8_t *qRopeDevice = mlaKernelInfo.inputAddr[1];
     uint8_t *kDevice = mlaKernelInfo.inputAddr[2];
@@ -91,27 +88,22 @@ void LaunchMLA(uint32_t blockNum, aclrtStream stream, MLAKernelInfo mlaKernelInf
     // use Tp1Spec kernel to get better performance when numHeads = 128
     switch (tilingKey) {
         case TILINGKEY_FP16:
-            MLAFp16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                   blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                   globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
-            break;
+            MLAFp16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
+                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
+                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
         case TILINGKEY_BFP16:
-            MLABf16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                   blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                   globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
-            break;
+            MLABf16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
+                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
+                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
         case TILINGKEY_TP1_SPEC_FP16:
-            MLATp1SpecFp16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                          blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                          globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
-            break;
+            MLATp1SpecFp16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
+                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
+                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
         case TILINGKEY_TP1_SPEC_BFP16:
-            MLATp1SpecBf16<<<blockDim, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
-                                                          blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
-                                                          globaloDevice, oCoreTmpDevice, lDevice, tilingDevice);
-            break;
-        default:
-            break;
+            MLATp1SpecBf16<<<blockNum, nullptr, stream>>>(fftsAddr, qDevice, qRopeDevice, kDevice, kRopeDevice,
+                                                blockTableDevice, oDevice, sDevice, pDevice, oTmpDevice,
+                                                globaloDevice, oCoreTmpDevice, lDevice, tilingDevice); break;
+        default: break;
     }
     // memory clean-up
     aclrtFreeHost(tilingHost);
