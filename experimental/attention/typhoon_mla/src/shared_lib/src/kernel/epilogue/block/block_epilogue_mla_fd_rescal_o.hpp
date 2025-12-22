@@ -45,6 +45,11 @@ public:
     static constexpr uint32_t FLOAT_BLOCK_SIZE = 8;
     static constexpr uint32_t STAGES = 2;
 
+    static constexpr uint32_t NUM2 = 2;
+    static constexpr uint32_t NUM4 = 4;
+    static constexpr uint32_t NUM8 = 8;
+    static constexpr uint32_t NUM16 = 16;
+
     static const uint32_t DST_REP_STRIDE_IN_4 = 4;
     static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
     static const uint32_t SRC1_REP_STRIDE_IN_4 = 4;
@@ -136,7 +141,7 @@ public:
 
         SetMask(kvSplitCoreNum);
         AscendC::WholeReduceMax<float, false>(
-            lMax, lIn, (int32_t)0, actualHeads, 1, 1, 8,
+            lMax, lIn, (int32_t)0, actualHeads, 1, 1, SRC0_REP_STRIDE_IN_8,
             AscendC::ReduceOrder::ORDER_ONLY_VALUE);
         AscendC::PipeBarrier<PIPE_V>();
 
@@ -146,7 +151,7 @@ public:
                 lMax,
                 (headsProcess + FLOAT_BLOCK_SIZE - 1) / FLOAT_BLOCK_SIZE,
                 AscendC::BrcbRepeatParams(KV_SPLIT_MAX / FLOAT_BLOCK_SIZE,
-                                          8 * KV_SPLIT_MAX / FLOAT_BLOCK_SIZE));
+                                          NUM8 * KV_SPLIT_MAX / FLOAT_BLOCK_SIZE));
         }
         AscendC::PipeBarrier<PIPE_V>();
 
@@ -168,7 +173,7 @@ public:
             AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
         AscendC::PipeBarrier<PIPE_V>();
 
-        AscendC::RepeatReduceSum<float, false>(lSum, lExp, actualHeads, 0, 0, 1, 1, 8);
+        AscendC::RepeatReduceSum<float, false>(lSum, lExp, actualHeads, 0, 0, 1, 1, SRC0_REP_STRIDE_IN_8);
         AscendC::PipeBarrier<PIPE_V>();
 
         AscendC::Ln(lSum, lSum, (headsProcess + FLOAT_BLOCK_SIZE - 1) / FLOAT_BLOCK_SIZE * FLOAT_BLOCK_SIZE);
@@ -178,12 +183,6 @@ public:
         AscendC::PipeBarrier<PIPE_V>();
         
         AscendC::PipeBarrier<PIPE_ALL>();
-        // AscendC::DataCopyPad(
-        //     gl, lSum,
-        //     AscendC::DataCopyExtParams(
-        //         actualHeads, kvSplitCoreNum * sizeof(ElementInput), 0,
-        //         (KV_SPLIT_MAX - kvSplitCoreNum) / FLOAT_BLOCK_SIZE, 0),
-        //     AscendC::DataCopyPadExtParams<ElementInput>(false, 0, 0, 0));
 
         AscendC::DataCopy(gl, lSum, (headsProcess + FLOAT_BLOCK_SIZE - 1) / FLOAT_BLOCK_SIZE * FLOAT_BLOCK_SIZE);
 
@@ -195,7 +194,7 @@ public:
                 lSum,
                 (headsProcess + FLOAT_BLOCK_SIZE - 1) / FLOAT_BLOCK_SIZE,
                 AscendC::BrcbRepeatParams(KV_SPLIT_MAX / FLOAT_BLOCK_SIZE,
-                                          8 * KV_SPLIT_MAX / FLOAT_BLOCK_SIZE));
+                                          NUM8 * KV_SPLIT_MAX / FLOAT_BLOCK_SIZE));
         }
         AscendC::PipeBarrier<PIPE_V>();
 

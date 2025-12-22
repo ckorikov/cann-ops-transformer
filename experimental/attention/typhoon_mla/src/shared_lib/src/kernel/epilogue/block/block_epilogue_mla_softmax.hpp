@@ -247,7 +247,7 @@ public:
             AscendC::PipeBarrier<PIPE_V>();
             AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
             AscendC::WholeReduceMax<float, false>(
-                dst, tempTensor, (int32_t)0, curRowNum, 1, 1, 8, AscendC::ReduceOrder::ORDER_ONLY_VALUE);
+                dst, tempTensor, (int32_t)0, curRowNum, 1, 1, SRC0_REP_STRIDE_IN_8, AscendC::ReduceOrder::ORDER_ONLY_VALUE);
         }
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
         AscendC::PipeBarrier<PIPE_V>();

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 #include "catlass/detail/alignment.hpp"
 #include "helper.hpp"
@@ -207,7 +208,13 @@ void GetTilingHead(const MLAInfo &mlaInfo, uint32_t *tilingHost, const uint32_t 
     tilingHost[TILING_TOR] = *torPtr;
     tilingHost[TILING_KVHEADS] = mlaInfo.kvHeads;
     int32_t curQNBlockTile = GetQNBlockTile(mlaInfo, maxQseqlen, specStrategyFlag);
+    
+    if (curQNBlockTile==0){
+        throw std::runtime_error("curQNBlockTile can not be zero");;
+    }
+
     int32_t curQNBlockNum = (mlaInfo.numHeads + curQNBlockTile - 1) / curQNBlockTile;
+
     tilingHost[TILING_HEAD_SPLIT_SIZE] = static_cast<uint32_t>(curQNBlockTile);
     tilingHost[TILING_HEAD_SPLIT_NUM] = static_cast<uint32_t>(curQNBlockNum);
     tilingHost[TILING_MASKTYPE] = static_cast<uint32_t>(mlaInfo.maskType);
@@ -223,8 +230,6 @@ uint32_t GetKVSplitParam(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_t *t
     if (tilingHost[TILING_NUMHEADS] == NUM128 || !isKVSplit) {
         tilingHost[TILING_KVCORENUM] = 1;
         tilingHost[TILING_KVSPLIT] = tilingHost[TILING_MAX_KVSEQLEN];
-        // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-        // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
         return tilingHost[TILING_BATCH];
     }
 
@@ -240,8 +245,6 @@ uint32_t GetKVSplitParam(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_t *t
 
     tilingHost[TILING_KVSPLIT] = kvSplitPerCore;
     tilingHost[TILING_KVCORENUM] = kvSplitCoreNum;
-    // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-    // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
 
     // Set lOffsetInfo and OfdOffsetInfo
     AddrOffsets addrOffsets;
@@ -335,26 +338,17 @@ uint32_t GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_
     if (tailTaskNum >= blockDim * SPLITKV_RATION) {
         formerTaskNum = totalTaskNumSpec;
         tailTaskNum = 0;
-        // std::cout << "formerTaskNum = " << formerTaskNum << std::endl;
-        // std::cout << "tailTaskNum = " << tailTaskNum << std::endl;
     }
 
     formerTaskNum = 0;
     tailTaskNum = totalTaskNumSpec;
 
-    // std::cout << "formerTaskNum is forced to " << formerTaskNum << std::endl;
-    // std::cout << "tailTaskNum is forced to " << tailTaskNum << std::endl;
-
     tilingHost[TILING_FORMERTASKNUM] = formerTaskNum;
     tilingHost[TILING_TAILTASKNUM] = tailTaskNum;
-    // std::cout << "TILING_FORMERTASKNUM = " << tilingHost[TILING_FORMERTASKNUM] << std::endl;
-    // std::cout << "TILING_TAILTASKNUM = " << tilingHost[TILING_TAILTASKNUM] << std::endl;
 
     if (tailTaskNum == 0) {
         tilingHost[TILING_KVCORENUM] = 1;
         tilingHost[TILING_KVSPLIT] = tilingHost[TILING_MAX_KVSEQLEN];
-        // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-        // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
         return blockDim;
     }
 
@@ -369,8 +363,6 @@ uint32_t GetKVSplitParamSpec(const MLAInfo &mlaInfo, uint32_t &blockDim, uint32_
 
     tilingHost[TILING_KVSPLIT] = kvSplitPerCore;
     tilingHost[TILING_KVCORENUM] = kvSplitCoreNum;
-    // std::cout << "TILING_KVSPLIT = " << tilingHost[TILING_KVSPLIT] << std::endl;
-    // std::cout << "TILING_KVCORENUM = " << tilingHost[TILING_KVCORENUM] << std::endl;
 
     // Set lOffsetInfo and OfdOffsetInfo
     AddrOffsets addrOffsets;

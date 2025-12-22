@@ -57,6 +57,10 @@ public:
     static constexpr uint32_t HALF_DM_UB_SIZE = 128;
     static constexpr uint32_t HALF_LL_UB_SIZE = 256;
     static constexpr uint32_t VECTOR_SIZE = 128;
+    static constexpr uint32_t NUM2 = 2;
+    static constexpr uint32_t NUM4 = 4;
+    static constexpr uint32_t NUM8 = 8;
+    static constexpr uint32_t NUM16 = 16;
 
     static const uint32_t DST_REP_STRIDE_IN_4 = 4;
     static const uint32_t SRC0_REP_STRIDE_IN_4 = 4;
@@ -157,7 +161,7 @@ public:
             AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
         }
         AscendC::SetVectorMask<int8_t>((uint64_t)-1, (uint64_t)-1);
-        AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(oPingPangFlag + 4);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(oPingPangFlag + NUM4);
         if ((nIdx - 1) != 0) {
             // *** dm = exp(dm)
             if (rowLoopIdx == 0) {
@@ -321,16 +325,16 @@ public:
 
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
-                    AscendC::DataCopyExtParams(curRowNum, 4, 0, (kvSplitCoreNum - 1) * 4, 0));
+                    AscendC::DataCopyExtParams(curRowNum, NUM4, 0, (kvSplitCoreNum - 1) * NUM4, 0));
                 AscendC::PipeBarrier<PIPE_ALL>();
                 
                 if (glFlag == 0) {
                     AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID2);
                     glFlag = 1;
                 }
-                uint32_t srcGap = ((embed % 16 <= 8) && (embed % 16 > 0)) ? 1 : 0;
+                uint32_t srcGap = ((embed % NUM16 <= NUM8) && (embed % NUM16 > 0)) ? 1 : 0;
                 AscendC::DataCopyPad(gOCoreTmp, goUbTensor32[oUbOffset],
-                    AscendC::DataCopyExtParams(curRowNum, embed * 4, srcGap, (kvSplitCoreNum - 1) * embed * 4, 0));
+                    AscendC::DataCopyExtParams(curRowNum, embed * NUM4, srcGap, (kvSplitCoreNum - 1) * embed * NUM4, 0));
                 AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID3);
                 AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID3);
                 AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID1);
@@ -362,18 +366,18 @@ public:
                 AscendC::PipeBarrier<PIPE_V>();
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
-                    AscendC::DataCopyExtParams(curRowNum, 4, 0, (kvSplitCoreNum - 1) * 4, 0));
+                    AscendC::DataCopyExtParams(curRowNum, NUM4, 0, (kvSplitCoreNum - 1) * NUM4, 0));
                 AscendC::PipeBarrier<PIPE_ALL>();
                     
                 if (std::is_same<ElementOutput, bfloat16_t>::value) {
                     AscendC::Cast<ElementOutput, float, false>(
-                        goUbTensor16[oUbOffset * 2], goUbTensor32[oUbOffset],
+                        goUbTensor16[oUbOffset * NUM2], goUbTensor32[oUbOffset],
                         AscendC::RoundMode::CAST_RINT, (uint64_t)0,
                         (curRowNum * embedRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
                         AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8)); 
                 } else {
                     AscendC::Cast<ElementOutput, float, false>(
-                        goUbTensor16[oUbOffset * 2], goUbTensor32[oUbOffset],
+                        goUbTensor16[oUbOffset * NUM2], goUbTensor32[oUbOffset],
                         AscendC::RoundMode::CAST_NONE, (uint64_t)0,
                         (curRowNum * embedRound + FLOAT_VECTOR_SIZE - 1) / FLOAT_VECTOR_SIZE,
                         AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_4, SRC0_REP_STRIDE_IN_8)); 
@@ -382,16 +386,16 @@ public:
                 AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
                 // ********************* move O to GM ************************
                 if (tokenNumPerHead == 1) {
-                    AscendC::DataCopyPad(gOutput, goUbTensor16[oUbOffset * 2],
-                                         AscendC::DataCopyExtParams(curRowNum, embed * 2, 0, 0, 0));
+                    AscendC::DataCopyPad(gOutput, goUbTensor16[oUbOffset * NUM2],
+                                         AscendC::DataCopyExtParams(curRowNum, embed * NUM2, 0, 0, 0));
                 } else {
                     uint32_t innerOGmOffset = 0;
-                    uint32_t inner_go_ubuf_offset = oUbOffset * 2;
+                    uint32_t inner_go_ubuf_offset = oUbOffset * NUM2;
                     if (proTokenNum != 0) {
                         AscendC::DataCopyPad(gOutput[innerOGmOffset + proTokenIdx * strideQO],
                                              goUbTensor16[inner_go_ubuf_offset],
                                              AscendC::DataCopyExtParams(proTokenNum,
-                                                                        embed * 2, 0, (strideQO - embed) * 2, 0));
+                                                                        embed * NUM2, 0, (strideQO - embed) * NUM2, 0));
                         innerOGmOffset += embed;
                         inner_go_ubuf_offset += proTokenNum * embed;
                     }
@@ -399,7 +403,7 @@ public:
                         AscendC::DataCopyPad(gOutput[innerOGmOffset],
                                              goUbTensor16[inner_go_ubuf_offset],
                                              AscendC::DataCopyExtParams(tokenNumPerHead,
-                                                                        embed * 2, 0, (strideQO - embed) * 2, 0));
+                                                                        embed * NUM2, 0, (strideQO - embed) * NUM2, 0));
                         innerOGmOffset += embed;
                         inner_go_ubuf_offset += tokenNumPerHead * embed;
                     }
@@ -407,7 +411,7 @@ public:
                         AscendC::DataCopyPad(gOutput[innerOGmOffset],
                                              goUbTensor16[inner_go_ubuf_offset],
                                              AscendC::DataCopyExtParams(epiTokenNum,
-                                                                        embed * 2, 0, (strideQO - embed) * 2, 0));
+                                                                        embed * NUM2, 0, (strideQO - embed) * NUM2, 0));
                     }
                 }
             }
@@ -420,7 +424,7 @@ public:
                 AscendC::DataCopyParams(
                     1, curRowNum * embedRound / FLOAT_BLOCK_SIZE, 0, 0));
         }
-        AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(oPingPangFlag + 4);
+        AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(oPingPangFlag + NUM4);
         if (needRowLoop) {
             oPingPangFlag = 1 - oPingPangFlag;
         }

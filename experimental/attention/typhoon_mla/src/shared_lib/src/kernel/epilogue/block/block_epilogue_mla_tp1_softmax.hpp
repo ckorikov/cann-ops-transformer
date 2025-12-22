@@ -366,9 +366,9 @@ public:
             }
         }
 
-        if (nReal == 512) {
+        if (nReal == SPEC_TILE_512) {
             RowmaxSPECTILE512(lsUbTensor[sUbOffset], lmUbTensor[rowOffset], tvUbTensor, round_m, nReal, nStride);
-        } else if (nReal == 256) {
+        } else if (nReal == SPEC_TILE_256) {
             RowmaxSPECTILE256(lsUbTensor[sUbOffset], lmUbTensor[rowOffset], tvUbTensor, round_m, nReal, nStride);
         } else {
             RowmaxTAILTILE(lsUbTensor[sUbOffset], lmUbTensor[rowOffset], tvUbTensor, round_m, nReal, nStride);
@@ -491,10 +491,12 @@ public:
 
         uint32_t mEnd = (subM + M_SLICE - 1) / M_SLICE;
 
+        static const uint32_t SUB_OFFSET_8192 = 8192;
+
         for (uint32_t mInd = 0; mInd < mEnd; mInd++) {
             uint32_t rowOffset = mInd * M_SLICE;
             uint32_t currM = mInd == mEnd - 1 ? subM - rowOffset : M_SLICE;
-            uint32_t sUbOffset = pingpongFlag * 8192;
+            uint32_t sUbOffset = pingpongFlag * SUB_OFFSET_8192;
             int64_t offsetOutput = rowOffset * qkRoundN;
             auto gOutputThisSubBlock = gOutput[offsetOutput];
             int64_t offsetInput = rowOffset * qkRoundN;
