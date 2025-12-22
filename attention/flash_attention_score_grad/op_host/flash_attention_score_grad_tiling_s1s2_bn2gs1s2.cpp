@@ -182,6 +182,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2gs1s2::GetPlatformInfo()
         ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_A, fBaseParams.l0aSize);
         ascendcPlatform.GetCoreMemSize(platform_ascendc::CoreMemType::L0_C, fBaseParams.l0cSize);
     }
+    fBaseParams.coreNum = 2;
+    fBaseParams.aicNum = 1;
     OP_CHECK_IF((fBaseParams.coreNum == 0) || (fBaseParams.aicNum == 0),
                OP_LOGE(context_, "num of coreNum(aivNum) is %ld, num of aicNum is %ld.",
                                            fBaseParams.coreNum, fBaseParams.aicNum),
