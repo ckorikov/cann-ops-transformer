@@ -217,7 +217,7 @@ ASCENDC_EXTERN_C graphStatus TilingGMMSwigluQuant(gert::TilingContext *context)
     if (isA8W4MSD) {
         int workSpaceMTemp = mLimit * DOUBLE_WORKSPACE_SPLIT;
         tilingData.gmmSwigluBaseParams.set_workSpaceOffset1(workSpaceMTemp * k * sizeof(int8_t));
-        tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(DOUBLE_ROW * workSpaceMTemp * n * sizeof(half));
+        tilingData.gmmSwigluBaseParams.set_workSpaceOffset2(2 * workSpaceMTemp * n * sizeof(half));
         workspaceSizes[0] =
             SYS_WORKSPACE_SIZE +                    // 系统预留16MB
             (workSpaceMTemp * k * sizeof(int8_t)) + // 第一阶段 预处理左矩阵 (mLimit, K) * int8 * 2(double WorkSpace)

@@ -51,9 +51,14 @@ protected:
     ge::graphStatus ParseInputAndAttr();
     ge::graphStatus ParseAttr();
 
+    ge::graphStatus W4A8BaseTilingProcess();
+    ge::graphStatus W4A8L1OptTilingProcess();
     ge::graphStatus W4A8TilingProcess();
     ge::graphStatus W8A8TilingProcess();
+    void DeterministicTilingProcess();
+    void OtherSettingTilingProcess();
     void FillTilingData();
+    void FillTilingDataL1Opt();
     void PrintTilingData();
 protected:
 
@@ -69,7 +74,6 @@ private:
     uint64_t vBaseM_;
     uint32_t sharedInputOffset_;
     uint32_t sharedInputLen_;
-    uint32_t scatterAdd_;
     float residualScale_;
     uint32_t quantGroupNum_;
     uint32_t withOffset_;
@@ -80,6 +84,9 @@ private:
     int64_t tuningConfig_;
     uint32_t hasPertokenScale_;
     uint32_t hasBias_;
+    uint32_t deterministicFlag_;
+    uint32_t deterWorkspaceSize_;
+    bool useL1OptKernel_;    
 protected:
     matmul_tiling::MultiCoreMatmulTiling mm_;
 };

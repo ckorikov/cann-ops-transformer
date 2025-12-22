@@ -48,7 +48,6 @@ BEGIN_TILING_DATA_DEF(GroupMatmulFRTilingData)
   TILING_DATA_FIELD_DEF(uint32_t, ubCalSize);
   TILING_DATA_FIELD_DEF(uint32_t, ubRestBytes);
   TILING_DATA_FIELD_DEF(uint32_t, parallNum);
-  TILING_DATA_FIELD_DEF(uint32_t, scatterAdd);
   TILING_DATA_FIELD_DEF(uint32_t, sharedInputOffset);
   TILING_DATA_FIELD_DEF(uint32_t, sharedInputLen);
   TILING_DATA_FIELD_DEF(float, residualScale);
@@ -56,6 +55,8 @@ BEGIN_TILING_DATA_DEF(GroupMatmulFRTilingData)
   TILING_DATA_FIELD_DEF(uint32_t, withOffset);
   TILING_DATA_FIELD_DEF(uint32_t, hasPertokenScale);
   TILING_DATA_FIELD_DEF(uint32_t, hasBias);
+  TILING_DATA_FIELD_DEF(uint32_t, deterministicFlag);
+  TILING_DATA_FIELD_DEF(uint32_t, deterWorkspaceSize);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(GroupedMatmulFinalizeRouting, GroupMatmulFRTilingData)

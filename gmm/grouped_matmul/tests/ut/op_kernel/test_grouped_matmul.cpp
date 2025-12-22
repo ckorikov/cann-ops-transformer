@@ -9,8 +9,10 @@
  */
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
-#include "grouped_matmul_tiling_def.h"
+// #include "grouped_matmul_tiling_def.h"
+#include "grouped_matmul_tiling.h"
 #include "data_utils.h"
+// #define __forceinline__ __global__
 #include "../../../op_kernel/grouped_matmul.cpp"
 
 using namespace std;
@@ -53,7 +55,8 @@ TEST_F(grouped_matmul_test, test_case_fp16)
                                                 0, // IS_STATIC_TILING_API
                                                 GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_NONE, // A8W4_KERNEL_TEMPLATE
                                                 GROUPED_MATMUL_A16W8_KERNEL_TEMPLATE_NONE, // A16W8_KERNEL_TEMPLATE
-                                                GROUPED_MATMUL_CUBE_ONLY // AIV_AIC_RATIO
+                                                GROUPED_MATMUL_CUBE_ONLY, // AIV_AIC_RATIO
+                                                false //IS_ENABLE_FIXED_AXIS
                                                 >(PARAM_LIST);};
     size_t xSize = M * K * sizeof(half);
     size_t weightSize = E * K * N * sizeof(half);

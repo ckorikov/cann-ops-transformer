@@ -2,14 +2,19 @@
 
 ## 产品支持情况
 
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+| 产品                                                                | 是否支持 |
+|:------------------------------------------------------------------|:----:|
+| <term>昇腾910_95 AI处理器</term>                                       |  ×   |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                      |  √   |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |  √   |
+| <term>Atlas 200I/500 A2 推理产品</term>                               |  ×   |
+| <term>Atlas 推理系列产品</term>                                        |  ×   |
+| <term>Atlas 训练系列产品</term>                                         |  ×   |
+| <term>Atlas 200/300/500 推理产品</term>                               |  ×   |
 
 ## 功能说明
 
-- 接口功能：GroupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输出按照索引做combine动作，支持w为昇腾亲和数据排布格式(NZ)
+- 接口功能：GroupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输出按照索引做combine动作，支持w为AI处理器亲和数据排布格式(NZ)
 
 ## 函数原型
 
@@ -24,7 +29,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzGetWorkspaceSize(
     const aclTensor *pertokenScaleOptional,
     const aclTensor *groupList,
     const aclTensor *sharedInput,
-    const aclTensor* logit,
+    const aclTensor *logit,
     const aclTensor *rowIndex,
     int64_t          dtype,
     float            sharedInputWeight,
@@ -87,7 +92,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(
       <td>无</td>
       <td>INT8</td>
       <td>NZ</td>
-      <td>shape支持5维。维度为(e, n1, k1, k0, n0)，其中k0 = 16，n0 = 32， x shape中的k和w shape中的k1需要满足以下关系：ceilDiv（k,16） = k1。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到昇腾亲和数据排布格式（NZ）的转换。e取值范围[1,256]。</td>
+      <td>shape支持5维。维度为(e, n1, k1, k0, n0)，其中k0 = 16，n0 = 32， x shape中的k和w shape中的k1需要满足以下关系：ceilDiv（k,16） = k1。可使用aclnnCalculateMatmulWeightSizeV2接口以及aclnnTransMatmulWeight接口完成输入Format从ND到AI处理器亲和数据排布格式（NZ）的转换。e取值范围[1,256]。</td>
       <td>×</td>
     </tr>
     <tr>
@@ -335,6 +340,9 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+- 确定性计算：
+  - aclnnGroupedMatmulFinalizeRoutingWeightNz默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 输入和输出支持以下数据类型组合：
 
 | x1   | x2   | scale   | bias | pertokenScaleOptional | groupList | sharedInput | logit   | rowIndex | out   |
@@ -526,7 +534,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(
       std::unique_ptr<aclTensor, aclnnStatus (*)(const aclTensor *)> xTensorPtr(x, aclDestroyTensor);
       std::unique_ptr<void, aclError (*)(void *)> xDeviceAddrPtr(xDeviceAddr, aclrtFree);
       CHECK_RET(ret == ACL_SUCCESS, return ret);
-      // 创建昇腾亲和数据排布格式的w aclTensor
+      // 创建AI处理器亲和数据排布格式的w aclTensor
       ret = CreateAclTensorWeight(wHostData, wShape, &wDeviceAddr, aclDataType::ACL_INT8, &w);
       std::unique_ptr<aclTensor, aclnnStatus (*)(const aclTensor *)> wTensorPtr(w, aclDestroyTensor);
       std::unique_ptr<void, aclError (*)(void *)> wDeviceAddrPtr(wDeviceAddr, aclrtFree);

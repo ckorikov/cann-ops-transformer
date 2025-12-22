@@ -46,7 +46,7 @@ extern "C" {
  * @param [in] transposeX2: 右矩阵是否转置，默认值：false。
  * @param [in] groupListType: GroupedMatmul分组类型，默认值：1，count模式，数据类型支持：int64。
  * @param [in] tuningConfigOptional:
- * 调优参数，数组中第一个值表示各个专家处理的token数的预期值，算子tiling时会按照该预期值进行最优tiling。
+ * 调优参数，数组中第一个值表示各个专家处理的token数的预期值，算子tiling时会按照该预期值进行最优tiling。数组中的第二个元素设置为1，则算子tiling时会根据实际输入尝试使用更适合的算法，性能可能更优。
  * @param [out] out: 计算结果，数据类型：float32，float16, bfloat16。
  * @param [out] workspaceSize: 返回需要在npu device侧申请的workspace大小。
  * @param [out] executor: 返回op执行器，包含了算子计算流程。

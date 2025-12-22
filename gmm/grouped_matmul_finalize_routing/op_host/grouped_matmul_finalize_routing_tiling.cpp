@@ -31,14 +31,26 @@ static const int32_t BIAS_INDEX = 2;
 
 namespace optiling {
 
-REGISTER_TILING_TEMPLATE("GroupedMatmulFinalizeRouting", GroupedMatmulFinalizeRoutingBaseTiling, 0);
+REGISTER_OPS_TILING_TEMPLATE(GroupedMatmulFinalizeRouting, GroupedMatmulFinalizeRoutingBaseTiling, 0);
 
 static ge::graphStatus GroupedMatmulFinalizeRoutingTilingFunc(gert::TilingContext* context)
 {
     OP_CHECK_IF(context == nullptr,
             OPS_REPORT_CUBE_INNER_ERR("GroupedMatmulFinalizeRouting", "context is null"),
             return ge::GRAPH_FAILED);
-    return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context);
+    auto compileInfoPtr = context->GetCompileInfo<GroupedMatmulFinalizeRoutingCompileInfo>();
+    OP_CHECK_IF(compileInfoPtr == nullptr,
+            OPS_REPORT_CUBE_INNER_ERR("GroupedMatmulFinalizeRouting", "CompileInfo is null"),
+            return ge::GRAPH_FAILED);
+    if (compileInfoPtr->socVersion == platform_ascendc::SocVersion::ASCEND910_95) {
+        std::vector<int32_t> tilingRegisterList = {1};
+        OP_LOGD("GroupedMatmulFinalizeRoutingTilingFunc", "Using the tiling strategy of A5");
+        return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context, tilingRegisterList);
+    } else {
+        std::vector<int32_t> tilingRegisterList = {0};
+        OP_LOGD("GroupedMatmulFinalizeRoutingTilingFunc", "Using the tiling strategy of A2/A3");
+        return Ops::Transformer::OpTiling::TilingRegistry::GetInstance().DoTilingImpl(context, tilingRegisterList);
+    }
 }
 
 static ge::graphStatus TilingPrepareForGroupedMatmulFinalizeRouting(gert::TilingParseContext *context) {

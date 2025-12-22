@@ -9,18 +9,17 @@
 # ======================================================================================================================
 
 if (BUILD_OPEN_PROJECT)
+    set(grouped_matmul_finalize_routing_depends gmm/grouped_matmul CACHE INTERNAL "Dependencies for grouped_matmul_finalize_routing.")
     target_sources(op_host_aclnnExc PRIVATE
         grouped_matmul_finalize_routing_def.cpp
     )
-endif()
-
-if (BUILD_OPS_RTY_KERNEL) # 回黄kernel
     add_ops_compile_options(
         OP_NAME GroupedMatmulFinalizeRouting
         OPTIONS --cce-auto-sync=on
                 -Wno-deprecated-declarations
                 -Werror
     )
-else()
+endif()
+if(NOT BUILD_OPS_RTY_KERNEL)
     add_modules_sources(OPTYPE grouped_matmul_finalize_routing ACLNNTYPE aclnn_exclude)
 endif()
