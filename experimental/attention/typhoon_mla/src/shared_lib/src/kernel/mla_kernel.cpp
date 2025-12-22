@@ -596,12 +596,9 @@ static constexpr uint64_t L1_TILE_DIM_1 = 128;
 static constexpr uint64_t L1_TILE_DIM_2 = 576;
 
 CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
-                        GM_ADDR q, GM_ADDR qRope,
-                        GM_ADDR k, GM_ADDR kRope,
-                        GM_ADDR blockTables,
-                        GM_ADDR o, GM_ADDR s, GM_ADDR p,
-                        GM_ADDR oTmp, GM_ADDR oUpdate,
-                        GM_ADDR oCoreTmp, GM_ADDR l,
+                        GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
+                        GM_ADDR blockTables, GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                        GM_ADDR oTmp, GM_ADDR oUpdate,GM_ADDR oCoreTmp, GM_ADDR l,
                         GM_ADDR tiling)
 {
     // Set FFTS address
@@ -657,7 +654,6 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
         Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLARescaleO, OType, OUpdateType, OTmpType>;
 
     // Epilogue Block模块，实现Flash MLA中flash decoding
-    using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
     constexpr uint32_t ComputeEleNum = 6144;;
     using EpilogueMLAFDRescaleO =
@@ -675,12 +671,9 @@ CATLASS_GLOBAL void MLAFp16(uint64_t fftsAddr,
 
 
 CATLASS_GLOBAL void MLABf16(uint64_t fftsAddr,
-                        GM_ADDR q, GM_ADDR qRope,
-                        GM_ADDR k, GM_ADDR kRope,
-                        GM_ADDR blockTables,
-                        GM_ADDR o, GM_ADDR s, GM_ADDR p,
-                        GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp, 
-                        GM_ADDR l,
+                        GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
+                        GM_ADDR blockTables, GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                        GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp, GM_ADDR l,
                         GM_ADDR tiling)
 {
     // Set FFTS address

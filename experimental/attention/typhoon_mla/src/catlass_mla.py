@@ -100,7 +100,7 @@ def catlass_kernel_prepare(
 
     if num_blocks < min_num_blocks:
         raise ValueError(
-            f"num_blocks ({num_blocks}) is too small for the given batch size ({batch}) and max_seq_len ({max_seq_len})."
+            f"num_blocks ({num_blocks}) is too small for batch size ({batch}) and max_seq_len ({max_seq_len})."
             f"It should be at least batch * max_seq_len / block_size.")
     
     kv_heads = 1 # -> Hard coded in kernel
@@ -108,8 +108,10 @@ def catlass_kernel_prepare(
     q_nope_pt = torch.empty((batch, num_heads, head_size), dtype=torch_dtype, device=device).contiguous()
     q_rope_pt = torch.empty((batch, num_heads, head_size_rope), dtype=torch_dtype, device=device).contiguous()
 
-    k_nope_pt = torch.empty((num_blocks, block_size, kv_heads, head_size), dtype=torch_dtype, device=device).contiguous()
-    k_rope_pt = torch.empty((num_blocks, block_size, kv_heads, head_size_rope), dtype=torch_dtype, device=device).contiguous()
+    k_nope_pt = torch.empty((num_blocks, block_size, kv_heads, head_size), 
+                            dtype=torch_dtype, device=device).contiguous()
+    k_rope_pt = torch.empty((num_blocks, block_size, kv_heads, head_size_rope), 
+                            dtype=torch_dtype, device=device).contiguous()
 
     block_tables = np.arange(num_blocks, dtype=np.int32)
     block_tables_pt = torch.from_numpy(block_tables.reshape(-1).astype(np.int32)).to(device=device)

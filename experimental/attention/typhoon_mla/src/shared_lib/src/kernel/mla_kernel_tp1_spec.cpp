@@ -666,10 +666,8 @@ private:
 };
 
 CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
-                                GM_ADDR q, GM_ADDR qRope,
-                                GM_ADDR k, GM_ADDR kRope,
-                                GM_ADDR blockTables,
-                                GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                                GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
+                                GM_ADDR blockTables, GM_ADDR o, GM_ADDR s, GM_ADDR p,
                                 GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp,
                                 GM_ADDR l, GM_ADDR tiling)
 {
@@ -743,18 +741,9 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
 }
 
 CATLASS_GLOBAL void MLATp1SpecBf16(uint64_t fftsAddr,
-                                GM_ADDR q,
-                                GM_ADDR qRope,
-                                GM_ADDR k,
-                                GM_ADDR kRope,
-                                GM_ADDR blockTables,
-                                GM_ADDR o,
-                                GM_ADDR s,
-                                GM_ADDR p,
-                                GM_ADDR oTmp,
-                                GM_ADDR oUpdate,
-                                GM_ADDR oCoreTmp,
-                                GM_ADDR l,
+                                GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
+                                GM_ADDR blockTables, GM_ADDR o, GM_ADDR s, GM_ADDR p,
+                                GM_ADDR oTmp, GM_ADDR oUpdate, GM_ADDR oCoreTmp, GM_ADDR l,
                                 GM_ADDR tiling)
 {
     // Set FFTS address
