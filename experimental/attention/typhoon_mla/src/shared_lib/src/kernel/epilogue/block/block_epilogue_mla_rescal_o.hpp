@@ -363,7 +363,7 @@ public:
                     (uint64_t)0,
                     curRowNum,
                     AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
                     AscendC::DataCopyExtParams(curRowNum, NUM4, 0, (kvSplitCoreNum - 1) * NUM4, 0));
@@ -448,21 +448,18 @@ public:
         uint32_t &glFlag)
     {
         uint32_t tokenNumPerHead = layoutOutput.shape(0);
-        uint32_t embed = layoutInput.shape(1);
-        uint32_t rowActual = actualBlockShape.m();    // curHeadNum * tokenNumPerHead
-        uint32_t columnActual = actualBlockShape.n(); // embed
-
         if (tokenNumPerHead==0){
             return;
         }
-
+        uint32_t embed = layoutInput.shape(1);
         if (embed==0){
             return;
         }
-        
+        uint32_t rowActual = actualBlockShape.m();    // curHeadNum * tokenNumPerHead
+        uint32_t columnActual = actualBlockShape.n(); // embed
+
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
-
         if (subBlockNum==0){
             return;
         }

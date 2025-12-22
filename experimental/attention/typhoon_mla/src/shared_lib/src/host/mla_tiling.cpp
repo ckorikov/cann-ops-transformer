@@ -208,11 +208,9 @@ void GetTilingHead(const MLAInfo &mlaInfo, uint32_t *tilingHost, const uint32_t 
     tilingHost[TILING_TOR] = *torPtr;
     tilingHost[TILING_KVHEADS] = mlaInfo.kvHeads;
     int32_t curQNBlockTile = GetQNBlockTile(mlaInfo, maxQseqlen, specStrategyFlag);
-    
     if (curQNBlockTile==0){
         throw std::runtime_error("curQNBlockTile can not be zero");;
     }
-
     int32_t curQNBlockNum = (mlaInfo.numHeads + curQNBlockTile - 1) / curQNBlockTile;
 
     tilingHost[TILING_HEAD_SPLIT_SIZE] = static_cast<uint32_t>(curQNBlockTile);

@@ -228,7 +228,7 @@ public:
                     gmUbTensor.ReinterpretCast<uint32_t>()[rowLoopIdx * ROW_WISE_CYCLE_TILE],
                     curRowNumRound / FLOAT_BLOCK_SIZE,
                     AscendC::BrcbRepeatParams(1, DST_REP_STRIDE_IN_8));;
-                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::PipeBarrier<PIPE_V>();;
                 // logf(lse_sum) + lse_max
                 AscendC::Add<float, false>(
                     tvUbTensor,
@@ -238,7 +238,6 @@ public:
                     curRowNum,
                     AscendC::BinaryRepeatParams(1, 1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8, SRC1_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();
-
                 AscendC::PipeBarrier<PIPE_ALL>();
                 AscendC::DataCopyPad(gl, tvUbTensor,
                     AscendC::DataCopyExtParams(curRowNum, NUM4, 0, (kvSplitCoreNum - 1) * NUM4, 0));
@@ -262,7 +261,7 @@ public:
                     tvUbTensor,
                     (uint64_t)0,
                     curRowNum,
-                    AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8)); 
+                    AscendC::UnaryRepeatParams(1, 1, DST_REP_STRIDE_IN_8, SRC0_REP_STRIDE_IN_8));;
                 AscendC::PipeBarrier<PIPE_V>();;
                 AscendC::Brcb(
                     hmUbTensor.ReinterpretCast<uint32_t>(),
@@ -329,11 +328,10 @@ public:
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
-
         if (subBlockNum==0){
             return;
         }
-
+        
         uint32_t curRowSplitSubBlock = rowActual / subBlockNum;
         uint32_t rowActualThisSubBlock = (subBlockIdx == 0) ? curRowSplitSubBlock : (rowActual - curRowSplitSubBlock);
         uint32_t rowOffsetSubBlock = subBlockIdx * curRowSplitSubBlock;
