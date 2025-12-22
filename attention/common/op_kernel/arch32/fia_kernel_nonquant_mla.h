@@ -263,6 +263,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
     InitOutputSingleCore()
 {
     if (usedCoreNum != 0) {
+        int32_t aivCoreNum = usedCoreNum * constInfo.subBlockNum;
         uint32_t initOutputEventId = 0U;
         SetFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
         uint64_t tSize = constInfo.batchSize * constInfo.qSeqSize;
@@ -270,7 +271,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
             tSize = qActSeqLensParser.GetTSize();
         }
         uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
-        uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
+        uint64_t singleCoreSize = (totalOutputSize + aivCoreNum - 1) / aivCoreNum;
         uint64_t tailSize = totalOutputSize - tmpBlockIdx * singleCoreSize;
         uint64_t singleInitOutputSize = tailSize < singleCoreSize ? tailSize : singleCoreSize;
         WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
@@ -280,7 +281,7 @@ __aicore__ inline void FiaKernelNonQuantMla<FIAT, CubeBlockType, VecBlockType, F
         if (constInfo.softmaxLseFlag) {
             float lseInitValue = constInfo.FLOAT_INF;
             uint64_t totalLseSize = tSize * constInfo.qHeadNum;
-            uint64_t singleCoreLseSize = (totalLseSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2;
+            uint64_t singleCoreLseSize = (totalLseSize + aivCoreNum - 1) / aivCoreNum;
             uint64_t tailLseSize = totalLseSize - tmpBlockIdx * singleCoreLseSize;
             uint64_t singleInitOutputLseSize = tailLseSize < singleCoreLseSize ? tailLseSize : singleCoreLseSize;
             WaitFlag<AscendC::HardEvent::MTE3_V>(initOutputEventId);
