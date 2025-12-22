@@ -665,7 +665,9 @@ private:
     Arch::CrossCoreFlag pvReady{PV_READY_ID};
 };
 
-constexpr uint32_t ComputeEleNum = 6144;
+
+constexpr uint32_t ComputeEleTp1Num = 6144;
+
 
 CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
                                 GM_ADDR q, GM_ADDR qRope, GM_ADDR k, GM_ADDR kRope,
@@ -728,7 +730,7 @@ CATLASS_GLOBAL void MLATp1SpecFp16(uint64_t fftsAddr,
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
     using EpilogueMLAFDRescaleO =
-        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;;
+        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleTp1Num>, OType, lType>;;
 
     // Kernel level
     using MLAKernel = MLAKernelTp1Spec<BlockMmadQK, BlockMmadPV, EpilogueMLASoftmax,
@@ -801,7 +803,7 @@ CATLASS_GLOBAL void MLATp1SpecBf16(uint64_t fftsAddr,
     using OType = Gemm::GemmType<ElementO, LayoutO>;
     using lType = Gemm::GemmType<ElementUpdate, LayoutUpdate>;
     using EpilogueMLAFDRescaleO =
-        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleNum>, OType, lType>;
+        Epilogue::Block::BlockEpilogue<Epilogue::EpilogueAtlasA2MLAFDRescaleO<ComputeEleTp1Num>, OType, lType>;
 
     // Kernel level
     using MLAKernel = MLAKernelTp1Spec<BlockMmadQK, BlockMmadPV, EpilogueMLASoftmax,

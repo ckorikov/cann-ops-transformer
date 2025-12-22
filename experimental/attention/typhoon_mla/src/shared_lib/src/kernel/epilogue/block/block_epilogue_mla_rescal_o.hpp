@@ -432,37 +432,25 @@ public:
 
     CATLASS_DEVICE
     void operator()(
-        AscendC::GlobalTensor<ElementInput> gInput,
-        AscendC::GlobalTensor<ElementUpdate> gUpdate,
-        AscendC::GlobalTensor<ElementOutput> gOutput,
-        AscendC::GlobalTensor<ElementUpdate> gOCoreTmp,
+        AscendC::GlobalTensor<ElementInput> gInput, AscendC::GlobalTensor<ElementUpdate> gUpdate,
+        AscendC::GlobalTensor<ElementOutput> gOutput, AscendC::GlobalTensor<ElementUpdate> gOCoreTmp, 
         AscendC::GlobalTensor<ElementUpdate> gl,
-        const LayoutInput &layoutInput,
-        const LayoutOutput &layoutOutput,
-        const LayoutUpdate &layoutUpdate,
+        const LayoutInput &layoutInput, const LayoutOutput &layoutOutput, const LayoutUpdate &layoutUpdate,
         GemmCoord actualBlockShape,
-        uint32_t nIdx,
-        uint32_t isLastNTile,
-        uint32_t curHeadNum,
-        uint32_t rescaleOPingPongFlag,
-        uint32_t &glFlag)
+        uint32_t nIdx, uint32_t isLastNTile, uint32_t curHeadNum, uint32_t rescaleOPingPongFlag, uint32_t &glFlag)
     {
         uint32_t tokenNumPerHead = layoutOutput.shape(0);
-        if (tokenNumPerHead==0){
-            return;
-        }
+        if (tokenNumPerHead==0) return; // Avoid division by zero
+
         uint32_t embed = layoutInput.shape(1);
-        if (embed==0){
-            return;
-        }
+        if (embed==0) return; // Avoid division by zero
+        
         uint32_t rowActual = actualBlockShape.m();    // curHeadNum * tokenNumPerHead
         uint32_t columnActual = actualBlockShape.n(); // embed
 
         uint32_t subBlockIdx = AscendC::GetSubBlockIdx();
         uint32_t subBlockNum = AscendC::GetSubBlockNum();
-        if (subBlockNum==0){
-            return;
-        }
+        if (subBlockNum==0) return; // Avoid division by zero
 
         uint32_t curHeadSplitSubBlock = curHeadNum / subBlockNum;
         uint32_t curHeadThisSubBlock = (subBlockIdx == 0) ? curHeadSplitSubBlock : (curHeadNum - curHeadSplitSubBlock);
