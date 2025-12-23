@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file fia_tiling_empty_tensor.cpp
@@ -51,7 +51,7 @@ bool FiaTilingEmptyTensor::IsCapable()
     if (fiaInfo_ == nullptr) {
         return false;
     }
-    if (fiaInfo_->emptyTensorFlag == 1) {
+    if (fiaInfo_->emptyTensorFlag) {
         return true;
     }
     return false;
@@ -77,16 +77,22 @@ void FiaTilingEmptyTensor::FillTiling()
     uint64_t totalLseSize = 0;
     uint64_t singleCoreLseSize = 0;
     uint64_t tSize = static_cast<uint64_t>(fiaInfo_->bSize) * static_cast<uint64_t>(fiaInfo_->s1Size);
-    if (fiaInfo_->isAccumQSeq == true) {
+    if (fiaInfo_->outLayout == FiaLayout::TND || fiaInfo_->outLayout == FiaLayout::NTD) {
         tSize = fiaInfo_->qTSize;
     }
     totalOutputSize = tSize * fiaInfo_->n1Size * fiaInfo_->vHeadDim;
+    if (totalOutputSize > fiaInfo_->totalOutputSize) {
+        totalOutputSize = fiaInfo_->totalOutputSize;
+    }
     singleCoreSize = (totalOutputSize + (2UL * usedCoreNum_) - 1UL) / (2UL * usedCoreNum_);
     if (fiaInfo_->isOutQuantEnable) {
         singleCoreSize = (singleCoreSize + 1UL) / 2UL;
     }
     if (fiaInfo_->softmaxLseFlag) {
         totalLseSize = tSize * fiaInfo_->n1Size;
+        if (totalLseSize > fiaInfo_->totalLseSize) {
+            totalLseSize = fiaInfo_->totalLseSize;
+        }
         singleCoreLseSize = (totalLseSize + (2UL * usedCoreNum_) - 1UL) / (2UL * usedCoreNum_);
     }
     
