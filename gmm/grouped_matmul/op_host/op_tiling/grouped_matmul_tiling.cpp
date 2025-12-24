@@ -1436,8 +1436,14 @@ ge::graphStatus GMMTiling::CalMMTiling(const gert::TilingContext* context, const
   return ge::GRAPH_SUCCESS;
 }
 
-uint32_t NdWithNzNeedSpace(uint32_t baseM, uint32_t baseK, uint32_t baseN) {
-  return std::max(baseM * baseK * DOUBLE_SPACE, baseM * baseN * FP32_DATATYPE_SIZE);
+uint32_t CalTransLength(uint32_t baseM, uint32_t baseK, uint32_t baseN, bool haveBias) {
+  uint32_t aLength = baseM * baseK * sizeof(int8_t) + SPACE_FOR_HELP_TENSOR;
+  uint32_t cLength = baseM * baseN * sizeof(int32_t);
+  uint32_t biasLength = 0;
+  if (haveBias) {
+    biasLength = baseN * sizeof(int32_t);
+  }
+  return std::max(std::max(aLength, cLength), biasLength);
 }
 
 uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBaseM, uint32_t ubBaseN, uint32_t baseK) {
@@ -1456,18 +1462,15 @@ uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBa
 
 uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN,
                                    uint32_t ubBaseM) {
-  uint32_t localTensorSize = NdWithNzNeedSpace(baseM, baseK, baseN);
-  constexpr uint32_t helpTensorOneSize = SPACE_FOR_HELP_TENSOR * DOUBLE_SPACE;
+  uint32_t transLength = CalTransLength(baseM, baseK, baseN, hasBias_);
+  uint32_t l0cSize = baseM * baseN * sizeof(int32_t);
+  uint32_t aUbsize = baseM * baseK * sizeof(int8_t) + SPACE_FOR_HELP_TENSOR;
   uint32_t pertokenBrcbLocalSize = 0;
-  uint32_t biasSize = 0;
   if (perTokenOrPerGroupSize_) {
-    pertokenBrcbLocalSize = ubBaseM * UB_BLOCK_UNIT_SIZE * DOUBLE_SPACE;
+    pertokenBrcbLocalSize = ubBaseM * ONE_BLK_SIZE * DOUBLE_SPACE;
   }
 
-  if (hasBias_) {
-    biasSize = baseN * sizeof(int32_t);
-  }
-  return localTensorSize + helpTensorOneSize + pertokenBrcbLocalSize + biasSize;
+  return transLength + aUbsize + l0cSize + pertokenBrcbLocalSize;
 }
 
 bool GMMTiling::CheckCubeBufferSizeDequant(uint32_t baseM, uint32_t baseN, uint32_t baseK,
@@ -1537,7 +1540,7 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
   tilingData.gmmBaseParams.set_ubRestBytes(ubRestBytes);  // in byte unit ubRestBytes
   tilingData.gmmBaseParams.set_ubBaseK(ubBaseM);
   tilingData.gmmBaseParams.set_ubBaseN(ubBaseN);
-  tilingData.mmTilingData.set_transLength(baseM * baseK + SPACE_FOR_HELP_TENSOR);
+  tilingData.mmTilingData.set_transLength(CalTransLength(baseM, baseK, baseN, hasBias_));
   tilingData.mmTilingData.set_shareMode(0);
   tilingData.mmTilingData.set_shareUbSize(0);
   tilingData.mmTilingData.set_singleCoreN(baseN);
