@@ -1463,14 +1463,12 @@ uint32_t GMMTiling::CalDequantUseUbSize(GMMTilingData& tilingData, uint32_t ubBa
 uint32_t GMMTiling::CalUbRestBytes(uint32_t baseM, uint32_t baseK, uint32_t baseN,
                                    uint32_t ubBaseM) {
   uint32_t transLength = CalTransLength(baseM, baseK, baseN, hasBias_);
-  uint32_t l0cSize = baseM * baseN * sizeof(int32_t);
-  uint32_t aUbsize = baseM * baseK * sizeof(int8_t) + SPACE_FOR_HELP_TENSOR;
   uint32_t pertokenBrcbLocalSize = 0;
   if (perTokenOrPerGroupSize_) {
     pertokenBrcbLocalSize = ubBaseM * ONE_BLK_SIZE * DOUBLE_SPACE;
   }
 
-  return transLength + aUbsize + l0cSize + pertokenBrcbLocalSize;
+  return transLength * DOUBLE_SPACE + pertokenBrcbLocalSize;
 }
 
 bool GMMTiling::CheckCubeBufferSizeDequant(uint32_t baseM, uint32_t baseN, uint32_t baseK,
@@ -1515,7 +1513,7 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
 
   // 为了让ub的空间能容纳多份tensor，我们牺牲了M或N方向的base Tiling，会导致性能变差
   // make sure baseM baseK baseN can be load by ub
-  while(CalDequantUseUbSize(tilingData, 1, baseN, baseK) > compileInfoPtr->ubSize) {
+  while(CalDequantUseUbSize(tilingData, 16, baseN, baseK) > compileInfoPtr->ubSize) {
     if (baseM >= baseN) {
       baseM /= DOUBLE_SPACE;
       tilingData.mmTilingData.set_baseM(baseM);
