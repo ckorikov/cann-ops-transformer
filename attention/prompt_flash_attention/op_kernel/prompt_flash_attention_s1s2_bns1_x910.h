@@ -409,7 +409,7 @@ protected:
             this->mm1SingleCoreNPrev = params->mm1SingleCoreN;
         }
         if constexpr (PFAT::MM_TYPE == MatMulType::MM_PA) {
-            this->bmm1LocalInfo = this->PABmm1Buff_.template Get<uint32_t>();
+            this->bmm1LocalInfo = this->paBmm1Buff_.template Get<uint32_t>();
             this->bmm1LocalInfo.SetValue(0, params->taskBatch);
             this->bmm1LocalInfo.SetValue(1, params->batchNOffset / this->tilingData->promptAttentionBaseParams.headNumRatio);
             this->bmm1LocalInfo.SetValue(2, params->sInnerOffsetDataSize);  // 2: Sinner offset
@@ -718,7 +718,7 @@ protected:
             this->mm2KaStridePrev = mm2KaStride;
         }
         if constexpr (PFAT::MM_TYPE == MatMulType::MM_PA) {
-            this->bmm2LocalInfo = this->PABmm2Buff_.template Get<uint32_t>();
+            this->bmm2LocalInfo = this->paBmm2Buff_.template Get<uint32_t>();
             this->bmm2LocalInfo.SetValue(0, BIdx);
             this->bmm2LocalInfo.SetValue(1, NIdx / this->tilingData->promptAttentionBaseParams.headNumRatio);
             this->bmm2LocalInfo.SetValue(2, sInnerOffsetDataSize);  // 2: sinner offset
