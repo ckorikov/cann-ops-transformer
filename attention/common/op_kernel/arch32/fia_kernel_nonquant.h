@@ -301,7 +301,7 @@ __aicore__ inline void FiaKernelNonQuant<FIAT, CubeBlockType, VecBlockType, FdBl
         if constexpr (LAYOUT_T == FIA_LAYOUT::TND || LAYOUT_T == FIA_LAYOUT::NTD) {
             tSize = qActSeqLensParser.GetTSize();
         }
-
+        // TND、NTD场景,S1和actualSeq相等,不需要初始化
         if (IsInitAttentionOutGm()) {
             uint64_t totalOutputSize = tSize * constInfo.qHeadNum * constInfo.headDim;
             uint64_t singleCoreSize = (totalOutputSize + (2 * usedCoreNum) - 1) / (2 * usedCoreNum); // 2 means c:v = 1:2
