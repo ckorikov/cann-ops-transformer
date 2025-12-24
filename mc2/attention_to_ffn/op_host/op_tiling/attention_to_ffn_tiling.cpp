@@ -441,10 +441,8 @@ static bool CheckTensorShapeAndSetTinglingData(gert::TilingContext* context, Att
     int64_t moeExpertNum = static_cast<int64_t>(tilingData.attentionToFFNInfo.moeExpertNum);
  
     OP_TILING_CHECK(xDim0 != 1, OP_LOGE(ATTN_FFN_INNER_DEBUG, "x's dims0(X) only support 1, cur is %d!", xDim0), return false);
-    OP_TILING_CHECK((xDim1 <= 0) || (xDim1 > BS_MAX), OP_LOGE(ATTN_FFN_INNER_DEBUG,
-        "xShape dims1(BS) should be in (0, %ld], but got %ld.", BS_MAX, xDim1), return false);
-    OP_TILING_CHECK((xDim2 < H_MIN) || (xDim2 > H_MAX), OP_LOGE(ATTN_FFN_INNER_DEBUG,
-        "xShape dims2(H) should be in [%ld, %ld], but got %ld.", H_MIN, H_MAX, xDim2), return false);
+    OP_TILING_CHECK((xDim1 <= 0) || (xDim1 > BS_MAX), OP_LOGE(ATTN_FFN_INNER_DEBUG, "xShape dims1(BS) should be in (0, %ld], but got %ld.", BS_MAX, xDim1), return false);
+    OP_TILING_CHECK((xDim2 < H_MIN) || (xDim2 > H_MAX), OP_LOGE(ATTN_FFN_INNER_DEBUG, "xShape dims2(H) should be in [%ld, %ld], but got %ld.", H_MIN, H_MAX, xDim2), return false);
     OP_TILING_CHECK((xDim0 != sessionIdDim0) || (xDim0 != microBatchIdDim0) || (xDim0 != layerIdDim0) || (xDim0 != expertIdsDim0),
         OP_LOGE(ATTN_FFN_INNER_DEBUG, "sessionId's dims0, microBatchId's dims0, layerId's dims0 and expertIds's dims0 only support 1,"
         "but cur is %d, %d, %d, %d!", sessionIdDim0, microBatchIdDim0, layerIdDim0, expertIdsDim0), return false);

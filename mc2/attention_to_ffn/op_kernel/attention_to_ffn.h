@@ -217,7 +217,6 @@ __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::Init(GM_ADDR x, GM_A
     layerId_ = layerIdGMTensor_.GetValue(0); // 当前x=1，layerId_直接从gm上读取第一个值
     expertIdsCnt_ = axisX_ * axisBS_ * axisK_; 
     expertRankTableCnt_ = expertNum_ * expRankTableM_;
-    layIdsExpRankTableOffset_ = layerId_ * expertRankTableCnt_;
 
     uint32_t expertIdsAlign = Ceil(expertIdsCnt_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN; // 约束32对齐
     uint32_t experTableCntAlign = Ceil(expertRankTableCnt_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN; // 约束32对齐
@@ -347,6 +346,7 @@ __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::QuantProcess(uint32_
 template <TemplateMC2TypeClass>
 __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::FindExpertRank(int32_t expertId)
 {
+    layIdsExpRankTableOffset_ = layerId_ * expertRankTableCnt_;
     uint64_t expRankTableOffset = expertId * expRankTableM_ + layIdsExpRankTableOffset_;
     DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(expertRankTableGMTensor_[expRankTableOffset]);
     uint32_t rankCnt = expertRankTableGMTensor_.GetValue(expRankTableOffset); // M 第一个数值是该专家部署在多少卡上
