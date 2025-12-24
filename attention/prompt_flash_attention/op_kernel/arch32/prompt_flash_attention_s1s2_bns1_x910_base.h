@@ -500,8 +500,8 @@ protected:
     TQue<QuePosition::VECIN, 1> msdInQueue;
     TQue<QuePosition::VECOUT, 1> msdOutQueue;
 
-    TBuf<> PABmm1Buff_;
-    TBuf<> PABmm2Buff_;
+    TBuf<> paBmm1Buff_;
+    TBuf<> paBmm2Buff_;
     TBuf<> selectSpaceBuff_;
     TBuf<> pseShiftCastBuff_;
     TBuf<> softmaxExpBuff_;
@@ -1826,8 +1826,8 @@ __aicore__ inline void PromptFlashAttentionS1s2Bns1X910Base<PFAT>::Init(__gm__ u
         PFA_InitBuffer(selectSpaceBuff_, tilingData->promptAttentionTensorSizeRect.selectSpaceUbSize);
     }
     if constexpr (PFAT::MM_TYPE == MatMulType::MM_PA) {
-        PFA_InitBuffer(PABmm1Buff_, 64);  // dcci refresh 64B
-        PFA_InitBuffer(PABmm2Buff_, 64);  // dcci refresh 64B
+        PFA_InitBuffer(paBmm1Buff_, 64);  // dcci refresh 64B
+        PFA_InitBuffer(paBmm2Buff_, 64);  // dcci refresh 64B
     }
     // Use queue prefetching parameters. Enqueue a new calculation parameter each time when calculating the outer tail. The head parameter of the queue is used for calculation. After the calculation, the queue head is dequeued.
     tailId = 0;
