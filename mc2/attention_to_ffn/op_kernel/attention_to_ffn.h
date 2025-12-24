@@ -72,7 +72,6 @@ private:
     __aicore__ inline void SetFlagInAttn();
     __aicore__ inline void FindExpertRank(int32_t expertId);
     __aicore__ inline void SetFFNStatus(uint32_t startFFNId, uint32_t endFFNId);
-    __aicore__ inline void CheckFlagInFFN(GlobalTensor<int32_t> tokenInfoTableGMTensor);
     __aicore__ inline void SetExpertAndRank(uint32_t tokenIdx, uint32_t tokenId, uint32_t topkId);
     __aicore__ inline void CheckFlagAndSetTableGM(int32_t toRankId, GM_ADDR &toRankAddr, GlobalTensor<int32_t> &tokenInfoTableGMTensor);
     TPipe *tpipe_{nullptr};
@@ -217,7 +216,6 @@ __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::Init(GM_ADDR x, GM_A
     layerId_ = layerIdGMTensor_.GetValue(0); // 当前x=1，layerId_直接从gm上读取第一个值
     expertIdsCnt_ = axisX_ * axisBS_ * axisK_; 
     expertRankTableCnt_ = expertNum_ * expRankTableM_;
-    layIdsExpRankTableOffset_ = layerId_ * expertRankTableCnt_;
 
     uint32_t expertIdsAlign = Ceil(expertIdsCnt_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN; // 约束32对齐
     uint32_t experTableCntAlign = Ceil(expertRankTableCnt_ * sizeof(int32_t), UB_ALIGN) * UB_ALIGN; // 约束32对齐
@@ -347,6 +345,7 @@ __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::QuantProcess(uint32_
 template <TemplateMC2TypeClass>
 __aicore__ inline void AttentionToFFN<TemplateMC2TypeFunc>::FindExpertRank(int32_t expertId)
 {
+    layIdsExpRankTableOffset_ = layerId_ * expertRankTableCnt_;
     uint64_t expRankTableOffset = expertId * expRankTableM_ + layIdsExpRankTableOffset_;
     DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(expertRankTableGMTensor_[expRankTableOffset]);
     uint32_t rankCnt = expertRankTableGMTensor_.GetValue(expRankTableOffset); // M 第一个数值是该专家部署在多少卡上
