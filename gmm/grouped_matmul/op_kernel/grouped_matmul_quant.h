@@ -320,7 +320,8 @@ __aicore__ inline void GMMQuantCompute<mmType, sync>::Dequant(MNConfig& mnConfig
                 curVecBaseM = curCubeSingleM - offsetM; 
             }
             // use AscendDequant interface to do perchannel dequant
-            ComputeDequantAndActivate(mnConfig, mmOutInUb, curVecBaseM, alignBaseN, curVecBaseN, offsetM);
+            LocalTensor<int32_t> mmOutInUbOffst = mmOutInUb[offsetN + offsetM * mnConfig.n];
+            ComputeDequantAndActivate(mnConfig, mmOutInUbOffst, curVecBaseM, alignBaseN, curVecBaseN, offsetM);
             uint64_t outOffset = (mnConfig.mIdx * mnConfig.singleM + offsetM) * mnConfig.n + \
                                   mnConfig.nIdx * mnConfig.singleN + offsetN;
             DataCopyOut(mnConfig, curVecBaseM, curVecBaseN, alignBaseN, outOffset);

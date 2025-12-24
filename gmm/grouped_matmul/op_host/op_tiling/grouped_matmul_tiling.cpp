@@ -1516,9 +1516,11 @@ void GMMTiling::CalDequantUbTiling(GMMTilingData& tilingData, const GMMCompileIn
   while(CalDequantUseUbSize(tilingData, 16, baseN, baseK) > compileInfoPtr->ubSize) {
     if (baseM >= baseN) {
       baseM /= DOUBLE_SPACE;
+      baseM = baseM / 16 * 16;
       tilingData.mmTilingData.set_baseM(baseM);
     } else {
       baseN /= DOUBLE_SPACE;
+      baseN = baseN / 16 * 16;
       tilingData.mmTilingData.set_baseN(baseN);
     }
   }
