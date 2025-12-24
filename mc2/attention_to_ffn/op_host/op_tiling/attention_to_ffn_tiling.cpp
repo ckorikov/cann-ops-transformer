@@ -446,8 +446,7 @@ static bool CheckTensorShapeAndSetTinglingData(gert::TilingContext* context, Att
     OP_TILING_CHECK((xDim0 != sessionIdDim0) || (xDim0 != microBatchIdDim0) || (xDim0 != layerIdDim0) || (xDim0 != expertIdsDim0),
         OP_LOGE(ATTN_FFN_INNER_DEBUG, "sessionId's dims0, microBatchId's dims0, layerId's dims0 and expertIds's dims0 only support 1,"
         "but cur is %d, %d, %d, %d!", sessionIdDim0, microBatchIdDim0, layerIdDim0, expertIdsDim0), return false);
-    OP_TILING_CHECK(expertIdsDim1 != xDim1, OP_LOGE(ATTN_FFN_INNER_DEBUG, "expertIdsDim1=%d not equal xDim1=%d!",
-        expertIdsDim1, xDim1), return false);
+    OP_TILING_CHECK(expertIdsDim1 != xDim1, OP_LOGE(ATTN_FFN_INNER_DEBUG, "expertIdsDim1=%d not equal xDim1=%d!", expertIdsDim1, xDim1), return false);
     OP_TILING_CHECK((expertIdsDim2 <= 0) || (expertIdsDim2 > K_MAX) || (expertIdsDim2 > moeExpertNum), OP_LOGE(ATTN_FFN_INNER_DEBUG,
         "expertIdShape's dim2(k) should be in (0, min(%ld, moeExpertNum = %ld)], but got expertIdShape's dim2=%ld.",
         K_MAX, moeExpertNum, expertIdsDim2), return false);
