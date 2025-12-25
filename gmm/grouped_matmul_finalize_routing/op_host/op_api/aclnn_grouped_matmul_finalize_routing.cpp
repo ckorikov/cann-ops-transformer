@@ -1009,7 +1009,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNz(void *workspace, uint64_t 
     return CommonOpExecutorRun(workspace, workspaceSize, executor, stream);
 }
 
-aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzV2GetWorkspaceSize(const aclTensor *x1, aclTensor *x2,
+aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzV2GetWorkspaceSize(const aclTensor *x1, const aclTensor *x2,
     const aclTensor *scale, const aclTensor *bias, const aclTensor *offsetOptional,
     const aclTensor *antiquantScaleOptional, const aclTensor *antiquantOffsetOptional,
     const aclTensor *pertokenScaleOptional, const aclTensor *groupList, const aclTensor *sharedInput,
@@ -1025,7 +1025,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingWeightNzV2GetWorkspaceSize(const ac
     (void) antiquantScaleOptional;
     (void) antiquantOffsetOptional;
     // unpack int32 to int4
-    auto tmpWeight = x2;
+    auto tmpWeight = const_cast<aclTensor*>(x2);
     if (tmpWeight->GetDataType() == DataType::DT_INT32) {
         auto viewShape = tmpWeight->GetViewShape();
         auto viewShapeDim = viewShape.GetDimNum();
