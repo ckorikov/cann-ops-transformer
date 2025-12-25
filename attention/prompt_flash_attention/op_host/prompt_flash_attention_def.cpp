@@ -190,6 +190,7 @@ public:
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn")
             .ExtendCfgInfo("jitCompile.flag", "static_false,dynamic_false");
         this->AICore().AddConfig("ascend310p", config_310p);
+        this->AICore().AddConfig("kirinx90", config_310p);
     }
 };
 
