@@ -16,8 +16,8 @@
 
 // groupedmatmul_npu.cpp
 #include <ATen/ATen.h>
-#include <torch_npu/npu_functions.h>
-#include <torch_npu/npu_interface.h>
+// #include <torch_npu/npu_functions.h>
+// #include <torch_npu/npu_interface.h>
 #include <c10/util/Half.h>
 #include <tuple>
 #include <vector>
@@ -31,6 +31,13 @@
 #include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "tiling/platform/platform_ascendc.h"
+
+inline std::string build_error_msg(const std::string& func_name, const std::string& name, 
+                                  const std::string& message) {
+    std::ostringstream oss;
+    oss << func_name << name << message;
+    return oss.str();
+}
 
 // ScalarType 到 C++ 类型的转换模板（需在头文件中定义）
 template <c10::ScalarType ScalarType>
@@ -105,17 +112,15 @@ public:
 
 
     template <typename TensorContainer>
-    bool checkTensorType(const TensorContainer &container, c10::ScalarType expected_type,
-                         const char *name = "curTensor", bool allow_empty = true)
+    static bool checkTensorType(const TensorContainer &container, c10::ScalarType expected_type, const std::string& name = "curTensor", bool allow_empty = true)
     {
-        const char *func_name = "[checkTensorType]";
+        const std::string& func_name="[checkTensorType]";
 
         // 处理 optional 类型
         if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>> ||
                       std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
             if (!container.has_value()) {
-                TORCH_CHECK(allow_empty,
-                            func_name << name << " is not provided (null optional), but empty is not allowed");
+                TORCH_CHECK(allow_empty,build_error_msg(func_name, name, " is not provided (null optional), but empty is not allowed"));
                 return allow_empty;
             }
         }
@@ -140,7 +145,7 @@ public:
                       std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
             // 单个 Tensor 的处理
             if (!value.defined()) {
-                TORCH_CHECK(allow_empty, func_name << name << " tensor is not defined");
+                TORCH_CHECK(allow_empty,build_error_msg(func_name, name,  " tensor is not defined"));
                 return allow_empty;
             }
             if (value.scalar_type() != expected_type) {
@@ -150,14 +155,14 @@ public:
         } else {
             // TensorList 的处理
             if (value.empty()) {
-                TORCH_CHECK(allow_empty, func_name << name << " tensor list is empty, but empty is not allowed");
+                TORCH_CHECK(allow_empty, build_error_msg(func_name, name, " tensor list is empty, but empty is not allowed") );
                 return allow_empty;
             }
 
             for (size_t i = 0; i < value.size(); ++i) {
                 const torch::Tensor &tensor = value[i];
                 if (!tensor.defined()) {
-                    TORCH_CHECK(allow_empty, func_name << name << " tensor list contains undefined tensor");
+                    TORCH_CHECK(allow_empty, build_error_msg(func_name, name, " tensor list contains undefined tensor") );
                     return allow_empty;
                 }
                 if (tensor.scalar_type() != expected_type) {
@@ -195,15 +200,15 @@ public:
 };
 
 template <typename TensorContainer>
-void checkTensorOnNPU(const TensorContainer &container, const char *name = "curTensor", bool allow_empty = false)
+void checkTensorOnNPU(const TensorContainer &container, const std::string& name = "curTensor", bool allow_empty = false)
 {
-    const char *func_name = "[checkTensorOnNPU]";
+    const std::string& func_name ="[checkTensorOnNPU]";
 
     // 处理 optional 类型
     if constexpr (std::is_same_v<TensorContainer, c10::optional<torch::TensorList>> ||
                   std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
         if (!container.has_value()) {
-            TORCH_CHECK(allow_empty, func_name << name << " is not provided (null optional), but empty is not allowed");
+            TORCH_CHECK(allow_empty, build_error_msg(func_name, name,  " is not provided (null optional), but empty is not allowed"));
             return;
         }
     }
@@ -226,24 +231,90 @@ void checkTensorOnNPU(const TensorContainer &container, const char *name = "curT
                   std::is_same_v<TensorContainer, c10::optional<torch::Tensor>>) {
         // 单个 Tensor 的处理
         if (!value.defined()) {
-            TORCH_CHECK(allow_empty, func_name << name << " tensor is undefined, but empty is not allowed");
+            TORCH_CHECK(allow_empty, build_error_msg(func_name, name,  " tensor is undefined, but empty is not allowed") );
             return;
         }
 
         if (!torch_npu::utils::is_npu(value)) {
-            TORCH_CHECK(false, func_name << name << " tensor must be on NPU device");
+            TORCH_CHECK(false, build_error_msg(func_name, name,  " tensor must be on NPU device"));
         }
     } else {
         // TensorList 的处理
         if (value.empty()) {
-            TORCH_CHECK(allow_empty, func_name << name << " tensor list is empty, but empty is not allowed");
+            TORCH_CHECK(allow_empty, build_error_msg(func_name, name,  " tensor list is empty, but empty is not allowed"));
             return;
         }
         for (size_t i = 0; i < value.size(); ++i) {
             const torch::Tensor &tensor = value[i];
             if (tensor.defined() && !torch_npu::utils::is_npu(tensor)) {
-                TORCH_CHECK(false, func_name << name << " tensor at index " << i << " must be on NPU device");
+                std::string msg = " tensor at index " + std::to_string(i) + " must be on NPU device";
+                TORCH_CHECK(false, build_error_msg(func_name, name,msg) );
             }
         }
     }
+}
+
+template<typename TensorType, typename ElementType>
+ElementType* get_first_tensor_address(const TensorType& input, bool allow_empty = false) {
+    const auto& get_tensor = [&]() -> const torch::Tensor* {
+        // 处理 optional<torch::Tensor>
+        if constexpr (std::is_same_v<TensorType, c10::optional<torch::Tensor>>) {
+            if (!input.has_value()) {
+                if (!allow_empty) TORCH_CHECK(false, "optional<Tensor> has no value");
+                return nullptr;
+            }
+            if (!input->defined()) {
+                if (!allow_empty) TORCH_CHECK(false, "optional<Tensor> is undefined");
+                return nullptr;
+            }
+            return &input.value();
+        }
+        // 处理 optional<TensorList>
+        else if constexpr (std::is_same_v<TensorType, c10::optional<at::TensorList>>) {
+            if (!input.has_value()) {
+                if (!allow_empty) TORCH_CHECK(false, "optional<TensorList> has no value");
+                return nullptr;
+            }
+            if (input->empty()) {
+                if (!allow_empty) TORCH_CHECK(false, "optional<TensorList> is empty");
+                return nullptr;
+            }
+            const auto& tensor = input.value()[0];
+            if (!tensor.defined()) {
+                if (!allow_empty) TORCH_CHECK(false, "First tensor in optional<TensorList> is undefined");
+                return nullptr;
+            }
+            return &tensor;
+        }
+        // 处理 TensorList
+        else if constexpr (std::is_same_v<TensorType, at::TensorList>) {
+            if (input.empty()) {
+                if (!allow_empty) TORCH_CHECK(false, "TensorList is empty");
+                return nullptr;
+            }
+            const auto& tensor = input[0];
+            if (!tensor.defined()) {
+                if (!allow_empty) TORCH_CHECK(false, "First tensor in TensorList is undefined");
+                return nullptr;
+            }
+            return &tensor;
+        }
+        // 处理 torch::Tensor
+        else if constexpr (std::is_same_v<TensorType, torch::Tensor>) {
+            if (!input.defined()) {
+                if (!allow_empty) TORCH_CHECK(false, "Tensor is undefined");
+                return nullptr;
+            }
+            return &input;
+        }
+        // 不支持的类型
+        else {
+            static_assert(std::is_same_v<TensorType, void>, 
+                         "Unsupported tensor type");
+            return nullptr;
+        }
+    };
+    
+    const torch::Tensor* tensor_ptr = get_tensor();
+    return tensor_ptr ? tensor_ptr->data_ptr<ElementType>() : nullptr;
 }

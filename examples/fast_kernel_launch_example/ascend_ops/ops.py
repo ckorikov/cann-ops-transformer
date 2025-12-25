@@ -54,7 +54,7 @@ def groupedmatmul_npu(
     Returns:
         Tensor: 计算结果
     """
-    return torch.ops.ascend_ops.groupedmatmul_npu.default(
+    return torch.ops.ascend_ops.groupedmatmul.default(
         x, weight, bias, scale, offset,
         antiquant_scale, antiquant_offset,
         group_list, per_token_scale,

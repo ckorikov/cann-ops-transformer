@@ -16,14 +16,18 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #ifndef AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_TILING_COMMON_H
 #define AIR_CXX_RUNTIME_V2_OP_IMPL_GROUPED_MATMUL_TILING_COMMON_H
 
-#include "grouped_matmul_tiling.h"
+// #include "torch_extension/tiling_utils.h"
+#include "platform/platform_ascendc.h"
+#include "ascendc/host_api/tiling/template_argument.h"
+#include "grouped_matmul_tiling_temp.h"
 class GroupedMatmulTiling {
-    template <typename T>
-    static void GroupedMatmulCommonTiling(T x, T weight, T bias, T scale, T offset, T antiquantScale, T antiquantOffset,
-                                          T groupList, T perTokenScale, GMMTilingData tilingData, uint32_t coreNum,
-                                          uint64_t ubSize)
+public:
+    template <typename T1, typename T2, typename T3>
+    static void GroupedMatmulCommonTiling(T1 x, T1 weight, T2 bias, T2 scale, T2 offset, T2 antiquantScale,
+                                          T2 antiquantOffset, T3 groupList, T2 perTokenScale, GMMTilingData tilingData,
+                                          uint32_t coreNum, uint64_t ubSize)
     {
     }
-}
+};
 
 #endif
