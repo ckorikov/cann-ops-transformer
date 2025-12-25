@@ -20,14 +20,27 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 #include "platform/platform_ascendc.h"
 #include "ascendc/host_api/tiling/template_argument.h"
 #include "grouped_matmul_tiling_temp.h"
+namespace GroupedMatmulNs {
 class GroupedMatmulTiling {
 public:
-    template <typename T1, typename T2, typename T3>
-    static void GroupedMatmulCommonTiling(T1 x, T1 weight, T2 bias, T2 scale, T2 offset, T2 antiquantScale,
-                                          T2 antiquantOffset, T3 groupList, T2 perTokenScale, GMMTilingData tilingData,
-                                          uint32_t coreNum, uint64_t ubSize)
+    // 使用更灵活的模板
+    template <typename TensorListType, typename OptionalTensorListType, typename OptionalTensorType>
+    static void GroupedMatmulCommonTiling(
+        const TensorListType& x, 
+        const TensorListType& weight,
+        const OptionalTensorListType& bias,
+        const OptionalTensorListType& scale,
+        const OptionalTensorListType& offset,
+        const OptionalTensorListType& antiquantScale,
+        const OptionalTensorListType& antiquantOffset,
+        const OptionalTensorType& groupList,
+        const OptionalTensorListType& perTokenScale,
+        GMMTilingData& tilingData,  // 改为引用
+        uint32_t coreNum, 
+        uint64_t ubSize)
     {
+        // 实现
     }
 };
-
+}
 #endif

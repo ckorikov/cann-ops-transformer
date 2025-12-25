@@ -26,6 +26,8 @@
 #include <ATen/Dispatch.h>
 
 
+#include "kernel_operator.h"
+
 
 // 直接调用math目录中已经实现的算子公共逻辑
 // #include "math/is_finite/op_kernel/is_finite.h"
@@ -36,6 +38,8 @@
 namespace ascend_ops {
 
 namespace GroupedMatmul {
+
+using namespace GroupedMatmulNs;
 
 // using namespace GroupedMatmulNs;
 // 只传输入输出tensor，attr在tilingData里
@@ -79,23 +83,27 @@ void groupedmatmul_api(aclrtStream stream, const at::TensorList &x, const at::Te
     uint64_t ubSizePlatFrom;
     ascendcPlatform->GetCoreMemSize(platform_ascendc::CoreMemType::UB, ubSizePlatFrom);
     GMMTilingData tilingData;
-    GroupedMatmulTiling::GroupedMatmulCommonTiling<at::TensorList,c10::optional<at::TensorList>,c10::optional<torch::Tensor>>(x, weight, bias, scale, offset, antiquantScale,
-                                                               antiquantOffset, groupList, perTokenScale, tilingData,
-                                                               ascendcPlatform->GetCoreNumAiv(), ubSizePlatFrom);
+    GroupedMatmulNs::GroupedMatmulTiling::GroupedMatmulCommonTiling<at::TensorList, c10::optional<at::TensorList>,
+                                                                    c10::optional<torch::Tensor>>(
+        x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, tilingData,
+        ascendcPlatform->GetCoreNumAiv(), ubSizePlatFrom);
     uint32_t blockDim = tilingData.needCoreNum;
     // 必填参数：不允许为空
     auto x_ptr = get_first_tensor_address<at::TensorList, xT>(x, false);
     auto weight_ptr = get_first_tensor_address<at::TensorList, weightT>(weight, false);
     auto y_ptr = get_first_tensor_address<at::TensorList, yT>(y, false);
-    
+
     // 可选参数：允许为空
     auto bias_ptr = get_first_tensor_address<c10::optional<at::TensorList>, biasT>(bias, true);
     auto scale_ptr = get_first_tensor_address<c10::optional<at::TensorList>, scaleT>(scale, true);
     auto offset_ptr = get_first_tensor_address<c10::optional<at::TensorList>, offsetT>(offset, true);
-    auto antiquantScale_ptr = get_first_tensor_address<c10::optional<at::TensorList>, antiquantScaleT>(antiquantScale, true);
-    auto antiquantOffset_ptr = get_first_tensor_address<c10::optional<at::TensorList>, antiquantOffsetT>(antiquantOffset, true);
+    auto antiquantScale_ptr =
+        get_first_tensor_address<c10::optional<at::TensorList>, antiquantScaleT>(antiquantScale, true);
+    auto antiquantOffset_ptr =
+        get_first_tensor_address<c10::optional<at::TensorList>, antiquantOffsetT>(antiquantOffset, true);
     auto groupList_ptr = get_first_tensor_address<c10::optional<torch::Tensor>, groupListT>(groupList, true);
-    auto perTokenScale_ptr = get_first_tensor_address<c10::optional<at::TensorList>, perTokenScaleT>(perTokenScale, true);
+    auto perTokenScale_ptr =
+        get_first_tensor_address<c10::optional<at::TensorList>, perTokenScaleT>(perTokenScale, true);
     groupedmatmul_kernel<xT, weightT, biasT, scaleT, offsetT, antiquantScaleT, antiquantOffsetT, groupListT,
                          perTokenScaleT, yT><<<blockDim, nullptr, stream>>>(
         (__gm__ uint8_t *)x_ptr, (__gm__ uint8_t *)weight_ptr, (__gm__ uint8_t *)bias_ptr, (__gm__ uint8_t *)scale_ptr,
@@ -159,87 +167,89 @@ const std::vector<TypeCombo> &getSupportedCombos()
 }
 } // namespace
 
-// 2. 辅助宏：封装多层分发后的最终调用（减少重复代码）
-#define CALL_GROUPEDMATMUL_API(XType, WeightType,BiasType, ScaleType, OffsetType, AntiQuantScaleType, \
-                               AntiQuantOffsetType, GroupListType, PerTokenScaleType, OutputType) \
-    groupedmatmul_api<XType, BiasType, ScaleType, OffsetType, AntiQuantScaleType, AntiQuantOffsetType, \
-                      GroupListType, PerTokenScaleType, OutputType>( \
-        stream, x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y, \
+
+// 关键修正：
+// 1. 宏内参数列表合并为单行，移除所有换行和行内注释（避免语法解析错误）
+// 2. 确保模板参数/函数参数括号匹配，无多余逗号
+#define CALL_GROUPEDMATMUL(X_ID, WEIGHT_ID, BIAS_ID, SCALE_ID, OFFSET_ID, ANTIQ_SCALE_ID, ANTIQ_OFFSET_ID,             \
+                           GROUP_LIST_ID, PER_TOKEN_SCALE_ID, OUTPUT_ID)                                               \
+    groupedmatmul_api<IdToCppType_t<X_ID>, IdToCppType_t<WEIGHT_ID>, IdToCppType_t<BIAS_ID>, IdToCppType_t<SCALE_ID>,  \
+                      IdToCppType_t<OFFSET_ID>, IdToCppType_t<ANTIQ_SCALE_ID>, IdToCppType_t<ANTIQ_OFFSET_ID>,         \
+                      IdToCppType_t<GROUP_LIST_ID>, IdToCppType_t<PER_TOKEN_SCALE_ID>, IdToCppType_t<OUTPUT_ID>>(      \
+        stream, x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y,          \
         splitItem, groupType, groupListType, actType, tuningConfigOptional);
+// ===================== 第三步：重写 dispatch_groupedmatmul（枚举有效组合） =====================
+void dispatch_groupedmatmul(const TypeCombo &matched_combo,
+                            aclrtStream stream, // 注意：stream 入参位置提前，和函数定义一致
+                            const torch::TensorList &x, const torch::TensorList &weight,
+                            const c10::optional<torch::TensorList> &bias, const c10::optional<torch::TensorList> &scale,
+                            const c10::optional<torch::TensorList> &offset,
+                            const c10::optional<torch::TensorList> &antiquantScale,
+                            const c10::optional<torch::TensorList> &antiquantOffset,
+                            const c10::optional<torch::Tensor> &groupList,
+                            const c10::optional<torch::TensorList> &perTokenScale,
+                            const at::TensorList &y, // 新增：补充漏掉的 y 参数（函数定义必传）
+                            const int64_t splitItem, const int64_t groupType, const int64_t groupListType,
+                            const int64_t actType, const vector<int64_t> *tuningConfigOptional)
+{
+    // 1. 将 matched_combo 中的 at::ScalarType 转换为 ScalarTypeId（整型 ID）
+    const auto x_id = getScalarTypeId(matched_combo.x);
+    const auto weight_id = getScalarTypeId(matched_combo.weight);
+    const auto bias_id = getScalarTypeId(matched_combo.bias);
+    const auto scale_id = getScalarTypeId(matched_combo.scale);
+    const auto offset_id = getScalarTypeId(matched_combo.offset);
+    const auto antiq_scale_id = getScalarTypeId(matched_combo.antiquantScale);
+    const auto antiq_offset_id = getScalarTypeId(matched_combo.antiquantOffset);
+    const auto group_list_id = getScalarTypeId(matched_combo.groupList);
+    const auto per_token_scale_id = getScalarTypeId(matched_combo.perTokenScale);
+    const auto output_id = getScalarTypeId(matched_combo.output);
 
-// 输入参数新增 matched_combo，其余保留原有结构
-void dispatch_groupedmatmul(
-    const TypeCombo& matched_combo,  // 新增：传入类型组合
-const torch::TensorList &x, const torch::TensorList &weight, const c10::optional<torch::TensorList> &bias,
-    const c10::optional<torch::TensorList> &scale, const c10::optional<torch::TensorList> &offset,
-    const c10::optional<torch::TensorList> &antiquantScale, const c10::optional<torch::TensorList> &antiquantOffset,
-    const c10::optional<torch::Tensor> &groupList, const c10::optional<torch::TensorList> &perTokenScale,
-    const int64_t splitItem, const int64_t groupType, const int64_t groupListType, const int64_t actType,
-    const c10::optional<c10::IntArrayRef> &tuningConfigOptional) {
+    // 2. 枚举所有支持的类型组合（仅十几种，避免编译器爆炸）
+    // 组合 1：x=HALF(0), weight=HALF(0), bias=FLOAT(3), ..., output=HALF(0)
+    if (x_id == ScalarTypeId::HALF && weight_id == ScalarTypeId::HALF && bias_id == ScalarTypeId::FLOAT &&
+        scale_id == ScalarTypeId::HALF && offset_id == ScalarTypeId::HALF && antiq_scale_id == ScalarTypeId::FLOAT &&
+        antiq_offset_id == ScalarTypeId::FLOAT && group_list_id == ScalarTypeId::INT &&
+        per_token_scale_id == ScalarTypeId::FLOAT && output_id == ScalarTypeId::HALF) {
+        CALL_GROUPEDMATMUL(ScalarTypeId::HALF, ScalarTypeId::HALF, ScalarTypeId::FLOAT, ScalarTypeId::HALF,
+                           ScalarTypeId::HALF, ScalarTypeId::FLOAT, ScalarTypeId::FLOAT, ScalarTypeId::INT,
+                           ScalarTypeId::FLOAT,
+                           ScalarTypeId::HALF); // 10 个模板参数，宏内部补全 16 个函数参数
+    }
+    // // 组合 2：x=BFLOAT16(1), weight=BFLOAT16(1), bias=FLOAT(3), ..., output=BFLOAT16(1)
+    // else if (x_id == ScalarTypeId::BFLOAT16 && weight_id == ScalarTypeId::BFLOAT16 &&
+    //          bias_id == ScalarTypeId::FLOAT && scale_id == ScalarTypeId::BFLOAT16 &&
+    //          offset_id == ScalarTypeId::BFLOAT16 && antiq_scale_id == ScalarTypeId::FLOAT &&
+    //          antiq_offset_id == ScalarTypeId::FLOAT && group_list_id == ScalarTypeId::INT &&
+    //          per_token_scale_id == ScalarTypeId::FLOAT && output_id == ScalarTypeId::BFLOAT16) {
+    //     CALL_GROUPEDMATMUL(ScalarTypeId::BFLOAT16, ScalarTypeId::BFLOAT16, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::BFLOAT16, ScalarTypeId::BFLOAT16, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::FLOAT, ScalarTypeId::INT, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::BFLOAT16);
+    // }
+    // // 组合 3：x=CHAR(2), weight=CHAR(2), bias=FLOAT(3), ..., output=CHAR(2)
+    // else if (x_id == ScalarTypeId::CHAR && weight_id == ScalarTypeId::CHAR &&
+    //          bias_id == ScalarTypeId::FLOAT && scale_id == ScalarTypeId::FLOAT &&
+    //          offset_id == ScalarTypeId::FLOAT && antiq_scale_id == ScalarTypeId::FLOAT &&
+    //          antiq_offset_id == ScalarTypeId::FLOAT && group_list_id == ScalarTypeId::INT &&
+    //          per_token_scale_id == ScalarTypeId::FLOAT && output_id == ScalarTypeId::CHAR) {
+    //     CALL_GROUPEDMATMUL(ScalarTypeId::CHAR, ScalarTypeId::CHAR, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::FLOAT, ScalarTypeId::FLOAT, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::FLOAT, ScalarTypeId::INT, ScalarTypeId::FLOAT,
+    //                        ScalarTypeId::CHAR);
+    // }
+    // ========== 补充你实际支持的其他组合（总共十几种） ==========
+    // else if (...) { ... }
 
-    // 分发 x 的类型（替换为 matched_combo.x 映射的标量类型）
-    AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.x), "groupedmatmul_x_dispatch", [&]() {
-        using scalar_t_x = scalar_t; // 保存 x 的类型
-
-        // 分发 weight 的类型（替换为 matched_combo.weight）
-        AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.weight), "groupedmatmul_weight_dispatch", [&]() {
-            using scalar_t_weight = scalar_t; // 保存 weight 的类型
-
-            // 分发 bias 的类型（替换为 matched_combo.bias）
-            AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.bias), "groupedmatmul_bias_dispatch", [&]() {
-                using scalar_t_bias = scalar_t; // 保存 bias 的类型
-
-                // 分发 scale 的类型（替换为 matched_combo.scale）
-                AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.scale), "groupedmatmul_scale_dispatch", [&]() {
-                    using scalar_t_scale = scalar_t; // 保存 scale 的类型
-
-                    // 分发 offset 的类型（替换为 matched_combo.offset）
-                    AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.offset), "groupedmatmul_offset_dispatch", [&]() {
-                        using scalar_t_offset = scalar_t; // 保存 offset 的类型
-
-                        // 分发 antiquantScale 的类型（替换为 matched_combo.antiquantScale）
-                        AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.antiquantScale), "groupedmatmul_antiquantScale_dispatch", [&]() {
-                            using scalar_t_antiquantScale = scalar_t; // 保存 antiquantScale 的类型
-
-                            // 分发 antiquantOffset 的类型（替换为 matched_combo.antiquantOffset）
-                            AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.antiquantOffset), "groupedmatmul_antiquantOffset_dispatch", [&]() {
-                                using scalar_t_antiquantOffset = scalar_t; // 保存 antiquantOffset 的类型
-
-                                // 分发 groupList 的类型（替换为 matched_combo.groupList）
-                                AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.groupList), "groupedmatmul_groupList_dispatch", [&]() {
-                                    using scalar_t_groupList = scalar_t; // 保存 groupList 的类型
-
-                                    // 分发 perTokenScale 的类型（替换为 matched_combo.perTokenScale）
-                                    AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.perTokenScale), "groupedmatmul_perTokenScale_dispatch", [&]() {
-                                        using scalar_t_perTokenScale = scalar_t; // 保存 perTokenScale 的类型
-                                        // 分发 perTokenScale 的类型（替换为 matched_combo.perTokenScale）
-                                        AT_DISPATCH_ALL_TYPES(encodeToScalarType(matched_combo.output), "groupedmatmul_output_dispatch", [&]() {
-                                        using scalar_t_output = scalar_t; // 保存 perTokenScale 的类型
-
-                                        // 所有类型匹配完成，调用最终 API（保留原有逻辑）
-                                        CALL_GROUPEDMATMUL_API(
-                                            scalar_t_x,          // XType
-                                            scalar_t_weight,     // WeightType
-                                            scalar_t_bias,       // BiasType
-                                            scalar_t_scale,      // ScaleType
-                                            scalar_t_offset,     // OffsetType
-                                            scalar_t_antiquantScale, // AntiQuantScaleType
-                                            scalar_t_antiquantOffset, // AntiQuantOffsetType
-                                            scalar_t_groupList,  // GroupListType
-                                            scalar_t_perTokenScale, // PerTokenScaleType
-                                           
-                                            scalar_t_output   // OutputType
-                                        );
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
-    });
+    // 无效组合：抛出明确错误
+    else {
+        TORCH_CHECK(
+            false, "Unsupported type combo for groupedmatmul: \n", "x=", static_cast<int>(x_id),
+            ", weight=", static_cast<int>(weight_id), ", bias=", static_cast<int>(bias_id), "\n",
+            "scale=", static_cast<int>(scale_id), ", offset=", static_cast<int>(offset_id),
+            ", antiq_scale=", static_cast<int>(antiq_scale_id), "\n",
+            "antiq_offset=", static_cast<int>(antiq_offset_id), ", group_list=", static_cast<int>(group_list_id),
+            ", per_token_scale=", static_cast<int>(per_token_scale_id), "\n", "output=", static_cast<int>(output_id));
+    }
 }
 
 // 传输入tensor和attr
@@ -268,7 +278,7 @@ torch::Tensor groupedmatmul_npu(
     // 3. 查找匹配的类型组合
     int matched_index = TypeComboManager::findMatchingCombo(SUPPORTED_COMBOS, x, weight, bias, scale, offset,
                                                             antiquantScale, antiquantOffset, groupList, perTokenScale);
-    
+
 
     // 4. 如果没找到匹配的组合，生成详细的错误信息
     if (matched_index == -1) {
@@ -277,8 +287,10 @@ torch::Tensor groupedmatmul_npu(
         // error_msg << "Got types: x=" << x.scalar_type() << ", bias=" << bias.scalar_type()
         //           << ", scale=" << scale.scalar_type() << ", offset=" << offset.scalar_type()
         //           << ", antiquantScale=" << antiquantScale.scalar_type()
-        //           << ", antiquantOffset=" << antiquantOffset.scalar_type() << ", groupList=" << groupList.scalar_type()
-        //           << ", perTokenScale=" << perTokenScale.scalar_type() << ", weight=" << weight.scalar_type() << "\n\n";
+        //           << ", antiquantOffset=" << antiquantOffset.scalar_type() << ", groupList=" <<
+        //           groupList.scalar_type()
+        //           << ", perTokenScale=" << perTokenScale.scalar_type() << ", weight=" << weight.scalar_type() <<
+        //           "\n\n";
         // error_msg << "Supported combinations:\n";
 
         // for (size_t i = 0; i < SUPPORTED_COMBOS.size(); ++i) {
@@ -323,12 +335,20 @@ torch::Tensor groupedmatmul_npu(
     //     return 0;
     // };
     auto acl_call = [=, &matched_combo]() -> int {
-    dispatch_groupedmatmul(
-        matched_combo,                // 新增：传入类型组合
-        stream, x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y,
-        splitItem, groupType, groupListType, actType, tuningConfigOptional);
-    return 0;
-};
+        vector<int64_t> tuning_config_vec; // 临时存储转换后的数据
+        vector<int64_t> *tuning_config_ptr = nullptr;
+
+        if (tuningConfigOptional.has_value()) {
+            // 将 IntArrayRef 转换为 vector<int64_t>
+            tuning_config_vec =
+                vector<int64_t>(tuningConfigOptional.value().begin(), tuningConfigOptional.value().end());
+            tuning_config_ptr = &tuning_config_vec; // 指向转换后的数据
+        }
+        dispatch_groupedmatmul(matched_combo, stream, x, weight, bias, scale, offset, antiquantScale, antiquantOffset,
+                               groupList, perTokenScale, y, splitItem, groupType, groupListType, actType,
+                               tuning_config_ptr);
+        return 0;
+    };
     at_npu::native::OpCommand::RunOpApiV2("GroupedMatmul", acl_call);
     return y;
 }
@@ -355,8 +375,10 @@ torch::Tensor groupedmatmul_npu(
 //         error_msg << "Got types: x=" << x.scalar_type() << ", bias=" << bias.scalar_type()
 //                   << ", scale=" << scale.scalar_type() << ", offset=" << offset.scalar_type()
 //                   << ", antiquantScale=" << antiquantScale.scalar_type()
-//                   << ", antiquantOffset=" << antiquantOffset.scalar_type() << ", groupList=" << groupList.scalar_type()
-//                   << ", perTokenScale=" << perTokenScale.scalar_type() << ", weight=" << weight.scalar_type() << "\n\n";
+//                   << ", antiquantOffset=" << antiquantOffset.scalar_type() << ", groupList=" <<
+//                   groupList.scalar_type()
+//                   << ", perTokenScale=" << perTokenScale.scalar_type() << ", weight=" << weight.scalar_type() <<
+//                   "\n\n";
 //         error_msg << "Supported combinations:\n";
 
 //         for (size_t i = 0; i < SUPPORTED_COMBOS.size(); ++i) {

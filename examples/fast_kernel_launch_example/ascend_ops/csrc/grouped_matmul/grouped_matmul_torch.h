@@ -87,6 +87,52 @@ struct TypeCombo {
     c10::ScalarType output;
 };
 
+// ===================== 第一步：定义类型 ↔ ID 映射 =====================
+// 1. 枚举所有需要支持的 at::ScalarType，并分配唯一 ID
+enum class ScalarTypeId : int {
+    HALF = 0,          // at::kHalf → 0
+    BFLOAT16 = 1,      // at::kBFloat16 → 1
+    CHAR = 2,          // at::kChar → 2 (对应 int8_t)
+    FLOAT = 3,         // at::kFloat → 3
+    INT = 4,           // at::kInt → 4 (对应 int32_t)
+    // 按需补充其他类型（如 at::kUInt8 → 5 等）
+};
+
+// 2. at::ScalarType → ScalarTypeId（整型 ID）的映射表
+const std::unordered_map<at::ScalarType, ScalarTypeId> kScalarTypeToId = {
+    {at::kHalf, ScalarTypeId::HALF},
+    {at::kBFloat16, ScalarTypeId::BFLOAT16},
+    {at::kChar, ScalarTypeId::CHAR},
+    {at::kFloat, ScalarTypeId::FLOAT},
+    {at::kInt, ScalarTypeId::INT},
+    // 补充其他支持的类型
+};
+
+// 3. ScalarTypeId → 具体 C++ 类型的模板映射（核心：编译期类型绑定）
+template <ScalarTypeId Id>
+struct IdToCppType;
+
+// 特化：每个 ID 绑定对应的 C++ 类型
+template <> struct IdToCppType<ScalarTypeId::HALF> { using type = at::Half; };
+template <> struct IdToCppType<ScalarTypeId::BFLOAT16> { using type = at::BFloat16; };
+template <> struct IdToCppType<ScalarTypeId::CHAR> { using type = int8_t; }; // at::kChar 对应 int8_t
+template <> struct IdToCppType<ScalarTypeId::FLOAT> { using type = float; };
+template <> struct IdToCppType<ScalarTypeId::INT> { using type = int32_t; };
+// 补充其他类型的特化
+
+// 辅助别名：简化类型获取
+template <ScalarTypeId Id>
+using IdToCppType_t = typename IdToCppType<Id>::type;
+
+// 4. 辅助函数：安全获取类型 ID（带错误检查）
+ScalarTypeId getScalarTypeId(at::ScalarType scalar_type) {
+    auto it = kScalarTypeToId.find(scalar_type);
+    TORCH_CHECK(it != kScalarTypeToId.end(), 
+                "Unsupported ScalarType: ", scalar_type, " (no mapped ID)");
+    return it->second;
+}
+
+
 // 类型组合管理器
 class TypeComboManager {
 public:
