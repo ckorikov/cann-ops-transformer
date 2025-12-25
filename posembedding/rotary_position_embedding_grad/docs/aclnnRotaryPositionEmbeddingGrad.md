@@ -1,18 +1,11 @@
 # aclnnRotaryPositionEmbeddingGrad
 
-[📄 查看源码](https://gitcode.com/cann/ops-transformer/tree/master/posembedding/rotary_position_embedding_grad)
-
 ## 产品支持情况
 
 | 产品                                                         |  是否支持   |
 | :----------------------------------------------------------- |:-------:|
-| <term>昇腾910_95 AI处理器</term>                             |    √     |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √    |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √    |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×    |
-| <term>Atlas 推理系列产品</term>                             |    ×    |
-| <term>Atlas 训练系列产品</term>                              |    ×    |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×    |
 
 ## 功能说明
 -  接口功能：执行单路旋转位置编码[aclnnRotaryPositionEmbedding](../../rotary_position_embedding/docs/aclnnRotaryPositionEmbedding.md)的反向计算。
@@ -297,8 +290,6 @@ aclnnStatus aclnnRotaryPositionEmbeddingGrad(
 
   - 参数mode约束：
     - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：0=half，1=interleave。
-    - <term>昇腾910_95 AI处理器</term>：2=quarter，3=interleave-half。
-
 - **返回值：**
 
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
@@ -386,13 +377,6 @@ aclnnStatus aclnnRotaryPositionEmbeddingGrad(
 
 - 确定性计算：
   - aclnnRotaryPositionEmbeddingGrad默认确定性实现。
-
-  - <term>昇腾910_95 AI处理器</term>：
-
-    输入张量x共有四维，各参数的shape约束可以描述如下：
-    - 输入张量x、cos、sin及输出张量y的最后一维大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，最后一维必须能被2整除，对于quarter模式，最后一维必须能被4整除。
-    - 输入张量x和输出张量y的shape必须完全相同。
-    - 输入张量cos和sin的shape必须完全相同，cos和sin的shape需要与x满足[broadcast关系](../../docs/zh/context/broadcast关系.md)，且广播后的shape必须等于x的shape。
 
   - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 

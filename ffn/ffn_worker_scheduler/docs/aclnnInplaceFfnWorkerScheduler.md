@@ -3,13 +3,8 @@
 ## 产品支持情况
 |产品             |  是否支持  |
 |:-------------------------|:----------:|
-|  <term>昇腾910_95 AI处理器</term>   |     ×    |
 |  <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>   |     √    |
 |  <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>     |     ×    |
-|  <term>Atlas 200I/500 A2 推理产品</term>    |    ×     |
-|  <term>Atlas 推理系列产品 </term>    |     ×    |
-|  <term>Atlas 训练系列产品</term>    |     ×    |
-|  <term>Atlas 200/300/500 推理产品</term>       |     ×    |
 
 ## 功能说明
 
@@ -84,6 +79,7 @@
     1. 初始化，根据入参ScheduleContext中的session_num和sync_group_size计算分组个数。
     2. 若分组个数为1，表示全同步处理数据，待全部session数据准备就绪后，进行数据整理。
     3. 若分组个数不为1，表示非全同步处理数据，待group内的session数据准备就绪后，进行数据整理。
+
 $$
 \text{Initialize:} \quad\text{group_num} = \frac{\text{session_num}}{\text{sync_group_size}}
 $$
@@ -98,7 +94,7 @@ $$
   
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnInplaceFfnWorkerSchedulerGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceFfnWorkerScheduler”接口执行计算。
+每个算子分为[两段式接口](common/两段式接口.md)，必须先调用“aclnnInplaceFfnWorkerSchedulerGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceFfnWorkerScheduler”接口执行计算。
 ```Cpp
 aclnnStatus aclnnInplaceFfnWorkerSchedulerGetWorkspaceSize(
     aclTensor* scheduleContextRef,
@@ -196,7 +192,7 @@ aclnnStatus aclnnInplaceFfnWorkerScheduler(
 
 - **返回值：**
 
-    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+    aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
     
     第一段接口完成入参校验，出现以下场景时报错：
 
@@ -273,13 +269,13 @@ aclnnStatus aclnnInplaceFfnWorkerScheduler(
 
 - **返回值：**
 
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
 
 ## 约束说明
   - aclnnInplaceFfnWorkerScheduler默认为确定性实现，暂不支持非确定性实现，确定性计算配置也不会生效。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](common/编译与运行样例.md)。
 ```Cpp
 #include <iostream>
 #include <memory>

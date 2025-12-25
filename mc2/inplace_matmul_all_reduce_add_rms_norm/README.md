@@ -1,9 +1,9 @@
-# MatmulAllReduceAddRmsNorm
+# InplaceMatmulAllReduceAddRmsNorm
 
 ## 产品支持情况
 
 | 产品 | 是否支持 |
-| :---- | :----: |
+| ---- | :----: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
 | <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
 
@@ -13,6 +13,7 @@
 - 算子功能：完成mm + all_reduce + add + rms_norm计算。
 - 计算公式：
  - 情景一：
+
     $$
     mm\_out = allReduce(x1 @ x2 + bias)
     $$
@@ -24,7 +25,9 @@
     $$
     normOut = \frac{y}{RMS(y)} * gamma, RMS(y) = \sqrt{\frac{1}{d} \sum_{i=1}^{d} y_{i}^{2} + epsilon}
     $$
+
  - 情景二：
+
     $$
     mm_out = allReduce(dequantScale * (x1_{int8}@x2_{int8} + bias_{int32}))
     $$
@@ -36,7 +39,9 @@
     $$
     normOut = \frac{y}{RMS(y)} * gamma, RMS(y) = \sqrt{\frac{1}{d} \sum_{i=1}^{d} y_{i}^{2} + epsilon}
     $$
+
   - 情景三：
+
     $$
     mm\_out = allReduce(x1 @ (x2*antiquantScale + antiquantOffset) + bias)
     $$
@@ -48,6 +53,7 @@
     $$
     normOut = \frac{y}{RMS(y)} * gamma, RMS(y) = \sqrt{\frac{1}{d} \sum_{i=1}^{d} y_{i}^{2} + epsilon}
     $$
+
 ## 参数说明
 
 

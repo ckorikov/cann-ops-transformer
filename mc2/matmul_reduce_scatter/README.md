@@ -14,6 +14,7 @@
 算子功能：完成mm + reduce_scatter_base计算。
 
 计算公式：
+
 $$
 output=reduce\_scatter\_base(x1@x2+bias)
 $$

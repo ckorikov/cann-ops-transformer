@@ -13,12 +13,15 @@
 
 计算公式：
 - 路由专家：
+
   $$
   gmmY = gmmX \times gmmWeight \\
   unpermuteOut = Unpermute(gmmY) \\
   y = AlltoAllv(unpermuteOut)
   $$
+
 - 共享专家：
+
   $$
   mmY = mmX \times mmWeight
   $$
@@ -87,14 +90,14 @@
   <tr>
    <td>group</td>
    <td>输入</td>
-   <td>专家并行的通信域名，字符串长度要求(0, 128)。</td>
+   <td>专家并行的通信域，字符串长度要求(0, 128)。</td>
    <td>STRING</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>epWorldSize</td>
    <td>输入</td>
-   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64。</td>
+   <td>ep通信域size：<br><term>Atlas A3系列产品</term>支持8、16、32、64、128；</td>
    <td>INT64</td>
    <td>ND</td>
   </tr>

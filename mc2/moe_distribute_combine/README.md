@@ -1,6 +1,5 @@
 # MoeDistributeCombine
 
-
 ## 产品支持情况
 
 | 产品                                                         | 是否支持 |
@@ -15,12 +14,14 @@
 算子功能：当存在TP域通信时，先进行ReduceScatterV通信，再进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）；当不存在TP域通信时，进行AlltoAllV通信，最后将接收的数据整合（乘权重再相加）。
 
 - 不存在TP域通信时：
+
 $$
 ataOut = AllToAllV(expandX)\\
 xOut = Sum(expertScales * ataOut + expertScales * sharedExpertX)
 $$
 
 - 存在TP域通信时：
+
 $$
 rsOut = ReduceScatterV(expandX)\\
 ataOut = AllToAllV(rsOut)\\
@@ -253,11 +254,11 @@ $$
 
 - 参数说明里shape格式说明：
     - `A`：表示本卡可能接收的最大token数量，取值范围如下：
-        - 对于共享专家，要满足`A` = `BS` * `epWorldSize` * `sharedExpertNum` / `sharedExpertRankNum。`
+        - 对于共享专家，要满足`A` = `BS` * `epWorldSize` * `sharedExpertNum` / `sharedExpertRankNum`。
         - 对于MoE专家，当`globalBs`为0时，要满足`A` >= `BS` * `epWorldSize` * min(`localExpertNum`, `K`)；当`globalBs`非0时，要满足`A` >= `globalBs` * min(`localExpertNum`, `K`)。
     - `localExpertNum`：表示本卡专家数量。
         - 对于共享专家卡，`localExpertNum` = 1
-        - 对于MoE专家卡，`localExpertNum` = `moeExpertNum` / (`epWorldSize` - `sharedExpertRankNum`)`，localExpertNum` > 1时，不支持TP域通信。
+        - 对于MoE专家卡，`localExpertNum` = `moeExpertNum` / (`epWorldSize` - `sharedExpertRankNum`)，`localExpertNum` > 1时，不支持TP域通信。
 
 - 本文公式中的"/"表示整除。
 
