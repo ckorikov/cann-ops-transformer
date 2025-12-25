@@ -5,7 +5,7 @@
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √     |
 
 ## 功能说明
 
@@ -87,7 +87,7 @@
     ```
 
 - 上述场景根据构造的参数来区别，符合第一种入参构造走场景一，符合第二种构造走场景二，符合第三种构造走场景三，符合第四种构造走场景四，符合第五种构造走场景五，符合第六种构造走场景六。场景一、场景二、场景六没有compressLensOptional、seqLensOptional、compressSeqOffsetOptional这三个可选参数。场景四没有compressSeqOffsetOptional可选参数。
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：仅支持场景一、二、四、五、六。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：仅支持场景一、二、四、五、六。
 ## 函数原型
 
 每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnScatterPaKvCacheGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnScatterPaKvCache”接口执行计算。
@@ -100,7 +100,7 @@
 - **参数说明：**
 
   * key(aclTensor*，计算输入)：Device侧的aclTensor，支持3维或4维，待更新的key值，当前step多个token的key，数据类型支持FLOAT16、FLOAT、BFLOAT16、INT8、UINT8、INT16、UINT16、INT32、UINT32、HIFLOAT8、FLOAT8_E5M2、FLOAT8_E4M3FN，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
-      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型仅支持FLOAT16、BFLOAT16、INT8。
+      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型仅支持FLOAT16、BFLOAT16、INT8。
   * keyCacheRef(aclTensor*，计算输入/输出)：Device侧的aclTensor，只支持4维，需要更新的key cache，当前layer的key cache，数据类型和格式与key一致。
   * slotMapping(aclTensor*，计算输入)：Device侧的aclTensor，每个token key或value在cache中的存储偏移，数据类型支持INT32、INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * value(aclTensor*，计算输入)：Device侧的aclTensor，支持0维、3维或4维，非0维下shape与key一致，待更新的value值，当前step多个token的value，数据类型和格式与key一致。
@@ -109,13 +109,13 @@
   * compressSeqOffsetOptional(aclTensor*，可选计算输入)：Device侧的aclTensor，每个batch每个head的压缩起点，数据类型与slotMapping一致，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * seqLensOptional(aclTensor*，可选计算输入)：Device侧的aclTensor，每个batch的实际seqLens，数据类型与slotMapping一致，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。
   * cacheMode(char*，计算输入)：host侧的char* , 表示keyCacheRef和valueCacheRef的内存排布格式。
-      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当传空指针或"Norm"时，仅支持ND内存排布格式。当传"PA_NZ"时，仅支持FRACTAL_NZ内存排布格式。
+      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：当传空指针或"Norm"时，仅支持ND内存排布格式。当传"PA_NZ"时，仅支持FRACTAL_NZ内存排布格式。
   * scatterMode(char*，计算输入)：host侧的char* , 表示更新的key和value的状态。
-      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：当传空指针或"None"时，表示更新的key和value是非压缩状态且连续。当传"Alibi"时，表示更新key和value是基于Alibi结构的压缩状态。当传"Rope"时，表示更新key和value是基于Rope结构的压缩状态。当传"Omni"时，表示更新key和value是基于Omni结构的压缩状态。当传"Nct"时，表示更新的key和value是非压缩状态但非连续。
+      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：当传空指针或"None"时，表示更新的key和value是非压缩状态且连续。当传"Alibi"时，表示更新key和value是基于Alibi结构的压缩状态。当传"Rope"时，表示更新key和value是基于Rope结构的压缩状态。当传"Omni"时，表示更新key和value是基于Omni结构的压缩状态。当传"Nct"时，表示更新的key和value是非压缩状态但非连续。
   * strides(aclIntArray *, 计算输入)：key和value在非连续状态下的步长，数组长度为2。其值应该大于0。
-      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：仅当scatterMode为"Nct"时生效，分别表示strideK和strideV。
+      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：仅当scatterMode为"Nct"时生效，分别表示strideK和strideV。
   * offsets(aclIntArray *, 计算输入)：key和value在非连续状态下的偏移，数组长度为2。其值应该大于0。
-      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：仅当scatterMode为"Nct"时生效，分别表示offsetK和offsetV。
+      * <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：仅当scatterMode为"Nct"时生效，分别表示offsetK和offsetV。
   * workspaceSize(uint64_t*，出参)：返回用户需要在Device侧申请的workspace大小。
   * executor(aclOpExecutor**，出参)：返回op执行器，包含了算子计算流程。
 
@@ -163,7 +163,7 @@
 ## 调用示例
 
 示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：
 
   ```c++
   #include <iostream>

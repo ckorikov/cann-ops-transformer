@@ -5,7 +5,7 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
 
 ## 功能说明
 
@@ -16,7 +16,7 @@
 
     相较于[GroupedMatmulV3](aclnnGroupedMatmulV3.md)接口，**此接口新增：**
     - 支持groupListOptional中数值为分组轴上每组大小。
-    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+    - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
       - 支持静态量化（pertensor+perchannel）（量化方式请参见[量化介绍](../../../docs/zh/context/量化介绍.md)，下同）BFLOAT16和FLOAT16输出，带激活及不带激活场景
       - 支持动态量化（pertoken+perchannel）BFLOAT16和FLOAT16输出，带激活及不带激活场景。
       - 支持伪量化weight是INT4的输入，不带激活场景，支持perchannel和pergroup两种模式。
@@ -92,35 +92,35 @@
 
 - **参数说明：**
   -   x（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的输入x，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8、INT4。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8、INT4。
   -   weight（aclTensorList *，计算输入）：Device侧的aclTensorList，公式中的weight，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8、INT4，[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、FLOAT32、INT8、INT4，[数据格式](../../../docs/zh/context/数据格式.md)支持ND和FRACTAL_NZ格式。
   -   biasOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32。
   -   scaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，一般情况下，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持UINT64、BFLOAT16、FLOAT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持UINT64、BFLOAT16、FLOAT32。
   -   offsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。
   -   antiquantScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
   -   antiquantOffsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。综合约束请参见[约束说明](#约束说明)。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16。
   -   perTokenScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList，代表量化参数中的由x量化引入的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。仅支持x、weight、out均为单tensor（TensorList长度为1）场景。综合约束请参见[约束说明](#约束说明)。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT32。
   -   groupListOptional（aclTensor *，计算输入）：可选参数，Device侧的aclTensor类型，代表输入和输出分组轴方向的matmul大小分布，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   activationInputOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，代表激活函数的反向输入，当前只支持传入nullptr。
   -   activationQuantScaleOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，当前只支持传入nullptr。
   -   activationQuantOffsetOptional（aclTensorList *，计算输入）：可选参数，Device侧的aclTensorList类型，当前只支持传入nullptr。
   -   splitItem（int64\_t，计算输入）：整数型参数，代表输出是否要做tensor切分，0/1代表输出为多tensor；2/3代表输出为单tensor。
   -   groupType（int64\_t，计算输入）：整数型参数，代表需要分组的轴，如矩阵乘为C[m,n]=A[m,k]xB[k,n]，则groupType取值-1：不分组，0：m轴分组，1：n轴分组，2：k轴分组。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当前不支持n轴分组。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：当前不支持n轴分组。
   -   groupListType（int64\_t，计算输入）：整数型参数，支持的取值如下：
         * 0：groupListOptional中数值为分组轴大小的cumsum结果（累积和）;
         * 1：groupListOptional中数值为分组轴上每组大小；
         * 2：groupListOptional shape为[e, 2]，e表示Group大小，数据排布为[[groupIdx0, groupSize0], [groupIdx1, groupSize1]...]，其中groupSize为分组轴上每组大小。
-        * <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：仅当x和weight参数输入类型为INT8，并且groupType取0（m轴分组）时，支持取2。
+        * <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：仅当x和weight参数输入类型为INT8，并且groupType取0（m轴分组）时，支持取2。
   -   actType（int64\_t，计算输入）：整数型参数，代表激活函数类型。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围为0-5，支持的枚举值如下：
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：取值范围为0-5，支持的枚举值如下：
           * 0：GMMActType::GMM_ACT_TYPE_NONE；
           * 1：GMMActType::GMM_ACT_TYPE_RELU；
           * 2：GMMActType::GMM_ACT_TYPE_GELU_TANH；
@@ -128,7 +128,7 @@
           * 4：GMMActType::GMM_ACT_TYPE_FAST_GELU；
           * 5：GMMActType::GMM_ACT_TYPE_SILU；
   -   out（aclTensorList *，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32、INT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32、INT32。
   -   activationFeatureOutOptional（aclTensorList *，计算输出）：Device侧的aclTensorList，激活函数的输入数据，当前只支持传入nullptr。
   -   dynQuantScaleOutOptional（aclTensorList *，计算输出）：Device侧的aclTensorList，当前只支持传入nullptr。
   -   workspaceSize（uint64\_t *，出参）：返回需要在Device侧申请的workspace大小。
@@ -170,7 +170,7 @@
     - aclnnGroupedMatmulV4默认确定性实现。
   - 如果传入groupListOptional，当groupListType为0时，groupListOptional必须为非负单调非递减数列；当groupListType为1时，groupListOptional必须为非负数列；groupListType为2时，groupListOptional的第二列数据必须为非负数列，且长度不能为1。
   - x和weight中每一组tensor的每一维大小在32字节对齐后都应小于int32的最大值2147483647。
-  - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+  - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     - 非量化场景支持的输入类型为：
       - x为FLOAT16、weight为FLOAT16、biasOptional为FLOAT16、scaleOptional为空、offsetOptional为空、antiquantScaleOptional为空、antiquantOffsetOptional为空、perTokenScaleOptional为空、activationInputOptional为空、out为FLOAT16。
       - x为BFLOAT16、weight为BFLOAT16、biasOptional为FLOAT32、scaleOptional为空、offsetOptional为空、antiquantScaleOptional为空、antiquantOffsetOptional为空、perTokenScaleOptional为空、activationInputOptional为空、out为BFLOAT16。

@@ -5,7 +5,7 @@
 | 产品                                                         |  是否支持   |
 | :----------------------------------------------------------- |:-------:|
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √    |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √    |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √    |
 
 ## 功能说明
 -  接口功能：推理网络为了提升性能，将query和key两路算子融合成一路。执行旋转位置编码计算，计算结果执行原地更新。
@@ -188,7 +188,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>表示要执行旋转位置编码的第一个张量，公式中的query，计算结果原地更新。</td>
       <td>
         <ul>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
             <ul>
               <li>不支持空Tensor。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
@@ -206,7 +206,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>表示要执行旋转位置编码的第二个张量，公式中的key，计算结果原地更新。</td>
       <td>
         <ul>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
             <ul>
               <li>不支持空Tensor。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
@@ -224,7 +224,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>表示参与计算的位置编码张量，公式中的cos。</td>
       <td>
         <ul>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
             <ul>
               <li>不支持空Tensor。</li>
               <li>shape中B维度与queryRef、keyRef的B维度一致。</li>
@@ -244,7 +244,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>表示参与计算的位置编码张量，公式中的sin。</td>
       <td>
         <ul>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：</li>
             <ul>
               <li>不支持空Tensor。</li>
               <li>shape中B维度与queryRef、keyRef的B维度一致。</li>
@@ -265,7 +265,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>
         <ul>
           <li>取值范围：1-BSND、2-SBND、3-BNSD、4-TND。</li>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持1-BSND的4维Tensor、4-TND的3维Tensor。</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持1-BSND的4维Tensor、4-TND的3维Tensor。</li>
         </ul>
       </td>
       <td>int64</td>
@@ -280,7 +280,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       <td>
         <ul>
           <li>取值范围："half"、"interleave"、"quarter"。</li>
-          <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持"half"模式。</li>
+          <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持"half"模式。</li>
         </ul>
       </td>
       <td>char</td>
@@ -384,7 +384,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
 - 确定性计算：
   - aclnnApplyRotaryPosEmbV2默认确定性实现。
 
-  - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+  - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     - layout为1时，queryRef、keyRef、cos、sin输入shape的前2维（B、S）必须相等；layout为4时，第1维（T）必须相等。
     - queryRef、keyRef、cos、sin输入shape的最后一维（D）必须相等。
     - 输入张量queryRef、keyRef、cos、sin的dtype必须相同。

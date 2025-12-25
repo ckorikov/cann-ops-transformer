@@ -5,7 +5,7 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
 
 ## 功能说明
 
@@ -53,21 +53,21 @@
 
 - **参数说明：**
   -   x（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的输入x，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8
   -   weight（aclTensorList\*，计算输入）：必选参数，Device侧的aclTensorList，公式中的weight，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8
   -   biasOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，公式中的bias，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、FLOAT32、INT32
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持FLOAT16、FLOAT32、INT32
   -   scaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持UINT64
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持UINT64
   -   offsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表量化参数中的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT32
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持FLOAT32
   -   antiquantScaleOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的缩放因子，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
   -   antiquantOffsetOptional（aclTensorList\*，计算输入）可选参数，Device侧的aclTensorList，代表伪量化参数中的偏移量，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同，数据类型支持FLOAT16、BFLOAT16。
   -   groupListOptional（aclIntArray\*，计算输入）：可选参数，Host侧的aclIntArray类型，代表输入和输出M方向的matmul索引情况，数据类型支持INT64，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，长度与weight相同。需注意：当输出中TensorList的长度为1时，groupListOptional中的最后一个值约束了输出数据的有效部分，groupListOptional中未指定的部分将不会参与更新。
   -   splitItem（int64\_t，计算输入）：整数型参数，代表输出是否要做tensor切分，0/1代表输出为多tensor；2/3代表输出为单tensor。
   -   y（aclTensorList\*，计算输出）：Device侧的aclTensorList，公式中的输出y，[数据格式](../../../docs/zh/context/数据格式.md)支持ND，支持的最大长度为128个。
-      - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32。
+      - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：数据类型支持FLOAT16、BFLOAT16、INT8、FLOAT32。
   -   workspaceSize（uint64\_t\*，出参）：返回需要在Device侧申请的workspace大小。
   -   executor（aclOpExecutor\*\*，出参）：返回op执行器，包含了算子计算流程。
 
@@ -105,7 +105,7 @@
 ## 约束说明
   - 确定性计算：
     - aclnnGroupedMatmul默认确定性实现。
-  - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+  - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：
     - 非量化场景支持的输入类型为：
       - x为FLOAT16、weight为FLOAT16、biasOptional为FLOAT16、scaleOptional为 空、offsetOptional为空、antiquantScaleOptional为空、 antiquantOffsetOptional为空、y为FLOAT16；
       - x为BFLOAT16、weight为BFLOAT16、biasOptional为FLOAT32、scaleOptional 为空、offsetOptional为空、antiquantScaleOptional为空、 antiquantOffsetOptional为空、y为BFLOAT16；
