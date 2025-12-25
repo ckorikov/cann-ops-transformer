@@ -440,6 +440,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::ProcessNormalPse()
     auto dim1 = storageShape.GetDim(DIM_1);
     auto dim2 = storageShape.GetDim(DIM_2);
     auto dim3 = storageShape.GetDim(DIM_3);
+    pseSize = dim0 * dim1 * dim2 * dim3;
     // [B N S1 S2](0)  [B N 1 S2](1)  [1 N S1 S2](2)shape判断
     int64_t shapeN1 = td_->opInfo.get_N2() * td_->opInfo.get_G();
     bool isBNS = (dim0 == td_->opInfo.get_B()) && (dim1 == shapeN1) && (dim3 == td_->opInfo.get_S2());
@@ -1415,6 +1416,15 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
     }
     postMaxDataSize = vecQueUbSize / totalDtypeSize;
 
+    int64_t psePostBaseNum = postMaxDataSize;
+    OP_CHECK_IF(psePostBaseNum == 0, OP_LOGE(context_, "divisor psePostBaseNum is 0."),
+        return ge::GRAPH_FAILED);
+    int64_t psePostBlockTotal = pseSize;
+    int64_t psePostTailNumTmp = psePostBlockTotal % psePostBaseNum;
+    int64_t psePostTailNum = psePostTailNumTmp == 0 ? psePostBaseNum : psePostTailNumTmp;
+    int64_t psePostBlockOuterTotal = (psePostBlockTotal + psePostBaseNum - 1) / psePostBaseNum;
+    int64_t psePostBlockFactor = (psePostBlockOuterTotal + usedCoreNum - 1) / usedCoreNum;
+
     td_->postTilingData.set_coreNum(usedCoreNum);
     td_->postTilingData.set_scaleValue(td_->opInfo.get_scaleValue());
     td_->postTilingData.set_postUbBaseSize(postUbBaseSize);
@@ -1432,9 +1442,15 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::DoCastTiling()
     td_->postTilingData.set_kvSizeAlign(kvSizeAlign);
     td_->postTilingData.set_nzReservedSize(nzReservedSize);
 
+    td_->postTilingData.set_psePostBlockFactor(psePostBlockFactor);
+    td_->postTilingData.set_psePostBlockTotal(psePostBlockTotal);
+    td_->postTilingData.set_psePostBaseNum(psePostBaseNum);
+    td_->postTilingData.set_psePostTailNum(psePostTailNum);
+
     td_->opInfo.set_dqWorkspaceLen((allNumQuery * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
     td_->opInfo.set_dkWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
     td_->opInfo.set_dvWorkspaceLen((allNumKv * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
+    td_->opInfo.set_dpseWorkspaceLen((pseSize * B32 + GM_ALIGN - 1) / GM_ALIGN * GM_ALIGN);
 
     td_->postTilingData.set_b(td_->opInfo.get_B());
     td_->postTilingData.set_n2(td_->opInfo.get_N2());
@@ -1568,6 +1584,8 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
     int64_t dkWorkspaceLen = td_->opInfo.get_dkWorkspaceLen();
     // dvCast
     int64_t dvWorkspaceLen = td_->opInfo.get_dvWorkspaceLen();
+    // dpseCast
+    int64_t dpseWorkspaceLen = td_->opInfo.get_dpseWorkspaceLen();
 
     // set global workspace
     // 内存顺序排布
@@ -1576,7 +1594,7 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
     workspaces[0] += dropoutWorkspaceLen;
     workspaces[0] += (mm1WorkspaceLen + mm2WorkspaceLen) * currentUseCoreNum;
     workspaces[0] += (mm4InputWorkspaceLen + mm3InputWorkspaceLen) * td_->opInfo.get_usedCoreNum();
-    workspaces[0] += dqWorkspaceLen + dkWorkspaceLen + dvWorkspaceLen;
+    workspaces[0] += dqWorkspaceLen + dkWorkspaceLen + dvWorkspaceLen + dpseWorkspaceLen;
     if (tmpData_.pseType == PSE_INNER_MUL_ADD_TYPE || tmpData_.pseType == PSE_INNER_MUL_ADD_SQRT_TYPE) {
         tmpData_.pseAlibiBaseS2 = PSE_ALIBI_S2_LIMIT_SIZE;
         int64_t s2Tail = td_->opInfo.get_S2() % PSE_ALIBI_S2_LIMIT_SIZE;
@@ -1615,6 +1633,9 @@ ge::graphStatus FlashAttentionScoreGradTilingS1s2Bn2::GetWorkspaceSize()
 
     workspaceOffsets = workspaceOffsets + td_->opInfo.get_dkWorkspaceLen();
     td_->postTilingData.set_dvWorkSpaceOffset(workspaceOffsets);
+
+    workspaceOffsets = workspaceOffsets + td_->opInfo.get_dvWorkspaceLen();
+    td_->postTilingData.set_dpseWorkSpaceOffset(workspaceOffsets);
 
     return ge::GRAPH_SUCCESS;
 }

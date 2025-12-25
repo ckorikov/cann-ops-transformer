@@ -117,6 +117,7 @@ private:
     int64_t dimD{0};
     int64_t dimS2{0};
     int64_t dimS1{0};
+    int64_t pseSize{0};
     uint32_t baseM{0};
     uint32_t baseN{0};
     uint32_t baseMmm{0};

@@ -351,6 +351,7 @@ protected:
     __aicore__ inline void PostProcess(bool isLast);
     __aicore__ inline void PostProcessQ();
     __aicore__ inline void PostProcessKV();
+    __aicore__ inline void PostProcessPse();
     __aicore__ inline void PostProcessND(GlobalTensor<float> &workspaceGm, GlobalTensor<T1> &outGm, const int64_t &type);
     __aicore__ inline void PostCalND(GlobalTensor<float> &workspaceGm, GlobalTensor<T1> &outGm, const uint16_t &procS, 
                                      const int64_t &gmOffset, const int64_t &type);
@@ -418,6 +419,7 @@ protected:
     GlobalTensor<T1> dqGm;
     GlobalTensor<T1> dkGm;
     GlobalTensor<T1> dvGm;
+    GlobalTensor<T1> dpseGm;
 
     GlobalTensor<T2> mm1WorkspaceGm;
     GlobalTensor<T2> mm2WorkspaceGm;
@@ -428,6 +430,7 @@ protected:
     GlobalTensor<float> dqWorkspaceGm;
     GlobalTensor<float> dkWorkspaceGm;
     GlobalTensor<float> dvWorkspaceGm;
+    GlobalTensor<float> dpseWorkspaceGm;
 
     GlobalTensor<int32_t> syncAtomicCleanGlobal;
     GlobalTensor<int32_t> syncCastGlobal;
@@ -535,7 +538,14 @@ protected:
     int64_t dqWorkspaceLen;
     int64_t dkWorkspaceLen;
     int64_t dvWorkspaceLen;
+    int64_t dpseWorkspaceLen;
     int64_t dropoutWorkspaceLen;
+    
+    // Post Process Pse
+    int64_t psePostBlockFactor;
+    uint64_t psePostBlockTotal;
+    int64_t psePostBaseNum;
+    int64_t psePostTailNum;
 
     // Index
     uint32_t processBNByCore;
@@ -914,6 +924,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     dqGm.SetGlobalBuffer((__gm__ T1*)dq);
     dkGm.SetGlobalBuffer((__gm__ T1*)dk);
     dvGm.SetGlobalBuffer((__gm__ T1*)dv);
+    dpseGm.SetGlobalBuffer((__gm__ T1*)dpse);
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -985,8 +996,14 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
     dqWorkspaceLen = tilingData->opInfo.dqWorkspaceLen;
     dkWorkspaceLen = tilingData->opInfo.dkWorkspaceLen;
     dvWorkspaceLen = tilingData->opInfo.dvWorkspaceLen;
+    dpseWorkspaceLen = tilingData->opInfo.dpseWorkspaceLen;
     dropoutWorkspaceLen = tilingData->opInfo.dropoutWorkspaceLen;
     unpadEmptyInput = static_cast<bool>(tilingData->opInfo.unpadEmptyInput);
+
+    psePostBlockFactor = tilingData->postTilingData.psePostBlockFactor;
+    psePostBlockTotal = tilingData->postTilingData.psePostBlockTotal;
+    psePostBaseNum = tilingData->postTilingData.psePostBaseNum;
+    psePostTailNum = tilingData->postTilingData.psePostTailNum;
 
     if constexpr (PSE_CFG != 0) {
         pseInfo.s2Size = dimS2;
@@ -1149,7 +1166,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     // Input is B16 clean workspace
     // Input is B32 clean output-gm
     // Used All UB before InitUB
-    int64_t dqSize, dkvSize;
+    int64_t dqSize, dkvSize, dpseSize;
     if constexpr (LAYOUT != TND) {
         dkvSize = dimB * dimN2 * dimS2 * dimDAlign;
         dqSize = dimB * dimN2 * dimG * dimS1 * dimDAlign;
@@ -1157,8 +1174,11 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
         dkvSize = dimT_kv * dimN2 * dimDAlign;
         dqSize = dimT_q * dimN2 * dimG * dimDAlign;
     }
+    dpseSize = dimN2 * dimG * dimS1 * dimS2;
+    
     dkvSize = (dkvSize + B32_BLOCK_NUM - 1) / B32_BLOCK_NUM * B32_BLOCK_NUM;
     dqSize = (dqSize + B32_BLOCK_NUM - 1) / B32_BLOCK_NUM * B32_BLOCK_NUM;
+    dpseSize = (dpseSize + B32_BLOCK_NUM - 1) / B32_BLOCK_NUM * B32_BLOCK_NUM;
     if constexpr (sizeof(T1) == sizeof(float)) {
         int64_t dvGmRealSize = dimB * dimN2 * dimS2 * dimD;
         if constexpr (LAYOUT == TND) {
@@ -1170,6 +1190,7 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     }
     DumpGmZero(dqWorkspaceGm, dqSize);
     DumpGmZero(dkWorkspaceGm, dkvSize);
+    DumpGmZero(dpseWorkspaceGm, dpseSize);
 }
 
 template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
@@ -1243,17 +1264,19 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     auto dqAddr = usedWorkspaceLen / sizeof(float);
     auto dkAddr = dqAddr + dqWorkspaceLen / sizeof(float);
     auto dvAddr = dkAddr + dkWorkspaceLen / sizeof(float);
+    auto dpseAddr = dvAddr + dvWorkspaceLen / sizeof(float);
     dqWorkspaceGm.SetGlobalBuffer((__gm__ float *)workspace + dqAddr);
     dkWorkspaceGm.SetGlobalBuffer((__gm__ float *)workspace + dkAddr);
     dvWorkspaceGm.SetGlobalBuffer((__gm__ float *)workspace + dvAddr);
+    dpseWorkspaceGm.SetGlobalBuffer((__gm__ float *)workspace + dpseAddr);
 
-    usedWorkspaceLen += dqWorkspaceLen + dkWorkspaceLen + dvWorkspaceLen;
+    usedWorkspaceLen += dqWorkspaceLen + dkWorkspaceLen + dvWorkspaceLen + dpseWorkspaceLen;
 
     int64_t pseInnerAlibiSize = tilingData->opInfo.pseAlibiBaseS1 *
                                 this->tilingData->opInfo.pseAlibiBaseS2 * sizeof(half);
     int64_t pseAlibiOffset =  CeilDiv(pseInnerAlibiSize, 512) * 512;
 
-    uint64_t pseAlibiAddr = dvAddr + dvWorkspaceLen / sizeof(float);
+    uint64_t pseAlibiAddr = dpseAddr + dpseWorkspaceLen / sizeof(float);
     if constexpr (L1CUSTOM) {
         if ASCEND_IS_AIC {
             return;
@@ -3652,6 +3675,21 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             CopyoutWorkspace(mm3InputWorkspaceGm[mm3Addr], mm2Tensor, emitInsn);
         }
 
+        ///////////////////////////////////////////////////////////////
+        // dS reduce
+        ///////////////////////////////////////////////////////////////
+        {
+            int64_t dpseWSGmOffset =
+                ((static_cast<uint16_t>(n2Index) * dimG + gIndex) * dimS1 +
+                emitInsn.s1Index) * dimS2 + emitInsn.s2Index;
+            uint16_t srcStride = static_cast<uint16_t>((emitInsn.s2InnerAlign - emitInsn.s2Inner) / 8);
+            SetAtomicAdd<float>();
+            DataCopyPad(dpseWorkspaceGm[dpseWSGmOffset], mm2Tensor,
+                {static_cast<uint16_t>(emitInsn.s1Inner), static_cast<uint16_t>(emitInsn.s2Inner * sizeof(float)), srcStride,
+                static_cast<uint16_t>((dimS2 - emitInsn.s2Inner) * sizeof(float))});
+            SetAtomicNone();
+        }
+
         if constexpr (!IsSameType<T1, float>::value) {
             if (PSE_CFG != 0 && !isLast) {
                 AscendC::SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(eventIdMte2WaitMte3)); // x2
@@ -4153,6 +4191,38 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
             AscendC::WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
             PostProcessND(dvWorkspaceGm, dvGm, 2);
         }
+    }
+}
+
+template <typename T1, typename T2, const MatmulConfig& MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
+    const uint64_t ATTEN_MASK_CFG, const uint64_t DROPOUT_CFG, const uint32_t LAYOUT,
+    const CubeFormat MM2_OUT_FORMAT, const bool POST, const bool L1CUSTOM>
+__aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MASK_CFG,
+    DROPOUT_CFG, LAYOUT, MM2_OUT_FORMAT, POST, L1CUSTOM>::PostProcessPse()
+{
+    uint64_t pseBegin = blockIdx * psePostBlockFactor * psePostBaseNum;
+    uint64_t pseEnd = (blockIdx + 1) * psePostBlockFactor * psePostBaseNum;
+    if (((blockIdx + 1) * psePostBlockFactor * psePostBaseNum) > psePostBlockTotal) {
+        pseEnd = psePostBlockTotal;
+    }
+    
+    for (uint64_t i = pseBegin; i < pseEnd; i = i + psePostBaseNum) {
+        uint64_t dataSize = i + psePostBaseNum < psePostBlockTotal ? psePostBaseNum : psePostTailNum;
+        AscendC::SetFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+        AscendC::WaitFlag<HardEvent::MTE3_MTE2>(static_cast<int32_t>(mte2WaitMte3));
+        DataCopy(postInBuf, dpseWorkspaceGm[i], (dataSize + 7) / 8 * 8); // dataSize(fp32) align 32B
+        AscendC::SetFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        AscendC::WaitFlag<HardEvent::MTE2_V>(static_cast<int32_t>(vWaitMte2));
+        if constexpr (AscendC::IsSameType<T1, float>::value) {
+            Muls(postOutBuf, postInBuf, postScaleValue, dataSize);
+        } else {
+            Muls(postInBuf, postInBuf, scaleValue, dataSize);
+            AscendC::PipeBarrier<PIPE_V>();
+            Cast(postOutBuf, postInBuf, AscendC::RoundMode::CAST_ROUND, dataSize);
+        }
+        AscendC::SetFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+        AscendC::WaitFlag<HardEvent::V_MTE3>(static_cast<int32_t>(mte3WaitV));
+        DataCopy(dpseGm[i], postOutBuf, (dataSize + dataCopyBlockNum - 1) / dataCopyBlockNum * dataCopyBlockNum);
     }
 }
 
@@ -4777,8 +4847,12 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
             }
         }
     }
-    if(!POST){
-        SyncAll();
+    SyncAll();
+    
+    if ASCEND_IS_AIV {
+        if constexpr (POST){
+            PostProcessPse();
+        }
     }
 }
 

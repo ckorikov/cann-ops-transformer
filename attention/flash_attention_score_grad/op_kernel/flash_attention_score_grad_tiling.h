@@ -2203,6 +2203,7 @@ public:
     int64_t dqWorkspaceLen = 0;
     int64_t dkWorkspaceLen = 0;
     int64_t dvWorkspaceLen = 0;
+    int64_t dpseWorkspaceLen = 0;
     int64_t dropoutWorkspaceLen = 0;
 
     uint32_t get_usedCoreNum() const
@@ -2564,6 +2565,15 @@ public:
     {
         this->dvWorkspaceLen = dvWorkspaceLen_val;
     }
+    
+    int64_t get_dpseWorkspaceLen() const
+    {
+        return dpseWorkspaceLen;
+    }
+    void set_dpseWorkspaceLen(int64_t dpseWorkspaceLen_val)
+    {
+        this->dpseWorkspaceLen = dpseWorkspaceLen_val;
+    }
 
     int64_t get_dropoutWorkspaceLen() const
     {
@@ -2615,6 +2625,7 @@ public:
         dqWorkspaceLen = 0;
         dkWorkspaceLen = 0;
         dvWorkspaceLen = 0;
+        dpseWorkspaceLen = 0;
         dropoutWorkspaceLen = 0;
     }
 };
