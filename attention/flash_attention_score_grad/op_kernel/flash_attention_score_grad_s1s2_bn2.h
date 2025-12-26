@@ -278,6 +278,7 @@ protected:
     __aicore__ inline void InitCastWorkspace(GM_ADDR workspace);
     __aicore__ inline void InitDropWorkspace(GM_ADDR workspace);
     __aicore__ inline void AtomicClean();
+    __aicore__ inline void dpseAtomicClean();
     __aicore__ inline void DumpGmZero(GlobalTensor<float> &gm, int64_t num);
 
     // process
@@ -815,6 +816,7 @@ FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MAS
             AtomicClean();
         }
     }
+    dpseAtomicClean();
 
     InitUB(pipe_in);
     if constexpr (L1CUSTOM) {
@@ -1190,6 +1192,18 @@ __aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FOR
     }
     DumpGmZero(dqWorkspaceGm, dqSize);
     DumpGmZero(dkWorkspaceGm, dkvSize);
+    DumpGmZero(dpseWorkspaceGm, dpseSize);
+}
+
+template <typename T1, typename T2, const MatmulConfig &MM_CFG, const CubeFormat MM_OUT_FORMAT, const uint64_t PSE_CFG,
+          const uint64_t ATTEN_MASK_CFG, const uint64_t DROPOUT_CFG, const uint32_t LAYOUT,
+          const CubeFormat MM2_OUT_FORMAT, const bool POST, const bool L1CUSTOM>
+__aicore__ inline void FlashAttentionScoreGradS1s2Bn2<T1, T2, MM_CFG, MM_OUT_FORMAT, PSE_CFG, ATTEN_MASK_CFG,
+                                                      DROPOUT_CFG, LAYOUT, MM2_OUT_FORMAT, POST, L1CUSTOM>::dpseAtomicClean()
+{
+    int64_t dpseSize;
+    dpseSize = dimN2 * dimG * dimS1 * dimS2;
+    dpseSize = (dpseSize + B32_BLOCK_NUM - 1) / B32_BLOCK_NUM * B32_BLOCK_NUM;
     DumpGmZero(dpseWorkspaceGm, dpseSize);
 }
 

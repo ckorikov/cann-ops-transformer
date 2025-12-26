@@ -2119,7 +2119,7 @@ REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
     FlashAttentionScoreGrad, FlashAttentionScoreGradTilingS1s2Bn2,
     std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
                           static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910_93)}),
-    15000);
+    800);
 REGISTER_TILING_TEMPLATE_WITH_SOCVERSION(
     FlashAttentionScoreGrad, FlashAttentionScoreGradTilingDeterministic,
     std::vector<int32_t>({static_cast<int32_t>(platform_ascendc::SocVersion::ASCEND910B),
