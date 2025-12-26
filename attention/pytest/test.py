@@ -13,8 +13,8 @@
 import itertools
 import torch
 import torch_npu
-from testcases import ENABLED_PARAMS
-from testcases import GRAPH_MODE_PARAMS
+from testcase import ENABLED_PARAMS
+from testcase import GRAPH_MODE_PARAMS
 import check_valid_param
 import gqa_no_quant_bnsd_bsnd
 import gqa_no_quant_bnsd_bsnd_ge
