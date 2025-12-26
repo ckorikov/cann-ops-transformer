@@ -51,9 +51,9 @@ __global__ __aicore__ void groupedmatmul_kernel(__gm__ uint8_t *x, __gm__ uint8_
                                                 __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
                                                 __gm__ uint8_t *y, const GMMTilingData tilingData)
 {
-    GroupedMatmulKernelImpl<D_T_A, D_T_B, D_T_Y, TRANS_A, TRANS_B, GROUP_LIST_TYPE, IS_STATIC_TILING_API,
-                            A8W4_KERNEL_TEMPLATE, A16W8_KERNEL_TEMPLATE, AIV_AIC_RATIO>(
-        x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y, &tilingData);
+    // GroupedMatmulKernelImpl<D_T_A, D_T_B, D_T_Y, TRANS_A, TRANS_B, GROUP_LIST_TYPE, IS_STATIC_TILING_API,
+    //                         A8W4_KERNEL_TEMPLATE, A16W8_KERNEL_TEMPLATE, AIV_AIC_RATIO>(
+    //     x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y, &tilingData);
     return;
 }
 
@@ -99,7 +99,7 @@ void groupedmatmul_api(aclrtStream stream, const at::TensorList &x, const at::Te
                          perTokenScaleT, yT><<<blockDim, nullptr, stream>>>(
         (__gm__ uint8_t *)x_ptr, (__gm__ uint8_t *)weight_ptr, (__gm__ uint8_t *)bias_ptr, (__gm__ uint8_t *)scale_ptr,
         (__gm__ uint8_t *)offset_ptr, (__gm__ uint8_t *)antiquantScale_ptr, (__gm__ uint8_t *)antiquantOffset_ptr,
-        (__gm__ uint8_t *)groupList_ptr, (__gm__ uint8_t *)perTokenScale_ptr, (__gm__ uint8_t *)y_ptr, tilingData);
+        (__gm__ uint8_t *)groupList_ptr, (__gm__ uint8_t *)perTokenScale_ptr, (__gm__ uint8_t *)y_ptr, &tilingData);
 }
 
 // 定义类型列表（全局静态，编译时初始化）
