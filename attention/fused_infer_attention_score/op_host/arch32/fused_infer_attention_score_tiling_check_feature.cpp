@@ -13,12 +13,7 @@
  * \brief
  */
 
-#include <vector>
-#include <string>
-#include <utility>
-#include <sstream>
 #include <numeric>
-#include <algorithm>
 #include "tiling/tiling_api.h"
 #include "fused_infer_attention_score_tiling_check.h"
 
@@ -397,10 +392,6 @@ ge::graphStatus FiaTilingCheck::CheckFeaturePSE() const
         OP_CHECK_IF(ropeMode_ != RopeMode::NO_ROPE,
             OP_LOGE(opName_, "when pse_shift exists, query_rope and key_rope should be not exist and the head_dim(D) "
                              "dimension of query and key should be equal to the head_dim(D) dimension of value."),
-            return ge::GRAPH_FAILED);
-            
-        OP_CHECK_IF(kvLayout_ == FiaLayout::NZ,
-            OP_LOGE(opName_, "when pse_shift exists and Page Attention enabled, the dim of key/value's layout can't be 5."),
             return ge::GRAPH_FAILED);
     }
     return ge::GRAPH_SUCCESS;
