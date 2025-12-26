@@ -17,7 +17,7 @@
 
 #include "kernel_tensor.h"
 
-namespace AscendC {
+namespace FaVectorApi {
 // w8转Q_T
 static constexpr MicroAPI::CastTrait castTrait = {MicroAPI::RegLayout::ZERO, MicroAPI::SatMode::UNKNOWN,
                                                   MicroAPI::MaskMergeMode::ZEROING, RoundMode::UNKNOWN};
