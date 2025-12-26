@@ -227,7 +227,9 @@ ge::Status Mc2MoeGenTaskOpsUtils::Mc2MoeInsertTask(
   const std::string opTypeStr = opType;
   const char* groupName =
       opTypeStr == DISTRIBUTE_BARRIER_OP_TYPE || opTypeStr == ALLTO_ALLV_GROUPED_MAT_MUL_OP_TYPE || 
-      opTypeStr == GROUPED_MAT_MUL_ALLTO_ALLV_OP_TYPE ? "group" : "group_ep";
+      opTypeStr == GROUPED_MAT_MUL_ALLTO_ALLV_OP_TYPE ||
+      opTypeStr == ATTENTION_TO_FFN_OP_TYPE ||
+      opTypeStr == FFN_TO_ATTENTION_OP_TYPE ? "group" : "group_ep";
   ge::KernelLaunchInfo waitTask =
       ge::KernelLaunchInfo::CreateHcomWaitTask(context, groupName);
   waitTask.SetStreamId(attachStreamId);
