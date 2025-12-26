@@ -1,13 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify it.
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file add_example.h
@@ -59,10 +58,9 @@ private:
 template <typename T>
 __aicore__ inline void AddExample<T>::Init(GM_ADDR x, GM_ADDR y, GM_ADDR z, const AddExampleTilingData* tilingData)
 {
-    blockLength_ = (tilingData->totalLength + AscendC::GetBlockNum() - 1) / AscendC::GetBlockNum();
+    blockLength_ = tilingData->totalLength / AscendC::GetBlockNum();
     tileNum_ = tilingData->tileNum;
-    tileLength_ = ((blockLength_ + tileNum_ - 1) / tileNum_ / BUFFER_NUM) ?
-        ((blockLength_ + tileNum_ - 1) / tileNum_ / BUFFER_NUM) : 1;
+    tileLength_ = blockLength_ / tileNum_ / BUFFER_NUM;
 
     inputGMX.SetGlobalBuffer((__gm__ T*)x + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
     inputGMY.SetGlobalBuffer((__gm__ T*)y + blockLength_ * AscendC::GetBlockIdx(), blockLength_);
@@ -78,13 +76,8 @@ __aicore__ inline void AddExample<T>::CopyIn(int32_t progress)
 {
     AscendC::LocalTensor<T> xLocal = inputQueueX.AllocTensor<T>();
     AscendC::LocalTensor<T> yLocal = inputQueueY.AllocTensor<T>();
-    AscendC::DataCopyParams copyParams;
-    copyParams.blockCount = 1;
-    copyParams.blockLen = tileLength_ * sizeof(T);
-    copyParams.srcStride = 0;
-    copyParams.dstStride = 0;
-    AscendC::DataCopyPad(xLocal, inputGMX[progress * tileLength_], copyParams, {false, 0, 0, 0});
-    AscendC::DataCopyPad(yLocal, inputGMY[progress * tileLength_], copyParams, {false, 0, 0, 0});
+    AscendC::DataCopy(xLocal, inputGMX[progress * tileLength_], tileLength_);
+    AscendC::DataCopy(yLocal, inputGMY[progress * tileLength_], tileLength_);
     inputQueueX.EnQue(xLocal);
     inputQueueY.EnQue(yLocal);
 }
@@ -93,12 +86,7 @@ template <typename T>
 __aicore__ inline void AddExample<T>::CopyOut(int32_t progress)
 {
     AscendC::LocalTensor<T> zLocal = outputQueueZ.DeQue<T>();
-    AscendC::DataCopyParams copyParams;
-    copyParams.blockCount = 1;
-    copyParams.blockLen = tileLength_ * sizeof(T);
-    copyParams.srcStride = 0;
-    copyParams.dstStride = 0;
-    AscendC::DataCopyPad(outputGMZ[progress * tileLength_], zLocal, copyParams);
+    AscendC::DataCopy(outputGMZ[progress * tileLength_], zLocal, tileLength_);
     outputQueueZ.FreeTensor(zLocal);
 }
 

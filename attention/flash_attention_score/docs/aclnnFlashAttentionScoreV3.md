@@ -4,15 +4,10 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      ×     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
 |<term>Atlas 800I A2 推理产品</term>|      ×     |
 |<term>A200I A2 Box 异构组件</term>|      ×     |
-|<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
-|<term>Atlas 推理系列产品</term>|      ×     |
-|<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200/300/500 推理产品</term>|      ×     |
 
 ## 功能说明
 
@@ -44,7 +39,7 @@
 
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnFlashAttentionScoreV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnFlashAttentionScoreV3”接口执行计算。
+每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnFlashAttentionScoreV3GetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnFlashAttentionScoreV3”接口执行计算。
 
 ```c++
 aclnnStatus aclnnFlashAttentionScoreV3GetWorkspaceSize(
@@ -339,7 +334,7 @@ aclnnStatus aclnnFlashAttentionScoreV3(
   </table>
 - **返回值：**
   
-  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
   第一段接口完成入参校验，出现以下场景时报错：
   
@@ -417,7 +412,7 @@ aclnnStatus aclnnFlashAttentionScoreV3(
   </table>
 - **返回值：**
 
-  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/context/aclnn返回码.md)。
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
@@ -455,7 +450,7 @@ aclnnStatus aclnnFlashAttentionScoreV3(
   - sparseMode配置为1、2、3、5时，用户配置的preTokens、nextTokens不会生效。
   - sparseMode配置为0、4时，须保证attenMaskOptional与preTokens、nextTokens的范围一致。
   - 用户不特意指定时建议传入0。
-  - sparse不同模式的详细说明请参见[sparse模式说明](../../../docs/context/sparse_mode参数说明.md)。
+  - sparse不同模式的详细说明请参见[sparse模式说明](../../../docs/zh/context/sparse_mode参数说明.md)。
 - 部分场景下，如果计算量过大可能会导致算子执行超时(aicore error类型报错，errorStr为：timeout or trap error)，此时建议做轴切分处理，注：这里的计算量会受B、S、N、D等参数的影响，值越大计算量越大。
 - band场景，preTokens和nextTokens之间必须要有交集。
 - prefixOptional稀疏计算场景即sparseMode=5或者sparseMode=6，当Sq > Skv时，prefix的N值取值范围\[0, Skv\]，当Sq <= Skv时，prefix的N值取值范围\[Skv-Sq, Skv\]。
@@ -463,7 +458,7 @@ aclnnStatus aclnnFlashAttentionScoreV3(
 
 ## 调用示例
 
-调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/context/编译与运行样例.md)。
+调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
   
 ```C++
 #include <iostream>
