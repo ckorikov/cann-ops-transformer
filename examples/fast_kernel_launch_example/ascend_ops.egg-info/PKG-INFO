@@ -1,5 +1,0 @@
-Metadata-Version: 2.1
-Name: ascend_ops
-Version: 0.0.1
-Summary: Example of PyTorch C++ and Ascend extensions (with CMake)
-Requires-Dist: torch

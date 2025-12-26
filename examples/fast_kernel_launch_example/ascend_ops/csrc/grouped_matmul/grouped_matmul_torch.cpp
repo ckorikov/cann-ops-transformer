@@ -51,18 +51,9 @@ __global__ __aicore__ void groupedmatmul_kernel(__gm__ uint8_t *x, __gm__ uint8_
                                                 __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
                                                 __gm__ uint8_t *y, const GMMTilingData tilingData)
 {
-    // if constexpr (std::is_same_v<T, c10::Half>) {
-    //     GroupedMatmulKernelImpl<IS_FINITE_TPL_FP16, IS_FINITE_TPL_BOOL>(x, y, &tilingData);
-    //     return;
-    // }
-    // if constexpr (std::is_same_v<T, c10::BFloat16>) {
-    //     GroupedMatmulKernelImpl<IS_FINITE_TPL_BF16, IS_FINITE_TPL_BOOL>(x, y, &tilingData);
-    //     return;
-    // }
-    // if constexpr (std::is_same_v<T, float>) {
-    //     GroupedMatmulKernelImpl<IS_FINITE_TPL_FP32, IS_FINITE_TPL_BOOL>(x, y, &tilingData);
-    //     return;
-    // }
+    GroupedMatmulKernelImpl<D_T_A, D_T_B, D_T_Y, TRANS_A, TRANS_B, GROUP_LIST_TYPE, IS_STATIC_TILING_API,
+                            A8W4_KERNEL_TEMPLATE, A16W8_KERNEL_TEMPLATE, AIV_AIC_RATIO>(
+        x, weight, bias, scale, offset, antiquantScale, antiquantOffset, groupList, perTokenScale, y, &tilingData);
     return;
 }
 
