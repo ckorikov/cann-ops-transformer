@@ -196,7 +196,7 @@ aclnnStatus aclnnPromptFlashAttentionV3(
         <td>BMM2后面的反量化因子。</td>
         <td><ul><li>支持per-tensor。 </li></ul>
             <ul><li>不使用该功能时可传入nullptr。</li></ul></td>
-        <td>FLOAT32、BFLOAT16</td>
+        <td>UINT64、FLOAT32</td>
         <td>ND</td>
         <td>1</td>
         <td>-</td>
@@ -218,7 +218,7 @@ aclnnStatus aclnnPromptFlashAttentionV3(
         <td>输出的量化偏移。</td>
         <td><ul><li>支持per-tensor，per-channel。 </li></ul>
             <ul><li>不使用该功能时可传入nullptr。</li></ul></td>
-        <td>FLOAT32</td>
+        <td>FLOAT32、BFLOAT16</td>
         <td>ND</td>
         <td>1</td>
         <td>-</td>
