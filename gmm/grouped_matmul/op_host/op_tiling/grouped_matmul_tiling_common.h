@@ -19,7 +19,7 @@ BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULA
 // #include "torch_extension/tiling_utils.h"
 #include "platform/platform_ascendc.h"
 #include "ascendc/host_api/tiling/template_argument.h"
-#include "grouped_matmul_tiling_temp.h"
+#include "gmm/grouped_matmul/op_kernel/grouped_matmul_tiling.h"
 namespace GroupedMatmulNs {
 class GroupedMatmulTiling {
 public:

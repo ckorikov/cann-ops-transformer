@@ -24,6 +24,8 @@ cmake-build-*
 build/
 build_out/
 output/
+dist/
+*.egg-info/
 
 # binary files
 *.so

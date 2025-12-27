@@ -15,7 +15,8 @@
 #ifndef ASCENDC_GROUPED_MATMUL_UTILS_H
 #define ASCENDC_GROUPED_MATMUL_UTILS_H
 
-#include "kernel_tiling/kernel_tiling.h"
+// #include "kernel_tiling/kernel_tiling.h"
+#include "gmm/grouped_matmul/op_kernel/grouped_matmul_tiling.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 
