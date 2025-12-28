@@ -4,10 +4,10 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
+|<term>Atlas A3 训练系列产品</term>|      √     |
+|<term>Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
-|<term>Atlas 800I A2 推理产品</term>|      ×     |
-|<term>A200I A2 Box 异构组件</term>|      ×     |
+|<term>Atlas A2 推理系列产品</term>|      ×     |
 
 ## 功能说明
 
@@ -21,13 +21,15 @@
   注意力的正向计算公式如下：
 
     - pseType=1时，公式如下：
+
       $$
-      attention\_out = Dropout(Softmax(Mask(scale*(pse+query*key^T), atten\_mask)), keep\_prob)*value
+      attention\_out=Dropout(Softmax(Mask(scale*(pse+(query*d\_scale\_q)*(key*d\_scale\_k)^T), atten\_mask)), keep\_prob)*(value*d\_scale\_v)
       $$
 
     - pseType≠1时，公式如下：
+
       $$
-      attention\_out=Dropout(Softmax(Mask(scale*(query*key^T) + pse),atten\_mask),keep\_prob)*value
+      attention\_out=Dropout(Softmax(Mask(scale*((query*d\_scale\_q)*(key*d\_scale\_k)^T) + pse),atten\_mask),keep\_prob)*(value*d\_scale\_v)
       $$
 
 ## 参数说明
@@ -88,6 +90,27 @@
       <td>可选输入</td>
       <td>公式中的atten_mask，表示注意力掩码，取值为1代表该位不参与计算（不生效），为0代表该位参与计算。</td>
       <td>BOOL、UINT8</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleQOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_q，FP8场景下query的全量化参数。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleKOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_k，FP8场景下key的全量化参数。</td>
+      <td>FLOAT</td>
+      <td>ND</td>
+    </tr>
+    <tr>
+      <td>dScaleVOptional</td>
+      <td>可选输入</td>
+      <td>公式中的d_scale_v，FP8场景下value的全量化参数。</td>
+      <td>FLOAT</td>
       <td>ND</td>
     </tr>
     <tr>
@@ -168,3 +191,6 @@
 | 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
 |----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | aclnn调用 | [test_aclnn_flash_attention_score](./examples/test_aclnn_flash_attention_score.cpp) | 非TND场景，通过[aclnnFlashAttentionScore](./docs/aclnnFlashAttentionScoreV2.md)接口方式调用FlashAttention算子。             |
+
+## 参考资源
+- [算子设计原理](./docs/FA算子设计介绍.md)

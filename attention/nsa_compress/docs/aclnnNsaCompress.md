@@ -6,8 +6,7 @@
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
-|<term>Atlas 800I A2 推理产品</term>|      ×     |
-|<term>A200I A2 Box 异构组件</term>|      ×     |
+|<term>Atlas A2 推理系列产品</term>|      ×     |
 
 
 ## 功能说明
@@ -16,7 +15,8 @@
 
 - 计算公式：
 
-    NSA Compress正向计算公式如下：
+    Nsa Compress正向计算公式如下：
+
 $$
 \tilde{K}_t^{\text{cmp}} = f_K^{\text{cmp}}(k_{:t}) = \left\{ \varphi(k_{id+1:id+l}) \bigg| 0 \leq i \leq \left\lfloor \frac{t-l}{d} \right\rfloor \right\}
 $$
@@ -74,7 +74,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>input</td>
       <td>输入</td>
-      <td>Device侧的aclTensor，表示待压缩张量。</td>
+      <td>表示待压缩张量。</td>
       <td>
         <ul>
           <li>不支持空Tensor。</li>
@@ -90,7 +90,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>weight</td>
       <td>输入</td>
-      <td>Device侧的aclTensor，表示压缩权重。</td>
+      <td>表示压缩权重。</td>
       <td>
         <ul>
           <li>不支持空Tensor。</li>
@@ -106,7 +106,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>actSeqLenOptional</td>
       <td>输入</td>
-      <td>Host侧的aclIntArray，描述每个Batch对应的S大小。</td>
+      <td>描述每个Batch对应的S大小。</td>
       <td>
         <ul>
           <li>当前不能为空。</li>
@@ -120,7 +120,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>layoutOptional</td>
       <td>输入</td>
-      <td>Host侧的string，代表输入input的数据排布格式。</td>
+      <td>代表输入input的数据排布格式。</td>
       <td>
         <ul>
           <li>支持BSH、SBH、BSND、BNSD、TND。</li>
@@ -135,7 +135,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>compressBlockSize</td>
       <td>输入</td>
-      <td>Host侧的int64_t，压缩滑窗大小。</td>
+      <td>压缩滑窗大小。</td>
       <td>-</td>
       <td>INT64</td>
       <td>-</td>
@@ -145,7 +145,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>compressStride</td>
       <td>输入</td>
-      <td>Host侧的int64_t，两次压缩滑窗间隔大小。</td>
+      <td>两次压缩滑窗间隔大小。</td>
       <td>-</td>
       <td>INT64</td>
       <td>-</td>
@@ -155,7 +155,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>actSeqLenType</td>
       <td>输入</td>
-      <td>Host侧的int64_t，描述actSeqLenOptional数值类型。</td>
+      <td>描述actSeqLenOptional数值类型。</td>
       <td>
         <ul>
           <li>可取值0或1。</li>
@@ -171,7 +171,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>output</td>
       <td>输出</td>
-      <td>Device侧的aclTensor，压缩后的结果。</td>
+      <td>压缩后的结果。</td>
       <td>
         <ul>
           <li>不支持空Tensor。</li>
@@ -211,48 +211,51 @@ aclnnStatus aclnnNsaCompress(
 
 - **返回值：**
 
-返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
-<table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
-<col style="width: 319px">
-<col style="width: 144px">
-<col style="width: 671px">
-</colgroup>
-<thead>
-  <tr>
-    <th>返回码</th>
-    <th>错误码</th>
-    <th>描述</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td>ACLNN_ERR_PARAM_NULLPTR</td>
-    <td>161001</td>
-    <td>传入input、weight、actSeqLenOptional或output是空指针。</td>
-  </tr>
-  <tr>
-    <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
-    <td rowspan="3">161002</td>
-    <td>input和weight的数据类型不在支持的范围之内。</td>
-  </tr>
-  <tr>
-    <td>input和weight的shape无法做broadcast。</td>
-  </tr>
-  <tr>
-    <td>layoutOptional不合法。</td>
-  </tr>
-</tbody>
-</table>
+  返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
+
+  第一段接口会完成入参校验，出现以下场景时报错：
+
+  <table style="undefined;table-layout: fixed;width: 1155px"><colgroup>
+  <col style="width: 319px">
+  <col style="width: 144px">
+  <col style="width: 671px">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>返回码</th>
+      <th>错误码</th>
+      <th>描述</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ACLNN_ERR_PARAM_NULLPTR</td>
+      <td>161001</td>
+      <td>传入input、weight、actSeqLenOptional或output是空指针。</td>
+    </tr>
+    <tr>
+      <td rowspan="3">ACLNN_ERR_PARAM_INVALID</td>
+      <td rowspan="3">161002</td>
+      <td>input和weight的数据类型不在支持的范围之内。</td>
+    </tr>
+    <tr>
+      <td>input和weight的shape无法做broadcast。</td>
+    </tr>
+    <tr>
+      <td>layoutOptional不合法。</td>
+    </tr>
+  </tbody>
+  </table>
 
 
 ## aclnnNsaCompress
 
 - **参数说明：**
 
-  <table style="undefined;table-layout: fixed; width: 598px"><colgroup>
-  <col style="width: 144px">
-  <col style="width: 125px">
-  <col style="width: 700px">
+  <table style="undefined;table-layout: fixed; width: 1150px"><colgroup>
+  <col style="width: 168px">
+  <col style="width: 128px">
+  <col style="width: 854px">
   </colgroup>
   <thead>
     <tr>
@@ -279,7 +282,7 @@ aclnnStatus aclnnNsaCompress(
     <tr>
       <td>stream</td>
       <td>输入</td>
-      <td>指定执行任务的AscendCL stream流。</td>
+      <td>指定执行任务的Stream。</td>
     </tr>
   </tbody>
   </table>
@@ -290,6 +293,8 @@ aclnnStatus aclnnNsaCompress(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnNsaCompress默认确定性实现。
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - input和weight需要满足broadcast关系，input.shape[1]=weight.shape[1]，不支持input、weight为空输入。
 - actSeqLenType目前仅支持取值0，即actSeqLenOptional需要是前缀和模式。
@@ -303,15 +308,7 @@ aclnnStatus aclnnNsaCompress(
 
 ## 调用示例
 
-该融合算子有两种调用方式：
-
-- PyTorch框架调用
-
-  如果通过PyTorch单算子方式调用该融合算子，则需要参考PyTorch融合算子[torch_npu.npu_nsa_compress](https://hiascend.com/document/redirect/PyTorchAPI)；如果用户定制了该融合算子，则需要参考《Ascend C算子开发》手册[适配PyTorch框架](https://hiascend.com/document/redirect/CannCommunityAscendCInvorkOnNetwork)。
-
-- aclnn单算子调用方式
-
-  通过aclnn单算子调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
+调用示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```c++
 #include <iostream>
@@ -356,7 +353,7 @@ void PrintOutResult(std::vector<int64_t> &shape, void **deviceAddr)
 
 int Init(int32_t deviceId, aclrtContext *context, aclrtStream *stream)
 {
-    // 固定写法，AscendCL初始化
+    // 固定写法，资源初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);

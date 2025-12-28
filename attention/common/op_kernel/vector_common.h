@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file vector_common.h
@@ -58,8 +58,8 @@ __aicore__ inline bool IsExistInvalidRows(int64_t nextTokensPerBatch, int64_t pr
     }
     return false;
 }
- 
- __aicore__ inline void GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv,
+
+__aicore__ inline void GetSafeActToken(int64_t actSeqLensQ, int64_t actSeqLensKv,
                                               int64_t &safePreToken, int64_t &safeNextToken, uint32_t mode)
 {
     if (mode == DEFAULT_MASK) {
@@ -803,13 +803,16 @@ struct MaskInfo {
     MaskDataType attenMaskType;
     SparseMode sparseMode;
     uint32_t maskValue;
+
+    uint64_t s1LeftPaddingSize = 0;
+    uint64_t s2LeftPaddingSize = 0;
 };
 
 __aicore__ inline uint64_t ComputeAttenMaskOffsetNoCompress(MaskInfo &info, uint32_t s1StartIdx)
 {
     uint64_t bOffset = static_cast<uint64_t>(info.batchIdx) * static_cast<uint64_t>(info.batchOffset);
-    uint64_t s1Offset = s1StartIdx % info.s1Size * info.attenMaskStride;
-    uint64_t s2Offset = info.s2StartIdx;
+    uint64_t s1Offset = (info.s1LeftPaddingSize + s1StartIdx % info.s1Size) * info.attenMaskStride;
+    uint64_t s2Offset = info.s2LeftPaddingSize + info.s2StartIdx;
     return bOffset + s1Offset + s2Offset;
 }
 

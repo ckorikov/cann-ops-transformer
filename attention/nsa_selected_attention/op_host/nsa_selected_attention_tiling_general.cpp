@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file nsa_selected_attention_tiling_general.cpp
@@ -33,6 +33,7 @@ const size_t ATTEN_OUT_INDEX = 2UL;
 const size_t ATTENTION_MASK_DIM_NUM_2 = 2UL;
 const size_t SOFTMAX_MAX_BUF_SIZE = 128 * 1024;
 constexpr size_t WORK_SPACE_RESERVE_SIZE = 16 * 1024 * 1024;
+constexpr uint32_t SELECTED_BLOCK_COUNT_MAX = 128;
 const int64_t MAX_VAR_LEN_SEQ_LEN = 4096L;
 const int64_t HEAD_DIM_MAX_VALUE = 768L;
 
@@ -343,8 +344,8 @@ bool NsaSelectedAttentionTiling::AnalyzeAttrs()
                                            selectedBlockSize),
                return false);
     selectedBlockCount = *selectedBlockCountPtr;
-    OP_CHECK_IF(selectedBlockCount > 32,
-               OPS_REPORT_VECTOR_INNER_ERR(opName, "selectedBlockCount [%ld] should be <= 32!", selectedBlockCount),
+    OP_CHECK_IF(selectedBlockCount > SELECTED_BLOCK_COUNT_MAX,
+               OPS_REPORT_VECTOR_INNER_ERR(opName, "selectedBlockCount [%ld] should be <= 128!", selectedBlockCount),
                return false);
     selectedLength = selectedBlockSize * selectedBlockCount;
     OP_CHECK_IF(n1Size == 0, OPS_REPORT_VECTOR_INNER_ERR(opName, "Head num is zero."), return false);
@@ -648,6 +649,6 @@ ge::graphStatus NsaSelectedAttentionTiling::GetWorkspaceSize()
     return ge::GRAPH_SUCCESS;
 }
 
-REGISTER_TILING_TEMPLATE("NsaSelectedAttention", NsaSelectedAttentionTiling, 0);
+REGISTER_OPS_TILING_TEMPLATE(NsaSelectedAttention, NsaSelectedAttentionTiling, 0);
 } // namespace nsa
 } // namespace optiling

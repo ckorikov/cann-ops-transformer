@@ -1,10 +1,10 @@
 # aclnnInplaceQuantMatmulAllReduceAddRmsNorm
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-|:---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         |  是否支持   |
+| :----------------------------------------------------------- |:-------:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×    |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √    |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -30,32 +30,32 @@
 - aclnnQuantMatmulAllReduceAddRmsNorm和aclnnInplaceQuantMatmulAllReduceAddRmsNorm实现相同的功能，使用区别如下，请根据自身实际场景选择合适的算子。
 
   - aclnnQuantMatmulAllReduceAddRmsNorm：需新建两个输出张量normOut和张量y对象存储计算结果。
-  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，原非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
+  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm：需新建一个输出张量normOut，在非Inplace场景中新建的输出张量y存储的结果直接存储到输入张量residual的内存中。
 
 - 每个算子分为两段式接口，必须先调用“aclnnInplaceQuantMatmulAllReduceAddRmsNormGetWorkspaceSize”接口获取计算所需workspace大小以及包含了算子计算流程的执行器，再调用“aclnnInplaceQuantMatmulAllReduceAddRmsNorm”接口执行计算。
 
 ```cpp
 aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNormGetWorkspaceSize(
-    const aclTensor *x1, 
-    const aclTensor *x2, 
-    const aclTensor *bias, 
-    const aclTensor *dequantScale, 
-    const aclTensor *residual, 
-    const aclTensor *gamma, 
-    double           epsilon, 
-    const char      *group, 
-    const char      *reduceOp, 
-    int64_t          commTurn, 
-    int64_t          streamMode, 
-    const aclTensor *normOut, 
-    uint64_t        *workspaceSize, 
+    const aclTensor *x1,
+    const aclTensor *x2,
+    const aclTensor *bias,
+    const aclTensor *dequantScale,
+    const aclTensor *residual,
+    const aclTensor *gamma,
+    double           epsilon,
+    const char      *group,
+    const char      *reduceOp,
+    int64_t          commTurn,
+    int64_t          streamMode,
+    const aclTensor *normOut,
+    uint64_t        *workspaceSize,
     aclOpExecutor  **executor)
 ```
 ```cpp
 aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
-    void              *workspace, 
-    uint64_t           workspaceSize, 
-    aclOpExecutor     *executor, 
+    void              *workspace,
+    uint64_t           workspaceSize,
+    aclOpExecutor     *executor,
     const aclrtStream  stream)
 ```
 
@@ -65,10 +65,10 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 330px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
+      <col style="width: 300px">
+      <col style="width: 330px">
+      <col style="width: 212px">
+      <col style="width: 100px">
       <col style="width: 190px">
       <col style="width: 145px">
       </colgroup>
@@ -87,8 +87,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>x1</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
-          <td><li>支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持二维或者三维输入。</li></td>
+          <td>MatMul计算的左矩阵，即计算公式中的x1。</td>
+          <td><ul><li>支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持二维或者三维输入。</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2-3</td>
@@ -97,8 +97,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>x2</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
+          <td>MatMul计算的右矩阵，即计算公式中的x2。</td>
+          <td><ul><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor</li></td>
           <td>INT8</td>
           <td>ND</td>
           <td>2</td>
@@ -107,8 +107,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>bias</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的bias。</td>
-          <td><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入。</li></td>
+          <td>即计算公式中的bias。</td>
+          <td><ul><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入。</li></ul></td>
           <td>INT32</td>
           <td>ND</td>
           <td>1</td>
@@ -117,9 +117,9 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>dequantScale</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算后的全量化系数，即计算公式中的dequantScale。</td>
-          <td>shape在per-tensor场景为(1)，per-channel场景为(n)/(1, n)。</td>
-          <td>UINT64、BFLOAT16</td>
+          <td>MatMul计算后的全量化系数，即计算公式中的dequantScale。</td>
+          <td>shape在pertensor场景为(1)，perchannel场景为(n)或(1, n)。</td>
+          <td>UINT64、INT64、BFLOAT16</td>
           <td>ND</td>
           <td>1-2</td>
           <td>×</td>
@@ -127,7 +127,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>residual</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，AddRmsNorm融合算子的残差输入，即计算公式中的residual。</td>
+          <td>AddRmsNorm融合算子的残差输入，即计算公式中的residual。</td>
           <td>inplace场景将residual作为y的输出地址。当前版本仅支持三维输入。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -137,7 +137,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>gamma</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，AddRmsNorm融合算子的RmsNorm计算输入，即计算公式中的gamma。</td>
+          <td>AddRmsNorm融合算子的RmsNorm计算输入，即计算公式中的gamma。</td>
           <td>当前版本仅支持一维输入。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -177,7 +177,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>commTurn</td>
           <td>输入</td>
-          <td>Host侧的整型，通信数据切分数，即总数据量/单次通信量。</td>
+          <td>通信数据切分数，即总数据量/单次通信量。</td>
           <td>当前版本仅支持输入0。</td>
           <td>INT64</td>
           <td>-</td>
@@ -187,7 +187,7 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>streamMode</td>
           <td>输入</td>
-          <td>Host侧的整型，流模式的枚举。</td>
+          <td>流模式的枚举。</td>
           <td>当前只支持枚举值1。</td>
           <td>INT64</td>
           <td>-</td>
@@ -197,8 +197,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>normOut</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，mm + all_reduce + add + rms_norm的结果，即计算公式中的normOut。</td>
-          <td><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></td>
+          <td>mm + all_reduce + add + rms_norm的结果，即计算公式中的normOut。</td>
+          <td><ul><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -228,8 +228,8 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
     </table>
 - **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
-    第一段接口完成入参校验，出现以下场景时报错：
+    <p>aclnnStatus：返回状态码，具体参见<a href="../../../docs/zh/context/aclnn返回码.md">aclnn返回码</a>。</p>
+    <p>第一段接口完成入参校验，出现以下场景报错：</p>
     <table style="undefined;table-layout: fixed; width: 1030px"><colgroup>
     <col style="width: 250px">
     <col style="width: 130px">
@@ -295,11 +295,14 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
         <td>指定执行任务的Stream。</td>
     </tr>
     </tbody></table>
-- **返回值：**
+-   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+
+- 确定性计算：
+  - aclnnInplaceQuantMatmulAllReduceAddRmsNorm默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
 
 - 使用场景同融合算子aclnnQuantMatmulAllReduce一致：增量场景不使能MC2，全量场景使能MC2。
 - 输入x1可为二维或者三维，其shape为(b, s, k)或者(m, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等。bias若非空，bias为一维，其shape为(n)。
@@ -311,16 +314,17 @@ aclnnStatus aclnnInplaceQuantMatmulAllReduceAddRmsNorm(
 - 只支持x2矩阵转置/不转置，x1矩阵支持不转置场景。
 - 支持1、2、4、8卡，并且仅支持hccs链路all mesh组网。
 - 支持(b*s)、n为0的空tensor，不支持k为0的空tensor。
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
+#include "hccl/hccl.h"
+#include "aclnnop/aclnn_inplace_quant_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 
@@ -388,14 +392,12 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     std::vector<int64_t> dequantScaleShape = {128};
     std::vector<int64_t> residualShape = {1, 32, 128};
     std::vector<int64_t> gammaShape = {128};
-    std::vector<int64_t> x3Shape = {32, 128};
     std::vector<int64_t> yShape = {1, 32, 128};
     std::vector<int64_t> normOutShape = {1, 32, 128};
     void *x1DeviceAddr = nullptr;
     void *x2DeviceAddr = nullptr;
     void *biasDeviceAddr = nullptr;
     void *dequantScaleDeviceAddr = nullptr;
-    void *x3DeviceAddr = nullptr;
     void *residualDeviceAddr = nullptr;
     void *gammaDeviceAddr = nullptr;
     void *yDeviceAddr = nullptr;
@@ -404,7 +406,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     aclTensor *x2 = nullptr;
     aclTensor *bias = nullptr;
     aclTensor *dequantScale = nullptr;
-    aclTensor *x3 = nullptr;
     aclTensor *residual = nullptr;
     aclTensor *gamma = nullptr;
     aclTensor *y = nullptr;
@@ -421,7 +422,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     long long x2ShapeSize = GetShapeSize(x2Shape);
     long long biasShapeSize = GetShapeSize(biasShape);
     long long dequantScaleShapeSize = GetShapeSize(dequantScaleShape);
-    long long x3ShapeSize = GetShapeSize(x3Shape);
     long long residualShapeSize = GetShapeSize(residualShape);
     long long gammaShapeSize = GetShapeSize(gammaShape);
     long long yShapeSize = GetShapeSize(yShape);
@@ -431,7 +431,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     std::vector<int8_t> x2HostData(x2ShapeSize, 1);
     std::vector<int32_t> biasHostData(biasShapeSize, 1);
     std::vector<uint64_t> dequantScaleHostData(dequantScaleShapeSize, 1);
-    std::vector<int16_t> x3HostData(x3ShapeSize, 1);
     std::vector<int16_t> residualHostData(residualShapeSize, 1);
     std::vector<int16_t> gammaHostData(gammaShapeSize, 1);
     std::vector<int16_t> yHostData(yShapeSize, 0);
@@ -445,8 +444,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(dequantScaleHostData, dequantScaleShape, &dequantScaleDeviceAddr,
                         aclDataType::ACL_UINT64, &dequantScale);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
-    ret = CreateAclTensor(x3HostData, x3Shape, &x3DeviceAddr, aclDataType::ACL_FLOAT16, &x3);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(residualHostData, residualShape, &residualDeviceAddr, aclDataType::ACL_FLOAT16, &residual);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -490,9 +487,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     if (dequantScale != nullptr) {
         aclDestroyTensor(dequantScale);
     }
-    if (x3 != nullptr) {
-        aclDestroyTensor(x3);
-    }
     if (residual != nullptr) {
         aclDestroyTensor(residual);
     }
@@ -516,9 +510,6 @@ int launchOneThreadQuantMatmulAllReduceAddRmsNorm(Args &args) {
     }
     if (dequantScaleDeviceAddr != nullptr) {
         aclrtFree(dequantScaleDeviceAddr);
-    }
-    if (x3DeviceAddr != nullptr) {
-        aclrtFree(x3DeviceAddr);
     }
     if (residualDeviceAddr != nullptr) {
         aclrtFree(residualDeviceAddr);

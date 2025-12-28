@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file prompt_flash_attention_infershape.cpp
@@ -182,12 +182,11 @@ static ge::graphStatus InferDataTypePromptFlashAttention(gert::InferDataTypeCont
     OP_LOGD(context->GetNodeName(), "Enter PromptFlashAttention inferDataType impl.");
     // default set q's dtype as PFA's output type
     ge::DataType outputType = context->GetInputDataType(PFA_QUERY_INDEX);
-    if (context->GetOptionalInputDataType(PFA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) { // 10 is quant_scale2's index
+    if (context->GetOptionalInputDataType(PFA_QUANT_SCALE2_INDEX) != ge::DT_UNDEFINED) {
         outputType = ge::DT_INT8;
     } else if (outputType == ge::DT_INT8) {
         outputType = ge::DT_FLOAT16;
     }
-    // attention_out, outidx:0
     context->SetOutputDataType(PFA_ATTENTION_OUT_INDEX, outputType);
     OP_LOGD(context->GetNodeName(), "PromptFlashAttention inferDataType end.");
     return GRAPH_SUCCESS;

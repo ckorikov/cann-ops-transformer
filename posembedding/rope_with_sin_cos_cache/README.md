@@ -5,7 +5,7 @@
 |产品             |  是否支持  |
 |:-------------------------|:----------:|
 |  <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>   |     √    |
-|  <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>     |     √    |
+|  <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>     |     √    |
 
 ## 功能说明
 
@@ -13,6 +13,7 @@
 - 计算公式：
 
     1、**mrope模式**：positions的shape输入是[3, numTokens]：
+
     $$
     cosSin[i] = cosSinCache[positions[i]]
     $$
@@ -62,6 +63,7 @@
     $$
 
     （1）rotate\_half（GPT-NeoX style）计算模式：
+
     $$
     x1, x2 = torch.chunk(queryRot, 2, dim=-1)
     $$
@@ -83,6 +85,7 @@
     $$
 
     （2）rotate\_interleaved（GPT-J style）计算模式：
+
     $$
     x1 = queryRot[..., ::2]
     $$
@@ -98,7 +101,7 @@
     $$
     o2[i] = x2[i] * cos[i] + x1[i] * sin[i]
     $$
-    
+
     $$
     queryRot = torch.stack((o1, o2), dim=-1)
     $$
@@ -108,6 +111,7 @@
     $$
 
     2、**rope模式**：positions的shape输入是[numTokens]：
+
     $$
     cosSin[i] = cosSinCache[positions[i]]
     $$
@@ -125,6 +129,7 @@
     $$
 
     （1）rotate\_half（GPT-NeoX style）计算模式：
+
     $$
     x1, x2 = torch.chunk(queryRot, 2, dim=-1)
     $$
@@ -146,6 +151,7 @@
     $$
 
     （2）rotate\_interleaved（GPT-J style）计算模式：
+
     $$
     x1 = query\_rot[..., ::2]
     $$
@@ -169,6 +175,7 @@
     $$
     query = torch.cat((queryRot, queryPass), dim=-1)
     $$
+
 ## 参数说明
 
 <table style="table-layout: auto; width: 100%">
@@ -249,9 +256,11 @@
 ## 约束说明
 
 - queryIn、keyIn、cosSinCache只支持2维shape输入。
-- headSize支持范围: 16~128。数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数。
-- rotaryDim支持范围: 16~128，始终小于等于headSize。数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数。
-- 当输入tensor positions中值域超过cosSinCache的0维maxSeqLen，会有越界报错。
+- headSize: 数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数。
+- rotaryDim: 始终小于等于headSize；数据类型为BFLOAT16或FLOAT16时为32的倍数，数据类型为FLOAT32时为16的倍数;mrope模式下应满足rotaryDim = mropeSection[0] + mropeSection[1] + mropeSection[2]。
+- 输入tensor positions的取值应小于cosSinCache的0维maxSeqLen。
+- aclnnRopeWithSinCosCache默认确定性实现。
+- mropeSection:取值限制为[16, 24, 24]。
 
 ## 调用说明
 

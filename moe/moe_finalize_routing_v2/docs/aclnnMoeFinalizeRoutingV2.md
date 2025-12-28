@@ -5,7 +5,7 @@
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √     |
 
 ## 功能说明
 
@@ -185,10 +185,9 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
     </tr>
     </tbody></table>
 
-    - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+    - <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
       - expandedX要求是一个2D/3D的Tensor，支持的数据类型为FLOAT16、BFLOAT16、FLOAT32，支持drop less和drop pad场景。
       - scalesOptional：混合精度模式下，支持 expandedX 为 BFLOAT16 时 scalesOptional 为 FLOAT32；非混合精度模式下，数据类型要求与expandedX一致。
-
 -   **返回值：**
 
     aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
@@ -271,7 +270,9 @@ aclnnStatus aclnnMoeFinalizeRoutingV2(
   aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
-1. 确定性计算：默认确定性实现。
+
+1. 确定性计算：
+     - aclnnMoeFinalizeRoutingV2默认确定性实现。
 
 2. NUM\_ROWS：表示行数；  
 K：表示从总的专家E中选出K个专家；  
@@ -279,15 +280,15 @@ H：表示hidden size，即每个token序列长度，为列数；
 E：表示expert num，即专家数，E需要大于等于K；  
 C：表示expert capacity，即专家处理token数量的能力阈值。  
 
-3. expandedRowIdx：当dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM_ROWS * K-1]；当dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
+1. expandedRowIdx：当dropPadMode参数值为0、2时，Tensor中的值取值范围是[0,NUM_ROWS * K-1]；当dropPadMode参数值为1、3时，Tensor中的值取值范围是[-1, E\*C - 1]。
 
-4. 在x1Optional参数未输入的情况下，x2Optional参数也不能输入。
+2. 在x1Optional参数未输入的情况下，x2Optional参数也不能输入。
 
-5. scalesOptional不存在时，K为1。
+3. scalesOptional不存在时，K为1。
 
-6. biasOptional存在时，expertIdxOptional必须同时存在。
+4. biasOptional存在时，expertIdxOptional必须同时存在。
 
-7. dropPadMode的取值与含义对应如下：
+5. dropPadMode的取值与含义对应如下：
      - 0：drop less 场景，expandedRowIdx按**列**排列（与[aclnnMoeInitRouting](../../moe_init_routing/docs/aclnnMoeInitRouting.md)输出格式对应）。
      - 1：drop pad 场景，expandedRowIdx按**列**排列（与[aclnnMoeInitRouting](../../moe_init_routing/docs/aclnnMoeInitRouting.md)输出格式对应）。
      - 2：drop less 场景，expandedRowIdx按**行**排列（与[aclnnMoeInitRoutingV2](../../moe_init_routing_v2/docs/aclnnMoeInitRoutingV2.md)输出格式对应）。

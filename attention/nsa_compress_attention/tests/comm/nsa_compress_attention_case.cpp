@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file nsa_compress_attention_case.cpp
@@ -195,6 +195,16 @@ bool NsaCompressAttentionCase::InitOptInputs()
     } else {
         actualSelSeqKvLen = Tensor("actualSelSeqKvLen", {}, "None", ge::DataType::DT_INT64, ge::FORMAT_ND,
                                    Tensor::TensorType::OPTIONAL_INPUT);
+    }
+
+    if (!InitTensor(actualSeqQLen, mParam.actualSeqQLenTensorData)) {
+        return false;
+    }
+    if (!InitTensor(actualCmpSeqKvLen, mParam.actualCmpSeqKVLenTensorData)) {
+        return false;
+    }
+    if (!InitTensor(actualSelSeqKvLen, mParam.actualSelSeqKVLenTensorData)) {
+        return false;
     }
     return true;
 }

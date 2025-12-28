@@ -6,8 +6,7 @@
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
-|<term>Atlas 800I A2 推理产品</term>|      ×     |
-|<term>A200I A2 Box 异构组件</term>|      ×     |
+|<term>Atlas A2 推理系列产品</term>|      ×     |
 
 
 
@@ -48,10 +47,11 @@
 - 输入query、key、value的batchsize必须相等，即要求传入的actualSeqQLenOptional和actualSeqKvLenOptional具有相同的长度。
 - 输入query、key、value的D：Head-Dim必须满足(`D_q == D_k && D_k >= D_v`)。
 - 输入query、key、value的数据类型必须一致。
-- 输入query、key、value的input_layout必须一致。
+- 输入query、key、value的inputLayout必须一致。
 - sparseMode目前支持0和2。
 - selectedBlockSize支持<=128且满足16的整数倍。
-- selectedBlockCount支持<=32。
+- selectBlockCount：支持[1~128]。 总计选择的大小`selectBlockCount * selctBlockSize` < 128*64(8K)
+- Layout为TND时，每个Batch的S2都要大于总计选择的大小`selectBlockCount * selctBlockSize`
 - inputLayout目前仅支持TND。
 - 支持输入query的N和key / value的N不相等，但必须成比例关系，即N_q / N_kv必须是非0整数，称为G(group)，且需满足`G <= 32`。
 - 当attenMaskOptional输入为nullptr时，sparseMode参数不生效，固定为全计算。
@@ -68,3 +68,4 @@
 | 调用方式           | 调用样例                                                                                    | 说明                                                                                                  |
 |----------------|-----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | aclnn调用 | [test_aclnn_nsa_selected_attention](./examples/test_aclnn_nsa_selected_attention.cpp) | 非TND场景，通过[aclnnNsaSelectedAttention](./docs/aclnnNsaSelectedAttention.md)接口方式调用NsaSelectedAttention算子。             |
+

@@ -2,10 +2,10 @@
 
 ## 产品支持情况
 
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+| 产品                                                         | 是否支持 |
+| ------------------------------------------------------------ | -------- |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     | ×        |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> | √        |
 
 ##  功能说明
 
@@ -254,7 +254,7 @@ aclnnStatus aclnnIncreFlashAttentionV2(
         <td>numKeyValueHeads</td>
         <td>输入</td>
         <td>key、value中head个数。</td>
-        <td><ul><li>用于支持GQA（Grouped-Query Attention，分组查询注意力）场景，传入0表示和query的head个数相等。</li><li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
+        <td><ul><li>用于支持GQA（Grouped-Query Attention，分组查询注意力）场景，默认为0，表示和query的head个数相等。</li><li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
         <td>-</td>
         <td>-</td>
@@ -378,8 +378,9 @@ aclnnStatus aclnnIncreFlashAttentionV2(
   aclnnStatus：返回状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ##   约束说明
-
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+- 确定性计算：
+  - aclnnIncreFlashAttentionV2默认确定性实现。
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：
   - 支持B轴小于等于65536，N轴小于等于256，D轴小于等于512。
   - query数据类型支持FLOAT16、BFLOAT16，attentionOut、key和value数据类型支持FLOAT16、INT8、BFLOAT16。
   - dequantScale1、dequantScale2数据类型支持UINT64、FLOAT32。

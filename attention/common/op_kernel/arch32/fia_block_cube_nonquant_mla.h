@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file fia_block_cube_nonquant_mla.h
@@ -135,6 +135,7 @@ private:
     FaGmTensor<KV_T, KV_FORMAT> keyRopeGmTensor;
     FaGmTensor<KV_T, KV_FORMAT> valueGmTensor;
     CopyKvGmToL1<KV_T, KV_FORMAT> copyKvGmToL1;
+    CopyKKropePAGmToL1<KV_T, KV_FORMAT> copyKKropePAGmToL1;
 
     static constexpr uint32_t M_L1_SPLIT_SIZE = 128; // m方向切分
     static constexpr uint32_t N_L1_SPLIT_SIZE = 128; // n方向切分
@@ -268,7 +269,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
             } else {
                 if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                     keyGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      qkTensorD);
+                                                      qkTensorD, actualSeqLengthsGm, constInfo.actualLenDims);
                 } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                     keyGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, qkTensorD, actualSeqLengthsGm,
                                                       constInfo.actualLenDims);
@@ -289,7 +290,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
         } else {
             if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                 valueGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                    constInfo.headDim);
+                                                    constInfo.headDim, actualSeqLengthsGm, constInfo.actualLenDims);
             } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                 valueGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDim, actualSeqLengthsGm,
                                                     constInfo.actualLenDims);
@@ -326,7 +327,7 @@ template <typename FIAT> __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::I
         } else {
             if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_BNSD) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.batchSize, constInfo.kvHeadNum, constInfo.kvSeqSize,
-                                                      constInfo.headDimRope);
+                                                      constInfo.headDimRope, actualSeqLengthsGm, constInfo.actualLenDims);
             } else if constexpr (GmLayoutParams<KV_FORMAT>::CATEGORY == FormatCategory::GM_KV_TND) {
                 keyRopeGmTensor.offsetCalculator.Init(constInfo.kvHeadNum, constInfo.headDimRope,
                                                       actualSeqLengthsGm, constInfo.actualLenDims);
@@ -585,8 +586,12 @@ __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::ProcessMm1(const Attention
                     .s2DealSize = nL1Size,
                     .dDealSize = 32U // D方向上切32
                 };
-                copyKvGmToL1(dstTensor, keyGmTensor, gmCoord);
-                copyKvGmToL1(dstRopeTensor, keyRopeGmTensor, gmCoordKRope);
+                if (PAGE_ATTENTION) {
+                    copyKKropePAGmToL1(dstTensor, dstRopeTensor, keyGmTensor, keyRopeGmTensor, gmCoord, gmCoordKRope);
+                } else {
+                    copyKvGmToL1(dstTensor, keyGmTensor, gmCoord);
+                    copyKvGmToL1(dstRopeTensor, keyRopeGmTensor, gmCoordKRope);
+                }
             } else {
                 FaL1Tensor<KV_T, L1Format::NZ> dstRopeTensor {
                     .tensor = bL1Tensor,
@@ -600,8 +605,6 @@ __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::ProcessMm1(const Attention
                     .s2DealSize = nL1Size,
                     .dDealSize = 32U // D方向上切32
                 };
-                copyKvGmToL1(dstRopeTensor, keyRopeGmTensor, gmCoordKRope);
-
                 FaL1Tensor<KV_T, L1Format::NZ> dstTensor {
                     .tensor = bL1Tensor[32U * nL1SizeAlign],
                     .rowCount = nL1SizeAlign
@@ -614,7 +617,12 @@ __aicore__ inline void FiaBlockCubeNonQuantMla<FIAT>::ProcessMm1(const Attention
                     .s2DealSize = nL1Size,
                     .dDealSize = 256U // D方向上切32
                 };
-                copyKvGmToL1(dstTensor, keyGmTensor, gmCoord);
+                if (PAGE_ATTENTION) {
+                    copyKKropePAGmToL1(dstTensor, dstRopeTensor, keyGmTensor, keyRopeGmTensor, gmCoord, gmCoordKRope);
+                } else {
+                    copyKvGmToL1(dstRopeTensor, keyRopeGmTensor, gmCoordKRope);
+                    copyKvGmToL1(dstTensor, keyGmTensor, gmCoord);
+                }
             }
 #ifdef BASE_MM
             mm1B.Set<HardEvent::MTE2_MTE1>();

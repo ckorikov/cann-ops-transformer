@@ -1,10 +1,10 @@
 # aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm
 ## 产品支持情况
 
-| 产品 | 是否支持 |
-| :---- | :----: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term> | x |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> | √ |
+| 产品                                                         | 是否支持 |
+| :----------------------------------------------------------- | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×     |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √     |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -14,7 +14,7 @@
 - **计算公式**：
 
   $$
-  mm\_out = allReduce(x1 @ (x2*antiquantScale + antiquantOffset) + bias)
+  mm\_out = AllReduce(x1 @ (x2*antiquantScale + antiquantOffset) + bias)
   $$
 
   $$
@@ -36,28 +36,28 @@
 
 ```cpp
 aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNormGetWorkspaceSize(
-    const aclTensor *x1, 
-    const aclTensor *x2, 
-    const aclTensor *bias, 
-    const aclTensor *antiquantScale, 
-    const aclTensor *antiquantOffset, 
-    const aclTensor *residual, 
-    const aclTensor *gamma, 
-    double           epsilon, 
-    const char      *group, 
-    const char      *reduceOp, 
-    int64_t          commTurn, 
-    int64_t          streamMode, 
-    int64_t          antiquantGroupSize, 
-    const aclTensor *normOut, 
-    uint64_t        *workspaceSize, 
+    const aclTensor *x1,
+    const aclTensor *x2,
+    const aclTensor *bias,
+    const aclTensor *antiquantScale,
+    const aclTensor *antiquantOffset,
+    const aclTensor *residual,
+    const aclTensor *gamma,
+    double           epsilon,
+    const char      *group,
+    const char      *reduceOp,
+    int64_t          commTurn,
+    int64_t          streamMode,
+    int64_t          antiquantGroupSize,
+    const aclTensor *normOut,
+    uint64_t        *workspaceSize,
     aclOpExecutor  **executor)
 ```
 ```cpp
 aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
-    void              *workspace, 
-    uint64_t           workspaceSize, 
-    aclOpExecutor     *executor, 
+    void              *workspace,
+    uint64_t           workspaceSize,
+    aclOpExecutor     *executor,
     const aclrtStream  stream)
 ```
 
@@ -67,10 +67,10 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 330px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
+      <col style="width: 300px">
+      <col style="width: 330px">
+      <col style="width: 212px">
+      <col style="width: 100px">
       <col style="width: 190px">
       <col style="width: 145px">
       </colgroup>
@@ -89,8 +89,8 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>x1</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的左矩阵，即计算公式中的x1。</td>
-          <td><li>支持空Tensor。</li><li>当前版本仅支持二维或者三维输入。</li></td>
+          <td>MatMul计算的左矩阵，即计算公式中的x1。</td>
+          <td><ul><li>支持空Tensor。</li><li>当前版本仅支持二维或者三维输入。</li></ul></td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
           <td>2-3</td>
@@ -99,8 +99,8 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>x2</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，MatMul计算的右矩阵，即计算公式中的x2。</td>
-          <td><li>支持空Tensor。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor。</li></td>
+          <td>MatMul计算的右矩阵，即计算公式中的x2。</td>
+          <td><ul><li>支持空Tensor。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持转置场景下的非连续的tensor。</li></ul></td>
           <td>INT8、INT4</td>
           <td>ND</td>
           <td>2</td>
@@ -109,8 +109,8 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>bias</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的bias。</td>
-          <td><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入。</li></td>
+          <td>即计算公式中的bias。</td>
+          <td><ul><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入。</li></ul></td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
           <td>1</td>
@@ -119,7 +119,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>antiquantScale</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的antiquantScale。</td>
+          <td>即计算公式中的antiquantScale。</td>
           <td>pertensor场景shape为(1)；PerChannel场景shape为(n)/(1,n)，n为x2最后一维的大小；pergroup场景shape为(ceil(k,antiquantGroupSize),n)。</td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
@@ -129,7 +129,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>antiquantOffset</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，对x2进行伪量化计算的offset参数，即计算公式中的antiquantOffset。</td>
+          <td>对x2进行伪量化计算的offset参数，即计算公式中的antiquantOffset。</td>
           <td>可选，可为空，非空时shape与antiquantScale一致。</td>
           <td>BFLOAT16、FLOAT16</td>
           <td>ND</td>
@@ -139,7 +139,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>residual</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，AddRmsNorm融合算子的残差输入，即计算公式中的residual。</td>
+          <td>AddRmsNorm融合算子的残差输入，即计算公式中的residual。</td>
           <td>当前版本仅支持三维输入。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -149,7 +149,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>gamma</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，AddRmsNorm融合算子的RmsNorm计算输入，即计算公式中的gamma。</td>
+          <td>AddRmsNorm融合算子的RmsNorm计算输入，即计算公式中的gamma。</td>
           <td>当前版本仅支持一维输入。</td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
@@ -161,7 +161,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧的双精度，用于防止除0错误，即计算公式中的epsilon。</td>
           <td>epsilon取值满足取值范围(0,1)。</td>
-          <td>Double</td>
+          <td>double</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -171,7 +171,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识通信域的字符串，通信域名称。</td>
           <td>通过Hccl提供的接口“extern HcclResult HcclGetCommName(HcclComm comm, char* commName);”获取，其中commName即为group。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -181,7 +181,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>输入</td>
           <td>Host侧标识操作类型的字符串，reduce操作类型。</td>
           <td>当前仅支持输入"sum"。</td>
-          <td>String</td>
+          <td>string</td>
           <td>-</td>
           <td>-</td>
           <td>-</td>
@@ -210,7 +210,7 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
           <td>antiquantGroupSize</td>
           <td>输入</td>
           <td>伪量化pergroup模式下，对x2进行反量化计算的groupSize输入。</td>
-          <td>当不支持per_group时，传入0，支持时，传入值的范围为[32, min(k-1,INT_MAX)]，且为32的倍数。k取值范围与mm接口保持一致。</td>
+          <td>当不支持pergroup时，传入0，支持时，传入值的范围为[32, min(k-1,INT_MAX)]，且为32的倍数。k取值范围与mm接口保持一致。</td>
           <td>INT64</td>
           <td>-</td>
           <td>-</td>
@@ -219,8 +219,8 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>y</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，mm + all_reduce + add的结果，即计算公式中的y。</td>
-          <td><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></td>
+          <td>mm + all_reduce + add的结果，即计算公式中的y。</td>
+          <td><ul><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -229,8 +229,8 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         <tr>
           <td>normOut</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，mm + all_reduce + add + rms_norm的结果，即计算公式中的normOut。</td>
-          <td><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></td>
+          <td>mm + all_reduce + add + rms_norm的结果，即计算公式中的normOut。</td>
+          <td><ul><li>不支持空Tensor。</li><li>数据类型同residual输入。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -258,9 +258,9 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
         </tr>
       </tbody>
     </table>
-- **返回值：**
+-   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
     第一段接口完成入参校验，出现以下场景时报错：
 
@@ -327,32 +327,36 @@ aclnnStatus aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm(
     </tr>
     </tbody></table>
 
-- **返回值：**
+-   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnInplaceWeightQuantMatmulAllReduceAddRmsNorm默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 - 使用场景同融合算子aclnnWeightQuantMatmulAllReduce一致：增量场景不使能MC2，全量场景使能MC2
-- 输入x1可为二维或者三维，其shape为(b, s, k)或者(s, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等，m的范围为[1, 2147483647]，k、n的范围为[1, 65535]。bias若非空，bias为一维，其shape为(n)。
+- 输入x1可为二维或者三维，其shape为(b, s, k)或者(s, k)。x2必须是二维，其shape为(k, n)，轴满足mm算子入参要求，k轴相等，b\*s、s的范围为[1, 2147483647]，k、n的范围为[1, 65535]。bias若非空，bias为一维，其shape为(n)。
 - 输入residual必须是三维，其shape为(b, s, n)，当x1为二维时，residual的(b*s)等于x1的s。输入gamma必须是一维，其shape为(n)。
-- antiquantScale满足per-tensor场景shape为(1)，per-channel场景shape为(1,n)/(n)，per-group场景shape为(ceil(k,antiquantGroupSize),n)。antiquantOffset若非空，shape与antiquantScale一致。
+- antiquantScale满足pertensor场景shape为(1)，perchannel场景shape为(1,n)/(n)，pergroup场景shape为(ceil(k,antiquantGroupSize),n)。antiquantOffset若非空，shape与antiquantScale一致。
 - 输出y和normOut的维度和数据类型同residual。bias若非空，shape大小与normOut最后一维相等。
 - x2的数据类型需为int8或者int4，x1、bias、residual、gamma、y、normOut计算输入的数据类型要一致。
 - 只支持x2矩阵转置/不转置，x1矩阵支持不转置场景。
 - antiquantGroupSize取值满足取值范围[32, min(k-1, INT_MAX)]且为32倍数。
 - 支持1、2、4、8卡，并且仅支持hccs链路all mesh组网。
 - 支持(b*s)、n为0的空tensor，不支持k为0的空tensor。
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例
-示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
+示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
 ```Cpp
 #include <iostream>
 #include <vector>
 #include <thread>
-#include "../op_api/aclnn_inplace_weight_quant_matmul_all_reduce_add_rms_norm.h"
+#include "hccl/hccl.h"
+#include "aclnnop/aclnn_inplace_weight_quant_matmul_all_reduce_add_rms_norm.h"
 
 int ndev = 8;
 
@@ -419,7 +423,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     std::vector<int64_t> biasShape = {128};
     std::vector<int64_t> antiquantScaleShape = {128};
     std::vector<int64_t> antiquantOffsetShape = {128};
-    std::vector<int64_t> x3Shape = {32, 128};
     std::vector<int64_t> residualShape = {1, 32, 128};
     std::vector<int64_t> gammaShape = {128};
     std::vector<int64_t> yShape = {1, 32, 128};
@@ -429,7 +432,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     void *biasDeviceAddr = nullptr;
     void *antiquantScaleDeviceAddr = nullptr;
     void *antiquantOffsetDeviceAddr = nullptr;
-    void *x3DeviceAddr = nullptr;
     void *residualDeviceAddr = nullptr;
     void *gammaDeviceAddr = nullptr;
     void *yDeviceAddr = nullptr;
@@ -439,7 +441,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     aclTensor *bias = nullptr;
     aclTensor *antiquantScale = nullptr;
     aclTensor *antiquantOffset = nullptr;
-    aclTensor *x3 = nullptr;
     aclTensor *residual = nullptr;
     aclTensor *gamma = nullptr;
     aclTensor *y = nullptr;
@@ -458,7 +459,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     long long biasShapeSize = GetShapeSize(biasShape);
     long long antiquantScaleShapeSize = GetShapeSize(antiquantScaleShape);
     long long antiquantOffsetShapeSize = GetShapeSize(antiquantOffsetShape);
-    long long x3ShapeSize = GetShapeSize(x3Shape);
     long long residualShapeSize = GetShapeSize(residualShape);
     long long gammaShapeSize = GetShapeSize(gammaShape);
     long long yShapeSize = GetShapeSize(yShape);
@@ -468,7 +468,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     std::vector<int16_t> biasHostData(biasShapeSize, 1);
     std::vector<int16_t> antiquantScaleHostData(antiquantScaleShapeSize, 1);
     std::vector<int16_t> antiquantOffsetHostData(antiquantOffsetShapeSize, 1);
-    std::vector<int16_t> x3HostData(x3ShapeSize, 1);
     std::vector<int16_t> residualHostData(residualShapeSize, 1);
     std::vector<int16_t> gammaHostData(gammaShapeSize, 1);
     std::vector<int16_t> yHostData(yShapeSize, 0);
@@ -485,8 +484,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(antiquantOffsetHostData, antiquantOffsetShape, &antiquantOffsetDeviceAddr,
                         aclDataType::ACL_FLOAT16, &antiquantOffset);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);
-    ret = CreateAclTensor(x3HostData, x3Shape, &x3DeviceAddr, aclDataType::ACL_FLOAT16, &x3);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
     ret = CreateAclTensor(residualHostData, residualShape, &residualDeviceAddr, aclDataType::ACL_FLOAT16, &residual);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
@@ -534,9 +531,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     if (antiquantOffset != nullptr) {
         aclDestroyTensor(antiquantOffset);
     }
-    if (x3 != nullptr) {
-        aclDestroyTensor(x3);
-    }
     if (residual != nullptr) {
         aclDestroyTensor(residual);
     }
@@ -563,9 +557,6 @@ int launchOneThreadweightQuantmatmulAllReduceAddRmsNorm(Args &args) {
     }
     if (antiquantOffsetDeviceAddr != nullptr) {
         aclrtFree(antiquantOffsetDeviceAddr);
-    }
-    if (x3DeviceAddr != nullptr) {
-        aclrtFree(x3DeviceAddr);
     }
     if (residualDeviceAddr != nullptr) {
         aclrtFree(residualDeviceAddr);

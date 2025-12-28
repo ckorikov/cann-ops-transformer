@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file moe_gating_top_k_softmax_perf.h
@@ -211,8 +211,7 @@ private:
         if constexpr (colRange == ColRangeEnum::SMALLER_THAN_8) {
             AscendCUtils::SetMaskCount<float>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
-            BlockReduceMaxIntrinsicsImpl(
-                (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)src.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceMax<float, false>(dst, src, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
         } else if constexpr (colRange == ColRangeEnum::FROM_8_TO_64) {
             WholeReduceMax(
@@ -244,12 +243,10 @@ private:
             PipeBarrier<PIPE_V>();
             AscendCUtils::SetMaskCount<float>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * REPEAT_B32_SIZE);
-            BlockReduceMaxIntrinsicsImpl(
-                (__ubuf__ float*)tmpBuffer.GetPhyAddr(), (__ubuf__ float*)dst.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceMax<float, false>(tmpBuffer, dst, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             PipeBarrier<PIPE_V>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
-            BlockReduceMaxIntrinsicsImpl(
-                (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)tmpBuffer.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceMax<float, false>(dst, tmpBuffer, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
         }
         PipeBarrier<PIPE_V>();
@@ -263,8 +260,7 @@ private:
         if constexpr (colRange == ColRangeEnum::SMALLER_THAN_8) {
             AscendCUtils::SetMaskCount<float>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
-            BlockReduceSumIntrinsicsImpl(
-                (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)src.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceSum<float, false>(dst, src, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
         } else if constexpr (colRange == ColRangeEnum::FROM_8_TO_64) {
             WholeReduceSum(
@@ -295,12 +291,10 @@ private:
             PipeBarrier<PIPE_V>();
             AscendCUtils::SetMaskCount<float>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * REPEAT_B32_SIZE);
-            BlockReduceSumIntrinsicsImpl(
-                (__ubuf__ float*)tmpBuffer.GetPhyAddr(), (__ubuf__ float*)dst.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceSum<float, false>(tmpBuffer, dst, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             PipeBarrier<PIPE_V>();
             SetVectorMask<float, MaskMode::COUNTER>(0, curRowsNum * BLOCK_B32_SIZE);
-            BlockReduceSumIntrinsicsImpl(
-                (__ubuf__ float*)dst.GetPhyAddr(), (__ubuf__ float*)tmpBuffer.GetPhyAddr(), 1, 1, 1, CONSTANT_EIGHT);
+            BlockReduceSum<float, false>(dst, tmpBuffer, 1, AscendC::MASK_PLACEHOLDER, 1, 1, CONSTANT_EIGHT);
             AscendCUtils::SetMaskNorm<float>();
         }
         PipeBarrier<PIPE_V>();

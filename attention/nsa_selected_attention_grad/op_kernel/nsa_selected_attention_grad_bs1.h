@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file nsa_selected_attention_grad.h
@@ -525,8 +525,8 @@ __aicore__ inline void SelectedAttentionGrad<NSAGT>::AtomicClean()
     DumpGmZero(dqWorkspaceGm, dqSize);
     DumpGmZero(dkWorkspaceGm, dkSize);
     DumpGmZero(dvWorkspaceGm, dvSize); // FP32 FUNC:T1 FP16
-    InitOutput<T1>(selectedKWorkspaceGm, selectedKWorkspaceLen, 0);
-    InitOutput<T1>(selectedVWorkspaceGm, selectedVWorkspaceLen, 0);
+    InitOutput<T1>(selectedKWorkspaceGm, selectedKWorkspaceLen / sizeof(T1), 0);
+    InitOutput<T1>(selectedVWorkspaceGm, selectedVWorkspaceLen / sizeof(T1), 0);
 }
 template <typename NSAGT> __aicore__ inline void SelectedAttentionGrad<NSAGT>::InitAddrArray(int64_t* scatterDkAddrArray,
                                                                                            int64_t* scatterDvAddrArray,

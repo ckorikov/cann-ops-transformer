@@ -1,9 +1,9 @@
 # aclnnAllGatherMatmul
 ## 产品支持情况
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| 产品                                                                            | 是否支持 |
+| :------------------------------------------------------------------------------ | :------: |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                        | √       |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> | √       |
 
 **说明：** 使用该接口时，请确保驱动固件包和CANN包都为配套的8.0.RC2版本或者配套的更高版本，否则将会引发报错，比如BUS ERROR等。
 
@@ -16,6 +16,8 @@
     $$
     output=allgather(x1)@x2+bias
     $$
+
+
     $$
     gatherOut=allgather(x1)
     $$
@@ -26,24 +28,24 @@
 
 ```cpp
 aclnnStatus aclnnAllGatherMatmulGetWorkspaceSize(
-    const aclTensor *x1, 
-    const aclTensor *x2, 
-    const aclTensor *bias, 
-    const char      *group, 
-    int64_t         gatherIndex, 
-    int64_t         commTurn, 
-    int64_t         streamMode, 
-    const aclTensor *output, 
-    const aclTensor *gatherOut, 
-    uint64_t        *workspaceSize, 
+    const aclTensor *x1,
+    const aclTensor *x2,
+    const aclTensor *bias,
+    const char      *group,
+    int64_t         gatherIndex,
+    int64_t         commTurn,
+    int64_t         streamMode,
+    const aclTensor *output,
+    const aclTensor *gatherOut,
+    uint64_t        *workspaceSize,
     aclOpExecutor   **executor)
 ```
 
 ```cpp
 aclnnStatus aclnnAllGatherMatmul(
-    void          *workspace, 
-    uint64_t       workspaceSize, 
-    aclOpExecutor *executor, 
+    void          *workspace,
+    uint64_t       workspaceSize,
+    aclOpExecutor *executor,
     aclrtStream    stream)
 ```
 
@@ -53,10 +55,10 @@ aclnnStatus aclnnAllGatherMatmul(
     <table style="undefined;table-layout: fixed; width: 1567px"><colgroup>
       <col style="width: 170px">
       <col style="width: 120px">
-      <col style="width: 300px">  
-      <col style="width: 330px">  
-      <col style="width: 212px">  
-      <col style="width: 100px"> 
+      <col style="width: 300px">
+      <col style="width: 330px">
+      <col style="width: 212px">
+      <col style="width: 100px">
       <col style="width: 190px">
       <col style="width: 145px">
       </colgroup>
@@ -75,8 +77,8 @@ aclnnStatus aclnnAllGatherMatmul(
         <tr>
           <td>x1</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的x1。</td>
-          <td><li>不支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持两维shape输入，且仅支持不转置场景。</li></td>
+          <td>即计算公式中的x1。</td>
+          <td><ul><li>支持空Tensor。</li><li>与x2的数据类型保持一致。</li><li>当前版本仅支持二维shape输入，且仅支持不转置场景。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -85,8 +87,8 @@ aclnnStatus aclnnAllGatherMatmul(
         <tr>
           <td>x2</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的x2。</td>
-          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持两维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></td>
+          <td>即计算公式中的x2。</td>
+          <td><ul><li>支持空Tensor。</li><li>与x1的数据类型保持一致。</li><li>当前版本仅支持二维输入，支持转置/不转置场景。</li><li>支持通过转置构造非连续Tensor。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -95,8 +97,8 @@ aclnnStatus aclnnAllGatherMatmul(
         <tr>
           <td>bias</td>
           <td>输入</td>
-          <td>Device侧的aclTensor，即计算公式中的bias。</td>
-          <td><li>支持传入空指针场景。</li><li>当前版本仅支持一维输入，且暂不支持bias输入为非0的场景。</li></td>
+          <td>即计算公式中的bias。</td>
+          <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：暂不支持bias输入为非0的场景。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>1</td>
@@ -116,7 +118,7 @@ aclnnStatus aclnnAllGatherMatmul(
           <td>gatherIndex</td>
           <td>输入</td>
           <td>Host侧的整型，标识Gather目标。</td>
-          <td><li>0表示目标为x1，1表示目标为x2。</li><li>当前版本仅支持输入0。</li></td>
+          <td><ul><li>0表示目标为x1，1表示目标为x2。</li><li>当前版本仅支持输入0。</li></ul></td>
           <td>INT64</td>
           <td>-</td>
           <td>-</td>
@@ -145,8 +147,8 @@ aclnnStatus aclnnAllGatherMatmul(
         <tr>
           <td>output</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，AllGather通信与MatMul计算的结果，即计算公式中的output。</td>
-          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></td>
+          <td>AllGather通信与MatMul计算的结果，即计算公式中的output。</td>
+          <td><ul><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -155,8 +157,8 @@ aclnnStatus aclnnAllGatherMatmul(
         <tr>
           <td>gatherOut</td>
           <td>输出</td>
-          <td>Device侧的aclTensor，仅输出AllGather通信后的结果，即计算公式中的gatherOut。</td>
-          <td><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></td>
+          <td>仅输出AllGather通信后的结果，即计算公式中的gatherOut。</td>
+          <td><ul><li>不支持空Tensor。</li><li>与x1的数据类型保持一致。</li></ul></td>
           <td>FLOAT16、BFLOAT16</td>
           <td>ND</td>
           <td>2</td>
@@ -188,6 +190,9 @@ aclnnStatus aclnnAllGatherMatmul(
 -   **返回值：**
 
     返回aclnnStatus状态码，第一段接口完成入参校验，出现以下场景时报错：
+
+    第一段接口会完成入参校验，出现以下场景时报错：
+    
     <table style="undefined;table-layout: fixed; width: 1180px"> <colgroup>
     <col style="width: 250px">
     <col style="width: 130px">
@@ -250,35 +255,39 @@ aclnnStatus aclnnAllGatherMatmul(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的Stream。</td>
+        <td>指定执行任务的stream。</td>
     </tr>
     </tbody></table>
 -   **返回值：**
 
-    返回aclnnStatus状态码，具体参见aclnn返回码。
+    返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+
+- 确定性计算：
+  - aclnnAllGatherMatmul默认确定性实现。
 
 - 输入x1为2维，其shape为(m, k)。x2必须是2维，其shape为(k, n)，轴满足MatMul算子入参要求，k轴相等，且k轴取值范围为[256, 65535)
 - x1/x2支持的空tensor场景，m和n可以为空，k不可为空，且需要满足以下条件：
     - m为空，k不为空，n不为空；
     - m不为空，k不为空，n为空；
     - m为空，k不为空，n为空。
-- 输出为2维，其shape为(m*rank_size, n)，rank_size为卡数。
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：支持2、4、8卡，并且仅支持hccs链路all mesh组网。
-- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持hccs链路double ring组网。
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
+- 输出为2维，其shape为(m*rank_size, n), rank_size为卡数。
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：支持2、4、8卡，并且仅支持HCCS链路all mesh组网。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持2、4、8、16、32卡，并且仅支持HCCS链路double ring组网。
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：一个模型中的通算融合MC2算子，仅支持相同通信域。
 
 ## 调用示例
 
-示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
+示例代码如下，仅供参考，具体编译和执行过程请参考编译与运行样例。
 
-- <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
+- <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
     ```Cpp
     #include <thread>
     #include <iostream>
     #include <vector>
-    #include "../op_api/aclnn_all_gather_matmul.h"
+    #include "hccl/hccl.h"
+    #include "aclnnop/aclnn_all_gather_matmul.h"
 
     #define CHECK_RET(cond, return_expr) \
         do {                             \
@@ -393,10 +402,10 @@ aclnnStatus aclnnAllGatherMatmul(
         }
         // 调用第二阶段接口
         ret = aclnnAllGatherMatmul(workspaceAddr, workspaceSize, executor, args.stream);
-        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclnnAllGatherMatmul failed. ret = %d \n", ret); return ret);
+        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclnnAllGatherMatmul failed. ret = %d \n", ret); return    ret);
         // （固定写法）同步等待任务执行结束
         ret = aclrtSynchronizeStreamWithTimeout(args.stream, 10000);
-        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSynchronizeStreamWithTimeout failed. ret = %d \n", ret);
+        CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSynchronizeStreamWithTimeout failed. ret = %d \n",    ret);
             return ret);
         LOG_PRINT("[INFO] device_%d aclnnAllGatherMatmul execute successfully.\n", args.rankId);
         // 释放device资源，需要根据具体API的接口定义修改
@@ -442,6 +451,7 @@ aclnnStatus aclnnAllGatherMatmul(
 
     int main(int argc, char *argv[])
     {
+        // 本样例基于Atlas A3实现，必须在Atlas A3上运行
         int ret = aclInit(nullptr);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d \n", ret); return ret);
         aclrtStream stream[DEV_NUM];
@@ -449,7 +459,7 @@ aclnnStatus aclnnAllGatherMatmul(
             ret = aclrtSetDevice(rankId);
             CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtSetDevice failed. ret = %d \n", ret); return ret);
             ret = aclrtCreateStream(&stream[rankId]);
-            CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtCreateStream failed. ret = %d \n", ret); return ret);
+            CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclrtCreateStream failed. ret = %d \n", ret); return   ret);
         }
         int32_t devices[DEV_NUM];
         for (int i = 0; i < DEV_NUM; i++) {
@@ -474,7 +484,7 @@ aclnnStatus aclnnAllGatherMatmul(
         }
         for (int i = 0; i < DEV_NUM; i++) {
             auto hcclRet = HcclCommDestroy(comms[i]);
-            CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", hcclRet); return -1);
+            CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", ret); return    -1);
         }
         aclFinalize();
         return 0;

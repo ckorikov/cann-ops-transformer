@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file nsa_compress_attention_case.h
@@ -26,6 +26,7 @@
 #include "tests/utils/tensor_list.h"
 
 namespace ops::adv::tests::NsaCompressAttention {
+
 class NsaCompressAttentionCase : public ops::adv::tests::utils::Case {
     using OpInfo = ops::adv::tests::utils::OpInfo;
     using Context = ops::adv::tests::utils::Context;
@@ -144,6 +145,17 @@ public:
     bool DoOpTiling(DoTilingParam &tilingParam);
     bool InitQkvAndOut();
     bool InitOptInputs();
+    static bool InitTensor(Tensor &tensor, std::vector<int64_t> &hostData)
+    {
+        if (hostData.empty()) {
+            return true;
+        }
+        int64_t expMinSize = hostData.size() * sizeof(int64_t);
+        if (tensor.AllocDevData(0, expMinSize) == nullptr) {
+            return false;
+        }
+        return tensor.CopyHostToDevData(hostData);
+    }
 };
 
 } // namespace ops::adv::tests::MoeInitRoutingV2

@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file rope_with_sin_cos_cache_base.h
@@ -58,6 +58,16 @@ protected:
     uint64_t loop_time_current_core{0};            // 当前核批处理数据轮数
     uint64_t num_tokens_each_loop_current_core{0}; // 当前核每轮处理的token数
     uint64_t num_tokens_last_loop_current_core{0}; // 当前核最后一轮轮处理的token数
+
+    uint64_t loop_for_one_token;
+    uint64_t loop_along_qheads;
+    uint64_t loop_along_kheads;
+    uint64_t num_heads_each_loop;
+    uint64_t num_qheads_each_loop;
+    uint64_t num_qheads_last_loop;
+    uint64_t num_kheads_each_loop;
+    uint64_t num_kheads_last_loop;
+    uint64_t num_tokens_current_core;
 };
 
 template <typename T>
@@ -88,6 +98,16 @@ __aicore__ inline void RopeWithSinCosCacheBase<T>::InitData(const RopeWithSinCos
                                                                    tilingData.num_tokens_tail_core_each_loop;
     num_tokens_last_loop_current_core = (blockIdx_ < front_core) ? tilingData.num_tokens_front_core_last_loop :
                                                                    tilingData.num_tokens_tail_core_last_loop;
+
+    loop_for_one_token = tilingData.loop_for_one_token;
+    loop_along_qheads = tilingData.loop_along_qheads;
+    loop_along_kheads = tilingData.loop_along_kheads;
+    num_qheads_each_loop = tilingData.num_qheads_each_loop;
+    num_qheads_last_loop = tilingData.num_qheads_last_loop;
+    num_kheads_each_loop = tilingData.num_kheads_each_loop;
+    num_kheads_last_loop = tilingData.num_kheads_last_loop;
+    num_heads_each_loop = num_qheads_each_loop > num_kheads_each_loop ? num_qheads_each_loop : num_kheads_each_loop;
+    num_tokens_current_core = (blockIdx_ < front_core) ? tilingData.num_tokens_each_front_core : tilingData.num_tokens_each_tail_core;
 }
 
 template <typename T>

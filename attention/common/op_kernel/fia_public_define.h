@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file ifa_public_define.h
@@ -112,6 +112,9 @@ struct RunInfo {
     int64_t preTokensPerBatch = 0;
     int64_t nextTokensPerBatch = 0;
     uint64_t accumTmpOutNum = 0;
+
+    uint64_t qPaddingBeginOffset = 0;
+    uint64_t kvPaddingBeginOffset = 0;
 };
 
 struct ConstInfo {
@@ -132,7 +135,6 @@ struct ConstInfo {
     static constexpr float FLOAT_ZERO = 0;
     static constexpr float FLOAT_MAX = 3.402823466e+38F;
     static constexpr float FLOAT_INF = 3e+99;
-
     // 整个AICORE的任务信息, 左闭右开区间[ (bN2Start, gS1Start, s2Start), (bN2End, gS1End, s2End) )
     uint32_t bN2Start = 0U;
     uint32_t gS1Start = 0U;
@@ -172,6 +174,11 @@ struct ConstInfo {
     uint32_t splitKVNum = 0U;         // S2核间切分的切分份数
     FIA_LAYOUT outputLayout;          // 输出的Transpose格式
 
+    // pse
+    bool pseShiftFlag = false;
+    bool pseShiftByBatch = false;
+    uint32_t pseShiftS1 = 0U;
+    uint32_t pseShiftS2 = 0U;
     // mask
     bool attenMaskFlag = false;
     uint64_t attenMaskSize = 0ULL;
@@ -196,8 +203,19 @@ struct ConstInfo {
     bool ropeSplitMode = false;
 
     bool softmaxLseFlag = false;
-
+    bool isLegacyIfa = false;
     uint32_t l2CacheOffFlag = 0;
+    
+    //left padding
+    bool isQHasLeftPadding = false;
+    bool isKVHasLeftPadding = false;
+    uint64_t qLeftPaddingSize = 0;
+    uint64_t kvLeftPaddingSize = 0;
+
+    bool systemPrefixFlag = false;
+    uint32_t systemPrefixLen = 0;
+    uint64_t systemPrefixMaxLen = 0;
+    uint32_t subBlockNum = 2; // AI Core上 AIC与AIV的数量默认为1:2
 };
 
 struct FusedTransposeInfo {

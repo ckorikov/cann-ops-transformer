@@ -2,10 +2,10 @@
 
 ## 产品支持情况
 
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |  ×   |
+| 产品                                                                | 是否支持 |
+|:------------------------------------------------------------------|:----:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                      |  √   |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |  √   |
 
 ## 功能说明
 
@@ -43,10 +43,6 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(
 
 ```cpp
 aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
-    void*          workspace,
-    uint64_t       workspaceSize,
-    aclOpExecutor *executor,
-    aclrtStream    stream)
     void*          workspace,
     uint64_t       workspaceSize,
     aclOpExecutor *executor,
@@ -318,7 +314,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
     <tr>
       <td rowspan="8">ACLNN_ERR_PARAM_INVALID</td>
       <td rowspan="8">161002</td>
-      <td>x1、x2、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional、sharedInputWeight、sharedInputOffest、transposeX1、transposeX2、或out的数据类型或数据格式不在支持的范围内。</td>
+      <td>x1、x2、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional、sharedInputWeight、sharedInputOffset、transposeX1、transposeX2、或out的数据类型或数据格式不在支持的范围内。</td>
     </tr>
     <tr>
       <td>x1、x2、scaleOptional、biasOptional、offsetOptional、antiquantScaleOptional、antiquantOffsetOptional、pertokenScaleOptional、groupListOptional、sharedInputOptional、logitOptional、rowIndexOptional或out的shape不满足校验条件。</td>
@@ -374,6 +370,9 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+- 确定性计算：
+  - aclnnGroupedMatmulFinalizeRoutingV2默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 **伪量化场景支持类型**
 输入和输出支持以下数据类型组合：
 
@@ -513,7 +512,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
       int64_t bsdp = 1;
       int64_t dtype = 0;
       float shareInputWeight = 1.0;
-      int64_t shareInputOffest = 0;
+      int64_t shareInputOffset = 0;
       bool transposeX = false;
       bool transposeW = false;
       int64_t groupListType = 1;
@@ -630,7 +629,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRoutingV2(
 
       // 调用aclnnGroupedMatmulFinalizeRoutingV2第一段接口
       workspaceSize = 0;
-      ret = aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(x, w, scale, bias, offset, nullptr, nullptr, pertokenScale, groupList, sharedInput, logit, rowIndex, dtype, shareInputWeight, shareInputOffest, transposeX, transposeW, groupListType, out, &workspaceSize, &executor);
+      ret = aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize(x, w, scale, bias, offset, nullptr, nullptr, pertokenScale, groupList, sharedInput, logit, rowIndex, dtype, shareInputWeight, shareInputOffset, transposeX, transposeW, groupListType, out, &workspaceSize, &executor);
       CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnGroupedMatmulFinalizeRoutingV2GetWorkspaceSize failed. ERROR: %d\n", ret);
                 return ret);
       // 根据第一段接口计算出的workspaceSize申请device内存

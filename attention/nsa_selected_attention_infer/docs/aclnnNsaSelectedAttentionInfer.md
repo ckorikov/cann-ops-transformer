@@ -5,14 +5,14 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
 
 # 功能说明
 
 - 接口功能：Native Sparse Attention推理过程中，Selected Attention的计算。
 - 计算公式：
   
-  self-attention（自注意力）利用输入样本自身的关系构建了一种注意力模型。其原理是假设有一个长度为$n$的输入样本序列$x$，$x$的每个元素都是一个$d$维向量，可以将每个$d$维向量看作一个token embedding，将这样一条序列经过3个权重矩阵变换得到3个维度为$n*d$的矩阵。
+  Self-attention（自注意力）利用输入样本自身的关系构建了一种注意力模型。其原理是假设有一个长度为$n$的输入样本序列$x$，$x$的每个元素都是一个$d$维向量，可以将每个$d$维向量看作一个token embedding，将这样一条序列经过3个权重矩阵变换得到3个维度为$n*d$的矩阵。
   
   Selected Attention的计算由topk索引取数与attention计算融合而成，外加paged attention取kvCache。首先，通过$topkIndices$索引从$key$中取出$key_{topk}$，从$value$中取出$value_{topk}$，计算self_attention公式如下：
   
@@ -96,7 +96,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
               <li>支持query的N轴与key/value的N轴（H/D）的比值（即GQA中的group大小）小于等于16。</li>
               <li> 支持query的D轴等于192。</li>
               <li>普通场景下仅支持query的S轴等于1。</li>
-               <li>query中的N和numHeads值相等,并且numHeads是numKeyValueHeads的倍数关系</li>
+               <li>query中的N和numHeads值相等，并且numHeads是numKeyValueHeads的倍数关系</li>
                <li>query中的D和key的D(H/numKeyValueHeads)值相等。</li>
             </ul>
           </td>
@@ -115,7 +115,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
               <li> 支持key的N轴小于等于256。</li>
                <li>支持Key的D轴等于192。</li>
                <li>支持Key的blockSize等于64或128。</li>
-                <li>key中的N和numHeads值相等,并且numHeads是numKeyValueHeads的倍数关系。</li>
+                <li>key中的N和numHeads值相等，并且numHeads是numKeyValueHeads的倍数关系。</li>
             </ul>
           </td>
           <td>FLOAT16、BFLOAT16</td>
@@ -133,7 +133,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
               <li>支持value的N轴小于等于256。</li>
                <li>支持value的D轴等于128。</li>
                <li>支持Value的blockSize等于64或128。</li>
-               <li>value中的N和numHeads值相等,并且numHeads是numKeyValueHeads的倍数关系。</li>
+               <li>value中的N和numHeads值相等，并且numHeads是numKeyValueHeads的倍数关系。</li>
                <li>value的D(H/numKeyValueHeads)和output的D值相等。</li>
             </ul>
           </td>
@@ -408,7 +408,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
         <tr>
           <td>workspaceSize</td>
           <td>输入</td>
-          <td>在Device侧申请的workspace大小,由第一段接口aclnnNsaSelectedAttentionInferGetWorkspaceSize获取。</td>
+          <td>在Device侧申请的workspace大小，由第一段接口aclnnNsaSelectedAttentionInferGetWorkspaceSize获取。</td>
         </tr>
         <tr>
           <td>executor</td>
@@ -418,7 +418,7 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
         <tr>
           <td>stream</td>
           <td>输入</td>
-          <td>指定执行任务的AscendCL Stream流。</td>
+          <td>指定执行任务的Stream。</td>
         </tr>
       </tbody>
     </table>
@@ -429,6 +429,8 @@ aclnnStatus aclnnNsaSelectedAttentionInfer(
 
 # 约束说明
 
+- 确定性计算：
+  - aclnnNsaSelectedAttentionInfer默认确定性实现。
 - 支持B轴小于等于3072。
 - 仅支持paged attention。
 - 多token推理场景下，仅支持query的S轴最大等于4，并且此时要求每个batch单独的actualQSeqLen <= actualSelKvSeqLen。
@@ -482,7 +484,7 @@ void PrintOutResult(std::vector<int64_t> &shape, void** deviceAddr) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-  // 固定写法，AscendCL初始化
+  // 固定写法，资源初始化
   auto ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
   ret = aclrtSetDevice(deviceId);
@@ -570,7 +572,7 @@ int main(int argc, char **argv)
     std::vector<int16_t> valueHostData(valueShapeSize, 1);
     std::vector<int32_t> blockTableOptionalHostData(blockTableOptionalShapeSize, 0);
     std::vector<int16_t> outputHostData(outputShapeSize, 1);
-
+    
     std::vector<int32_t> topkIndicesHostData;
     for (int b = 0; b < batch; ++b) {
        for (int s = 0; s < s1; ++s) {

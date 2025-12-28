@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file apply_rotary_pos_emb_small.h
@@ -137,13 +137,9 @@ __aicore__ inline void ARPESmall<T1, T2>::CastCopyIn(const ApplyRotaryPosEmbTili
 #else
     T1 scalar_data = -1.0;
     Muls(sinSize, sinSize, scalar_data, tilingData->halfNum, 1, mulRepeatP);
-#if ORIG_DTYPE_QUERY == DT_FLOAT
+
     SetMaskNorm();
-    SetVectorMask<T1>(64);
-#else
-    SetMaskNorm();
-    SetVectorMask<T1>(128);
-#endif
+
     LocalTensor<T1> qOutUb = qOutQueue.AllocTensor<T1>();
     ComputeTotary(qSize, cosSize, sinSize, qOutUb, tilingData);
 
@@ -176,17 +172,17 @@ __aicore__ inline void ARPESmall<T1, T2>::ComputeBF16(
     Cast(cosC1, cosUb, RoundMode::CAST_NONE, tilingData->lastDim);
     Cast(sinC1, sinUb, RoundMode::CAST_NONE, tilingData->lastDim);
     SetMaskNorm();
-    SetVectorMask<float>(64);
+ 
     float scalar_data = -1.0f;
 
-    Muls<float, false>(sinC1, sinC1, scalar_data, tilingData->halfNum, 1, mulRepeatP);
+    Muls<float>(sinC1, sinC1, scalar_data, tilingData->halfNum, 1, mulRepeatP);
     LocalTensor<float> qUbFP32;
     this->LocalTensor2NewTensor(qUbFP32, qUb);
     for (int32_t aa = 0; aa < (tilingData->qcdHalfNum); aa++) {
-        Mul<float, false>(
+        Mul<float>(
             mul1Ub[aa * tilingData->mask], qoutSizeFP32[aa * tilingData->mask], sinC1[aa * tilingData->mask],
             tilingData->mask, tilingData->qkcNum, repeatParams);
-        Mul<float, false>(
+        Mul<float>(
             qUbFP32[aa * tilingData->mask], mul2Ub[aa * tilingData->mask], cosC1[aa * tilingData->mask],
             tilingData->mask, tilingData->qkcNum, repeatParams);
     }
@@ -210,10 +206,10 @@ __aicore__ inline void ARPESmall<T1, T2>::ComputeTotary(
     DataCopy(qoutSize[tilingData->halfNum], qUb, copyIn1);
 
     for (int32_t aa = 0; aa < (tilingData->qcdHalfNum); aa++) {
-        Mul<T1, false>(
+        Mul<T1>(
             mul1Ub[aa * tilingData->mask], qoutSize[aa * tilingData->mask], sinUb[aa * tilingData->mask],
             tilingData->mask, tilingData->qkcNum, repeatParams);
-        Mul<T1, false>(
+        Mul<T1>(
             mul2Ub[aa * tilingData->mask], qUb[aa * tilingData->mask], cosUb[aa * tilingData->mask], tilingData->mask,
             tilingData->qkcNum, repeatParams);
     }

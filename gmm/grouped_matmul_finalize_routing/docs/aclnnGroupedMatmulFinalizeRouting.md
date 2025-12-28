@@ -2,10 +2,10 @@
 
 ## 产品支持情况
 
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     | ×   |
+| 产品                                                                | 是否支持 |
+|:------------------------------------------------------------------|:----:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                      |  √   |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |  √   |
 
 ## 功能说明
 
@@ -201,7 +201,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
     <tr>
       <td>sharedInputWeight</td>
       <td>输入</td>
-      <td>共享专家与moe专家进行combine的系数，sharedInput先与该参数乘，然后在和moe专家结果累加。</td>
+      <td>共享专家与moe专家进行combine的系数，sharedInput先与该参数乘，然后再和moe专家结果累加。</td>
       <td></td>
       <td>FLOAT32</td>
       <td></td>
@@ -211,7 +211,7 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
     <tr>
       <td>sharedInputOffset</td>
       <td>输入</td>
-      <td>共享专家输出的在总输出中的偏移。</td>
+      <td>共享专家输出在总输出中的偏移。</td>
       <td></td>
       <td>INT64</td>
       <td></td>
@@ -363,6 +363,10 @@ aclnnStatus aclnnGroupedMatmulFinalizeRouting(
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
+
+- 确定性计算：
+  - aclnnGroupedMatmulFinalizeRouting默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
+
 **伪量化场景支持类型**
 输入和输出支持以下数据类型组合：
 

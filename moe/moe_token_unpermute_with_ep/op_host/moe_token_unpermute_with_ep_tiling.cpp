@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file moe_token_unpermute_with_ep_tiling.cpp
@@ -23,6 +23,9 @@ const static int64_t UNPERMUTE_WITH_EP_OUTPUT_TOKENS = 0;
 const static int64_t UNPERMUTE_WITH_EP_ARRT_TOPK = 0;
 const static int64_t UNPERMUTE_WITH_EP_ARRT_RANGE = 1;
 const static int64_t RANGE_SIZE = 2;
+const static uint64_t WORKSPACE_SIZE_WITH_M = 16;
+const static uint64_t BYTE_SIZE_WITH_K = 1024;
+
 
 ge::graphStatus TilingMoeTokenUnpermuteWithEp(gert::TilingContext* context);
 
@@ -384,7 +387,8 @@ ge::graphStatus UnpermuteWithEpTilingCompute(gert::TilingContext* context, const
     SetTilingKey(context, isUnpermute, param);
     SetTilingData(context, param);
     DebugPrint(context, param);
-
+    size_t *workSpaces = context->GetWorkspaceSizes(1);
+    workSpaces[0] = WORKSPACE_SIZE_WITH_M * BYTE_SIZE_WITH_K * BYTE_SIZE_WITH_K;
     return context->SetTilingKey(param.core.tilingKey);
 }
 

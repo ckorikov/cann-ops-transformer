@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file fia_tiling_info.h
@@ -154,6 +154,13 @@ enum class TilingKeyLayout : uint32_t {
     NTD = 5
 };
 
+enum class FiaTemplateId : uint32_t {
+    EMPTY_TENSOR = 0,
+    HIGH_PERFORMANCE_GQA = 3,
+    GENERAL_GQA = 4,
+    HIGH_PERFORMANCE_MLA = 5
+};
+
 std::string LayoutToSerialString(FiaLayout layout);
 std::string AxisToSerialString(FiaAxis axis);
 std::string QuantModeToSerialString(FiaQuantMode fiaQuantMode);
@@ -243,6 +250,9 @@ public:
     int32_t innerPrecise = 0;
     uint32_t l2CacheOffFlag = 0;
 
+    // empty Tensor
+    bool emptyTensorFlag = false;
+
     // PageAttention
     bool pageAttentionFlag = false;
     int32_t blockSize = 0;
@@ -260,9 +270,8 @@ public:
 
     // SysTem Prefix
     bool sysPrefixFlag = false;
-    uint32_t actualLenDimsPrefix = 0;
-    uint32_t sMaxPrefix = 0;
-    uint32_t maxActualPrefixLen = 0;
+    uint32_t systemPrefixMaxLen = 0;
+    uint32_t systemPrefixLen = 0;
 
     // Q actual_seq_lens
     uint32_t actualLenQDims = 0;
@@ -279,8 +288,9 @@ public:
 
     // PSE
     bool pseShiftFlag = false;
-    uint32_t pseShiftBatch = 0U;
+    bool pseShiftByBatch = false;
     uint32_t pseShiftS1 = 0U;
+    uint32_t pseShiftS2 = 0U;
 
     // Mask
     bool attenMaskFlag = false;
@@ -293,6 +303,7 @@ public:
     // PostQuant
     bool isOutQuantPerChnOut = false;
     bool isOutQuantTypeBf16 = false;
+    bool isOutQuantEnable = false;
 
     // Others Flag
     bool batchContinuousFlag = true;

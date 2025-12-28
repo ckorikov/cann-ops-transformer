@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file fia_tiling_shape.cpp
@@ -71,6 +71,13 @@ static bool not_equal_to(const int64_t& a, const int64_t& b)
     return (a != b);
 }
 
+static bool ignore_input(const int64_t& a, const int64_t& b)
+{
+    (void)a;
+    (void)b;
+    return true;
+}
+
 static ge::graphStatus GetLayoutAxes(std::vector<FiaAxis> &layoutAxes, const FiaLayout &layout,
     const std::string &opName, const std::string &funcName)
 {
@@ -90,7 +97,9 @@ const std::map<FiaCompareType, CompareFunc<int64_t>> FiaTilingShapeCompare::comp
     {FiaCompareType::GREATER_EQUAL, greater_equal},
     {FiaCompareType::LESS, less},
     {FiaCompareType::LESS_EQUAL, less_equal},
-    {FiaCompareType::NOT_EQUAL, not_equal_to}
+    {FiaCompareType::NOT_EQUAL, not_equal_to},
+    {FiaCompareType::IGNORE_INPUT, ignore_input}
+    
 };
 
 static std::string GetShapeStr(gert::Shape shape)
@@ -158,9 +167,9 @@ ge::graphStatus FiaTilingShape::CheckHasAxis(const FiaAxis &axis, const std::str
     }
 
     if ((axis == FiaAxis::D)) {
-        if (HasD()) {
+        if (HasShapeD()) {
             return ge::GRAPH_SUCCESS;
-        } else if (!HasH()) {
+        } else if (!HasShapeH()) {
             OP_LOGE(opName_, "[%s] %s's layout is %s, do not have D and H.",
                 funcName.c_str(), name_.c_str(), LayoutToSerialString(layout_).c_str());
             return ge::GRAPH_FAILED;
@@ -170,9 +179,9 @@ ge::graphStatus FiaTilingShape::CheckHasAxis(const FiaAxis &axis, const std::str
         } else if (N_ == 0) {
             OP_LOGE(opName_, "[%s] %s's N is 0.", funcName.c_str(), name_.c_str());
             return ge::GRAPH_FAILED;
-        } else if (GetH() % N_ != 0) {
+        } else if (GetShapeH() % N_ != 0) {
             OP_LOGE(opName_, "[%s] %s's H(%ld) should be an integer multiple of N(%ld).",
-            funcName.c_str(), name_.c_str(), GetH(), N_);
+            funcName.c_str(), name_.c_str(), GetShapeH(), N_);
             return ge::GRAPH_FAILED;
         }
     } else if (HasAxis(axis)) {

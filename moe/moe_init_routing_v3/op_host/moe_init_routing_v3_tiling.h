@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file moe_init_routing_v3_tiling.h
@@ -77,6 +77,7 @@ TILING_DATA_FIELD_DEF(int64_t, lastCoreLastLoopIndicesElements);
 TILING_DATA_FIELD_DEF(int64_t, colsLoops);
 TILING_DATA_FIELD_DEF(int64_t, perLoopCols);
 TILING_DATA_FIELD_DEF(int64_t, lastLoopCols);
+TILING_DATA_FIELD_DEF(int64_t, activeNum);
 END_TILING_DATA_DEF;
 REGISTER_TILING_DATA_CLASS(MoeV3GatherOutComputeTilingDataOp, MoeV3GatherOutComputeTilingData)
 
@@ -94,6 +95,12 @@ TILING_DATA_FIELD_DEF(int64_t, isInputScale);
 TILING_DATA_FIELD_DEF(int64_t, isInputOffset);
 TILING_DATA_FIELD_DEF(int64_t, expertNum);
 TILING_DATA_FIELD_DEF(int64_t, expertTokensNumType);
+TILING_DATA_FIELD_DEF(int64_t, expertTokensNumFlag);
+TILING_DATA_FIELD_DEF(int64_t, gatherFirstFullload);
+TILING_DATA_FIELD_DEF(int64_t, epFullload);
+TILING_DATA_FIELD_DEF(int64_t, activeNum);
+TILING_DATA_FIELD_DEF(int64_t, dropPadMode);
+TILING_DATA_FIELD_DEF(int64_t, smoothType);
 TILING_DATA_FIELD_DEF_STRUCT(MoeV3VBSComputeTilingData, vbsComputeParamsOp);
 TILING_DATA_FIELD_DEF_STRUCT(MoeV3VMSMiddleComputeTilingData, vmsMiddleComputeParamsOp);
 TILING_DATA_FIELD_DEF_STRUCT(MoeV3SortOutComputeTilingData, sortOutComputeParamsOp);

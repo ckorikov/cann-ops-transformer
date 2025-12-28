@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file moe_quant_gather_out.h
@@ -39,6 +39,7 @@ private:
     __aicore__ inline void Compute();
     __aicore__ inline void CopyOut(int64_t progress, int64_t colsProgress, LocalTensor<int32_t>& indicesLocal);
     __aicore__ inline void UpdataOffset(int64_t progress, int64_t colsProgress);
+    __aicore__ inline void ParseTilingData(const MoeInitRoutingQuantTilingData* tilingData);
 
 private:
     TPipe* pipe;
@@ -185,11 +186,9 @@ __aicore__ inline void MoeGatherOut<T>::CopyOut(
 }
 
 template <typename T>
-__aicore__ inline void MoeGatherOut<T>::Init(
-    GM_ADDR inputActivations, GM_ADDR expandSrcToDstRow, GM_ADDR expandedActivations,
-    const MoeInitRoutingQuantTilingData* tilingData, TPipe* tPipe)
+__aicore__ inline void MoeGatherOut<T>::ParseTilingData(
+    const MoeInitRoutingQuantTilingData* tilingData)
 {
-    this->pipe = tPipe;
     this->blockIdx = GetBlockIdx();
     this->gatherOutTilingData = &(tilingData->gatherOutComputeParamsOp);
 
@@ -218,6 +217,16 @@ __aicore__ inline void MoeGatherOut<T>::Init(
         this->perLoopK = this->gatherOutTilingData->perCorePerLoopK;
         this->lastLoopK = this->gatherOutTilingData->perCoreLastLoopK;
     }
+}
+
+template <typename T>
+__aicore__ inline void MoeGatherOut<T>::Init(
+    GM_ADDR inputActivations, GM_ADDR expandSrcToDstRow, GM_ADDR expandedActivations,
+    const MoeInitRoutingQuantTilingData* tilingData, TPipe* tPipe)
+{
+    this->pipe = tPipe;
+    ParseTilingData(tilingData);
+
     if (this->gatherOutTilingData->splitFlag == SPLIT_N) {
         inputActivationsGm.SetGlobalBuffer(
             (__gm__ T*)inputActivations + this->blockIdx * this->gatherOutTilingData->perCoreRows * this->cols,
@@ -232,10 +241,8 @@ __aicore__ inline void MoeGatherOut<T>::Init(
             tilingData->n * tilingData->k);
     }
 
-    expandedActivationsGm.SetGlobalBuffer(
-        (__gm__ int8_t*)expandedActivations, tilingData->n * tilingData->k * this->cols);
-    pipe->InitBuffer(
-        inputActivationsCopyInQueue, BUFFER_NUM,
+    expandedActivationsGm.SetGlobalBuffer((__gm__ int8_t*)expandedActivations, this->n * this->k * this->cols);
+    pipe->InitBuffer(inputActivationsCopyInQueue, BUFFER_NUM,
         this->perLoopRows * Align(this->maxColsOneLoop, sizeof(int8_t)) * sizeof(T));
     pipe->InitBuffer(
         floatQueue, BUFFER_NUM, this->perLoopRows * Align(this->maxColsOneLoop, sizeof(int8_t)) * sizeof(float));

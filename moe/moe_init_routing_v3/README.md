@@ -5,7 +5,7 @@
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √     |
 
 ## 功能说明
 
@@ -40,6 +40,7 @@
   4.计算quant结果：
     - 动态quant：
         - 若不输入scale：
+
             $$
             dynamicQuantScaleOutOptional = row\_max(abs(x)) / 127
             $$
@@ -47,7 +48,9 @@
             $$
             quantResult = round(x / dynamicQuantScaleOutOptional)
             $$
+
         - 若输入scale:
+
             $$
             dynamicQuantScaleOutOptional = row\_max(abs(x * scaleOptional)) / 127
             $$
@@ -63,6 +66,7 @@
     $$
 
   6.expandedRowIdxOut的有效元素数量availableIdxNum计算方式为，expertIdx中activeExpertRangeOptional范围内的元素的个数
+
     $$
     availableIdxNum = |\{x\in expertIdx| expert\_start \le x<expert\_end \ \}|
     $$
@@ -233,9 +237,9 @@
 - 其他限制：该算子支持两种性能模板，进入两种性能模板需要分别额外满足以下条件，不满足条件则进入通用模板：
 
   - 进入低时延性能模板需要同时满足以下条件：
-    - x、expertIdx、scaleOptional 输入 Shape 要求分别为：(1, 7168)、(1, 8)、(256, 7168)
-    - x 数据类型要求：BFLOAT16
-    - 属性要求：activeExpertRangeOptional=[0, 256]、 quantMode=1、expertTokensNumType=2、expertNum=256
+    - x、expertIdx、scaleOptional 输入 Shape 要求分别为：(1, 7168)、(1, 8)、(256, 7168)。
+    - x 数据类型要求：BFLOAT16。
+    - 属性要求：activeExpertRangeOptional=[0, 256]、 quantMode=1、expertTokensNumType=2、expertNum=256。
 
   - 进入大 batch 性能模板需要同时满足以下条件：
     - NUM_ROWS范围为[384, 8192]

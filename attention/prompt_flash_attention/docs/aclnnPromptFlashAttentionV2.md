@@ -2,14 +2,14 @@
 
 ## 产品支持情况
 
-|产品      | 是否支持 |
-|:----------------------------|:-----------:|
-|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+| 产品                                                         |  是否支持   |
+| :----------------------------------------------------------- |:-------:|
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    ×    |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √    |
 
 ## 功能说明
 
--   算子功能：全量推理场景的FlashAttention算子，相较于[aclnnPromptFlashAttention](aclnnPromptFlashAttention.md)接口，此接口新增了支持sparse优化、支持actualSeqLengthsKv优化、支持int8量化功能。
+-   算子功能：全量推理场景的FlashAttention算子，相较于[aclnnPromptFlashAttention](PromptFlashAttention.md)接口，此接口新增了支持sparse优化、支持actualSeqLengthsKv优化、支持int8量化功能。
 -   计算公式：
 
     self-attention（自注意力）利用输入样本自身的关系构建了一种注意力模型。其原理是假设有一个长度为$n$的输入样本序列$x$，$x$的每个元素都是一个$d$维向量，可以将每个$d$维向量看作一个token embedding，将这样一条序列经过3个权重矩阵变换得到3个维度为$n*d$的矩阵。
@@ -153,7 +153,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td><ul><li>不指定序列长度可传入nullptr。</li></ul>
             <ul><li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
-        <td>TND</td>
+        <td>ND</td>
         <td>1</td>
         <td>-</td>
     </tr>
@@ -164,7 +164,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td><ul><li>不指定序列长度可传入nullptr。</li></ul>
             <ul><li>综合约束请见<a href="#约束说明">约束说明</a>。</li></ul></td>
         <td>INT64</td>
-        <td>TND</td>
+        <td>ND</td>
         <td>1</td>
         <td>-</td>
     </tr>
@@ -185,7 +185,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td>BMM2前面的量化因子。</td>
         <td><ul><li>支持per-tensor。 </li></ul>
             <ul><li>不使用该功能时可传入nullptr。</li></ul></td>
-        <td>UINT64、FLOAT32、nullptr</td>
+        <td>FLOAT32、nullptr</td>
         <td>ND</td>
         <td>1</td>
         <td>-</td>
@@ -207,7 +207,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td>输出的量化因子。</td>
         <td><ul><li>支持per-tensor，per-channel。 </li></ul>
             <ul><li>不使用该功能时可传入nullptr。</li></ul></td>
-        <td>UINT64、FLOAT32、nullptr</td>
+        <td>FLOAT32、BFLOAT16、nullptr</td>
         <td>ND</td>
         <td>1</td>
         <td>-</td>
@@ -218,7 +218,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td>输出的量化偏移。</td>
         <td><ul><li>支持per-tensor，per-channel。 </li></ul>
             <ul><li>不使用该功能时可传入nullptr。</li></ul></td>
-        <td>FLOAT32、nullptr</td>
+        <td>FLOAT32、BFLOAT16、nullptr</td>
         <td>ND</td>
         <td>1</td>
         <td>-</td>
@@ -252,7 +252,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
         <td>INT64</td>
         <td>-</td>
         <td>1</td>
-        <td></td>
+        <td>-</td>
     </tr>
     <tr>
         <td>nextTokens</td>
@@ -402,7 +402,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
     <tr>
         <td>stream</td>
         <td>输入</td>
-        <td>指定执行任务的AscendCL stream流。</td>
+        <td>指定执行任务的Stream。</td>
     </tr>
     </tbody>
     </table>
@@ -414,13 +414,15 @@ aclnnStatus aclnnPromptFlashAttentionV2(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnPromptFlashAttentionV2默认确定性实现。
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 
 - 入参为空的处理：算子内部需要判断参数query是否为空，如果是空则直接返回。参数query不为空Tensor，参数key、value为空tensor（即S2为0），则attentionOut填充为全零。attentionOut为空Tensor时，AscendCLNN框架会处理。其余在上述参数说明中标注了“可传入nullptr”的入参为空指针时，不进行处理。
 
 - query，key，value输入，功能使用限制如下：
 
-  - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：
+  - Atlas A2 训练系列产品/Atlas A2 推理系列产品：
   
     - 支持B轴小于等于65536（64k），输入类型包含INT8时D轴非32对齐或输入类型为FLOAT16或BFLOAT16时D轴非16对齐时，B轴仅支持到128；
 
@@ -479,21 +481,22 @@ aclnnStatus aclnnPromptFlashAttentionV2(
             </tbody>
             </table>
     - 支持D轴小于等于512。inputLayout为BSH或者BSND时，要求N*D小于65535。
+    
   
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT16、BFLOAT16、INT8
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持FLOAT16、BFLOAT16、INT8
   
 - pseShift功能使用限制如下：
   
   - 预留参数，暂未使用。Device侧的aclTensor，数据类型与query的数据类型需满足数据类型推导规则。目前该参数会被强制设置为nullptr。
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT16、BFLOAT16
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持FLOAT16、BFLOAT16
   
 - attenMask功能使用限制如下：
   
   - 输入shape限制：如果不使用该功能可传入nullptr。通常建议shape输入Q_S,KV_S;B,Q_S,KV_S;1,Q_S,KV_S;B,1,Q_S,KV_S;1,1,Q_S,KV_S，其中Q_S为query的shape中的S，KV_S为key和value的shape中的S，对于attenMask的KV_S为非32对齐的场景，建议padding到32对齐来提高性能，多余部分填充成1。
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持BOOL、INT8和UINT8。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持BOOL、INT8和UINT8。
   - 当attenMask数据类型取INT8、UINT8时，其tensor中的值需要为0或1。
   
 - actualSeqLengths，actualSeqLengthsKv输入，功能使用限制如下：
@@ -503,32 +506,32 @@ aclnnStatus aclnnPromptFlashAttentionV2(
     - 对于actualSeqLengthsKv，如果不指定序列长度，可以传入nullptr，这表示有效序列长度与key/value的shape中的S长度相同。需要注意的是，该参数中每个batch的有效序列长度不应超过key/value中对应batch的序列长度。
   - 输入属性限制：关于seqlen的传入长度有以下规则：当传入长度为1时，所有Batch将使用相同的seqlen；当传入长度大于或等于Batch数量时，将取seqlen的前Batch个数值；其他长度的传入将不被支持。
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持INT64。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持INT64。
   
 - deqScale1，deqScale2输入，功能使用限制如下：
   
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持UINT64、FLOAT32。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持UINT64、FLOAT32。
   
-- quantScale1，quantScale2输入，功能使用限制如下：
-  
-  - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT32。
-  
-- quantOffset2输入，功能使用限制如下：
+- quantScale1输入，功能使用限制如下：
   
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT32。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持FLOAT32。
+  
+- quantScale2，quantOffset2输入，功能使用限制如下：
+  
+  - 输入数据类型限制：
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持FLOAT32和BFLOAT16。
   
 - preTokens输入，功能使用限制如下：
   
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持INT64。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持INT64。
   
 - nextTokens输入，功能使用限制如下：
   
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持INT64。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持INT64。
   
 - inputLayout输入，功能使用限制如下：
   
@@ -540,11 +543,11 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   
   - Host侧的int，代表key、value中head个数，用于支持GQA（Grouped-Query Attention，分组查询注意力）场景。用户不特意指定时建议传入0，表示key/value和query的head个数相等。限制：需要满足numHeads整除numKeyValueHeads，numHeads与numKeyValueHeads的比值不能大于64，且在BSND、BNSD、BNSD_BSND场景下，需要与shape中的key/value的N轴shape值相同，否则报错。
   - 输入数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持INT64。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持INT64。
   
 - sparseMode输入，功能使用限制如下：
   
-  - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：
+  - Atlas A2 训练系列产品/Atlas A2 推理系列产品：
     - sparseMode为0时，代表defaultMask模式，如果attenmask未传入则不做mask操作，忽略preTokens和nextTokens（内部赋值为INT_MAX）；如果传入，则需要传入完整的attenmask矩阵（S1 * S2），表示preTokens和nextTokens之间的部分需要计算。
     - sparseMode为1时，代表allMask，必须传入完整的attenmask矩阵（S1 * S2）。
     - sparseMode为2时，代表leftUpCausal模式的mask，需要传入优化后的attenmask矩阵（2048*2048）。
@@ -552,11 +555,12 @@ aclnnStatus aclnnPromptFlashAttentionV2(
     - sparseMode为4时，代表band模式的mask，需要传入优化后的attenmask矩阵（2048*2048）。
     - sparseMode为5、6、7、8时，分别代表prefix、global、dilated、block_local，**均暂不支持**。用户不特意指定时建议传入0。
   
+  
 - attentionOut输出，功能使用限制如下：
   
   - shape限制：当inputLayout为BNSD_BSND时，输入query的shape是BNSD，输出shape为BSND；其余情况该入参的shape需要与入参query的shape保持一致。
   - 数据类型限制：
-    - Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件：数据类型支持FLOAT16、BFLOAT16、INT8。
+    - Atlas A2 训练系列产品/Atlas A2 推理系列产品：数据类型支持FLOAT16、BFLOAT16、INT8。
   
 - 其它约束：
   - int8量化相关入参数量与输入、输出数据格式的综合限制：
@@ -782,7 +786,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
 }
 
 int Init(int32_t deviceId, aclrtStream* stream) {
-    // 固定写法，AscendCL初始化
+    // 固定写法，资源初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);

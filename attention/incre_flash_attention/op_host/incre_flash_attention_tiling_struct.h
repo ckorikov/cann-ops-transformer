@@ -1,12 +1,12 @@
 /**
- * This program is free software, you can redistribute it and/or modify.
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file incre_flash_attention_tiling_struct.h
@@ -87,6 +87,7 @@ struct TilingIndexes {
 enum class KvCacheLayout : uint32_t {
     KV_CACHE_BSH = 0,
     KV_CACHE_BNSD = 1,
+    KV_CACHE_NZ = 2,
 };
 
 enum class TilingInOutMode : uint32_t {
@@ -100,6 +101,12 @@ enum class TilingInOutMode : uint32_t {
     FP16_FP16_SPLITKV = 7,
     BF16_INT8 = 8,
     INT8_BF16 = 9,
+    FP16_FP8_E4M3FN = 10,
+    FP16_FP8_E5M2 = 11,
+    FP16_HIFLOAT8 = 12,
+    BF16_FP8_E4M3FN = 13,
+    BF16_FP8_E5M2 = 14,
+    BF16_HIFLOAT8 = 15,
 };
 
 enum class IfaPerfMode : uint32_t {
@@ -138,6 +145,19 @@ enum class IfaMaskType : uint32_t {
     MASK_NORM = 1,
     MASK_SWA_NORM = 2,
     MASK_SWA_COMPRESS = 3,
+};
+
+enum class IfaPseShapeType : uint8_t {
+    PSE_B_N2_G_S1_S2 = 0,
+    PSE_B_N2_G_1_S2 = 1,
+    PSE_B_N2_G_SLOPE = 2,
+    PSE_1_N2_G_SLOPE = 3
+};
+
+enum class IfaPseType : int64_t {
+    PSE_OUTER_MUL_ADD_TYPE = 0,
+    PSE_INNER_MUL_ADD_TYPE = 2,
+    PSE_INNER_MUL_ADD_SQRT_TYPE = 3,
 };
 
 } // namespace optiling

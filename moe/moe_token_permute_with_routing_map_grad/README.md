@@ -1,11 +1,11 @@
-# aclnnMoeTokenPermuteWithRoutingMapGrad
+# MoeTokenPermuteWithRoutingMapGrad
 
 ## 产品支持情况
 
 | 产品                                                         | 是否支持 |
 | :----------------------------------------------------------- | :------: |
 | <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+| <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term> |    √     |
 
 ## 功能说明
 
@@ -38,6 +38,7 @@ $$
   $$
   probsGradOutOptional = maskedscatter(probsGradOutOptional,routingMap,permutedProbsOutputGradOptional)
   $$
+
 - probs为None：
   
   $$
@@ -114,14 +115,14 @@ $$
   <tr>
    <td>tokensGradOut</td>
    <td>输出</td>
-   <td>permutedTokens的梯度。</td>
+   <td>输入permutedTokens的梯度。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>
   <tr>
    <td>probsGradOutOptional</td>
    <td>输出</td>
-   <td>permutedProbs的梯度，可选输出。</td>
+   <td>输入probs的梯度，可选输出。</td>
    <td>BFLOAT16、FLOAT16、FLOAT32</td>
    <td>ND</td>
   </tr>

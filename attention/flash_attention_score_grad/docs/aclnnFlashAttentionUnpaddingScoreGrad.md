@@ -1,11 +1,15 @@
 # aclnnFlashAttentionUnpaddingScoreGrad
 
+[📄 查看源码](https://gitcode.com/cann/ops-transformer/tree/master/attention/flash_attention_score_grad)
+
 
 ## 产品支持情况
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
+|<term>昇腾 950PR/950DT AI处理器</term>|      ×     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品</term>|      √     |
+|<term>Atlas A2 推理系列产品</term>|      ×     |
 
 
 ## 功能说明
@@ -491,6 +495,8 @@ aclnnStatus aclnnFlashAttentionUnpaddingScoreGrad(
 
 ## 约束说明
 
+- 确定性计算：
+  - aclnnFlashAttentionUnpaddingScoreGrad默认非确定性实现，支持通过aclrtCtxSetSysParamOpt开启确定性。
 - 该接口与PyTorch配合使用时，需要保证CANN相关包与PyTorch相关包的版本匹配。
 - 输入query、key、value、dy的B：batchsize必须相等；inputLayout必须一致。
 - 输入query、key、value的D：Head-Dim必须满足(qD == kD && kD >= vD)。

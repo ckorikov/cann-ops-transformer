@@ -5,7 +5,7 @@
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
 
 ## 功能说明
 
@@ -14,7 +14,7 @@
 
 $$
 compressIdx=(s-compressBlockSize)/stride\\ 
-ouputCacheRef[slotMapping[i]] = input[compressIdx*stride : compressIdx*stride+compressBlockSize]*weight[:]
+outputCacheRef[slotMapping[i]] = input[compressIdx*stride : compressIdx*stride+compressBlockSize]*weight[:]
 $$
 
 ## 函数原型
@@ -322,7 +322,7 @@ aclnnStatus aclnnNsaCompressWithCache(
     <tr>
       <td>stream</td>
       <td>输入</td>
-      <td>指定执行任务的AscendCL Stream流。</td>
+      <td>指定执行任务的Stream。</td>
     </tr>
   </tbody>
   </table>
@@ -332,8 +332,10 @@ aclnnStatus aclnnNsaCompressWithCache(
 
 ## 约束说明
 
-* outputCache的N和D和input一致，而且要满足result_len>(blockNum*pageBlockSize-compressBlockSize)/compressStride。
-* page attention场景下input的shape支持[blockNum,pageBlockSize,N,D]，其余场景下input的shape支持[T,N,D]。
+- 确定性计算：
+  - aclnnNsaCompressWithCache默认确定性实现。
+- outputCache的N和D和input一致，而且要满足result_len>(blockNum*pageBlockSize-compressBlockSize)/compressStride。
+- page attention场景下input的shape支持[blockNum,pageBlockSize,N,D]，其余场景下input的shape支持[T,N,D]。
 
 ## 调用示例
 
@@ -362,7 +364,7 @@ int64_t GetShapeSize(const std::vector<int64_t>& shape) {
     return shape_size;
 }
 int Init(int32_t deviceId, aclrtStream* stream) {
-    // 固定写法，AscendCL初始化
+    // 固定写法，资源初始化
     auto ret = aclInit(nullptr);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
     ret = aclrtSetDevice(deviceId);

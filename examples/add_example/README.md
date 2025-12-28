@@ -5,7 +5,7 @@
 | 产品 | 是否支持 |
 | ---- | :----:|
 |Atlas A3 训练系列产品/Atlas A3 推理系列产品|√|
-|Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件|√|
+|Atlas A2 训练系列产品/Atlas A2 推理系列产品|√|
 
 ## 功能说明
 
@@ -66,4 +66,4 @@ $$
 
 | 调用方式 | 调用样例                                                                   | 说明                                                           |
 |--------------|------------------------------------------------------------------------|--------------------------------------------------------------|
-| 图模式调用 | [test_geir_add_example](./examples/test_geir_add_example.cpp)   | 通过[算子IR](./op_graph/add_example_proto.h)构图方式调用AddExample算子。 |
+| aclnn调用 | [test_aclnn_add_example](./examples/test_aclnn_add_example.cpp)   | 通过直调的方式调用AddExample算子。 |

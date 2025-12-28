@@ -2,10 +2,10 @@
 
 ## 产品支持情况
 
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
+|产品             |  是否支持  |
+|:-------------------------|:----------:|
+|  <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>   |     √    |
+|  <term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>     |     √    |
 
 ## 功能说明
 
@@ -13,25 +13,34 @@
 -   计算公式：
 
     对输入做Sigmoid或者SoftMax：
+
     $$
     if normType==1:
         normOut=Sigmoid(x)
     else:
         normOut=SoftMax(x)
     $$
+
     如果bias不为空：
+
     $$
     normOut = normOut + bias
     $$
+
     对计算结果按照groupCount进行分组，每组按照groupSelectMode取max或topk2的sum值对group进行排序，取前kGroup个组：
+
     $$
     groupOut, groupId = TopK(ReduceSum(TopK(Split(normOut, groupCount), k=2, dim=-1), dim=-1),k=kGroup)
     $$
+
     根据上一步的groupId获取normOut中对应的元素，将数据再做TopK，得到expertIdxOut的结果：
+
     $$
     y,expertIdxOut=TopK(normOut[groupId, :],k=k)
     $$
+
     对y按照输入的routedScalingFactor和eps参数进行计算，得到yOut的结果：
+
     $$
     yOut = y / (ReduceSum(y, dim=-1)+eps)*routedScalingFactor
     $$
@@ -145,7 +154,7 @@ aclnnStatus aclnnMoeGatingTopK(
       <tr>
         <td>groupSelectMode</td>
         <td>输入</td>
-        <td>分组排序方式。0表示使用最大值对group进行排序, 1表示使用topk2的sum值对group进行排序。</td>
+        <td>分组排序方式。</td>
         <td>无</td>
         <td>INT64</td>
         <td>-</td>
@@ -165,7 +174,7 @@ aclnnStatus aclnnMoeGatingTopK(
       <tr>
         <td>normType</td>
         <td>输入</td>
-        <td>norm函数类型。0表示使用Softmax函数，1表示使用Sigmoid函数。</td>
+        <td>norm函数类型。</td>
         <td>无</td>
         <td>INT64</td>
         <td>-</td>
@@ -175,7 +184,7 @@ aclnnStatus aclnnMoeGatingTopK(
       <tr>
         <td>outFlag</td>
         <td>输入</td>
-        <td>表示是否输出norm操作结果。true表示输出，false表示不输出。</td>
+        <td>表示是否输出norm操作结果。</td>
         <td>无</td>
         <td>BOOL</td>
         <td>-</td>
@@ -339,13 +348,20 @@ aclnnStatus aclnnMoeGatingTopK(
     返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
-  * 输入shape限制：
-      * x最后一维（即专家数）要求不大于2048。 
-  * 输入值域限制：
-      * 要求1 <= k <= x_shape[-1] / groupCount * kGroup。
-      * 要求1 <= kGroup <= groupCount，并且kGroup * x_shape[-1] / groupCount的值要大于等于k。
-      * 要求groupCount > 0，x_shape[-1]能够被groupCount整除且整除后的结果大于2，并且整除的结果按照32个数对齐后乘groupCount的结果不大于2048。
-      * renorm仅支持0，表示先进行norm操作，再计算topk。
+- 确定性计算：
+  - aclnnMoeGatingTopK默认确定性实现。
+
+* 输入shape限制：
+    * x最后一维（即专家数）要求不大于2048。 
+* 输入值域限制：
+    * 要求1 <= k <= x_shape[-1] / groupCount * kGroup。
+    * 要求1 <= kGroup <= groupCount，并且kGroup * x_shape[-1] / groupCount的值要大于等于k。
+    * 要求groupCount > 0，x_shape[-1]能够被groupCount整除且整除后的结果大于groupSelectMode，并且整除的结果按照32个数对齐后乘groupCount的结果不大于2048。
+    * renorm仅支持0，表示先进行norm操作，再计算topk。
+* 其他限制：
+    * groupSelectMode取值0和1，0表示使用最大值对group进行排序, 1表示使用topk2的sum值对group进行排序。
+    * normType取值0和1，0表示使用Softmax函数，1表示使用Sigmoid函数。
+    * outFlag取值true和false，true表示输出，false表示不输出。
 
 ## 调用示例
 
@@ -390,7 +406,7 @@ std::vector<float> GenerateRandomFloats(int64_t count) {
     return result;
 }
 int Init(int32_t deviceId, aclrtStream* stream) {
-  // 固定写法，AscendCL初始化
+  // 固定写法，资源初始化
   auto  ret = aclInit(nullptr);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclInit failed. ERROR: %d\n", ret); return ret);
   ret = aclrtSetDevice(deviceId);
