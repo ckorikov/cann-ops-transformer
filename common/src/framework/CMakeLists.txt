@@ -9,4 +9,6 @@
 # the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
 
-add_onnx_plugin_sources()
+if (BUILD_OPEN_PROJECT AND NOT BUILD_OPS_RTY_KERNEL)
+    add_onnx_plugin_sources()
+endif()
