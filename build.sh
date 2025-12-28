@@ -364,6 +364,15 @@ function clean_build_out()
     mkdir -p ${BUILD_OUT_DIR}
 }
 
+function clean_third_party()
+{
+    THIRD_PARTY_PATH=${BASE_PATH}/third_party
+    if [ -d "${THIRD_PARTY_PATH}" ]; then
+        rm -rf ${THIRD_PARTY_PATH}/abseil-cpp
+        rm -rf ${THIRD_PARTY_PATH}/ascend_protobuf
+    fi
+}
+
 function cmake_config()
 {
     local extra_option="$1"
@@ -1123,6 +1132,7 @@ while [[ $# -gt 0 ]]; do
     --make_clean)
         clean
         clean_build_out
+        clean_third_party
         shift
         ;;
     --cann_3rd_lib_path=*)

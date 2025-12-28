@@ -655,7 +655,7 @@ function(protobuf_generate_external comp c_var h_var)
       COMMAND ${CMAKE_COMMAND} -E make_directory "${proto_output_path}"
       COMMAND ${CMAKE_COMMAND} -E echo "generate proto cpp_out ${comp} by ${abs_file}"
       COMMAND ${Protobuf_PROTOC_EXECUTABLE} -I${file_dir} ${extra_option} --cpp_out=${proto_output_path} ${abs_file}
-      DEPENDS ${abs_file} ascend_protobuf_build_transformer json
+      DEPENDS ${abs_file} ascend_protobuf_build_transformer
       COMMENT "Running C++ protocol buffer compiler on ${file}" VERBATIM)
 
   endforeach()
@@ -705,6 +705,7 @@ function(add_onnx_plugin_modules)
               $<BUILD_INTERFACE:dlog_headers>
               $<$<TARGET_EXISTS:ops_base_util_objs>:$<TARGET_OBJECTS:ops_base_util_objs>>
               $<$<TARGET_EXISTS:ops_base_infer_objs>:$<TARGET_OBJECTS:ops_base_infer_objs>>
+              json
       )
   endif()
 
