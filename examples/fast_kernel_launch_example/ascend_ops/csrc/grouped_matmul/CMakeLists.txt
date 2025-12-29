@@ -26,7 +26,7 @@ if (BUILD_TORCH_OPS)
     set_source_files_properties(
         ${OPERATOR_MAIN_SOURCES} PROPERTIES
         LANGUAGE CXX
-        COMPILE_FLAGS "--cce-soc-version=Ascend910B1 --cce-soc-core-type=VecCore --cce-auto-sync -xcce"
+        COMPILE_FLAGS "--cce-soc-version=Ascend910B1 --cce-soc-core-type=VecCore --cce-auto-sync --cce-aicore-input-parameter-size=4096 -xcce"
     )
 
     add_library(${OPERATOR_TARGET} OBJECT ${OPERATOR_MAIN_SOURCES})

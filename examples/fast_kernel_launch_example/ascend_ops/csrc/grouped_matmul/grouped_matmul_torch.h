@@ -13,7 +13,6 @@
  * \file grouped_matmul_torch.h
  * \brief
  */
-#include <variant>
 #include <ATen/ATen.h>
 #include <vector>
 #include <torch/all.h>
@@ -322,24 +321,29 @@ ElementType *get_first_tensor_address_by_type(const TensorType &input, bool allo
     return tensor_ptr ? tensor_ptr->data_ptr<ElementType>() : nullptr;
 }
 
-template <typename TensorType>
-using TensorPtrVariant = std::variant<float*, at::Half*, at::BFloat16*>;
+// template <typename TensorType>
+// using TensorPtrVariant = std::variant<float*, at::Half*, at::BFloat16*>;
 
+// template <typename TensorType>
+// void* get_first_tensor_address(c10::ScalarType dataType, const TensorType &input, bool allow_empty = false)
+// {
+//     switch (dataType) {
+//         case at::kFloat:
+//             return get_first_tensor_address_by_type<TensorType, float>(input, allow_empty);
+//             break;
+//         case at::kHalf:
+//             return get_first_tensor_address_by_type<TensorType, at::Half>(input, allow_empty);
+//             break;
+//         case at::kBFloat16:
+//             return get_first_tensor_address_by_type<TensorType, at::BFloat16>(input, allow_empty);
+//             break;
+//         default:
+//             TORCH_CHECK(false, "Unsupported data type");
+//             return static_cast<float*>(nullptr);
+//     }
+// }
 template <typename TensorType>
-TensorPtrVariant<TensorType> get_first_tensor_address(c10::ScalarType dataType, const TensorType &input, bool allow_empty = false)
+void* get_first_tensor_address(c10::ScalarType dataType, const TensorType &input, bool allow_empty = false)
 {
-    switch (dataType) {
-        case at::kFloat:
-            return get_first_tensor_address_by_type<TensorType, float>(input, allow_empty);
-            break;
-        case at::kHalf:
-            return get_first_tensor_address_by_type<TensorType, at::Half>(input, allow_empty);
-            break;
-        case at::kBFloat16:
-            return get_first_tensor_address_by_type<TensorType, at::BFloat16>(input, allow_empty);
-            break;
-        default:
-            TORCH_CHECK(false, "Unsupported data type");
-            return static_cast<float*>(nullptr);
-    }
+    return get_first_tensor_address_by_type<TensorType, void>(input, allow_empty);
 }
