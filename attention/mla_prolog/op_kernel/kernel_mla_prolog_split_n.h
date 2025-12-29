@@ -590,6 +590,8 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::CubeBufferInit() {
     SetFlag<HardEvent::FIX_M>(L0C_EVENT0);
     SetFlag<HardEvent::FIX_M>(L0C_EVENT1);
 
+    SetFlag<HardEvent::MTE1_MTE2>(SCALE_EVENT);
+
     bufParam_.aL0BufAddr = aBufL0_.GetBufferAddr(aBufL0_.Get<mmInputType>().GetBufferHandle());
     bufParam_.bL0BufAddr = bBufL0_.GetBufferAddr(bBufL0_.Get<mmInputType>().GetBufferHandle());
     bufParam_.cL0BufAddr = cBufL0_.GetBufferAddr(cBufL0_.Get<float>().GetBufferHandle());
@@ -759,6 +761,8 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::Process() {
 
         WaitFlag<HardEvent::FIX_M>(L0C_EVENT0);
         WaitFlag<HardEvent::FIX_M>(L0C_EVENT1);
+
+        WaitFlag<HardEvent::MTE1_MTE2>(SCALE_EVENT);
     }
 }
 
@@ -1087,6 +1091,11 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::MatmulQcQr(AicOffset &aicOffs
     if (isAFullLoad) {
         SetFlag<HardEvent::MTE1_MTE2>(A_EVENT0 + (bufParam_.aL1BufIter & 1u));
         bufParam_.aL1BufIter++;
+    }
+
+    if constexpr (std::is_same<mmQcQrInputType, FP8E4M3>::value) {
+        WaitFlag<HardEvent::MTE1_MTE2>(SCALE_EVENT);
+        SetFlag<HardEvent::MTE1_MTE2>(SCALE_EVENT);
     }
 }
 
