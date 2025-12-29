@@ -15,10 +15,20 @@
 #ifndef ASCENDC_GROUPED_MATMUL_UTILS_H
 #define ASCENDC_GROUPED_MATMUL_UTILS_H
 
+
 // #include "kernel_tiling/kernel_tiling.h"
 #include "gmm/grouped_matmul/op_kernel/grouped_matmul_tiling.h"
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
+
+#ifdef FP16_MAX
+#undef FP16_MAX
+#endif
+
+#ifdef FP16_MIN
+#undef FP16_MIN
+#endif
+// #include "bfloat16.h"
 
 #if defined(ORIG_DTYPE_X) && defined(ORIG_DTYPE_WEIGHT) && defined(ORIG_DTYPE_Y) && defined(DT_INT8) && \
     defined(DT_BF16) && defined(DT_INT4)

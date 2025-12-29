@@ -48,21 +48,21 @@ __global__ __aicore__ void groupedmatmul_kernel_0(__gm__ uint8_t *x, __gm__ uint
                                                   __gm__ uint8_t *scale, __gm__ uint8_t *offset,
                                                   __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
                                                   __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
-                                                  __gm__ uint8_t *y, const GroupedMatmulTilingData *tilingData);
+                                                  __gm__ uint8_t *y, __gm__ uint8_t *workspace,  GroupedMatmulTilingData &tilingData);
 
 // COMBO_INDEX=1 对应的函数：groupedmatmul_kernel_1
 __global__ __aicore__ void groupedmatmul_kernel_1(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
                                                   __gm__ uint8_t *scale, __gm__ uint8_t *offset,
                                                   __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
                                                   __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
-                                                  __gm__ uint8_t *y, const GroupedMatmulTilingData *tilingData);
+                                                  __gm__ uint8_t *y,  __gm__ uint8_t *workspace, GroupedMatmulTilingData &tilingData);
 }
 
 typedef void (*GroupedMatmulKernelPtr)(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
                                        __gm__ uint8_t *scale, __gm__ uint8_t *offset, __gm__ uint8_t *antiquantScale,
                                        __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *groupList,
-                                       __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y,
-                                       const GroupedMatmulTilingData *tilingData);
+                                       __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y, __gm__ uint8_t *workspace,
+                                        GroupedMatmulTilingData &tilingData);
 
 // ========== 3. 构建索引→函数指针的映射表（核心） ==========
 static const std::vector<GroupedMatmulKernelPtr> KERNEL_DISPATCH_TABLE = {
@@ -94,7 +94,6 @@ void groupedmatmul_api(int comboIndex, aclrtStream stream, const at::TensorList 
     auto x_ptr = get_first_tensor_address<at::TensorList, xT>(x, false);
     auto weight_ptr = get_first_tensor_address<at::TensorList, weightT>(weight, false);
     auto y_ptr = get_first_tensor_address<at::TensorList, yT>(y, false);
-
     // 可选参数：允许为空
     auto bias_ptr = get_first_tensor_address<c10::optional<at::TensorList>, biasT>(bias, true);
     auto scale_ptr = get_first_tensor_address<c10::optional<at::TensorList>, scaleT>(scale, true);
@@ -106,14 +105,20 @@ void groupedmatmul_api(int comboIndex, aclrtStream stream, const at::TensorList 
     auto groupList_ptr = get_first_tensor_address<c10::optional<torch::Tensor>, groupListT>(groupList, true);
     auto perTokenScale_ptr =
         get_first_tensor_address<c10::optional<at::TensorList>, perTokenScaleT>(perTokenScale, true);
-
-    GroupedMatmulKernelPtr target_kernel = KERNEL_PTR_TABLE[comboIndex];
+    // 根据tiling计算出的workspaceSize申请device内存
+    uint64_t workspaceSize = 1024;
+    void* workspace_ptr = nullptr;
+    if (workspaceSize > 0) {
+        ret = aclrtMalloc(&workspace_ptr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
+        TORCH_CHECK(ret == ACL_SUCCESS, "allocate workspace failed. ERROR: %d\n", ret);
+    }
+    GroupedMatmulKernelPtr target_kernel = KERNEL_DISPATCH_TABLE[comboIndex];
     TORCH_CHECK(target_kernel != nullptr, "Kernel pointer is null for COMBO_INDEX: ", comboIndex);
-    target_kernel < <<blockDim, nullptr, stream>>(
+    target_kernel<<<blockDim, nullptr, stream>>(
                         (__gm__ uint8_t *)x_ptr, (__gm__ uint8_t *)weight_ptr, (__gm__ uint8_t *)bias_ptr,
                         (__gm__ uint8_t *)scale_ptr, (__gm__ uint8_t *)offset_ptr, (__gm__ uint8_t *)antiquantScale_ptr,
                         (__gm__ uint8_t *)antiquantOffset_ptr, (__gm__ uint8_t *)groupList_ptr,
-                        (__gm__ uint8_t *)perTokenScale_ptr, (__gm__ uint8_t *)y_ptr, &tilingData);
+                        (__gm__ uint8_t *)perTokenScale_ptr, (__gm__ uint8_t *)y_ptr, (__gm__ uint8_t *)workspace_ptr,tilingData);
 }
 
 // 定义类型列表（全局静态，编译时初始化）

@@ -17,6 +17,7 @@
 
 #include "register/tilingdata_base.h"
 #include "tiling/tiling_api.h"
+#include "kernel_tiling/kernel_tiling.h"
 
 
 #pragma once

@@ -135,7 +135,7 @@ class GMMProcess {
 
     __aicore__ inline void Init(const GMMBaseParams* __restrict gmmBaseParamsIn,
                                 const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn,
-                                GM_ADDR groupList, GM_ADDR tiling);
+                                GM_ADDR groupList);
 
     __aicore__ inline void InitStaticTiling(int32_t baseM, int32_t baseN);
 
@@ -153,7 +153,7 @@ class GMMProcess {
 
 template <typename ComputeType>
 __aicore__ inline void GMMProcess<ComputeType>::Init(const GMMBaseParams* __restrict gmmBaseParamsIn,
-    const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn, GM_ADDR groupList, GM_ADDR tiling) {
+    const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn, GM_ADDR groupList) {
     blockIdx = GetBlockIdx();
     coreIdx = blockIdx;
     int64_t coreRation = GetTaskRation();

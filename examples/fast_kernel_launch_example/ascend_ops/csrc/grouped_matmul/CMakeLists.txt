@@ -32,7 +32,15 @@ if (BUILD_TORCH_OPS)
     add_library(${OPERATOR_TARGET} OBJECT ${OPERATOR_MAIN_SOURCES})
 
     target_compile_options(${OPERATOR_TARGET} PRIVATE ${COMMON_COMPILE_OPTIONS})
-    target_include_directories(${OPERATOR_TARGET} PRIVATE ${COMMON_INCLUDE_DIRS})
+    message(STATUS "====================== COMMON_INCLUDE_DIRS  ${COMMON_INCLUDE_DIRS}")
+    message(STATUS "====================== ASCEND_HOME  ${ASCEND_HOME}")
+
+    target_include_directories(${OPERATOR_TARGET} PRIVATE 
+        ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
+        ${ASCEND_HOME}/aarch64-linux/include/aclnn
+        /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
+        ${COMMON_INCLUDE_DIRS}
+    )
 
     # # 2. 数据类型常量定义（必须与 grouped_matmul_utils.h 中的 DT_* 常量一致）
     # set(DTYPE_DEFS
@@ -60,21 +68,38 @@ if (BUILD_TORCH_OPS)
         -DCOMBO_INDEX=0
     )
 
+    # set(COMBO_DEFS_IDX_1
+    #     -DORIG_DTYPE_X=DT_BF16
+    #     -DDTYPE_X=bfloat16_t
+
+    #     -DORIG_DTYPE_WEIGHT=DT_BF16
+    #     -DDTYPE_WEIGHT=bfloat16_t
+
+    #     -DORIG_DTYPE_Y=DT_BF16
+    #     -DDTYPE_Y=half
+
+    #     -DDTYPE_BIAS=float
+    #     -DDTYPE_SCALE=uint64_t
+    #     -DDTYPE_ANTIQUANT_SCALE=half
+    #     -DCOMBO_INDEX=1
+    # )
+
     set(COMBO_DEFS_IDX_1
-        -DORIG_DTYPE_X=DT_BF16
-        -DDTYPE_X=bfloat16_t
+        -DORIG_DTYPE_X=DT_FLOAT16
+        -DDTYPE_X=half
 
-        -DORIG_DTYPE_WEIGHT=DT_BF16
-        -DDTYPE_WEIGHT=bfloat16_t
+        -DORIG_DTYPE_WEIGHT=DT_FLOAT16
+        -DDTYPE_WEIGHT=half
 
-        -DORIG_DTYPE_Y=DT_BF16
+        -DORIG_DTYPE_Y=DT_FLOAT16
         -DDTYPE_Y=half
 
-        -DDTYPE_BIAS=float
+        -DDTYPE_BIAS=half
         -DDTYPE_SCALE=uint64_t
         -DDTYPE_ANTIQUANT_SCALE=half
         -DCOMBO_INDEX=1
     )
+
 
      set(NPU_KERNEL_COMPILE_FLAGS_STR
         "--cce-soc-version=Ascend910B1"
@@ -115,8 +140,12 @@ if (BUILD_TORCH_OPS)
             ${COMBO_DEFS_IDX_${INDEX}}
             -D__CCE_AICORE__  # 平台宏
         )
-        
+        message(STATUS "====================== COMMON_INCLUDE_DIRS  ${COMMON_INCLUDE_DIRS}")
+        message(STATUS "====================== CMAKE_CURRENT_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}")
         target_include_directories(${KERNEL_TARGET} PRIVATE
+            ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
+            ${ASCEND_HOME}/aarch64-linux/include/aclnn
+            /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
             ${COMMON_INCLUDE_DIRS}
             "${CMAKE_CURRENT_SOURCE_DIR}"
         )

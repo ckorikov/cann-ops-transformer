@@ -76,7 +76,7 @@ class GMMA16W8MSDProcess{
 
     __aicore__ inline void Init(const GMMBaseParams* __restrict gmmBaseParamsIn,
                                 const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn,
-                                GM_ADDR groupList, GM_ADDR tiling);
+                                GM_ADDR groupList);
 
     __aicore__ inline void Process();
 
@@ -93,7 +93,7 @@ class GMMA16W8MSDProcess{
 
 template <typename ComputeType>
  __aicore__ inline void GMMA16W8MSDProcess<ComputeType>::Init(const GMMBaseParams* __restrict gmmBaseParamsIn,
-    const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn, GM_ADDR groupList, GM_ADDR tiling) {
+    const TCubeTiling* __restrict mmTilingDataIn, TILING_TYPE* gmmArrayAddrIn, GM_ADDR groupList) {
     blockIdx = GetBlockIdx();
     coreIdx = blockIdx;
     int64_t coreRation = GetTaskRation();
