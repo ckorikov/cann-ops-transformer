@@ -49,7 +49,7 @@
    ```bash
    msprof op ./test_aclnn_add_example
    ```
-   采集结果在本项目`examples/add_example/examples/build/bin/OPPROF_*`目录，采集完成后打印如下信息：
+   采集结果在本项目`build/OPPROF*`目录，采集完成后打印如下信息：
    
     ``` text
     Op Name: AddExample_a1532827238e1555db7b997c7bce2928_high_performance_1
