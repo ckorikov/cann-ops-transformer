@@ -36,9 +36,9 @@ if (BUILD_TORCH_OPS)
     message(STATUS "====================== ASCEND_HOME  ${ASCEND_HOME}")
 
     target_include_directories(${OPERATOR_TARGET} PRIVATE 
-        ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
-        ${ASCEND_HOME}/aarch64-linux/include/aclnn
-        /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
+        # ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
+        # ${ASCEND_HOME}/aarch64-linux/include/aclnn
+        # /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
         ${COMMON_INCLUDE_DIRS}
     )
 
@@ -112,50 +112,50 @@ if (BUILD_TORCH_OPS)
         "-D__CCE_AICORE__=220"  # 合并到编译标志，避免重复设置
     )
 
-    # 为每个下标编译独立的kernel目标文件
-    foreach(INDEX RANGE 0 1)
-        set(KERNEL_TARGET "${OPERATOR_NAME}_kernel_${INDEX}")
-        set(KERNEL_SOURCE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/grouped_matmul_kernel_${INDEX}.cpp")
+    # # 为每个下标编译独立的kernel目标文件
+    # foreach(INDEX RANGE 0 1)
+    #     set(KERNEL_TARGET "${OPERATOR_NAME}_kernel_${INDEX}")
+    #     set(KERNEL_SOURCE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/grouped_matmul_kernel_${INDEX}.cpp")
         
-        # 确保文件存在（修复空文件问题）
-        if(NOT EXISTS ${KERNEL_SOURCE_FILE})
-            # 写入有效内容：包含impl + 声明COMBO_INDEX（避免编译空文件）
-            file(WRITE ${KERNEL_SOURCE_FILE} 
-                "#define COMBO_INDEX ${INDEX}\n"
-                "#include \"grouped_matmul_kernel_impl.cpp\"\n"
-            )
-        endif()
+    #     # 确保文件存在（修复空文件问题）
+    #     if(NOT EXISTS ${KERNEL_SOURCE_FILE})
+    #         # 写入有效内容：包含impl + 声明COMBO_INDEX（避免编译空文件）
+    #         file(WRITE ${KERNEL_SOURCE_FILE} 
+    #             "#define COMBO_INDEX ${INDEX}\n"
+    #             "#include \"grouped_matmul_kernel_impl.cpp\"\n"
+    #         )
+    #     endif()
         
-        add_library(${KERNEL_TARGET} OBJECT ${KERNEL_SOURCE_FILE})
+    #     add_library(${KERNEL_TARGET} OBJECT ${KERNEL_SOURCE_FILE})
         
-        # 3. 修复：通过 target_compile_options 传递编译标志（推荐方式）
-        target_compile_options(${KERNEL_TARGET} PRIVATE
-            ${COMMON_COMPILE_OPTIONS}  # 复用公共编译选项
-            ${NPU_KERNEL_COMPILE_FLAGS_STR}  # 昇腾平台编译标志
-        )
+    #     # 3. 修复：通过 target_compile_options 传递编译标志（推荐方式）
+    #     target_compile_options(${KERNEL_TARGET} PRIVATE
+    #         ${COMMON_COMPILE_OPTIONS}  # 复用公共编译选项
+    #         ${NPU_KERNEL_COMPILE_FLAGS_STR}  # 昇腾平台编译标志
+    #     )
         
-        # 设置编译宏（包含DTYPE_DEFS和COMBO_DEFS）
-        target_compile_definitions(${KERNEL_TARGET} PRIVATE
-            ${DTYPE_DEFS}
-            ${COMBO_DEFS_IDX_${INDEX}}
-            -D__CCE_AICORE__  # 平台宏
-        )
-        message(STATUS "====================== COMMON_INCLUDE_DIRS  ${COMMON_INCLUDE_DIRS}")
-        message(STATUS "====================== CMAKE_CURRENT_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}")
-        target_include_directories(${KERNEL_TARGET} PRIVATE
-            ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
-            ${ASCEND_HOME}/aarch64-linux/include/aclnn
-            /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
-            ${COMMON_INCLUDE_DIRS}
-            "${CMAKE_CURRENT_SOURCE_DIR}"
-        )
+    #     # 设置编译宏（包含DTYPE_DEFS和COMBO_DEFS）
+    #     target_compile_definitions(${KERNEL_TARGET} PRIVATE
+    #         ${DTYPE_DEFS}
+    #         ${COMBO_DEFS_IDX_${INDEX}}
+    #         -D__CCE_AICORE__  # 平台宏
+    #     )
+    #     message(STATUS "====================== COMMON_INCLUDE_DIRS  ${COMMON_INCLUDE_DIRS}")
+    #     message(STATUS "====================== CMAKE_CURRENT_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR}")
+    #     target_include_directories(${KERNEL_TARGET} PRIVATE
+    #         # ${ASCEND_HOME}/aarch64-linux/include/aclnn/opdev/bfloat16.h
+    #         # ${ASCEND_HOME}/aarch64-linux/include/aclnn
+    #         # /data/wnc/cann/8.5.0.alpha001/aarch64-linux/ccec_compiler/lib/clang/15.0.5/include
+    #         ${COMMON_INCLUDE_DIRS}
+    #         "${CMAKE_CURRENT_SOURCE_DIR}"
+    #     )
         
-        target_sources(${OPERATOR_TARGET} PRIVATE 
-            $<TARGET_OBJECTS:${KERNEL_TARGET}>
-        )
+    #     target_sources(${OPERATOR_TARGET} PRIVATE 
+    #         $<TARGET_OBJECTS:${KERNEL_TARGET}>
+    #     )
         
-        message(STATUS "Added kernel target for combo index ${INDEX}: ${KERNEL_TARGET}")
-    endforeach()
+    #     message(STATUS "Added kernel target for combo index ${INDEX}: ${KERNEL_TARGET}")
+    # endforeach()
 
     return()
 endif()

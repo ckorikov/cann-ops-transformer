@@ -35,7 +35,7 @@ public:
         const OptionalTensorListType& antiquantOffset,
         const OptionalTensorType& groupList,
         const OptionalTensorListType& perTokenScale,
-        GMMTilingData& tilingData,  // 改为引用
+        GroupedMatmulTilingData& tilingData,  // 改为引用
         uint32_t coreNum, 
         uint64_t ubSize)
     {

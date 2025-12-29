@@ -12,11 +12,11 @@
  * \file grouped_matmul_tiling.h
  * \brief
  */
-#include <exe_graph/runtime/tiling_context.h>
-#include <graph/utils/type_utils.h>
+// #include <exe_graph/runtime/tiling_context.h>
+// #include <graph/utils/type_utils.h>
 
-#include "register/tilingdata_base.h"
-#include "tiling/tiling_api.h"
+// #include "register/tilingdata_base.h"
+// #include "tiling/tiling_api.h"
 #include "kernel_tiling/kernel_tiling.h"
 
 
