@@ -96,6 +96,7 @@ static int64_t CalMaxRowInUb(const gert::TilingContext *context, const uint64_t 
         maxRowInUb = (remainUbSize - CONSTANT_TERM) /
                      (n * INT32_DTYPE_SIZE + n / SWIGLU_REDUCE_FACTOR + FP32_DTYPE_SIZE) / DOUBLE_BUFFER;
     }
+    
     if (maxRowInUb < 1) {
         // when n > (ubSize - 72) / 19 = 10330, maxRowInUb < 1
         OP_LOGE(context->GetNodeName(), "GMM_SWIGLU_QUANT TILING: n should not be greater than 10240, now is %lu\n", n);

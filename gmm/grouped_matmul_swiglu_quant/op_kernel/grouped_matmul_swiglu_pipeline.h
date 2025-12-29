@@ -33,6 +33,7 @@ private:
     TPipe *pipe;
     const GMMSwigluBaseParams *__restrict gmmBaseParams;
     const GMMSwiglu *__restrict gmmSwiglu;
+    
     // WorkSpaceSplitConfig控制Workspace切割方式的结构体;
     WorkSpaceSplitConfig workspaceSplitConfig;
     WorkSpaceSplitConfig tempWorkspaceSplitConfig;
