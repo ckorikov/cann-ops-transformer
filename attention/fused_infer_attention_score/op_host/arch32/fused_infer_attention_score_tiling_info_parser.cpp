@@ -961,7 +961,7 @@ void FiaInfoParser::GenerateFeatureInfo(FiaTilingInfo &fiaInfo)
 
     // atten mask
     fiaInfo.attenMaskFlag = attenMaskFlag_;
-    fiaInfo.attenMaskSize = attenMaskBatchStride_;
+    fiaInfo.attenMaskBatchStride = attenMaskBatchStride_;
     fiaInfo.attenMaskStride = attenMaskStride_;
     fiaInfo.sparseMode = *opParamInfo_.sparseMode;
     // 4: only mla noquant & band mode suppport slidingFlag
