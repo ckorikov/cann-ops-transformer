@@ -52,6 +52,7 @@ ge::graphStatus ExecuteOpLaunch(gert::OpExecuteLaunchContext *context) {
       av.deleter(av.pointer);
     }
   }
+  
   params->converted_params.clear();
   if (op_api_ret != 0) {
     OP_LOGE("aclnnfallback", "call %s allocate workspace failed op_api_ret: %d", context->GetNodeName(), op_api_ret);

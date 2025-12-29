@@ -43,6 +43,7 @@ aclDataType ToAclDataType(ge::DataType dtype) {
   if (iter == CANN_CONVERT_TO_ACL_DataType_LIST.end()) {
     return aclDataType::ACL_DT_UNDEFINED;
   }
+  
   return static_cast<aclDataType>(dtype);
 }
 

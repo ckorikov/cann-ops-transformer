@@ -56,6 +56,7 @@ const aclTensor* ResizeFrom1D(const aclTensor* cdim, const aclTensor* input, boo
   }
 
   op::Format format = inputDim == MAX_DIM_CNT ? Format::FORMAT_NCDHW : Format::FORMAT_NCHW;
+
   auto cdimFormat = l0op::ReFormat(cdimUnsqueeze, format);
   if (cdimFormat == nullptr) {
     return cdimFormat;
@@ -84,6 +85,7 @@ const aclTensor* ResizeTo1D(const aclTensor* result, const aclTensor* output, bo
     const int64_t value[] = {0, 2, 3, 4};
     newShape = executor->AllocIntArray(value, sizeof(value) / sizeof(int64_t));
   }
+  
   auto resultNchw = l0op::SqueezeNd(resultTransdata, newShape, executor);
   if (resultNchw == nullptr) {
     return resultNchw;

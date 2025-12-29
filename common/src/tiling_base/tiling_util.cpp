@@ -33,6 +33,7 @@ bool IsRegbaseSocVersion(const gert::TilingParseContext* context)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     auto socVersion = ascendcPlatform.GetSocVersion();
+    
     return IsRegbaseSocVersion(socVersion);
 }
 
@@ -40,6 +41,7 @@ bool IsRegbaseSocVersion(const gert::TilingContext* context)
 {
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context->GetPlatformInfo());
     auto socVersion = ascendcPlatform.GetSocVersion();
+
     return IsRegbaseSocVersion(socVersion);
 }
 
