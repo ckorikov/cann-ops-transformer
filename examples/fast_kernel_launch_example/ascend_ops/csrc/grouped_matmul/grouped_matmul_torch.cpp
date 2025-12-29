@@ -14,27 +14,24 @@
  * \brief
  */
 
-#include <ATen/Operators.h>
-#include <torch/all.h>
-#include <torch/library.h>
+// #include <ATen/Operators.h>
+// #include <torch/all.h>
+// #include <torch/library.h>
 #include "acl/acl.h"
-#include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/DeviceUtils.h"
-#include "torch_npu/csrc/framework/OpCommand.h"
+// #include "torch_npu/csrc/core/npu/NPUStream.h"
+// #include "torch_npu/csrc/core/npu/DeviceUtils.h"
+// #include "torch_npu/csrc/framework/OpCommand.h"
 #include "tiling/platform/platform_ascendc.h"
-#include <torch/torch.h>
-#include <ATen/Dispatch.h>
+// #include <torch/torch.h>
+// #include <ATen/Dispatch.h>
 
 
+#include "grouped_matmul_torch.h"
 #include "kernel_operator.h"
 
-
-// 直接调用math目录中已经实现的算子公共逻辑
-// #include "math/is_finite/op_kernel/is_finite.h"
-// #include "math/is_finite/op_host/is_finite_tiling_common.h"
 #include "gmm/grouped_matmul/op_host/op_tiling/grouped_matmul_tiling_common.h"
 #include "gmm/grouped_matmul/op_kernel/grouped_matmul_tiling.h"
-#include "grouped_matmul_torch.h"
+
 
 namespace ascend_ops {
 
@@ -42,36 +39,34 @@ namespace GroupedMatmul {
 
 // using namespace GroupedMatmulNs;
 
-// ========== 1. 声明所有索引对应的 kernel 函数（唯一命名） ==========
-// extern "C" {
-// // COMBO_INDEX=0 对应的函数：groupedmatmul_kernel_0
-// __global__ __aicore__ void groupedmatmul_kernel_0(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
-//                                                   __gm__ uint8_t *scale, __gm__ uint8_t *offset,
-//                                                   __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
-//                                                   __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
-//                                                   __gm__ uint8_t *y, __gm__ uint8_t *workspace,
-//                                                   GroupedMatmulTilingData &tilingData);
+// ==========  声明所有索引对应的 kernel 函数（唯一命名） ==========
+extern "C" {
+// COMBO_INDEX=0 对应的函数：groupedmatmul_kernel_0
+__aicore__ void groupedmatmul_kernel_0(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
+                                       __gm__ uint8_t *scale, __gm__ uint8_t *offset, __gm__ uint8_t *antiquantScale,
+                                       __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *groupList,
+                                       __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y, __gm__ uint8_t *workspace,
+                                       GroupedMatmulTilingData *tilingData);
 
-// // COMBO_INDEX=1 对应的函数：groupedmatmul_kernel_1
-// __global__ __aicore__ void groupedmatmul_kernel_1(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
-//                                                   __gm__ uint8_t *scale, __gm__ uint8_t *offset,
-//                                                   __gm__ uint8_t *antiquantScale, __gm__ uint8_t *antiquantOffset,
-//                                                   __gm__ uint8_t *groupList, __gm__ uint8_t *perTokenScale,
-//                                                   __gm__ uint8_t *y,  __gm__ uint8_t *workspace,
-//                                                   GroupedMatmulTilingData &tilingData);
-// }
+// COMBO_INDEX=1 对应的函数：groupedmatmul_kernel_1
+__aicore__ void groupedmatmul_kernel_1(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
+                                       __gm__ uint8_t *scale, __gm__ uint8_t *offset, __gm__ uint8_t *antiquantScale,
+                                       __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *groupList,
+                                       __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y, __gm__ uint8_t *workspace,
+                                       GroupedMatmulTilingData *tilingData);
+}
 
-// typedef void (*GroupedMatmulKernelPtr)(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
-//                                        __gm__ uint8_t *scale, __gm__ uint8_t *offset, __gm__ uint8_t *antiquantScale,
-//                                        __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *groupList,
-//                                        __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y, __gm__ uint8_t *workspace,
-//                                         GroupedMatmulTilingData &tilingData);
+typedef void (*GroupedMatmulKernelPtr)(__gm__ uint8_t *x, __gm__ uint8_t *weight, __gm__ uint8_t *bias,
+                                       __gm__ uint8_t *scale, __gm__ uint8_t *offset, __gm__ uint8_t *antiquantScale,
+                                       __gm__ uint8_t *antiquantOffset, __gm__ uint8_t *groupList,
+                                       __gm__ uint8_t *perTokenScale, __gm__ uint8_t *y, __gm__ uint8_t *workspace,
+                                       GroupedMatmulTilingData *tilingData);
 
-// // ========== 3. 构建索引→函数指针的映射表（核心） ==========
-// static const std::vector<GroupedMatmulKernelPtr> KERNEL_DISPATCH_TABLE = {
-//     groupedmatmul_kernel_0, // 索引0 → kernel_0
-//     groupedmatmul_kernel_1  // 索引1 → kernel_1
-// };
+// ==========  构建索引→函数指针的映射表（核心） ==========
+static const std::vector<GroupedMatmulKernelPtr> KERNEL_DISPATCH_TABLE = {
+    groupedmatmul_kernel_0, // 索引0 → kernel_0
+    groupedmatmul_kernel_1  // 索引1 → kernel_1
+};
 
 // 传输入输出tensor和attr
 void groupedmatmul_api(const TypeCombo &matchedCombo, int comboIndex, aclrtStream stream, const at::TensorList &x,
@@ -117,7 +112,7 @@ void groupedmatmul_api(const TypeCombo &matchedCombo, int comboIndex, aclrtStrea
         auto ret = aclrtMalloc(&workspace_ptr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
         TORCH_CHECK(ret == ACL_SUCCESS, "allocate workspace failed. ERROR: %d\n", ret);
     }
-    // GroupedMatmulKernelPtr target_kernel = KERNEL_DISPATCH_TABLE[comboIndex];
+    GroupedMatmulKernelPtr target_kernel = KERNEL_DISPATCH_TABLE[comboIndex];
     // TORCH_CHECK(target_kernel != nullptr, "Kernel pointer is null for COMBO_INDEX: ", comboIndex);
     // target_kernel<<<blockDim, nullptr, stream>>(
     //                     (__gm__ uint8_t *)x_ptr, (__gm__ uint8_t *)weight_ptr, (__gm__ uint8_t *)bias_ptr,

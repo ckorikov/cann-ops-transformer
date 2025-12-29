@@ -13,25 +13,12 @@
  * \file grouped_matmul_torch.h
  * \brief
  */
-
-// groupedmatmul_npu.cpp
 #include <variant>
 #include <ATen/ATen.h>
-// #include <torch_npu/npu_functions.h>
-// #include <torch_npu/npu_interface.h>
-#include <c10/util/Half.h>
-#include <tuple>
 #include <vector>
-#include <sstream>
-#include <type_traits>
-#include <ATen/Operators.h>
 #include <torch/all.h>
-#include <torch/library.h>
-#include "acl/acl.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/DeviceUtils.h"
 #include "torch_npu/csrc/framework/OpCommand.h"
-#include "tiling/platform/platform_ascendc.h"
 
 inline std::string build_error_msg(const std::string &func_name, const std::string &name, const std::string &message)
 {
