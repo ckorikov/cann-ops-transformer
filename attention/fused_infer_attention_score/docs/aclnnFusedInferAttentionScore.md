@@ -15,7 +15,7 @@
   </tr></thead>
 <tbody>
   <tr>
-      <td><term>昇腾910_95 AI处理器</term></td>
+      <td><term>Ascend 950PR/Ascend 950DT AI处理器</term></td>
     <td style="text-align: center;">√</td>
   </tr>
   <tr>
