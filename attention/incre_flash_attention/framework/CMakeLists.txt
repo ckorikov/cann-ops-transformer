@@ -10,5 +10,5 @@
 # ----------------------------------------------------------------------------
 
 if (BUILD_OPEN_PROJECT AND NOT BUILD_OPS_RTY_KERNEL)
-    add_graph_plugin_sources()
+    add_onnx_plugin_sources()
 endif()
