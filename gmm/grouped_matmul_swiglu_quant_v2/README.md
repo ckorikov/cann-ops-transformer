@@ -4,7 +4,7 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      √     |
+|<term>Ascend 950PR/Ascend 950DT AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
 
@@ -142,7 +142,7 @@
           $Q_{i} = \left\lfloor \frac{S_{i}}{Q\_scale_{i}} \right\rceil$
     </details>
 
-  - <term>昇腾910_95 AI处理器</term>：
+  - <term>Ascend 950PR/Ascend 950DT AI处理器</term>：
     <details>
     <summary>量化场景MXFP8：</summary>
     <a id="量化场景MXFP8"></a>
@@ -326,7 +326,7 @@
 </table>
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>：不支持FLOAT8_XX量化数据类型，支持其他数据类型。
-- <term>昇腾910_95 AI处理器</term>：仅支持FLOAT8_XX量化数据类型，不支持其他数据类型。
+- <term>Ascend 950PR/Ascend 950DT AI处理器</term>：仅支持FLOAT8_XX量化数据类型，不支持其他数据类型。
 
 ## 约束说明
  - N轴长度不能超过10240。

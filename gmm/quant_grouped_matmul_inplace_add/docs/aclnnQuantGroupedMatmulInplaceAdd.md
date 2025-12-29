@@ -6,7 +6,9 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
-|<term>昇腾910_95 AI处理器</term>|      √     |
+|<term>Ascend 950PR/Ascend 950DT AI处理器</term>|      √     |
+|<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      ×     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      ×     |
 
 ## 功能说明
 
@@ -88,7 +90,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>x1</td>
       <td>输入</td>
-      <td>公式中的输入x1。</td>
+      <td>Device侧的aclTensor，公式中的输入x1。</td>
       <td>-</td>
       <td>FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8</td>
       <td>ND</td>
@@ -98,7 +100,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>x2</td>
       <td>输入</td>
-      <td>公式中的输入x2。</td>
+      <td>Device侧的aclTensor，公式中的输入x2。</td>
       <td>-</td>
       <td>FLOAT8_E4M3FN、FLOAT8_E5M2、HIFLOAT8</td>
       <td>ND</td>
@@ -108,7 +110,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>scale1Optional</td>
       <td>可选输入</td>
-      <td>表示量化参数中的由x1量化引入的缩放因子。</td>
+      <td>表示量化参数中的由x1量化引入的缩放因子，Device侧的aclTensor。</td>
       <td>
         <ul>
           <li>综合约束请参见<a href="#约束说明" target="_blank">约束说明</a>。</li>
@@ -122,7 +124,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>scale2</td>
       <td>输入</td>
-      <td>表示量化参数中的由x2量化引入的缩放因子。</td>
+      <td>表示量化参数中的由x2量化引入的缩放因子，Device侧的aclTensor。</td>
       <td>
         <ul>
           <li>综合约束请参见<a href="#约束说明" target="_blank">约束说明</a>。</li>
@@ -136,7 +138,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>groupList</td>
       <td>输入</td>
-      <td>表示输入和输出分组轴方向的matmul大小分布。</td>
+      <td>表示输入和输出分组轴方向的matmul大小分布，Device侧的aclTensor。</td>
       <td>
         <ul>
           <li>当groupListType为0时，groupList必须为非负单调非递减数列，当groupListType为1时，groupList必须为非负数列。</li>
@@ -151,7 +153,7 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
     <tr>
       <td>yRef</td>
       <td>输入输出</td>
-      <td>对应公式中的输入输出y。</td>
+      <td>Device侧的aclTensor，对应公式中的输入输出y。</td>
       <td>-</td>
       <td>FLOAT32</td>
       <td>ND</td>
@@ -290,7 +292,6 @@ aclnnStatus aclnnQuantGroupedMatmulInplaceAdd(
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <utility>
 #include "acl/acl.h"
 #include "aclnnop/aclnn_quant_grouped_matmul_inplace_add.h"
 #define CHECK_RET(cond, return_expr) \
@@ -328,32 +329,8 @@ int Init(int32_t deviceId, aclrtStream* stream) {
     return 0;
 }
 template <typename T>
-int CreateTransposeAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& shape, void** deviceAddr,
-                             aclDataType dataType, aclTensor** tensor) {
-    std::vector<int64_t> view_shape = {shape[1], shape[0]};
-
-    auto size = GetShapeSize(view_shape) * sizeof(T);
-    // 调用aclrtMalloc申请Device侧内存
-    auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMalloc failed. ERROR: %d\n", ret); return ret);
-    // 调用aclrtMemcpy将Host侧数据拷贝到Device侧内存上
-    ret = aclrtMemcpy(*deviceAddr, size, hostData.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
-    // 计算连续tensor的strides
-    std::vector<int64_t> strides(shape.size(), 1);
-    for (int64_t i = shape.size() - 2; i >= 0; i--) {
-        strides[i] = shape[i + 1] * strides[i + 1];
-    }
-    // 交换 stride
-    std::swap(strides[0], strides[1]);
-    // 调用aclCreateTensor接口创建aclTensor
-    *tensor = aclCreateTensor(view_shape.data(), view_shape.size(), dataType, strides.data(), 0, aclFormat::ACL_FORMAT_ND,
-                              shape.data(), shape.size(), *deviceAddr);
-    return 0;
-}
-template <typename T>
 int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& shape, void** deviceAddr,
-                    aclDataType dataType, aclTensor** tensor) {
+                        aclDataType dataType, aclTensor** tensor) {
     auto size = GetShapeSize(shape) * sizeof(T);
     // 调用aclrtMalloc申请Device侧内存
     auto ret = aclrtMalloc(deviceAddr, size, ACL_MEM_MALLOC_HUGE_FIRST);
@@ -382,10 +359,10 @@ int aclnnQuantGroupedMatmulInplaceAddTest(int32_t deviceId, aclrtStream &stream)
     // check根据自己的需要处理
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("Init acl failed. ERROR: %d\n", ret); return ret);
     // 2. 构造输入与输出，需要根据API的接口自定义构造
-    std::vector<int64_t> x1Shape = {2, 3};
-    std::vector<int64_t> x2Shape= {2, 3};
-    std::vector<int64_t> scale2Shape = {2, 3};
-    std::vector<int64_t> yShape = {2, 3, 3};
+    std::vector<int64_t> x1Shape = {2, 2};
+    std::vector<int64_t> x2Shape= {2, 2};
+    std::vector<int64_t> scale2Shape = {2, 2};
+    std::vector<int64_t> yShape = {2, 2, 2};
     std::vector<int64_t> scale1Shape = {2, 1};
     std::vector<int64_t> groupListShape = {2};
     void* x1DeviceAddr = nullptr;
@@ -404,12 +381,12 @@ int aclnnQuantGroupedMatmulInplaceAddTest(int32_t deviceId, aclrtStream &stream)
     int64_t groupListType = 0;
     int64_t groupSize = 0;
     std::vector<uint8_t> xData(GetShapeSize(x1Shape), 0X10); // hifloat8 2.0 转16进制 0X10
-    std::vector<int64_t> groupListData = {1, 3};
+    std::vector<int64_t> groupListData = {1, 2};
     std::vector<float> scale2Data(GetShapeSize(scale2Shape), 1);
     std::vector<float> yData(GetShapeSize(yShape), 1);
     std::vector<float> scale1Data(GetShapeSize(scale1Shape), 1);
-    // 创建x1 aclTensor
-    ret = CreateTransposeAclTensor<uint8_t>(xData, x1Shape, &x1DeviceAddr, aclDataType::ACL_HIFLOAT8, &x1);
+    // 创建x aclTensor
+    ret = CreateAclTensor<uint8_t>(xData, x1Shape, &x1DeviceAddr, aclDataType::ACL_HIFLOAT8, &x1);
     std::unique_ptr<aclTensor, aclnnStatus (*)(const aclTensor *)> x1TensorPtr(x1, aclDestroyTensor);
     std::unique_ptr<void, aclError (*)(void *)> x1DeviceAddrPtr(x1DeviceAddr, aclrtFree);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
