@@ -50,7 +50,6 @@ OP_API_UT=FALSE
 OP_HOST_UT=FALSE
 OP_GRAPH_UT=FALSE
 OP_KERNEL_UT=FALSE
-ONNX_PLUGIN_UT=FALSE
 OP_API=FALSE
 OP_HOST=FALSE
 OP_GRAPH=FALSE
@@ -798,10 +797,6 @@ set_ut_mode() {
     OP_KERNEL_UT=TRUE
     UT_TEST_ALL=FALSE
   fi
-  if [[ "$ONNX_PLUGIN" == "TRUE" ]]; then
-    ONNX_PLUGIN_UT=TRUE
-    UT_TEST_ALL=FALSE
-  fi
   if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_HOST_UT" == "TRUE" ]]; then
     UT_TARGETS+=("${REPOSITORY_NAME}_op_host_ut")
   fi
@@ -813,9 +808,6 @@ set_ut_mode() {
   fi
   if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$OP_KERNEL_UT" == "TRUE" ]]; then
     UT_TARGETS+=("${REPOSITORY_NAME}_op_kernel_ut")
-  fi
-  if [[ "$UT_TEST_ALL" == "TRUE" ]] || [[ "$ONNX_PLUGIN_UT" == "TRUE" ]]; then
-    UT_TARGETS+=("${REPOSITORY_NAME}_onnx_plugin_ut")
   fi
 }
 
@@ -1206,9 +1198,6 @@ if [[ "$OP_GRAPH_UT" == "TRUE" ]]; then
 fi
 if [[ "$OP_KERNEL_UT" == "TRUE" ]]; then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DOP_KERNEL_UT=TRUE"
-fi
-if [[ "$ONNX_PLUGIN_UT" == "TRUE" ]]; then
-    CUSTOM_OPTION="$CUSTOM_OPTION -DONNX_PLUGIN_UT=TRUE"
 fi
 if [[ "$UT_TEST_ALL" == "TRUE" ]]; then
     CUSTOM_OPTION="${CUSTOM_OPTION} -DUT_TEST_ALL=TRUE"

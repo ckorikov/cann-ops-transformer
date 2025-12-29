@@ -118,34 +118,6 @@ if(UT_TEST_ALL OR OP_HOST_UT)
   endfunction()
 endif()
 
-if(UT_TEST_ALL OR ONNX_PLUGIN_UT)
-  set(ONNX_PLUGIN_MODULE_NAME
-      ${PKG_NAME}_onnx_plugin_ut
-      CACHE STRING "op_onnx_plugin ut module name" FORCE
-    )
-  function(add_onnx_plugin_ut_modules ONNX_PLUGIN_MODULE_NAME)
-    # add onnx_plugin ut cases object: transformer_onnx_plugin_ut_cases_obj
-    if(NOT TARGET ${ONNX_PLUGIN_MODULE_NAME}_cases_obj)
-      add_library(${ONNX_PLUGIN_MODULE_NAME}_cases_obj OBJECT ${UT_PATH}/empty.cpp)
-    endif()
-    target_include_directories(
-      ${ONNX_PLUGIN_MODULE_NAME}_cases_obj
-      PRIVATE ${UT_COMMON_INC} ${GTEST_INCLUDE} ${OPS_TRANSFORMER_DIR} ${ASCEND_DIR}/include
-              ${ASCEND_DIR}/include/parser ${ASCEND_DIR}/include/base/context_builder
-              ${PROJECT_SOURCE_DIR}/common/inc ${ASCEND_DIR}/pkg_inc/op_common
-              ${ASCEND_DIR}/pkg_inc/base ${ASCEND_DIR}/pkg_inc
-      )
-    target_link_libraries(${ONNX_PLUGIN_MODULE_NAME}_cases_obj PRIVATE $<BUILD_INTERFACE:intf_llt_pub_asan_cxx17> gtest)
-
-    # add onnx_plugin ut cases static lib: libtransformer__onnx_plugin_cases.a
-    add_library(${ONNX_PLUGIN_MODULE_NAME}_cases STATIC)
-    target_link_libraries(
-      ${ONNX_PLUGIN_MODULE_NAME}_cases PRIVATE ${ONNX_PLUGIN_MODULE_NAME}_cases_obj
-      $<$<BOOL:${dlog_FOUND}>:$<BUILD_INTERFACE:dlog_headers>>
-      gtest)
-  endfunction()
-endif()
-
 if(UT_TEST_ALL OR OP_API_UT)
   set(OP_API_MODULE_NAME
       ${PKG_NAME}_op_api_ut
@@ -223,7 +195,6 @@ endif()
 if(UT_TEST_ALL
    OR OP_HOST_UT
    OR OP_API_UT
-   OR ONNX_PLUGIN_UT
   )
   function(add_modules_ut_sources)
     set(options OPTION_RESERVED)
@@ -348,29 +319,6 @@ if(UT_TEST_ALL
       endif()
       file(GLOB OPAPI_CASES_SRC ${MODULE_DIR}/test_aclnn_*.cpp)
       target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${OPAPI_CASES_SRC})
-    endif()
-
-    # onnx_plugin ut
-    if("${MODULE_UT_NAME}" STREQUAL "${ONNX_PLUGIN_MODULE_NAME}")
-      get_filename_component(UT_DIR ${MODULE_DIR} DIRECTORY)
-      get_filename_component(TESTS_DIR ${UT_DIR} DIRECTORY)
-      get_filename_component(OP_NAME_DIR ${TESTS_DIR} DIRECTORY)
-      get_filename_component(OP_NAME ${OP_NAME_DIR} NAME)
-      list(FIND ASCEND_OP_NAME ${OP_NAME} INDEX)
-      # if "--ops" is not NULL, opName not include, jump over. if "--ops" is NULL, include all.
-      if(NOT "${ASCEND_OP_NAME}" STREQUAL "" AND INDEX EQUAL -1)
-        return()
-      endif()
-
-      file(GLOB ONNX_PLUGIN_CASES_SRC ${MODULE_DIR}/test_*_onnx_plugin.cpp)
-      if(NOT ONNX_PLUGIN_CASES_SRC)
-        return()
-      endif()
-
-      if(NOT TARGET ${MODULE_UT_NAME}_cases_obj)
-        add_library(${MODULE_UT_NAME}_cases_obj OBJECT)
-      endif()
-      target_sources(${MODULE_UT_NAME}_cases_obj ${MODULE_MODE} ${ONNX_PLUGIN_CASES_SRC})
     endif()
   endfunction()
 endif()

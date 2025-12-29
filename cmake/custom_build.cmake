@@ -270,7 +270,7 @@ endforeach ()
 
 add_subdirectory(attention)
 
-if (UT_TEST_ALL OR OP_HOST_UT OR OP_API_UT OR OP_KERNEL_UT OR OP_GRAPH_UT OR ONNX_PLUGIN_UT)
+if (UT_TEST_ALL OR OP_HOST_UT OR OP_API_UT OR OP_KERNEL_UT OR OP_GRAPH_UT)
         add_subdirectory(tests/ut/framework_normal)
 endif()
 

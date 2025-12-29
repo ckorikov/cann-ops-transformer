@@ -134,34 +134,6 @@ REG_OP(Fill)
                               DT_COMPLEX128, DT_FLOAT16, DT_BF16, DT_UINT32, DT_UINT64, DT_STRING}))
     .OP_END_FACTORY_REG(Fill)
 
-/**
- * @brief Pass the input tensors to the subgraph "f" and return the output tensors . \n
-
- * @par Inputs:
- * args: The input tensors, which will be passed to "f" . It's a dynamic input. \n
-
- * @par Graphs:
- * f: A subgraph takes 'args' and returns another list of tensors . \n
-
- * @par Attributes:
- * @li config: An optional string, default as "".
- * @li config_proto: An optional string, default as "".
- * @li executor_type: An optional string, default as "" . \n
-
- * @par Outputs:
- * output: The output tensors returned by "f" . It's a dynamic output. \n
-
- * @par Third-party framework compatibility
- * Compatible with the TensorFlow operator PartitionedCall.
- */
-REG_OP(PartitionedCall)
-    .DYNAMIC_INPUT(args, TensorType::ALL())
-    .DYNAMIC_OUTPUT(output, TensorType::ALL())
-    .GRAPH(f)
-    .ATTR(config, String, "")
-    .ATTR(config_proto, String, "")
-    .ATTR(executor_type, String, "")
-    .OP_END_FACTORY_REG(PartitionedCall)
 
 }  // namespace ge
 
