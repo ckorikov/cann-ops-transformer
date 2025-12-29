@@ -578,11 +578,13 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     - 环境变量配置：
 
         ```bash
-        # 运行前需设置两个环境变量
+        # 运行前需设置三个环境变量
         ## FIRST_RANK_ID说明：以两机16卡为例，其中一机器设置为0，另一机器设置为8
         ## 如export FIRST_RANK_ID=0
         export RANK_TABLE_FILE=/home/path/to/rank_table_m2.json
         export FIRST_RANK_ID=<设备的起始rank_id>
+        ## EP_WORLD_SIZE说明：根据当前机器的卡数设置该变量，以两机16卡为例，将两台机器设置为16
+        export EP_WORLD_SIZE=16
         ```
     
     - 机器数量设置：
@@ -611,6 +613,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     #include "aclnnop/aclnn_moe_distribute_dispatch_v2.h"
     #include "aclnnop/aclnn_moe_distribute_combine_v2.h"
 
+
     #define CHECK_RET(cond, return_expr) \
         do {                             \
             if (!(cond)) {               \
@@ -637,9 +640,10 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
     const uint32_t MACHINE_NUM = 1;
     const char* rank_table_file = std::getenv("RANK_TABLE_FILE");
     const char* first_rank_id = std::getenv("FIRST_RANK_ID");
+    const char* env_dev_num = std::getenv("ENV_DEV_NUM");
 
-    const uint32_t EP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 8 : 16;
-    const uint32_t TP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 2 : 0;
+    const uint32_t EP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 2 : 16;
+    const uint32_t TP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 1 : 0;
     const uint32_t DEV_NUM = (!rank_table_file && !first_rank_id) ? EP_WORLD_SIZE * TP_WORLD_SIZE : EP_WORLD_SIZE;
 
     int64_t GetShapeSize(const std::vector<int64_t> &shape)
@@ -692,7 +696,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
         // 设置场景
         int64_t BS = 8;
         int64_t H = 7168;
-        int64_t K = 3;
+        int64_t K = 1;
         int64_t expertShardType = 0;
         int64_t sharedExpertNum = 0;
         int64_t sharedExpertRankNum = 0;
@@ -1086,12 +1090,22 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
         return 0;
     }
 
+
     int main(int argc, char *argv[])
     {
         const char* env_var_name = "RANK_TABLE_FILE and FIRST_RANK_ID";
+        if (!env_dev_num) {
+            LOG_PRINT("[WARNING] Please check whether environment variable ENV_DEV_NUM is set correctly.\n");
+            return 0;
+        }
+        int actual_env_dev_num = std::stoi(std::string(env_dev_num));
+        if (actual_env_dev_num < DEV_NUM) {
+            LOG_PRINT("[INFO] ENV_DEV_NUM = %d is less than %d, currently not supported\n", actual_env_dev_num, DEV_NUM);
+            return 0;
+        }
         if (!rank_table_file && !first_rank_id) {
             LOG_PRINT("[INFO] %s are not identified and example on <Atlas A3> will be executed!\n", env_var_name);
-            int ret = run_example_on_A3();   
+            int ret = run_example_on_A3();
         }
         else if (rank_table_file && first_rank_id) {
             LOG_PRINT("[INFO] %s are identified and example on <Atlas A2> will be executed!\n", env_var_name);
@@ -1100,7 +1114,7 @@ aclnnStatus aclnnMoeDistributeDispatchV2(
             int ret = aclInit(nullptr);
             CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d\n", ret); return ret);
             for (int rankId = 0; rankId < single_machine_dev_num; ++rankId) {
-                threads[rankId] = std::make_unique<std::thread>([rankId]()
+                threads[rankId] = std::make_unique<std::thread>([rankId,&ret]()
                 {
                     int ret = run_example_on_A2(rankId, rank_table_file, first_rank_id);
                 });

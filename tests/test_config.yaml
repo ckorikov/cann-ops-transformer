@@ -831,8 +831,6 @@ mc2:
         - mc2/all_gather_matmul/README.md
       ut_cov_exclude:
         - mc2/all_gather_matmul
-      test:
-        examples: False
       options:
         - all_gather_matmul
 
@@ -849,7 +847,6 @@ mc2:
         - mc2/allto_all_all_gather_batch_mat_mul
       test:
         examples: False
-        ut: False
       options:
         - allto_all_all_gather_batch_mat_mul
 
@@ -882,7 +879,6 @@ mc2:
         - mc2/batch_mat_mul_reduce_scatter_allto_all
       test:
         examples: False
-        ut: False
       options:
         - batch_mat_mul_reduce_scatter_allto_all
 
@@ -916,7 +912,6 @@ mc2:
       ut_cov_exclude:
         - mc2/inplace_matmul_all_reduce_add_rms_norm
       test:
-        examples: False
         ut: False
       options:
         - inplace_matmul_all_reduce_add_rms_norm
@@ -935,7 +930,6 @@ mc2:
         - mc2/matmul_all_reduce
       test:
         examples: False
-        ut: False
       options:
         - matmul_all_reduce
 
@@ -968,8 +962,6 @@ mc2:
         - mc2/matmul_reduce_scatter/README.md
       ut_cov_exclude:
         - mc2/matmul_reduce_scatter
-      test:
-        examples: False
       options:
         - matmul_reduce_scatter
 
@@ -1031,7 +1023,6 @@ mc2:
       ut_cov_exclude:
         - mc2/moe_distribute_combine
       test:
-        examples: False
         ut: False
       options:
         - moe_distribute_combine
@@ -1065,7 +1056,6 @@ mc2:
       ut_cov_exclude:
         - mc2/moe_distribute_combine_v2
       test:
-        examples: False
         ut: False
       options:
         - moe_distribute_combine_v2
@@ -1082,7 +1072,6 @@ mc2:
       ut_cov_exclude:
         - mc2/moe_distribute_dispatch
       test:
-        examples: False
         ut: False
       options:
         - moe_distribute_dispatch
@@ -1099,7 +1088,6 @@ mc2:
       ut_cov_exclude:
         - mc2/moe_distribute_dispatch_v2
       test:
-        examples: False
         ut: False
       options:
         - moe_distribute_dispatch_v2

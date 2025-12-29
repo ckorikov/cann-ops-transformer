@@ -546,11 +546,13 @@ aclnnStatus aclnnMoeDistributeCombine(
     - 环境变量配置：
 
         ```bash
-        # 运行前需设置两个环境变量
+        # 运行前需设置三个环境变量
         ## FIRST_RANK_ID说明：以两机16卡为例，其中一机器设置为0，另一机器设置为8
         ## 如export FIRST_RANK_ID=0
         export RANK_TABLE_FILE=/home/path/to/rank_table_m2.json
         export FIRST_RANK_ID=<设备的起始rank_id>
+        ## EP_WORLD_SIZE说明：根据当前机器的卡数设置该变量，以两机16卡为例，将两台机器设置为16
+        export EP_WORLD_SIZE=16
         ```
     
     - 机器数量设置：
@@ -562,7 +564,13 @@ aclnnStatus aclnnMoeDistributeCombine(
 
 - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：
   
-    无需配置ranktable文件以及环境变量RANK_TABLE_FILE、FIRST_RANK_ID。     
+    - 环境变量配置：
+
+        ```bash
+        # 运行前需设置一个环境变量EP_WORLD_SIZE，无需配置ranktable文件以及环境变量RANK_TABLE_FILE、FIRST_RANK_ID。
+        ## EP_WORLD_SIZE说明：根据当前机器的卡数设置该变量，以单机16卡为例，将两台机器设置为16
+        export EP_WORLD_SIZE=16
+        ```    
        
 示例代码如下，仅供参考，具体编译和执行过程请参考[编译与运行样例](../../../docs/zh/context/编译与运行样例.md)。
 
@@ -604,6 +612,7 @@ aclnnStatus aclnnMoeDistributeCombine(
     const uint32_t MACHINE_NUM = 1;
     const char* rank_table_file = std::getenv("RANK_TABLE_FILE");
     const char* first_rank_id = std::getenv("FIRST_RANK_ID");
+    const char* env_dev_num = std::getenv("ENV_DEV_NUM");
 
     const uint32_t EP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 8 : 16;
     const uint32_t TP_WORLD_SIZE = (!rank_table_file && !first_rank_id) ? 2 : 0;
@@ -1051,12 +1060,22 @@ aclnnStatus aclnnMoeDistributeCombine(
         return 0;
     }
 
+
     int main(int argc, char *argv[])
     {
         const char* env_var_name = "RANK_TABLE_FILE and FIRST_RANK_ID";
+        if (!env_dev_num) {
+            LOG_PRINT("[WARNING] Please check whether environment variable ENV_DEV_NUM is set correctly.\n");
+            return 0;
+        }
+        int actual_env_dev_num = std::stoi(std::string(env_dev_num));
+        if (actual_env_dev_num < DEV_NUM) {
+            LOG_PRINT("[INFO] ENV_DEV_NUM = %d is less than %d, currently not supported\n", actual_env_dev_num, DEV_NUM);
+            return 0;
+        }
         if (!rank_table_file && !first_rank_id) {
             LOG_PRINT("[INFO] %s are not identified and example on <Atlas A3> will be executed!\n", env_var_name);
-            int ret = run_example_on_A3();   
+            int ret = run_example_on_A3();
         }
         else if (rank_table_file && first_rank_id) {
             LOG_PRINT("[INFO] %s are identified and example on <Atlas A2> will be executed!\n", env_var_name);
@@ -1065,9 +1084,9 @@ aclnnStatus aclnnMoeDistributeCombine(
             auto ret = aclInit(nullptr);
             CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] aclInit failed. ret = %d\n", ret); return ret);
             for (int rankId = 0; rankId < single_machine_dev_num; ++rankId) {
-                threads[rankId] = std::make_unique<std::thread>([rankId]()
+                threads[rankId] = std::make_unique<std::thread>([rankId,&ret]()
                 {
-                    int ret = run_example_on_A2(rankId, rank_table_file, first_rank_id);
+                    ret = run_example_on_A2(rankId, rank_table_file, first_rank_id);
                     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("[ERROR] run example on A2 failed. ret = %d\n", ret); return ret);
                 });
             }
@@ -1076,11 +1095,10 @@ aclnnStatus aclnnMoeDistributeCombine(
             }
             aclFinalize();
             LOG_PRINT("[INFO] aclFinalize success\n");
-        }
-        else {
+        } else {
             LOG_PRINT("[WARNING] Please check whether %s are set correctly.\n", env_var_name);
         }
-    
+
         return 0;
     }
     ```
