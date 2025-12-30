@@ -362,7 +362,7 @@
     <td>√</td>
     <td>×</td>
     <td>AI Core</td>
-    <td>融合GroupedMatmul 、dequant、swiglu和quant，新增了MXFP8量化场景（仅昇腾Ascend 950PR/Ascend 950DT AI处理器支持）</td>
+    <td>融合GroupedMatmul 、dequant、swiglu和quant，新增了MXFP8量化场景（仅Ascend 950PR/Ascend 950DT AI处理器支持）</td>
   </tr>
   <tr>
     <td>gmm</td>
