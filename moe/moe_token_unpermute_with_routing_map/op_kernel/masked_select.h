@@ -255,7 +255,7 @@ public:
             inQueueX.FreeTensor(maskHalfLocal);
             VToMTE3Sync();
             DataCopyExtParams copyParams{1, static_cast<uint32_t>(1 * sizeof(int32_t)), 0, 0, 0};
-            DataCopyPad(offsetGlobal[blockIdx], offsetLocal, copyParams);        //workspace 写入 offset
+            DataCopyPad(offsetGlobal[static_cast<uint64_t>(blockIdx)], offsetLocal, copyParams);        //workspace 写入 offset
         }
 
         SyncAll();
@@ -320,7 +320,7 @@ private:
     {
         LocalTensor<T> xLocal = inQueueX.AllocTensor<T>();
         LocalTensor<uint8_t> maskLocal = inQueueMask.AllocTensor<uint8_t>();
-        uint32_t ind = progress * this->tileLength;
+        uint64_t ind = progress * this->tileLength;
         uint32_t length = this->tileLength;
         if (progress == this->tileNum - 1) {
             // 最后一个block，最后一个tile
@@ -348,7 +348,7 @@ private:
     __aicore__ inline void CopyInMask(int32_t progress)
     {
         LocalTensor<uint8_t> maskLocal = inQueueMask.AllocTensor<uint8_t>();
-        uint32_t ind = progress * this->tileLength;
+        uint64_t ind = progress * this->tileLength;
         uint32_t length = this->tileLength;
         if (progress == this->tileNum - 1) {
             // 最后一个block，最后一个tile
