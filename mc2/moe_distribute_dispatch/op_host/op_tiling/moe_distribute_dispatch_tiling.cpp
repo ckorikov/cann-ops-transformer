@@ -78,7 +78,7 @@ constexpr uint32_t LAYERED_SUPPORT_K_MAX = 16;
 constexpr int32_t MAX_HIDDEN_SIZE_A2 = 7168;
 constexpr int32_t MAX_EP_WORLD_SIZE_A2 = 256;
 constexpr int32_t MAX_MOE_EXPERT_NUMS_A2 = 512;
-constexpr int32_t UNLAYERED_EXP_NUM_PER_RANK_A2 = 24;
+constexpr int32_t UNLAYERED_EXP_NUM_PER_RANK_A2 = 120;
 constexpr uint32_t MAX_BATCH_SIZE_A2 = 256;
 const char *K_INNER_DEBUG = "MoeDistributeDispatch Tiling Debug";
 const size_t MAX_GROUP_NAME_LENGTH = 128UL;
@@ -406,7 +406,7 @@ static uint64_t CalTilingKey(const bool isScales, const uint32_t quantMode, cons
     uint32_t tilingKeyQuantMode = TILINGKEY_NO_QUANT;
     bool scaleMode = false;   // A2 & A3
     uint32_t layeredMode = TILINGKEY_TPL_MTE; // A2
-    
+
     if (tpWorldSize == MAX_TP_WORLD_SIZE) {
         tp = true;
     }
@@ -508,7 +508,7 @@ static ge::graphStatus CheckWinSize(const gert::TilingContext *context, MoeDistr
         actualSize = static_cast<uint64_t>(tilingData->moeDistributeDispatchInfo.a) * (h * 2UL + 128UL) * 2UL;
         OP_TILING_CHECK((actualSize > maxWindowSizeTp),
         OP_LOGE(nodeName, "TP HCCL_BUFFSIZE is too SMALL, A = %u, h = %lu, NEEDED_HCCL_BUFFSIZE(A * (h * 2UL + 128UL) * 2UL)"
-            " = %luMB, TP HCCL_BUFFSIZE=%luMB.", tilingData->moeDistributeDispatchInfo.a, 
+            " = %luMB, TP HCCL_BUFFSIZE=%luMB.", tilingData->moeDistributeDispatchInfo.a,
             h, actualSize / MB_SIZE + 1UL, maxWindowSizeTp / MB_SIZE), return ge::GRAPH_FAILED);
         tilingData->moeDistributeDispatchInfo.totalWinSizeTp = maxWindowSizeTp;
         OP_LOGD(nodeName, "TpwindowSize = %lu", maxWindowSizeTp);
@@ -618,7 +618,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(gert::Tiling
     OP_TILING_CHECK(groupEpPtr == nullptr || strlen(groupEpPtr) == 0,
         OP_LOGE(K_INNER_DEBUG, "groupEp is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(epWorldSizePtr == nullptr || *epWorldSizePtr <= 0 || *epWorldSizePtr > MAX_EP_WORLD_SIZE_A2 ||
-        *epWorldSizePtr % RANK_NUM_PER_NODE_A2 != 0,
+        ((*epWorldSizePtr > RANK_NUM_PER_NODE_A2) && (*epWorldSizePtr % RANK_NUM_PER_NODE_A2 != 0)),
         OP_LOGE(K_INNER_DEBUG, "epWorldSize is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(epRankIdPtr == nullptr || *epRankIdPtr < 0 || *epRankIdPtr >= *epWorldSizePtr,
         OP_LOGE(K_INNER_DEBUG, "epRankId is invalid."), return GRAPH_FAILED);
@@ -626,7 +626,7 @@ static ge::graphStatus MoeDistributeDispatchA2CheckAttrAndSetTiling(gert::Tiling
         *moeExpertNumPtr <= 0 || *moeExpertNumPtr > MAX_MOE_EXPERT_NUMS_A2,
         OP_LOGE(K_INNER_DEBUG, "moeExpertNum is invalid."), return GRAPH_FAILED);
     OP_TILING_CHECK(!isLayered && *moeExpertNumPtr / *epWorldSizePtr > UNLAYERED_EXP_NUM_PER_RANK_A2,
-        OP_LOGE(K_INNER_DEBUG, "moeExpertNum is %d, in case of unlayered, it must no more than %d.", 
+        OP_LOGE(K_INNER_DEBUG, "moeExpertNum is %d, in case of unlayered, it must no more than %d.",
             *moeExpertNumPtr / *epWorldSizePtr, UNLAYERED_EXP_NUM_PER_RANK_A2), return GRAPH_FAILED);
     OP_TILING_CHECK(tpWorldSizePtr == nullptr,
         OP_LOGE(K_INNER_DEBUG, "tpWorldSize is null."), return GRAPH_FAILED);
@@ -862,7 +862,7 @@ uint64_t MoeDistributeDispatchTilingA2A3::GetTilingKey() const
     const uint64_t tilingKey = context_->GetTilingKey();
     const char *nodeName = context_->GetNodeName();
     OP_LOGD(nodeName, "MoeDistributeDispatchTilingA2A3 get tiling key %lu", tilingKey);
-    return tilingKey; 
+    return tilingKey;
 }
 
 bool MoeDistributeDispatchTilingA2A3::IsCapable()
