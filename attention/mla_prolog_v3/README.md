@@ -5,11 +5,8 @@
 |:----------------------------|:-----------:|
 |<term>昇腾910_95 AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
-|<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>|      √     |
-|<term>Atlas 200I/500 A2 推理产品</term>|      ×     |
-|<term>Atlas 推理系列产品</term>|      ×     |
-|<term>Atlas 训练系列产品</term>|      ×     |
-|<term>Atlas 200I/300/500 推理产品</term>|      ×     |
+|<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
+
 ## 功能说明
 -  **功能更新**：（相对与aclnnMlaPrologV2weightNz的差异）
     -  新增query与key的尺度矫正因子，分别对应qcQrScale（$\alpha_q$）与kcScale（$\alpha_{kv}$）。
@@ -206,18 +203,22 @@
 
 <table class="tg"><thead>
   <tr>
-    <th class="tg-0lax">调用方式</th>
-    <th class="tg-0lax">样例代码</th>
-    <th class="tg-0lax">说明</th>
+    <th class="tg-0pky">调用方式</th>
+    <th class="tg-0pky">样例代码</th>
+    <th class="tg-0pky">说明</th>
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-0lax">
+    <td class="tg-9wq8" rowspan="6">aclnn接口</td>
+    <td class="tg-0pky">
     <a href="./examples/test_aclnn_mla_prolog_v3.cpp">MlaPrologV3接口测试用例代码
     </a>
     </td>
+    <td class="tg-lboi" rowspan="6">
+    通过
+    <a href="./docs/aclnnMlaPrologV3WeightNz.md">aclnnMlaPrologV3WeightNz
+    </a>
+    接口方式调用算子
+    </td>
   </tr>
 </tbody></table>
-
-<!-- ## 参考资源
-[MlaProlog算子设计原理](../mla_prolog/docs/MlaProlog算子设计介绍.md) -->
