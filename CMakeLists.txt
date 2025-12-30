@@ -169,7 +169,7 @@ if (BUILD_OPS_RTY_KERNEL)
     find_package(alog MODULE)
 
     if(NOT ${alog_FOUND})
-        add_definitions(-DALOG_NOT_FOUND)
+        add_definitions(-DALOG_NOT_FOUND) 
     endif()
 
     add_library(op_host_aclnn SHARED EXCLUDE_FROM_ALL)
