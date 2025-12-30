@@ -195,7 +195,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
               <li>不支持空Tensor。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
             </ul>
-          <li><term>昇腾910_95 AI处理器</term>：</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：</li>
             <ul>
               <li>支持空Tensor。</li>
               <li>shape最后一维（D）小于等于1024。</li>
@@ -218,7 +218,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
               <li>不支持空Tensor。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
             </ul>
-          <li><term>昇腾910_95 AI处理器</term>：</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：</li>
             <ul>
               <li>支持空Tensor。</li>
               <li>shape最后一维（D）小于等于1024。</li>
@@ -243,7 +243,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
               <li>shape第3维（N）必须等于1。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
             </ul>
-          <li><term>昇腾910_95 AI处理器</term>：</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：</li>
             <ul>
               <li>支持空Tensor。</li>
               <li>shape中B维度与queryRef、keyRef的B维度一致，或者等于1。</li>
@@ -270,7 +270,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
               <li>shape第3维（N）必须等于1。</li>
               <li>shape最后一维（D）必须等于128或者64。</li>
             </ul>
-          <li><term>昇腾910_95 AI处理器</term>：</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：</li>
             <ul>
               <li>支持空Tensor。</li>
               <li>shape中B维度与queryRef、keyRef的B维度一致，或者等于1。</li>
@@ -292,7 +292,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
         <ul>
           <li>取值范围：1-BSND、2-SBND、3-BNSD、4-TND。</li>
           <li><term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持1-BSND的4维Tensor、4-TND的3维Tensor。</li>
-          <li><term>昇腾910_95 AI处理器</term>：支持1-BSND、2-SBND、3-BNSD的4维Tensor。</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：支持1-BSND、2-SBND、3-BNSD的4维Tensor。</li>
         </ul>
       </td>
       <td>int64</td>
@@ -308,7 +308,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
         <ul>
           <li>取值范围："half"、"interleave"、"quarter"。</li>
           <li><term>Atlas 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>、<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>：支持"half"模式。</li>
-          <li><term>昇腾910_95 AI处理器</term>：支持"half"、"interleave"、"quarter"模式。</li>
+          <li><term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：支持"half"、"interleave"、"quarter"模式。</li>
         </ul>
       </td>
       <td>char</td>
@@ -428,7 +428,7 @@ aclnnStatus aclnnApplyRotaryPosEmbV2(
       `ub_required = (q_n + k_n) * lastDim * castSize * 2 + lastDim * DtypeSize * 4 + (q_n + k_n) * lastDim * castSize + (q_n + k_n) * lastDim * castSize * 2 + cast * (lastDim * 4 * 2)`，
       当计算出`ub_required`的大小超过当前AI处理器的UB空间总大小时，不支持使用该融合算子。
 
-  - <term>昇腾910_95 AI处理器</term>：
+  - <term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：
     - 对于任意layout，queryRef与keyRef除N维度外其他维度必须相同；queryRef、keyRef、cos、sin的S维度必须相同；queryRef、keyRef输入shape的最后一维（D）必须相等；cos、sin输入shape的最后一维（D）必须相等。
     - 输入张量queryRef、keyRef、cos、sin的dtype必须相同。
     - rotaryMode为"half"和"interleave"时，输入shape最后一维必须被2整除；rotaryMode为"quarter"时，输入shape最后一维必须被4整除。
