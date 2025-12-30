@@ -1,132 +1,105 @@
-# aclnnRotaryPositionEmbedding
+# aclnnRotaryPositionEmbeddingV2
 
 [📄 查看源码](https://gitcode.com/cann/ops-transformer/tree/master/posembedding/rotary_position_embedding)
 
 ## 产品支持情况
 
-| 产品                                                         | 是否支持 |
-| :----------------------------------------------------------- | :------: |
-| <term>Ascend 950PR/Ascend 950DT</term>                             |    √     |
-| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>     |    √     |
-| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √     |
-| <term>Atlas 200I/500 A2 推理产品</term>                      |    ×     |
-| <term>Atlas 推理系列产品</term>                             |    ×     |
-| <term>Atlas 训练系列产品</term>                              |    ×     |
-| <term>Atlas 200/300/500 推理产品</term>                      |    ×     |
+| 产品                                                                   | 是否支持 |
+|:-------------------------------------------------------------------------------------- | :------: |
+| <term>Ascend 950PR/Ascend 950DT</term>                                                |    √    |
+| <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>                        |    √    |
+| <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term> |    √    |
+| <term>Atlas 200I/500 A2 推理产品</term>                                         |    ×    |
+| <term>Atlas 推理系列产品 </term>                                                |    ×    |
+| <term>Atlas 训练系列产品</term>                                                 |    ×    |
+| <term>Atlas 200/300/500 推理产品</term>                                         |    ×    |
 
 ## 功能说明
--  接口功能：执行单路旋转位置编码计算。
--  计算公式：
 
-    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
+- 接口功能：执行单路旋转位置编码计算。
+- 计算公式：
 
-    （1）half模式（mode等于0）：
+  - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
-    $$
-    x1 = x[..., : x.shape[-1] // 2]
-    $$
+    - 不传入rotate参数（推荐half模式1D使用）：
 
-    $$
-    x2 = x[..., x.shape[-1] // 2 :]
-    $$
+      （1）half模式（mode等于0）：
 
-    $$
-    x\_rotate = torch.cat((-x2, x1), dim=-1)
-    $$
+      $$
+      x1 = x[..., : x.shape[-1] // 2]
+      $$
 
-    $$
-    y = x * cos + x\_rotate * sin
-    $$
+      $$
+      x2 = x[..., x.shape[-1] // 2 :]
+      $$
 
-    （2）interleave模式（mode等于1）：
+      $$
+      x\_rotate = torch.cat((-x2, x1), dim=-1)
+      $$
 
-    $$
-    x1 = x[..., ::2].view(-1, 1)
-    $$
+      $$
+      y = x * cos + x\_rotate * sin
+      $$
 
-    $$
-    x2 = x[..., 1::2].view(-1, 1)
-    $$
+      （2）interleave模式（mode等于1）：
 
-    $$
-    x\_rotate = torch.cat((-x2, x1), dim=-1).view(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
-    $$
+      $$
+      x1 = x[..., ::2].view(-1, 1)
+      $$
 
-    $$
-    y = x * cos + x\_rotate * sin
-    $$
+      $$
+      x2 = x[..., 1::2].view(-1, 1)
+      $$
 
-    
-    （3）quarter模式（mode等于2）：
+      $$
+      x\_rotate = torch.cat((-x2, x1), dim=-1).view(x.shape[0], x.shape[1], x.shape[2], x.shape[3])
+      $$
 
-    $$
-    x1 = x[..., : x.shape[-1] // 4]
-    $$
+      $$
+      y = x * cos + x\_rotate * sin
+      $$
 
-    $$
-    x2 = x[..., x.shape[-1] // 4 : x.shape[-1] // 2]
-    $$
+    - 传入rotate参数时（由开发者生成rotate矩阵，参考调用示例生成部分）：
 
-    $$
-    x3 = x[..., x.shape[-1] // 2 : x.shape[-1] // 4 * 3]
-    $$
+      $$
+      x\_rotate = x  @ rotate
+      $$
 
-    $$
-    x4 = x[..., x.shape[-1] // 4 * 3 :]
-    $$
+      $$
+      y = x * cos + x\_rotate * sin
+      $$
 
-    $$
-    x\_rotate = torch.cat((-x2, x1, -x4, x3), dim=-1)
-    $$
-
-    $$
-    y = x * cos + x\_rotate * sin
-    $$
-
-    （4）interleave-half模式（mode等于3），该模式会先将奇数位的输入抽取到前半部分，将偶数位的输入抽取到后半部分，再进行half处理：
-
-    $$
-    x1 = x[..., ::2]
-    $$
-
-    $$
-    x2 = x[..., 1::2]
-    $$
-
-    $$
-    x\_part1 = torch.cat((x1, x2), dim=-1)
-    $$
-
-    $$
-    x\_part2 = torch.cat((-x2, x1), dim=-1)
-    $$
-
-    $$
-    y = x\_part1 * cos + x\_part2 * sin
-    $$
-
+- rotate推荐使用场景
+  - interleave模式
+  - half模式仅在以下场景时推荐使用：输入矩阵x需要在最后一个维度切分多份时，每一份都需要调用aclnnRotaryPositionEmbedding接口进行旋转位置编码计算，可以通过构造旋转编码矩阵实现一次调用获得性能收益，以x的layout为BSND需要切分为3份为例：
+     x切分为3份，$x = [x1|x2|x3]_{(dim=4)} ∈ R^{B×S×N×D}, x1 ∈ R^{B×S×N×D1},x2 ∈ R^{B×S×N×D2},x3 ∈ R^{B×S×N×D3}, 其中D = D1 + D2 + D3$，那么可以构造一个rotate矩阵，实现调用一次aclnnRotaryPositionEmbeddingV2接口完成x的旋转位置编码计算功能，rotate矩阵构造如下：
+     $$rotate = diag(rotate1, rotate2, rotate3) = \begin{pmatrix}rotate1&0&0\\0&rotate2&0\\0&0&rotate3\\\end{pmatrix}$$
+     其中rotate1、rotate2、rotate3分别为x1、x2、x3的旋转编码矩阵，单个旋转矩阵构建参考调用示例。
 ## 函数原型
 
-每个算子分为[两段式接口](../../../docs/zh/context/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingGetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbedding”接口执行计算。
+每个算子分为[两段式接口](../../../docs/context/两段式接口.md)，必须先调用“aclnnRotaryPositionEmbeddingV2GetWorkspaceSize”接口获取入参并根据流程计算所需workspace大小，再调用“aclnnRotaryPositionEmbeddingV2”接口执行计算。
 
 ```c++
-aclnnStatus aclnnRotaryPositionEmbeddingGetWorkspaceSize(
-    const aclTensor *x,
-    const aclTensor *cos,
-    const aclTensor *sin,
-    int64_t          mode,
-    aclTensor       *out,
-    uint64_t        *workspaceSize,
-    aclOpExecutor   **executor)
+aclnnStatus aclnnRotaryPositionEmbeddingV2GetWorkspaceSize(
+    const aclTensor* x,
+    const aclTensor* cos,
+    const aclTensor* sin,
+    int64_t mode,
+    const aclTensor* rotate,
+    aclTensor* out,
+    uint64_t* workspaceSize,
+    aclOpExecutor** executor);
 ```
+
 ```c++
-aclnnStatus aclnnRotaryPositionEmbedding(
+aclnnStatus aclnnRotaryPositionEmbeddingV2(
     void          *workspace,
     uint64_t       workspaceSize,
     aclOpExecutor *executor,
     aclrtStream    stream)
 ```
-## aclnnRotaryPositionEmbeddingGetWorkspaceSize
+
+## aclnnRotaryPositionEmbeddingGetWorkspaceSizeV2
 
 - **参数说明**
 
@@ -194,6 +167,16 @@ aclnnStatus aclnnRotaryPositionEmbedding(
       <td>-</td>
     </tr>
     <tr>
+      <td>rotate</td>
+      <td>输入</td>
+      <td>旋转矩阵</td>
+      <td>与x数据类型一致。</td>
+      <td>BFLOAT16</td>
+      <td>ND</td>
+      <td>2</td>
+      <td>-</td>
+    </tr>
+    <tr>
       <td>out</td>
       <td>输出</td>
       <td>旋转位置编码计算结果，公式中的y。</td>
@@ -227,9 +210,9 @@ aclnnStatus aclnnRotaryPositionEmbedding(
   </table>
 
   - 参数mode约束：
-    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：0=half，1=interleave。
-    - <term>Ascend 950PR/Ascend 950DT</term>：2=quarter，3=interleave-half。
-
+    - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品 </term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件 </term>：0=half，1=interleave。V2接口不同mode参数约束和V1接口相同，开发者可以根据mode在调用示例的辅助矩阵rotate生成中选择合适的rotate生成方式。
+    
+  - 参数rotate当前仅支持BFLOAT16类型。
 - **返回值：**
 
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
@@ -270,8 +253,7 @@ aclnnStatus aclnnRotaryPositionEmbedding(
   </tbody>
   </table>
 
-
-## aclnnRotaryPositionEmbedding
+## aclnnRotaryPositionEmbeddingV2
 
 - **参数说明：**
 
@@ -295,7 +277,7 @@ aclnnStatus aclnnRotaryPositionEmbedding(
     <tr>
       <td>workspaceSize</td>
       <td>输入</td>
-      <td>在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingGetWorkspaceSize获取。</td>
+      <td>在Device侧申请的workspace大小，由第一段接口aclnnRotaryPositionEmbeddingV2GetWorkspaceSize获取。</td>
     </tr>
     <tr>
       <td>executor</td>
@@ -309,43 +291,33 @@ aclnnStatus aclnnRotaryPositionEmbedding(
     </tr>
   </tbody>
   </table>
-
 - **返回值：**
 
   返回aclnnStatus状态码，具体参见[aclnn返回码](../../../docs/zh/context/aclnn返回码.md)。
 
 ## 约束说明
 
-- 确定性计算：
-  - aclnnRotaryPositionEmbedding默认确定性实现。
+- <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
 
-  - <term>Ascend 950PR/Ascend 950DT</term>：
+  输入张量x支持BNSD、BSND、SBND、TND排布。
+  输入张量x、cos、sin及输出张量y的D维度大小必须相同，满足D<896，且必须为2的倍数。
+  输入张量x和输出张量y的shape必须完全相同。
+  输入张量cos和sin的shape必须完全相同.
 
-    输入张量x共有四维，各参数的shape约束可以描述如下：
-    - 输入张量x、cos、sin及输出张量y的最后一维大小必须相同，且小于等于1024。对于half、interleave和interleave-half模式，最后一维必须能被2整除，对于quarter模式，最后一维必须能被4整除。
-    - 输入张量x和输出张量y的shape必须完全相同。
-    - 输入张量cos和sin的shape必须完全相同，cos和sin的shape需要与x满足[broadcast关系](../../../docs/zh/context/broadcast关系.md)，且广播后的shape必须等于x的shape。
-
-  - <term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>、<term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：
-    
-    输入张量x支持BNSD、BSND、SBND、TND排布。
-    输入张量x、cos、sin及输出张量y的D维度大小必须相同，满足D<896，且必须为2的倍数。
-    输入张量x和输出张量y的shape必须完全相同。
-    输入张量cos和sin的shape必须完全相同.
-    - half模式：
-      - B，N < 1000;
-      - 当x为BNSD时，cos、sin支持11SD、B1SD、BNSD
-        - 当（D/2）% (32/inputDtypeSize) == 0时，需满足B * N <= S * 8
-        - 当（D/2）% (32/inputDtypeSize) != 0时，需满足B * N * 2 <= (S + coreNum -1) / coreNum 或者 D >= 80
-      - 当x为BSND时，cos、sin支持1S1D、BS1D、BSND
-      - 当x为SBND时，cos、sin支持S11D、SB1D、SBND
-      - 当x为TND时，cos、sin支持T1D、TND
-    - interleave模式：
-      - B * N < 1000（N<1000当x为TND）
-      - 当x为BNSD时，cos、sin支持11SD
-      - 当x为BSND时，cos、sin支持1S1D
-      - 当x为SBND时，cos、sin支持S11D
-      - 当x为TND时，cos、sin支持T1D
+  - half模式：
+    - B，N < 1000;
+    - 当x为BNSD时，cos、sin支持11SD、B1SD、BNSD
+      - 当（D/2）% (32/inputDtypeSize) == 0时，需满足B * N <= S * 8
+      - 当（D/2）% (32/inputDtypeSize) != 0时，需满足B * N * 2 <= (S + coreNum -1) / coreNum 或者 D >= 80
+    - 当x为BSND时，cos、sin支持1S1D、BS1D、BSND
+    - 当x为SBND时，cos、sin支持S11D、SB1D、SBND
+    - 当x为TND时，cos、sin支持T1D、TND
+  - interleave模式：
+    - B * N < 1000（N<1000当x为TND）
+    - 当x为BNSD时，cos、sin支持11SD
+    - 当x为BSND时，cos、sin支持1S1D
+    - 当x为SBND时，cos、sin支持S11D
+    - 当x为TND时，cos、sin支持T1D
 
 ## 调用示例
 
@@ -412,6 +384,18 @@ int CreateAclTensor(const std::vector<T>& hostData, const std::vector<int64_t>& 
     return 0;
 }
 
+std::vector<float> get_interleave_matrix(int64_t n) {
+    std::vector<float> matrix(n * n, 0.0f);
+    for (int64_t i = 0; i < n; i += 2) {
+        if (i + 1 >= n) {
+            break;
+        }
+        matrix[i * n + (i + 1)] = 1.0f;
+        matrix[(i + 1) * n + i] = 1.0f;
+    }
+    return matrix;
+}
+
 int main() {
     // 1. 固定写法，device/stream初始化, 参考acl API手册
     // 根据自己的实际device填写deviceId
@@ -425,15 +409,18 @@ int main() {
     std::vector<int64_t> cosShape = {1, 1, 1, 128};
     std::vector<int64_t> sinShape = {1, 1, 1, 128};
     std::vector<int64_t> outShape = {1, 1, 1, 128};
+    std::vector<int64_t> rotateShape = {128, 128};
     int64_t mode = 1;
 
     void* xDeviceAddr = nullptr;
     void* cosDeviceAddr = nullptr;
     void* sinDeviceAddr = nullptr;
+    void* rotateDeviceAddr = nullptr;
     void* outDeviceAddr = nullptr;
     aclTensor* x = nullptr;
     aclTensor* cos = nullptr;
     aclTensor* sin = nullptr;
+    aclTensor* rotate = nullptr;
     aclTensor* out = nullptr;
 
     std::vector<float> xHostData = {74, 54, 84, 125, 23, 78, 37, 72, 27, 98, 34, 107, 29, 23, 54, 60, 70, 49,
@@ -455,7 +442,8 @@ int main() {
                                       100, 20, 97, 119, 10, 4, 53, 13, 46, 82, 103, 119, 124, 80, 23, 67, 78, 56, 119, 122, 40,
                                       58, 128, 27, 30, 52, 71, 42, 123, 69, 4, 5, 116, 97, 38, 107, 8, 4, 65, 120, 40, 22, 60,
                                       44, 48, 66, 68, 125, 4, 93, 112, 112, 113, 90, 94, 23, 104, 39, 85, 84, 64, 128, 96, 119};
-    std::vector<float> outHostData(128, 0);                                      
+    std::vector<float> rotateHostData = get_interleave_matrix(128);
+    std::vector<float> outHostData(128, 0);
 
     // 创建x aclTensor
     ret = CreateAclTensor(xHostData, xShape, &xDeviceAddr, aclDataType::ACL_FLOAT, &x);
@@ -466,25 +454,28 @@ int main() {
     // 创建sin aclTensor
     ret = CreateAclTensor(sinHostData, sinShape, &sinDeviceAddr, aclDataType::ACL_FLOAT, &sin);
     CHECK_RET(ret == ACL_SUCCESS, return ret);
+    // 创建rotate aclTensor
+    ret = CreateAclTensor(rotateHostData, rotateShape, &rotateDeviceAddr, aclDataType::ACL_FLOAT, &rotate);
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
     // 创建out aclTensor
     ret = CreateAclTensor(outHostData, outShape, &outDeviceAddr, aclDataType::ACL_FLOAT, &out);
-    CHECK_RET(ret == ACL_SUCCESS, return ret);    
+    CHECK_RET(ret == ACL_SUCCESS, return ret);
 
     // 3. 调用CANN算子库API，需要修改为具体的API
     uint64_t workspaceSize = 0;
     aclOpExecutor* executor;
-    // 调用aclnnRotaryPositionEmbedding第一段接口
-    ret = aclnnRotaryPositionEmbeddingGetWorkspaceSize(x, cos, sin, mode, out, &workspaceSize, &executor);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRotaryPositionEmbeddingGetWorkspaceSize failed. ERROR: %d\n", ret); return ret);
+    // 调用aclnnRotaryPositionEmbeddingV2第一段接口
+    ret = aclnnRotaryPositionEmbeddingGetWorkspaceSizeV2(x, cos, sin, mode, rotate, out, &workspaceSize, &executor);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRotaryPositionEmbeddingGetWorkspaceSizeV2 failed. ERROR: %d\n", ret); return ret);
     // 根据第一段接口计算出的workspaceSize申请device内存
     void* workspaceAddr = nullptr;
     if (workspaceSize > 0) {
         ret = aclrtMalloc(&workspaceAddr, workspaceSize, ACL_MEM_MALLOC_HUGE_FIRST);
         CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("allocate workspace failed. ERROR: %d\n", ret); return ret;);
     }
-    // 调用aclnnRotaryPositionEmbedding第二段接口
-    ret = aclnnRotaryPositionEmbedding(workspaceAddr, workspaceSize, executor, stream);
-    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRotaryPositionEmbedding failed. ERROR: %d\n", ret); return ret);
+    // 调用aclnnRotaryPositionEmbeddingV2第二段接口
+    ret = aclnnRotaryPositionEmbeddingV2(workspaceAddr, workspaceSize, executor, stream);
+    CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclnnRotaryPositionEmbeddingV2 failed. ERROR: %d\n", ret); return ret);
     // 4. 固定写法，同步等待任务执行结束
     ret = aclrtSynchronizeStream(stream);
     CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtSynchronizeStream failed. ERROR: %d\n", ret); return ret);
@@ -503,12 +494,14 @@ int main() {
     aclDestroyTensor(x);
     aclDestroyTensor(cos);
     aclDestroyTensor(sin);
+    aclDestroyTensor(rotate);
     aclDestroyTensor(out);
 
     // 7. 释放device 资源
     aclrtFree(xDeviceAddr);
     aclrtFree(cosDeviceAddr);
     aclrtFree(sinDeviceAddr);
+    aclrtFree(rotateDeviceAddr);
     aclrtFree(outDeviceAddr);
     if (workspaceSize > 0) {
       aclrtFree(workspaceAddr);
@@ -521,5 +514,46 @@ int main() {
 }
 ```
 
+- 辅助矩阵rotate生成示例：
 
+```python
+import torch
+import torch_npu
 
+def get_interleave_matrix(n):
+    matrix = torch.zeros(n, n, dtype=torch.bfloat16)
+    for i in range(0, n, 2):
+        matrix[i + 0, i + 1] = 1
+        matrix[i + 1, i + 0] = -1
+    return matrix
+
+def get_half_matrix(n):
+    matrix = torch.zeros(n, n, dtype=torch.bfloat16)
+    half = n // 2
+    matrix[:half, half:] = torch.eye(half)
+    matrix[half:, :half] = -torch.eye(half)
+    return matrix
+
+def compose_2matrix(A, B):
+    total_rows = A.size(0) + B.size(0)
+    total_cols = A.size(1) + B.size(1)
+    result = torch.zeros(total_rows, total_cols, dtype=torch.bfloat16)
+    result[:A.size(0), :A.size(1)] = A
+    b_row_start = A.size(0)
+    b_col_start = A.size(1)
+    result[b_row_start:b_row_start + B.size(0), 
+           b_col_start:b_col_start + B.size(1)] = B
+    return result
+
+def main():
+    # interleave
+    inter_mat_128 = get_interleave_matrix(128)
+    inter_mat_64 = get_interleave_matrix(64)
+    # interleave 2D
+    inter_mat_128_64 = compose_2matrix(inter_mat_128, inter_mat_64)
+
+    x = torch.rand(2, 2, 5, 128).npu()
+    r1 = torch.rand(1, 2, 1, 128).npu()
+    r2 = torch.rand(1, 2, 1, 128).npu()
+    out = torch_npu.npu_rotary_mul(x, r1, r2，"interleave", inter_mat_128.npu())
+```
