@@ -1,6 +1,6 @@
 # ops-transformer
 
-## 🔥Latest News
+## 🔥Latest Newss
 
 - [2025/09] ops-transformer项目首次上线。
 
