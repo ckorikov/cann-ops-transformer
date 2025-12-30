@@ -65,6 +65,7 @@ cannsim record [options] user_app --user_options
 
     ```
     ├─cannsim_{timestamp}_${user_app}
+    ├── cannsim.log
     ├── log
     │   ├── AIC_0_0_0_0_ChiWrap.log0
     │   ├── ccum_0_0_2.txt0
@@ -89,7 +90,7 @@ cannsim record [options] user_app --user_options
     │   └── stars_log0_1.dump
     ```
 
-4. 用户可以获取算子执行结果，并进行精度的对比，结果示例如下
+4. 用户可以获取算子执行结果，并进行精度的对比，结果展示在cannsim.log，示例如下
 
     以下输出仅为AscendC单算子直调精度比较结果举例，因版本不同略有差异，请以实际输出为准。
 
