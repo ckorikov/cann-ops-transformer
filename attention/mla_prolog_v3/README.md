@@ -3,8 +3,10 @@
 
 |产品      | 是否支持 |
 |:----------------------------|:-----------:|
+|<term>昇腾910_95 AI处理器</term>|      √     |
 |<term>Atlas A3 训练系列产品/Atlas A3 推理系列产品</term>|      √     |
 |<term>Atlas A2 训练系列产品/Atlas A2 推理系列产品</term>|      √     |
+
 ## 功能说明
 -  **功能更新**：（相对与aclnnMlaPrologV2weightNz的差异）
     -  新增query与key的尺度矫正因子，分别对应qcQrScale（$\alpha_q$）与kcScale（$\alpha_{kv}$）。
@@ -47,7 +49,6 @@
     $$
     q^N = q^C \cdot W^{UK}
     $$
-
     其中 $\alpha_q$ 是 Query 的尺度矫正参数。
 
     对Query进行ROPE旋转位置编码
@@ -65,7 +66,6 @@
     $$
     k^C = \mathrm{Cache}(c^{KV})
     $$
-
     其中 $\alpha_{kv}$ 是 Key 的尺度矫正参数。
 
     对Key进行ROPE旋转位置编码，并将结果存入cache
@@ -121,7 +121,7 @@
 -   shape约束
     -   若token_x的维度采用BS合轴，即(T, He)
         - rope_sin和rope_cos的shape为(T, Dr)
-        - cache_index的shape为(T)
+        - cache_index的shape为(T,)
         - dequant_scale_x的shape为(T, 1)
         - query的shape为(T, N, Hckv)
         - query_rope的shape为(T, N, Dr)
@@ -203,18 +203,22 @@
 
 <table class="tg"><thead>
   <tr>
-    <th class="tg-0lax">调用方式</th>
-    <th class="tg-0lax">样例代码</th>
-    <th class="tg-0lax">说明</th>
+    <th class="tg-0pky">调用方式</th>
+    <th class="tg-0pky">样例代码</th>
+    <th class="tg-0pky">说明</th>
   </tr></thead>
 <tbody>
   <tr>
-    <td class="tg-0lax">
+    <td class="tg-9wq8" rowspan="6">aclnn接口</td>
+    <td class="tg-0pky">
     <a href="./examples/test_aclnn_mla_prolog_v3.cpp">MlaPrologV3接口测试用例代码
     </a>
     </td>
+    <td class="tg-lboi" rowspan="6">
+    通过
+    <a href="./docs/aclnnMlaPrologV3WeightNz.md">aclnnMlaPrologV3WeightNz
+    </a>
+    接口方式调用算子
+    </td>
   </tr>
 </tbody></table>
-
-<!-- ## 参考资源
-[MlaProlog算子设计原理](../mla_prolog/docs/MlaProlog算子设计介绍.md) -->

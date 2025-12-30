@@ -356,6 +356,16 @@
   </tr>
   <tr>
     <td>gmm</td>
+    <td><a href="../../gmm/grouped_matmul_swiglu_quant_v2/README.md">grouped_matmul_swiglu_quant_v2</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>×</td>
+    <td>AI Core</td>
+    <td>融合GroupedMatmul 、dequant、swiglu和quant，新增了MXFP8量化场景（仅Ascend 950PR/Ascend 950DT AI处理器支持）</td>
+  </tr>
+  <tr>
+    <td>gmm</td>
     <td><a href="../../gmm/quant_grouped_matmul_inplace_add/README.md">quant_grouped_matmul_inplace_add</a></td>
     <td>√</td>
     <td>√</td>
@@ -393,6 +403,26 @@
     <td>√</td>
     <td>AI Core</td>
     <td>完成路由专家AlltoAllv、Permute、GroupedMatMul融合并实现与共享专家MatMul并行融合，先通信后计算。</td>
+  </tr>
+  <tr>
+    <td>mc2</td>
+    <td><a href="../../mc2/ffn_to_attention/README.md">ffn_to_attention</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>AI Core</td>
+    <td>一个通信域内的FFN节点对Attention节点发送数据并写状态位，以检测通信链路是否正常。</td>
+  </tr>
+  <tr>
+    <td>mc2</td>
+    <td><a href="../../mc2/attention_to_ffn/README.md">attention_to_ffn</a></td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>√</td>
+    <td>AI Core</td>
+    <td>一个通信域内的Attention节点对FFN节点发送数据并写状态位，以检测通信链路是否正常。</td>
   </tr>
   <tr>
     <td>mc2</td>
