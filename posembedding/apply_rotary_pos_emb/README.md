@@ -160,7 +160,7 @@
     - rotary_mode只支持"half"。
     - 不支持空tensor场景。
   
-- <term>昇腾910_95 AI处理器</term>：
+- <term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：
     - 输入张量query、key、cos、sin只支持4维的shape，对于任意layout，query与key除N维度外其他维度必须相同；cos与sin shape必须相同；cos与sin的B维度与query、key的B维度一致，或者等于1；cos和sin的N维度必须等于1；query、key、cos、sin的S,D维度必须相同，且D维度小于等于1024。
     - 输入张量query、key、cos、sin的dtype必须相同。
     - rotary_mode为"half"和"interleave"时，输入shape最后一维必须被2整除；rotary_mode为"quarter"时，输入shape最后一维必须被4整除。

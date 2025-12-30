@@ -203,7 +203,7 @@ aclnnStatus aclnnApplyRotaryPosEmb(
   </table>
 
   - <term>Atlas 推理系列产品</term>：不支持BFLOAT16
-  - <term>昇腾910_95 AI处理器</term>：不支持layout为4
+  - <term>昇腾Ascend 950PR/Ascend 950DT AI处理器</term>：不支持layout为4
 
 - **返回值：**
 
