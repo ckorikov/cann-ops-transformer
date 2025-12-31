@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file kv_rms_norm_rope_cache_tiling.h
@@ -37,6 +37,7 @@ TILING_DATA_FIELD_DEF(float, reciprocal);
 TILING_DATA_FIELD_DEF(int8_t, isOutputKv);
 TILING_DATA_FIELD_DEF(int8_t, isKQuant);
 TILING_DATA_FIELD_DEF(int8_t, isVQuant);
+TILING_DATA_FIELD_DEF(int64_t, methodMode);
 END_TILING_DATA_DEF;
 
 BEGIN_TILING_DATA_DEF(KvRmsNormRopeCacheDefaultTilingData)
@@ -54,15 +55,19 @@ TILING_DATA_FIELD_DEF(float, reciprocal);
 TILING_DATA_FIELD_DEF(int8_t, isOutputKv);
 TILING_DATA_FIELD_DEF(int8_t, isKQuant);
 TILING_DATA_FIELD_DEF(int8_t, isVQuant);
+TILING_DATA_FIELD_DEF(int64_t, methodMode);
 END_TILING_DATA_DEF;
 
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache, KvRmsNormRopeCacheDefaultTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_1000, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_1001, KvRmsNormRopeCacheTilingData)
+REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_1010, KvRmsNormRopeCacheTilingData)
+REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_1011, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_2000, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_2001, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_3000, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_3001, KvRmsNormRopeCacheTilingData)
+REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_3010, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_4000, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_4001, KvRmsNormRopeCacheTilingData)
 REGISTER_TILING_DATA_CLASS(KvRmsNormRopeCache_5000, KvRmsNormRopeCacheTilingData)
@@ -152,6 +157,7 @@ constexpr int64_t K_ROPE_SCALE_IDX = 7;
 constexpr int64_t C_KV_SCALE_IDX = 8;
 constexpr int64_t K_ROPE_OFFSET_IDX = 9;
 constexpr int64_t C_KV_OFFSET_IDX = 10;
+constexpr int64_t V_IDX = 11;
 constexpr int64_t CACHE_MODE_IDX = 1;
 constexpr int64_t IS_OUTPUT_KV_IDX = 2;
 constexpr int64_t SHAPE_IDX_B = 0;
@@ -195,7 +201,7 @@ public:
     int64_t kv_{DIM_NUM_ONE};
     int64_t dv_{DIM_NUM_ONE};
     int64_t dk_{DIM_NUM_ONE};
-
+    int64_t vlen_{DIM_NUM_ONE};
     int64_t cacheLength_ = 0;
     int64_t blockSize_ = 0;
     int64_t ubBlockSize_ = 0;
@@ -207,6 +213,7 @@ public:
     bool isMTP_ = false;
     CacheMode currentCacheMode_ = CacheMode::Norm;
     int64_t quantMode_ = 0;
+    int64_t methodMode_ = 0;
 
     ge::DataType kvDtype_{ge::DataType::DT_FLOAT};
     int64_t kvDtypeSize_{0};
@@ -239,8 +246,13 @@ protected:
 protected:
     std::tuple<int64_t, int64_t, int64_t, int64_t> GetShapeTuple(
         const gert::TilingContext* context, const int64_t index = 0);
+    std::tuple<int64_t, int64_t, int64_t, int64_t> GetOptionalShapeTuple(
+        const gert::TilingContext* context, const int64_t index = 0);
     bool IsB1SD(const gert::TilingContext* context);
+    void GetMethodeMode(const gert::TilingContext* context);
     bool CheckKvValid(
+        const gert::TilingContext* context, int64_t batchSize, int64_t numHead, int64_t seqLen, int64_t headSize);
+    bool CheckVValid(
         const gert::TilingContext* context, int64_t batchSize, int64_t numHead, int64_t seqLen, int64_t headSize);
     bool CheckCosSinValid(
         const gert::TilingContext* context, int64_t batchSize, int64_t numHead, int64_t seqLen, int64_t headSize);
@@ -271,6 +283,7 @@ protected:
 protected:
     void DoOpTilingPaBlkNz();
     bool CheckScaleValid(const gert::TilingContext* context);
+    bool CheckOffsetValid(const gert::TilingContext* context);
 
 private:
     KvRmsNormRopeCacheTilingData tilingData_;

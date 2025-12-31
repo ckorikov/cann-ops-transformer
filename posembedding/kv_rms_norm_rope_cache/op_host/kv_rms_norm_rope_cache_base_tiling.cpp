@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file kv_rms_norm_rope_cache_tiling_base.cpp
@@ -34,6 +34,26 @@ std::tuple<int64_t, int64_t, int64_t, int64_t> KvRmsNormRopeCacheTilingBase::Get
         shapePtr->GetStorageShape().GetDim(SHAPE_IDX_S), shapePtr->GetStorageShape().GetDim(SHAPE_IDX_D));
 }
 
+std::tuple<int64_t, int64_t, int64_t, int64_t> KvRmsNormRopeCacheTilingBase::GetOptionalShapeTuple(
+    const gert::TilingContext* context, const int64_t index)
+{
+    const gert::StorageShape* shapePtr = context->GetOptionalInputShape(index);
+    OP_CHECK_IF(shapePtr == nullptr, OP_LOGE(context, "Shape is nullptr."), return std::make_tuple(0, 0, 0, 0));
+    // check shape length is DIM_SIZE
+    OP_CHECK_IF(
+        shapePtr->GetStorageShape().GetDimNum() != DIM_SIZE, OP_LOGE(context, "Shape must be (B,N,S,D)."),
+        return std::make_tuple(0, 0, 0, 0));
+    return std::make_tuple(
+        shapePtr->GetStorageShape().GetDim(SHAPE_IDX_B), shapePtr->GetStorageShape().GetDim(SHAPE_IDX_N),
+        shapePtr->GetStorageShape().GetDim(SHAPE_IDX_S), shapePtr->GetStorageShape().GetDim(SHAPE_IDX_D));
+}
+
+void KvRmsNormRopeCacheTilingBase::GetMethodeMode(const gert::TilingContext* context)
+{
+    auto vShape = context_->GetOptionalInputShape(V_IDX);
+    methodMode_ = (vShape != nullptr) ? 1 : 0;
+}
+
 bool KvRmsNormRopeCacheTilingBase::IsB1SD(const gert::TilingContext* context)
 {
     auto kvShapeTuple = GetShapeTuple(context, KV_INDEX);
@@ -55,6 +75,19 @@ bool KvRmsNormRopeCacheTilingBase::CheckKvValid(
     isValid = isValid && (std::get<SHAPE_IDX_N>(kvShapeTuple) == numHead);
     isValid = isValid && (std::get<SHAPE_IDX_S>(kvShapeTuple) == seqLen);
     isValid = isValid && (std::get<SHAPE_IDX_D>(kvShapeTuple) == headSize);
+
+    return isValid;
+}
+
+bool KvRmsNormRopeCacheTilingBase::CheckVValid(
+    const gert::TilingContext* context, int64_t batchSize, int64_t numHead, int64_t seqLen, int64_t headSize)
+{
+    auto vShapeTuple = GetOptionalShapeTuple(context, V_IDX);
+    bool isValid = true;
+    isValid = isValid && (std::get<SHAPE_IDX_B>(vShapeTuple) == batchSize);
+    isValid = isValid && (std::get<SHAPE_IDX_N>(vShapeTuple) == numHead);
+    isValid = isValid && (std::get<SHAPE_IDX_S>(vShapeTuple) == seqLen);
+    isValid = isValid && (std::get<SHAPE_IDX_D>(vShapeTuple) == headSize);
 
     return isValid;
 }
@@ -204,15 +237,12 @@ int64_t KvRmsNormRopeCacheTilingBase::GetQuantMode(const gert::TilingContext* co
 {
     auto scale1Shape = context->GetOptionalInputShape(K_ROPE_SCALE_IDX);
     auto scale2Shape = context->GetOptionalInputShape(C_KV_SCALE_IDX);
-
     bool allNullPtr = (scale1Shape == nullptr) && (scale2Shape == nullptr);
-
     if (allNullPtr) {
         return NON_QUANT_MODE;
     } else {
         return QUANT_MODE;
     }
-    return -1;
 }
 
 ge::graphStatus KvRmsNormRopeCacheTilingBase::GetPlatformInfo()
@@ -275,7 +305,22 @@ ge::graphStatus KvRmsNormRopeCacheTilingBase::GetShapeAttrsInfo()
     isMTP_ = (seqLen > 1);
     OP_CHECK_IF(batchSize < 1, OP_LOGE(context_->GetNodeName(), "batchSize should >= 1."), return ge::GRAPH_FAILED);
     OP_CHECK_IF(seqLen < 1, OP_LOGE(context_->GetNodeName(), "seqLen should >= 1."), return ge::GRAPH_FAILED);
-    OP_CHECK_IF(numHead != 1, OP_LOGE(context_->GetNodeName(), "numHead should == 1."), return ge::GRAPH_FAILED);
+
+    GetMethodeMode(context_);
+    if (methodMode_ == 0) {
+        OP_CHECK_IF(numHead != 1, OP_LOGE(context_->GetNodeName(), "numHead should == 1."), return ge::GRAPH_FAILED);
+    }
+    else {
+        OP_CHECK_IF((numHead != 1 && numHead != 2 && numHead != 4 && numHead != 8), OP_LOGE(context_->GetNodeName(), "numHead should == 1 or 2 or 4 or 8."), return ge::GRAPH_FAILED);
+    }
+  
+    if (methodMode_ == 1) {
+        auto vShape = GetOptionalShapeTuple(context_, V_IDX);
+        vlen_ = std::get<SHAPE_IDX_D>(vShape);
+        OP_CHECK_IF(
+        !CheckVValid(context_, batchSize, numHead, seqLen, vlen_),
+        OP_LOGE(context_->GetNodeName(), "v shape is invalid."), return ge::GRAPH_FAILED);
+    }
     OP_CHECK_IF(
         !CheckKvValid(context_, batchSize, numHead, seqLen, kv_),
         OP_LOGE(context_->GetNodeName(), "kv shape is invalid."), return ge::GRAPH_FAILED);

@@ -1,18 +1,19 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * This program is free software, you can redistribute it and/or modify.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file kv_rms_norm_rope_cache_def.cpp
  * \brief KvRmsNormRopeCache op host config
  */
 #include "register/op_def_registry.h"
+constexpr uint32_t KV_RMS_NORM_ROPE_CACHE_VERSION_TWO = 2;
 
 namespace ops {
 class KvRmsNormRopeCache : public OpDef {
@@ -144,6 +145,19 @@ public:
             .DataType(
                 {ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT,
                  ge::DT_FLOAT})
+            .Format(
+                {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
+                 ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat(
+                {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
+                 ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        this->Input("v")
+            .ParamType(OPTIONAL)
+            .Version(KV_RMS_NORM_ROPE_CACHE_VERSION_TWO)
+            .DataType(
+                {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16,
+                 ge::DT_BF16})
             .Format(
                 {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
                  ge::FORMAT_ND, ge::FORMAT_ND})
@@ -334,6 +348,19 @@ public:
                 {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
                  ge::FORMAT_ND, ge::FORMAT_ND})
             .AutoContiguous();
+        config_910_95.Input("v")
+            .ParamType(OPTIONAL)
+            .Version(KV_RMS_NORM_ROPE_CACHE_VERSION_TWO)
+            .DataType(
+                {ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16, ge::DT_BF16, ge::DT_FLOAT16,
+                 ge::DT_BF16})
+            .Format(
+                {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
+                 ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat(
+                {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
+                 ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
         config_910_95.Output("k_cache")
             .ParamType(REQUIRED)
             .DataType(
@@ -378,9 +405,120 @@ public:
             .UnknownShapeFormat(
                 {ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND,
                  ge::FORMAT_ND, ge::FORMAT_ND});
-        config_910_95.DynamicCompileStaticFlag(true).DynamicShapeSupportFlag(true).ExtendCfgInfo(
-            "opFile.value", "kv_rms_norm_rope_cache_apt");
+        config_910_95.DynamicCompileStaticFlag(true)
+            .DynamicShapeSupportFlag(true)
+            .DynamicRankSupportFlag(true)
+            .ExtendCfgInfo("opFile.value", "kv_rms_norm_rope_cache_apt");
         this->AICore().AddConfig("ascend910_95", config_910_95);
+
+        OpAICoreConfig config_kirin = GetKirinCoreConfig();
+        this->AICore().AddConfig("kirinx90", config_kirin);
+    }
+
+private:
+    OpAICoreConfig GetKirinCoreConfig() const
+    {
+        OpAICoreConfig config_kirin;
+        config_kirin.DynamicCompileStaticFlag(true)
+            .DynamicFormatFlag(true)
+            .DynamicRankSupportFlag(true)
+            .DynamicShapeSupportFlag(true)
+            .NeedCheckSupportFlag(false)
+            .PrecisionReduceFlag(true);
+        config_kirin.Input("kv")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("gamma")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("cos")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("sin")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("index")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_INT64, ge::DT_INT64, ge::DT_INT64, ge::DT_INT64})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("k_cache")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_INT8, ge::DT_INT8, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("ckv_cache")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_INT8, ge::DT_FLOAT16, ge::DT_INT8})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("k_rope_scale")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("c_kv_scale")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("k_rope_offset")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("c_kv_offset")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT, ge::DT_FLOAT})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Input("v")
+            .ParamType(OPTIONAL)
+            .Version(KV_RMS_NORM_ROPE_CACHE_VERSION_TWO)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16,})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .AutoContiguous();
+        config_kirin.Output("k_cache")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_INT8, ge::DT_INT8, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        config_kirin.Output("ckv_cache")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_INT8, ge::DT_FLOAT16, ge::DT_INT8})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        config_kirin.Output("k_rope")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        config_kirin.Output("c_kv")
+            .ParamType(REQUIRED)
+            .DataType({ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16, ge::DT_FLOAT16})
+            .Format({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND})
+            .UnknownShapeFormat({ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND, ge::FORMAT_ND});
+        return config_kirin;
     }
 };
 
