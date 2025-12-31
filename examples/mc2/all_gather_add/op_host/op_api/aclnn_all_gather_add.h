@@ -13,7 +13,12 @@
 
 #include <string>
 #include "aclnn/aclnn_base.h"
+<<<<<<< HEAD
 #include "aclnn_util.h"
+=======
+#include "aclnnop/aclnn_util.h"
+#include "hccl/hccl.h"
+>>>>>>> 2698a271... all_gather_add编译修复
 #include "hccl/hccl_types.h"
 
 #ifdef __cplusplus
