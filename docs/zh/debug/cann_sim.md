@@ -24,283 +24,61 @@ CANN Simulator是一款面向算子开发场景的SoC级芯片仿真工具，用
 
 ## 环境准备
 
-CANN Simulator集成在CANN toolkit包里，参考[环境部署](../context/quick_install.md)中的软件包安装 -> 安装社区版CANN toolkit包章节
+CANN Simulator集成在CANN toolkit包里，参考[环境部署](../context/quick_install.md)完成软件包的安装
 
 # 快速开始
 
+下面以[add_examples](../../../examples/add_example/)为例，对算子仿真进行详细说明
+
 ## 算子编译
 
-下文将以Add矢量算子为例对Kernel直调算子的仿真进行详细说明，开发者进行算子开发的步骤如下：
-
-* 完成算子kernel侧实现。
-* 编写算子调用应用程序main.cpp。
-* 编写CMake编译配置文件CMakeLists.txt。
-
+* 参考[算子调用](../invocation/quick_op_invocation.md)完成add_example的算子编译和安装
 ```
-├── add_custom.cpp               --- kernel侧算子实现
-├── cmake
-│   └── npu_lib.cmake             --- kernel侧cmake编译
-├── CMakeLists.txt                  --- 算子调用程序cmake编译
-└── main.cpp                          --- 算子调用程序
+# 说明：进入项目根目录，执行如下编译命令，命令仅供参考，详细可以查看算子调用的说明。
+bash build.sh --pkg --soc=Ascend950 --vendor_name=custom --ops=add_example
+# 安装自定义算子包
+./build_out/cann-ops-math-${vendor_name}_linux-${arch}.run
 ```
 
-### 算子Kernel侧实现
+* 参考[aclnn调用](../invocation/op_invocation.md#aclnn调用)完成test_aclnn_add_example.cpp的编译，编出可执行文件test_aclnn_add_example
 
-创建add_custom.cpp文件，可参考如下实现完成Ascend C算子实现文件的编写。
-
-```
-/**
- * @file add_custom.cpp
- *
- * Copyright (C) 2024. Huawei Technologies Co., Ltd. All rights reserved.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- */
-#include "kernel_operator.h"
-
-constexpr int32_t TOTAL_LENGTH = 8 * 2048;                            // total length of data
-constexpr int32_t USE_CORE_NUM = 8;                                   // num of core used
-constexpr int32_t BLOCK_LENGTH = TOTAL_LENGTH / USE_CORE_NUM;         // length computed of each core
-constexpr int32_t TILE_NUM = 8;                                       // split data into 8 tiles for each core
-constexpr int32_t BUFFER_NUM = 1;                                     // tensor num for each queue
-constexpr int32_t TILE_LENGTH = BLOCK_LENGTH / TILE_NUM / BUFFER_NUM; // separate to 2 parts, due to double buffer
-
-class KernelAdd {
-public:
-    __aicore__ inline KernelAdd() {}
-    __aicore__ inline void Init(GM_ADDR x, GM_ADDR y, GM_ADDR z)
-    {
-        xGm.SetGlobalBuffer((__gm__ half *)x + BLOCK_LENGTH * AscendC::GetBlockIdx(), BLOCK_LENGTH);
-        yGm.SetGlobalBuffer((__gm__ half *)y + BLOCK_LENGTH * AscendC::GetBlockIdx(), BLOCK_LENGTH);
-        zGm.SetGlobalBuffer((__gm__ half *)z + BLOCK_LENGTH * AscendC::GetBlockIdx(), BLOCK_LENGTH);
-        pipe.InitBuffer(inQueueX, BUFFER_NUM, TILE_LENGTH * sizeof(half));
-        pipe.InitBuffer(inQueueY, BUFFER_NUM, TILE_LENGTH * sizeof(half));
-        pipe.InitBuffer(outQueueZ, BUFFER_NUM, TILE_LENGTH * sizeof(half));
-    }
-    __aicore__ inline void Process()
-    {
-        int32_t loopCount = TILE_NUM * BUFFER_NUM;
-        for (int32_t i = 0; i < loopCount; i++) {
-            CopyIn(i);
-            Compute(i);
-            CopyOut(i);
-        }
-    }
-
-private:
-    __aicore__ inline void CopyIn(int32_t progress)
-    {
-        AscendC::LocalTensor<half> xLocal = inQueueX.AllocTensor<half>();
-        AscendC::LocalTensor<half> yLocal = inQueueY.AllocTensor<half>();
-        AscendC::DataCopy(xLocal, xGm[progress * TILE_LENGTH], TILE_LENGTH);
-        AscendC::DataCopy(yLocal, yGm[progress * TILE_LENGTH], TILE_LENGTH);
-        inQueueX.EnQue(xLocal);
-        inQueueY.EnQue(yLocal);
-    }
-    __aicore__ inline void Compute(int32_t progress)
-    {
-        AscendC::LocalTensor<half> xLocal = inQueueX.DeQue<half>();
-        AscendC::LocalTensor<half> yLocal = inQueueY.DeQue<half>();
-        AscendC::LocalTensor<half> zLocal = outQueueZ.AllocTensor<half>();
-        AscendC::Add(zLocal, xLocal, yLocal, TILE_LENGTH);
-        outQueueZ.EnQue<half>(zLocal);
-        inQueueX.FreeTensor(xLocal);
-        inQueueY.FreeTensor(yLocal);
-    }
-    __aicore__ inline void CopyOut(int32_t progress)
-    {
-        AscendC::LocalTensor<half> zLocal = outQueueZ.DeQue<half>();
-        AscendC::DataCopy(zGm[progress * TILE_LENGTH], zLocal, TILE_LENGTH);
-        outQueueZ.FreeTensor(zLocal);
-    }
-
-private:
-    AscendC::TPipe pipe;
-    AscendC::TQue<AscendC::TPosition::VECIN, BUFFER_NUM> inQueueX, inQueueY;
-    AscendC::TQue<AscendC::TPosition::VECOUT, BUFFER_NUM> outQueueZ;
-    AscendC::GlobalTensor<half> xGm;
-    AscendC::GlobalTensor<half> yGm;
-    AscendC::GlobalTensor<half> zGm;
-};
-
-extern "C" __global__ __aicore__ void add_custom(GM_ADDR x, GM_ADDR y, GM_ADDR z)
-{
-    KernelAdd op;
-    op.Init(x, y, z);
-    op.Process();
-}
-
-void add_custom_do(uint32_t blockDim, void *stream, uint8_t *x, uint8_t *y, uint8_t *z)
-{
-    add_custom<<<blockDim, nullptr, stream>>>(x, y, z);
-}
+## 执行仿真命令
 
 ```
-
-### 算子调用应用程序
-
-创建main.cpp文件，下面代码以固定shape的add_custom算子为例，x=i，y=i*2，打印前10的z的值。您在实现自己的应用程序时，需要关注由于算子核函数不同带来的修改，包括算子核函数名，入参出参的不同等，合理安排相应的内存分配、内存拷贝和文件读写等，相关API的调用方式直接复用即可。
-
-```
-/**
- * @file main.cpp
- *
- * Copyright (C) 2024. Huawei Technologies Co., Ltd. All rights reserved.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- */
-#include "acl/acl.h"
-
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-
-#define CHECK_ACL(x)                                                                        \
-    do {                                                                                    \
-        aclError __ret = x;                                                                 \
-        if (__ret != ACL_ERROR_NONE) {                                                      \
-            std::cerr << __FILE__ << ":" << __LINE__ << " aclError:" << __ret << std::endl; \
-        }                                                                                   \
-    } while (0);
-
-extern void add_custom_do(uint32_t blockDim, void *stream, uint8_t *x, uint8_t *y, uint8_t *z);
-
-int32_t main(int32_t argc, char *argv[])
-{
-    uint32_t blockDim = 8;
-    size_t inputByteSize = 8 * 2048 * sizeof(uint16_t);
-    size_t outputByteSize = 8 * 2048 * sizeof(uint16_t);
-
-    CHECK_ACL(aclInit(nullptr));
-    int32_t deviceId = 0;
-    CHECK_ACL(aclrtSetDevice(deviceId));
-    aclrtStream stream = nullptr;
-    CHECK_ACL(aclrtCreateStream(&stream));
-
-    uint8_t *xHost, *yHost, *zHost;
-    uint8_t *xDevice, *yDevice, *zDevice;
-
-    CHECK_ACL(aclrtMallocHost((void **)(&xHost), inputByteSize));
-    CHECK_ACL(aclrtMallocHost((void **)(&yHost), inputByteSize));
-    CHECK_ACL(aclrtMallocHost((void **)(&zHost), outputByteSize));
-    CHECK_ACL(aclrtMalloc((void **)&xDevice, inputByteSize, ACL_MEM_MALLOC_HUGE_FIRST));
-    CHECK_ACL(aclrtMalloc((void **)&yDevice, inputByteSize, ACL_MEM_MALLOC_HUGE_FIRST));
-    CHECK_ACL(aclrtMalloc((void **)&zDevice, outputByteSize, ACL_MEM_MALLOC_HUGE_FIRST));
-
-	// 构造固定输入数据（FP16 类型）
-    aclFloat16* xData = reinterpret_cast<aclFloat16*>(xHost);
-    aclFloat16* yData = reinterpret_cast<aclFloat16*>(yHost);
-
-    for (size_t i = 0; i < 8 * 2048; ++i) {
-        xData[i] = aclFloatToFloat16(static_cast<float>(i));         // x[i] = i
-        yData[i] = aclFloatToFloat16(static_cast<float>(i * 2));     // y[i] = 2*i
-    }
-
-    CHECK_ACL(aclrtMemcpy(xDevice, inputByteSize, xHost, inputByteSize, ACL_MEMCPY_HOST_TO_DEVICE));
-    CHECK_ACL(aclrtMemcpy(yDevice, inputByteSize, yHost, inputByteSize, ACL_MEMCPY_HOST_TO_DEVICE));
-
-    add_custom_do(blockDim, stream, xDevice, yDevice, zDevice);
-    CHECK_ACL(aclrtSynchronizeStream(stream));
-
-    CHECK_ACL(aclrtMemcpy(zHost, outputByteSize, zDevice, outputByteSize, ACL_MEMCPY_DEVICE_TO_HOST));
-	aclFloat16* zData = reinterpret_cast<aclFloat16*>(zHost);
-    std::cout << "First 10 output values:\n";
-    for (int i = 0; i < 10; ++i) {
-        float val = aclFloat16ToFloat(zData[i]);
-        std::cout << "z[" << i << "] = " << val << std::endl;
-    }
-
-    CHECK_ACL(aclrtFree(xDevice));
-    CHECK_ACL(aclrtFree(yDevice));
-    CHECK_ACL(aclrtFree(zDevice));
-    CHECK_ACL(aclrtFreeHost(xHost));
-    CHECK_ACL(aclrtFreeHost(yHost));
-    CHECK_ACL(aclrtFreeHost(zHost));
-
-    CHECK_ACL(aclrtDestroyStream(stream));
-    CHECK_ACL(aclrtResetDevice(deviceId));
-    CHECK_ACL(aclFinalize());
-    return 0;
-}
-
+cannsim record ./test_aclnn_add_example -s Ascend950 --gen-report
 ```
 
-### CMake编译配置文件编写
-
-简化的编译流程图如下图所示：将算子核函数源文件编译生成kernel侧的库文件（*.so或*.a库文件）；编译main.cpp（算子调用应用程序）时依赖上述头文件，将编译应用程序生成的目标文件和kernel侧的库文件进行链接，生成最终的可执行文件
-
-创建CMakeLists.txt文件，如下是CMake示例，通常情况下不需要开发者修改
+仿真工具执行日志文件在examples/add_example/examples/build/bin/cannsim_*目录，执行日志文件为
 
 ```
-cmake_minimum_required(VERSION 3.16)
-project(Ascend_c)
-
-set(SOC_VERSION "Ascend910_9599" CACHE STRING "system on chip type")
-set(ASCEND_CANN_PACKAGE_PATH $ENV{ASCEND_HOME_PATH}
-    CACHE STRING "ASCEND CANN package installation directory"
-)
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type Release/Debug (default Debug)" FORCE)
-endif()
-
-# ${KERNEL_FILES} are used to compile library, push files written by ascendc in ${KERNEL_FILES}.
-# ref to cmake/npu.cmake ascendc_library, cmake/cpu.cmake add_library
-file(GLOB KERNEL_FILES ${CMAKE_CURRENT_SOURCE_DIR}/add_custom.cpp)
-
-include(cmake/npu_lib.cmake)
-add_executable(ascendc_kernels_bbit ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-
-target_compile_options(ascendc_kernels_bbit PRIVATE
-    -O2 -std=c++17 -D_GLIBCXX_USE_CXX11_ABI=0 -Wall -Werror
-)
-
-target_link_libraries(ascendc_kernels_bbit PRIVATE
-    host_intf_pub
-    ascendc_kernels_npu
-)
-
-install(TARGETS ascendc_kernels_bbit
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
+cannsim.log
 ```
 
-创建cmake文件夹，以及包含的npu_lib.cmake文件，编译出kernel侧的库文件，参考如下
+从仿真工具日志文件可以看到示例中的打印信息：
 
 ```
-if(EXISTS ${ASCEND_CANN_PACKAGE_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
-    set(ASCENDC_CMAKE_DIR ${ASCEND_CANN_PACKAGE_PATH}/compiler/tikcpp/ascendc_kernel_cmake)
-elseif(EXISTS ${ASCEND_CANN_PACKAGE_PATH}/tools/tikcpp/ascendc_kernel_cmake)
-    set(ASCENDC_CMAKE_DIR ${ASCEND_CANN_PACKAGE_PATH}/tools/tikcpp/ascendc_kernel_cmake)
-else()
-    message(FATAL_ERROR "ascendc_kernel_cmake does not exist ,please check whether the cann package is installed")
-endif()
-include(${ASCENDC_CMAKE_DIR}/ascendc.cmake)
-
-# ascendc_library use to add kernel file to generate ascendc library
-ascendc_library(ascendc_kernels_${RUN_MODE} SHARED ${KERNEL_FILES})
-
+add_example result[2011] is: 2.000000
+add_example result[2012] is: 2.000000
+add_example result[2013] is: 2.000000
+add_example result[2014] is: 2.000000
+add_example result[2015] is: 2.000000
+add_example result[2016] is: 2.000000
+add_example result[2017] is: 2.000000
+add_example result[2018] is: 2.000000
+add_example result[2019] is: 2.000000
+add_example result[2020] is: 2.000000
+add_example result[2021] is: 2.000000
 ```
 
-### 执行编译
+## 查看性能流水
 
-在算子开发目录执行编译命令
-
-```
-mkdir build && cd build && cmake .. && make -j
-```
-
-编译完成后，在build目录会生成对应的可执行文件ascendc_kernels_bbit和lib/libascendc_kernels_npu.so，将对应的so库路径加入到LD_LIBRARY_PATH
+仿真性能流水文件在本项目`examples/add_example/examples/build/bin/cannsim_*/report目录，流水相关文件为：
 
 ```
-export LD_LIBRARY_PATH=$(pwd)/lib:$LD_LIBRARY_PATH  -- pwd为当前算子编译后的的build目录
+trace_core0.json
 ```
+
+在Chrome浏览器中输入“chrome://tracing”地址，并将生成的指令流水图文件（trace_core0.json）拖到空白处打开，具体参数介绍参考“仿真结果解析”章节。
 
 ## 执行仿真命令
 
