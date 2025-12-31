@@ -14,6 +14,7 @@
 #include <string>
 #include "aclnn/aclnn_base.h"
 #include "aclnn_util.h"
+#include "hccl/hccl.h"
 #include "hccl/hccl_types.h"
 
 #ifdef __cplusplus
