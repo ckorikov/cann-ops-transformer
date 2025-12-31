@@ -540,8 +540,7 @@ aclnnStatus aclnnPromptFlashAttentionV2(
   
   - 输入数据类型限制：
     - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>、<term>Ascend 950PR/Ascend 950DT AI处理器</term>：数据类型支持FLOAT32和BFLOAT16。
-    - <term>Atlas A2 训练系列产品/Atlas A2 推理产品</term>：数据类型支持FLOAT32。
-  
+    
 - preTokens输入，功能使用限制如下：
   
   - 输入数据类型限制：
