@@ -204,7 +204,6 @@ int LaunchOneThreadAllGatherAdd(Args &args, TestData &testData)
 
     auto hcclRet = HcclCommDestroy(args.hcclComm);
     CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", hcclRet));
-    LOG_PRINT("[INFO] device_%d aclnnAllGatherAdd HcclCommDestroy successfully.\n", args.rankId);
     // 释放device资源，需要根据具体API的接口定义修改
     if (a != nullptr) {
         aclDestroyTensor(a);
@@ -342,10 +341,6 @@ int main(int argc, char *argv[])
     }
     for (uint32_t rankId = 0; rankId < RANK_DIM; rankId++) {
         threads[rankId]->join();
-    }
-    for (int i = 0; i < RANK_DIM; i++) {
-        auto hcclRet = HcclCommDestroy(comms[i]);
-        CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", ret); return -1);
     }
     aclFinalize();
     return 0;
