@@ -204,7 +204,6 @@ int LaunchOneThreadAllGatherAdd(Args &args, TestData &testData)
 
     auto hcclRet = HcclCommDestroy(args.hcclComm);
     CHECK_RET(hcclRet == HCCL_SUCCESS, LOG_PRINT("[ERROR] HcclCommDestroy failed. ret = %d \n", hcclRet));
-    LOG_PRINT("[INFO] device_%d aclnnAllGatherAdd HcclCommDestroy successfully.\n", args.rankId);
     // 释放device资源，需要根据具体API的接口定义修改
     if (a != nullptr) {
         aclDestroyTensor(a);
