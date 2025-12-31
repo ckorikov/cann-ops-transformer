@@ -563,8 +563,8 @@ ge::graphStatus MlaPrologTiling::GenTilingKey() const
         (scenarioInfo_.quantMode_ != QUANT_MODE::NO_QUANT ||
         (scenarioInfo_.cacheMode_ != CACHE_MODE::PA_BSND && scenarioInfo_.cacheMode_ != CACHE_MODE::PA_NZ))) {
         OP_LOGE(context_->opName,
-            "CV1:1 mode only support quantMode is in {NO_QUANT} and cacheMode is in {PA_BSND,PA_NZ}, quantMode is %d, cacheMode is %u.",
-            scenarioInfo_.quantMode_, scenarioInfo_.cacheMode_);
+            "CV1:1 mode only support quantMode is in {NO_QUANT} and cacheMode is in {PA_BSND,PA_NZ}, quantMode is %u, cacheMode is %u.",
+            static_cast<uint8_t>(scenarioInfo_.quantMode_), static_cast<uint8_t>(scenarioInfo_.cacheMode_));
         return ge::GRAPH_FAILED;
     }
 

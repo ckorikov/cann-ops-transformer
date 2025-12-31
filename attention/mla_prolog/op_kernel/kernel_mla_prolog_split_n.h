@@ -310,10 +310,10 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::Init(
     curVectorBlockNum_ = static_cast<int64_t>(baseParams_->stepBatchSize);
     vectorCoreNum_ = static_cast<int64_t>(baseParams_->vectorBlockNum); // aivNum 48
     if (cvMode == 1 && cvRatio_ == 2) { // 编译态cv1:1，运行态cv1:2
- 	    if (vectorCoreNum_ < curVectorBlockNum_) {
- 	        vectorCoreNum_ = vectorCoreNum_ * 2; // 修正为运行态vector数目
+        if (vectorCoreNum_ < curVectorBlockNum_) {
+            vectorCoreNum_ = vectorCoreNum_ * 2; // 修正为运行态vector数目
         }
- 	}
+    }
     curVecTokenMax_ = (curVectorBlockNum_ + vectorCoreNum_ - 1) / vectorCoreNum_;
     enableSmoothScalesCq_ = smoothScaleCq == nullptr ? false : true;
     // GM
