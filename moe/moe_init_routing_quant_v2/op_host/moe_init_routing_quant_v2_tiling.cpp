@@ -23,6 +23,7 @@ const static int64_t TILING_KEY_QUANT_BASE = 1000;
 const static int64_t TILING_KEY_DROP_MODE_BASE = 100;
 const static int64_t TILING_KEY_SORT_BASE = 10;
 const static int64_t NUM_TWO = 2;
+
 const static int64_t ONE_BLOCK_BYTE = 32;
 const static int64_t FOUR_BLOCK_BYTE = 128;
 const static int64_t MAX_COLS_ONE_LOOP = 8192;
