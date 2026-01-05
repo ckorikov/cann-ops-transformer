@@ -7,23 +7,12 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
-set(OPTEST_NAME optest_${PKG_NAME})
+add_op_to_compiled_list()
 
-file(GLOB CURRENT_DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
-foreach(SUB_DIR ${CURRENT_DIRS})
-    if (DEFINED ASCEND_OP_NAME AND NOT "${ASCEND_OP_NAME}" STREQUAL "")
-        if (NOT "${ASCEND_OP_NAME}" STREQUAL "all" AND NOT "${ASCEND_OP_NAME}" STREQUAL "ALL")
-            if (NOT ${SUB_DIR} IN_LIST ASCEND_OP_NAME)
-                continue()
-            endif ()
-        endif ()
-    endif ()
+if (BUILD_OPEN_PROJECT)
+    target_sources(op_host_aclnn PRIVATE
+        add_example_def.cpp
+    )
+endif()
 
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SUB_DIR}/CMakeLists.txt")
-        add_subdirectory(${SUB_DIR})
-    else()
-        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${SUB_DIR}/op_host/CMakeLists.txt")
-            add_subdirectory(${SUB_DIR}/op_host)
-        endif()
-    endif()
-endforeach()
+add_modules_sources(OPTYPE add_example ACLNNTYPE aclnn)

@@ -37,6 +37,8 @@ class OpGenerator:
         self._replace_content()
         logging.info(f"成功为 {self.op_type}/{self.op_name} 创建算子工程！")
         logging.info(f"工程路径: {self.dest_dir}")
+        logging.info(f"Create the initial directory for {self.op_name} under {self.op_type} success")
+        
 
     def _validate_inputs(self):
         """校验输入参数的有效性和安全性"""
