@@ -26,6 +26,7 @@
 #include "aclnn/opdev/fp16_t.h"
 #include "../op_host/op_api/aclnn_all_gather_add.h"
 
+
 #define CHECK_RET(cond, return_expr) \
     do {                             \
         if (!(cond)) {               \
