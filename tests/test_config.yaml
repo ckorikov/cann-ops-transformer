@@ -55,6 +55,21 @@ global_config:
     - common
     - mc2/3rd
     - mc2/common
+examples:
+  mc2:
+    all_gather_add:
+      module: True
+      src:
+        - examples/mc2/all_gather_add
+      exclude:
+        - examples/mc2/all_gather_add/README.md
+      ut_cov_exclude:
+        - examples/mc2/all_gather_add
+      test:
+        example: True
+        ut: False
+      options:
+        - all_gather_add
 
 attention:
   flash_attention_score:
