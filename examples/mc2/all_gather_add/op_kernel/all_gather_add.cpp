@@ -20,6 +20,7 @@ using namespace AscendC;
 extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR cGM,
     GM_ADDR gatherGM, GM_ADDR workspaceGM, GM_ADDR tilingGM)
 {
+    // 设置kernel类型，AIC、AIV混合场景下，控制算子执行时仅启动AI Core上的Vector核
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIV_1_0);
     // 注册算子Tiling结构体
     REGISTER_TILING_DEFAULT(AllGatherAddTilingData);
@@ -30,6 +31,6 @@ extern "C" __global__ __aicore__ void all_gather_add(GM_ADDR aGM, GM_ADDR bGM, G
     GM_ADDR contextGM = GetHcclContext<HCCL_GROUP_ID_0>();
 
     AllGatherAdd allGatherAdd;
-    allGatherAdd.Init(aGM, bGM, cGM, gatherGM, workspaceGM, contextGM, &tilingData, &pipe);
+    allGatherAdd.Init(aGM, bGM, cGM, gatherGM, &tilingData, &pipe);
     allGatherAdd.Process();
 }
