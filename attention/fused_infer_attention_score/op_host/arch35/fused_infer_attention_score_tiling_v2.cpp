@@ -380,13 +380,13 @@ ge::graphStatus ConvertQuantOptionalInputs(const gert::TilingContext* context, C
 }
 
 static ge::graphStatus ConvertContextToParamsPFA(gert::TilingContext* context, ContextParamsForPFATiling& contextKeyParams, bool isMaxWorkspace) {
-    constexpr uint32_t FROM_FUSED_FLAG = 71;
+    constexpr uint32_t FROM_FUSED_FLAG_LOCAL = 71;
 
     contextKeyParams.opName = context->GetNodeName();
 
     contextKeyParams.isKvContinuous = 1;
     contextKeyParams.emptyTensor = 0;
-    contextKeyParams.fromFused = FROM_FUSED_FLAG;
+    contextKeyParams.fromFused = FROM_FUSED_FLAG_LOCAL;
     contextKeyParams.maxKVs = 0;
     contextKeyParams.pseShift = context->GetOptionalInputTensor(PSE_SHIFT_INDEX);
     contextKeyParams.attentionMask = context->GetOptionalInputTensor(ATTEN_MASK_INDEX);

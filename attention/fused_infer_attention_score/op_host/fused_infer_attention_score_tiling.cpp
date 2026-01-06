@@ -1029,7 +1029,7 @@ ge::graphStatus CheckFAISinglePara(const gert::TilingContext *context, bool isPa
     int64_t tempKD = 0;
     int64_t tempVD = 0;
     constexpr int64_t BLOCK_SIZE_ALIGN_16 = 16;
-    constexpr int64_t MAX_BLOCK_SIZE = 512;
+    constexpr int64_t MAX_BLOCK_SIZE_LOCAL = 512;
     bool tempLearnableSinkFlag = context->GetOptionalInputTensor(LEARNABLE_SINK_INDEX) != nullptr ? true : false;
     int32_t tempInnerPrecise = *(attrs->GetAttrPointer<int32_t>(ATTR_INNER_PRECISE_INDEX));
     
@@ -1050,7 +1050,7 @@ ge::graphStatus CheckFAISinglePara(const gert::TilingContext *context, bool isPa
             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
                 "When input layout is TND and paged cache is used, the input blockSize must be a multiple of 16"),
                 return ge::GRAPH_FAILED);
-        OP_CHECK_IF((inputBlockSize > MAX_BLOCK_SIZE),
+        OP_CHECK_IF((inputBlockSize > MAX_BLOCK_SIZE_LOCAL),
             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(),
                 "When input layout is TND and paged cache is used, the input blockSize must be less than 512"),
                 return ge::GRAPH_FAILED);
@@ -1235,7 +1235,7 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
 
     bool usingFAI = false;
     constexpr int64_t BLOCK_SIZE_ALIGN_16 = 16;
-    constexpr int64_t MAX_BLOCK_SIZE = 512;
+    constexpr int64_t MAX_BLOCK_SIZE_LOCAL = 512;
     if (inputLayoutStr == "TND" && !isLearnableSink && !isRopeSplitMla &&
         sparseModeSupported && (nonMhaConditions || mhaConditions)) {
         if (!isPageAttention) {
@@ -1253,7 +1253,7 @@ static bool IsUsingFAI(gert::TilingContext &context, const string inputLayoutStr
             bool isFAIDSize = (tempD <= 256U && tempKD <= 256 && tempVD <= 256) &&
                     (tempD == tempKD && tempD == tempVD);
             bool blockSizeSupported = (blockSize % BLOCK_SIZE_ALIGN_16 == 0) && 
-                    (blockSize <= MAX_BLOCK_SIZE);
+                    (blockSize <= MAX_BLOCK_SIZE_LOCAL);
             if (isFAIDSize && blockSizeSupported) {
                 usingFAI = true;
             }
