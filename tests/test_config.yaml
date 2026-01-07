@@ -61,6 +61,7 @@ attention:
     module: True
     src:
       - attention/flash_attention_score
+      - attention/common
     exclude:
       - attention/flash_attention_score/docs
       - attention/flash_attention_score/README.md
@@ -75,6 +76,7 @@ attention:
     module: True
     src:
       - attention/flash_attention_score_grad
+      - attention/common
     exclude:
       - attention/flash_attention_score_grad/docs
       - attention/flash_attention_score_grad/README.md
@@ -90,6 +92,7 @@ attention:
     module: True
     src:
       - attention/fused_infer_attention_score
+      - attention/common
     exclude:
       - attention/fused_infer_attention_score/docs
       - attention/fused_infer_attention_score/README.md
@@ -104,6 +107,7 @@ attention:
     module: True
     src:
       - attention/incre_flash_attention
+      - attention/common
     exclude:
       - attention/incre_flash_attention/docs
       - attention/incre_flash_attention/README.md
@@ -228,6 +232,7 @@ attention:
     module: True
     src:
       - attention/prompt_flash_attention
+      - attention/common
     exclude:
       - attention/prompt_flash_attention/docs
       - attention/prompt_flash_attention/README.md

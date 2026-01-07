@@ -15,7 +15,7 @@
 
 #ifndef MC2_MATMUL_BLOCK_H
 #define MC2_MATMUL_BLOCK_H
-
+yyyyy
 namespace AscendC {
 
 constexpr uint32_t C0_SIZE = 16;
