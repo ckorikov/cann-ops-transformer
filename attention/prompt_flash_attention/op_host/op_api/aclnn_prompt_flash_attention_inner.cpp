@@ -485,6 +485,10 @@ static aclnnStatus PreprocessQKVInput(const aclTensor *&query, const aclTensor *
         auto quant_paddings = paddings;
         if (quantScale2 != nullptr) {
             auto scale2DimNum = quantScale2->GetViewShape().GetDimNum();
+            if (quantOffset2 != nullptr && quantOffset2->GetViewShape().GetDimNum() > 0) {
+                quantOffset2 = l0op::Pad(quantOffset2, quant_paddings, executor);
+                CHECK_RET(quantOffset2 != nullptr, ACLNN_ERR_INNER_NULLPTR);
+            }
             if (scale2DimNum == DIM_NUM_3) {
                 quant_paddings = GeneratePaddings(DIM_NUM_3, shapeInfo.padNum, executor);
             }
