@@ -389,7 +389,7 @@ private:
     LoadData2DParams mm2LoadDataBToL0Params;
 
 public:
-    // =================================debug=================================
+    // =================================debug==================================
 #if DEBUG_MATMUL_GQA
     uint64_t qMemSize = 0;
     uint64_t kMemSize = 0;

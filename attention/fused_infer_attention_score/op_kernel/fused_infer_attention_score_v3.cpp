@@ -12,7 +12,6 @@
  * \file fused_infer_attention_score_v3.cpp
  * \brief
  */
-
 #include "kernel_operator.h"
 #include "fused_infer_attention_score_tilingkey.h"
 
