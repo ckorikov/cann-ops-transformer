@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <graph/utils/type_utils.h>
-#include "error/ops_error.h"
+#include "err/ops_err.h"
 #include "register/op_def_registry.h"
 #include "compressor_tiling.h"
 
@@ -70,11 +70,11 @@ void CompressorTiling::ConvertOptionalParams(gert::TilingContext &context, Compr
 ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, CompressorContext &compressorContext)
 {
     if (context.GetNodeName() == nullptr) {
-        OPS_LOG_E("Compressor", "opName got from TilingContext is nullptr");
+        OP_LOGE("Compressor", "opName got from TilingContext is nullptr");
         return ge::GRAPH_FAILED;
     }
 
-    OPS_LOG_I("Getting Context");
+    OP_LOGI("Getting Context");
 
     compressorContext.opName = context.GetNodeName();
     compressorContext.opType = context.GetNodeType();
@@ -83,7 +83,7 @@ ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, C
     ConvertOptionalParams(context, compressorContext);
 
     auto attrs = context.GetAttrs();
-    OPS_ERR_IF(attrs == nullptr, OPS_LOG_E(context.GetNodeName(), "attrs got from ge is nullptr"),
+    OP_CHECK_IF(attrs == nullptr, OP_LOGE(context.GetNodeName(), "attrs got from ge is nullptr"),
                return ge::GRAPH_FAILED);
     compressorContext.ropeHeadDim = attrs->
         GetAttrPointer<int>(ROPE_HEAD_DIM_ATTR_INDEX);
@@ -92,7 +92,7 @@ ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, C
     compressorContext.normEps = attrs->GetAttrPointer<float>(NORM_EPS_ATTR_INDEX);
     compressorContext.rotaryMode = attrs->GetAttrPointer<int>(ROTARY_MODE_ATTR_INDEX);
 
-    OPS_ERR_IF(context.GetWorkspaceSizes(1) == nullptr,
+    OP_CHECK_IF(context.GetWorkspaceSizes(1) == nullptr,
                OPS_REPORT_VECTOR_INNER_ERR(context.GetNodeName(), "workSpaceSize got from ge is nullptr"),
                return ge::GRAPH_FAILED);
     compressorContext.workSpaces = context.GetWorkspaceSizes(1);
@@ -101,7 +101,7 @@ ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, C
 
 ge::graphStatus CompressorTiling::GetNpuInfo()
 {
-    OPS_ERR_IF(context_->platformInfo == nullptr,
+    OP_CHECK_IF(context_->platformInfo == nullptr,
         OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
 
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(context_->platformInfo);
@@ -115,7 +115,7 @@ ge::graphStatus CompressorTiling::GetNpuInfo()
     aivNum_ = ascendcPlatform.GetCoreNumAiv();
     aicNum_ = ascendcPlatform.GetCoreNumAic();
 
-    OPS_ERR_IF(aicNum_ == 0 || aivNum_ == 0,
+    OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0,
         OPS_REPORT_VECTOR_INNER_ERR(context_->opName, "num of core obtained is 0."), return GRAPH_FAILED);
 
     return ge::GRAPH_SUCCESS;
@@ -196,7 +196,7 @@ ge::graphStatus CompressorTiling::CalcWorkSpace()
         context_->workSpaces[0] = workspaceSize_;
     }
     
-    OPS_LOG_I(context_->opName, "Tiling info: workspaceSize_ = %zu", workspaceSize_);
+    OP_LOGI(context_->opName, "Tiling info: workspaceSize_ = %zu", workspaceSize_);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -237,7 +237,7 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
 
     context_->blockDim = aicNum_;
 
-    OPS_LOG_I("Run big kernel");
+    OP_LOGI("Run big kernel");
 
     return ge::GRAPH_SUCCESS;
 }
@@ -272,28 +272,28 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
         *context->rotary_mode == 2,
     );
 
-    OPS_LOG_I(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
-    OPS_LOG_I(context_->opName, "Compressor tilingKey:%lu", context_->tilingKey);
+    OP_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
+    OP_LOGI(context_->opName, "Compressor tilingKey:%lu", context_->tilingKey);
 
     return ge::GRAPH_SUCCESS;
 }
 
 CMP_EXTERN_C ge::graphStatus TilingCompressor(gert::TilingContext *context)
 {
-    OPS_ERR_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("Compressor", "Context is nullptr."),
+    OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("Compressor", "Context is nullptr."),
                return ge::GRAPH_FAILED);
 
-    OPS_LOG_I("Getting Tiling");
+    OP_LOGI("Getting Tiling");
 
     CompressorContext compressorContext{};
     if (CompressorTiling::ConvertContext(*context, compressorContext) != ge::GRAPH_SUCCESS) {
-        OPS_LOG_E(context->GetNodeName(), "Error occurred while converting tilingContext to Compressor context");
+        OP_LOGE(context->GetNodeName(), "Error occurred while converting tilingContext to Compressor context");
         return ge::GRAPH_FAILED;
     }
 
     CompressorTiling compressorTiling;
     CompressorTilingData* tilingData = context->GetTilingData<CompressorTilingData>();
-    OPS_ERR_IF(tilingData == nullptr,
+    OP_CHECK_IF(tilingData == nullptr,
             OPS_REPORT_VECTOR_INNER_ERR(context->GetNodeName(), "TilingData is nullptr."),
             return ge::GRAPH_FAILED);
     if (compressorTiling.RunBigKernelTiling(compressorContext, tilingData) == ge::SUCCESS) {
