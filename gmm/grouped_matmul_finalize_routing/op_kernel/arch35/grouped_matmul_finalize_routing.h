@@ -16,9 +16,9 @@
 #ifndef GROUPED_MATMUL_FINALIZE_ROUTING_H
 #define GROUPED_MATMUL_FINALIZE_ROUTING_H
 
-#include "../../../common/groupedmatmul_act/kernel/kernel_gmm_finalize_routing.h"
-#include "../../../common/groupedmatmul_act/block/block_mx_mm_aic_to_aiv_builder.h"
-#include "../../../common/groupedmatmul_act/block/block_scheduler_gmm_aswt_with_tail_split.h"
+#include "../../../common/cgmct/kernel/kernel_gmm_finalize_routing.h"
+#include "../../../common/cgmct/block/block_mx_mm_aic_to_aiv_builder.h"
+#include "../../../common/cgmct/block/block_scheduler_gmm_aswt_with_tail_split.h"
 #include "grouped_matmul_finalize_routing_tiling_data.h"
 
 using namespace Act::Gemm;
