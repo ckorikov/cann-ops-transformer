@@ -138,8 +138,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
     l0bBufferManager.Init(tPipe, 65536);  // 64 * 1024
     l0cBufferManager.Init(tPipe, 262144); // 256 * 1024
 
-    mmL0ABuffers.Init(l0aBufferManager, 64 * 1024);
-    mmL0BBuffers.Init(l0bBufferManager, 64 * 1024);
+    mmL0ABuffers.Init(l0aBufferManager, 32 * 1024);  // db类型，填入数值是总大小的一半
+    mmL0BBuffers.Init(l0bBufferManager, 32 * 1024);
     mmL0CBuffers.Init(l0cBufferManager, 128 * 1024);
 }
 
@@ -271,9 +271,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType
     Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputBuf.Get(); // P直接用无需搬运
     mm2A.WaitCrossCore();
 
-    // if constexpr (bmm2Write2Ub) {
-        outputBuf.WaitCrossCore();
-    // }
+    outputBuf.WaitCrossCore();
+
     Buffer<BufferType::L1> mm2B = l1KBuffers.GetReused(); // V复用
     Buffer<BufferType::L0C> mm2ResL0C = mmL0CBuffers.Get();
     mm2ResL0C.Wait<HardEvent::FIX_M>(); // 占用
@@ -350,5 +349,5 @@ DEFINE_CUBE_BLOCK_TRAITS(FABlockCubeDummy);
 #define ARGS_TRAITS \
     CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_ARGS_TYPE)\
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_ARGS_CONST)
-}
+
 #endif // FLASH_ATTENTION_SCORE_BLOCK_CUBE_H_
