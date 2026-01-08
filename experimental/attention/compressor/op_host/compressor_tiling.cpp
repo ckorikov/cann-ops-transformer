@@ -133,7 +133,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
         baseShapeInfo_.hSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
     }
     
-    baseShapeInfo_.dSize = context_->norm_weight.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
+    baseShapeInfo_.dSize = context_->normWeight.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
     baseShapeInfo_.coffSize = static_cast<uint32_t>(*context_->coff);
     baseShapeInfo_.rSize = static_cast<uint32_t>(*context_->cmpRatio);
     baseShapeInfo_.csSize = baseShapeInfo_.sSize - (baseShapeInfo_.sSize %  baseShapeInfo_.rSize);
@@ -246,7 +246,7 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
     uint8_t quantMode = 0;
-    uint8_t coff = context_->coff;
+    uint8_t coff = *context_->coff;
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH
@@ -268,8 +268,8 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
     context_->tilingKey = GET_TPL_TILING_KEY(
         static_cast<uint8_t>(dtype),
         static_cast<uint8_t>(layout),
-        static_cast<uint8_t>(coff),
-        *context->rotary_mode == 2,
+        static_cast<uint8_t>(2),
+        *context_->rotaryMode == 2,
     );
 
     OP_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
