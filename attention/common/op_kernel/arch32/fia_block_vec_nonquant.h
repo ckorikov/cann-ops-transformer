@@ -778,6 +778,8 @@ __aicore__ inline void FiaBlockVecNonQuant<FIAT>::Bmm2CastAndCopyOut(const RunIn
     DealInvalidRows(info, bmm2ResUb, wsMStart, dealRowCount, columnCount, actualColumnCount);
     DealInvalidMaskRows(info, bmm2ResUb, wsMStart, startRow, dealRowCount, columnCount, actualColumnCount);
     AscendC::PipeBarrier<PIPE_V>();
+
+    LocalTensor<OUT_T> tmpBmm2ResCastTensor = outputQue1.AllocTensor<OUT_T>();  
     if constexpr (POST_QUANT) {
         LocalTensor<half> quant2ResHalf = tmpBuff1.Get<half>();
         Cast(quant2ResHalf, bmm2ResUb, AscendC::RoundMode::CAST_ROUND, dealRowCount * columnCount);

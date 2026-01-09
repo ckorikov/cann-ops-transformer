@@ -1119,30 +1119,7 @@ bool RouteToFia(gert::TilingContext *context)
     ge::DataType kDataType = context->GetInputDesc(KEY_INDEX)->GetDataType();
     bool isRopeSplit = (context->GetOptionalInputTensor(QUERY_ROPE_INDEX) != nullptr &&
         context->GetOptionalInputTensor(KEY_ROPE_INDEX) != nullptr);
-    // if (isRopeSplit) {
-    //     // MLA非量化
-    //     if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
-    //         if (CheckGqaConstrain(context)) {
-    //             OP_LOGI(context->GetNodeName(), "FIA RopeSplit GQA No quant.");
-    //             return true;
-    //         }
-    //         if (CheckMlaConstrain(context)) {
-    //             OP_LOGI(context->GetNodeName(), "FIA RopeSplit MLA No quant.");
-    //             return true;
-    //         }
-    //         return false;
-    //     }
-    // } else {
-    //     // GQA非量化
-    //     if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
-    //         OP_LOGI(context->GetNodeName(), "FIA GQA No quant.");
-    //         if (!CheckSpecConditions(context)) {
-    //             return CheckGqaConstrain(context);
-    //         } else {
-    //             return false;
-    //         }
-    //     }
-    // }
+
     if ((qDataType == ge::DT_FLOAT16 || qDataType == ge::DT_BF16) && (qDataType == kDataType)) {
         if (!isRopeSplit) {
             if (CheckSpecConditions(context)) {

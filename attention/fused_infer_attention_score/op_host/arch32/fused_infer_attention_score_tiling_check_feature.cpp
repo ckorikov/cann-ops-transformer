@@ -315,12 +315,7 @@ ge::graphStatus FiaTilingCheck::CheckFeatureLearnableSink() const
     return ge::GRAPH_SUCCESS;
 }
 
- ge::graphStatus FiaTilingCheck::CheckFeatureLayout() const
-{
-    return CheckFeatureNoQuantDtype();
-}
-
-ge::graphStatus FiaTilingCheck::CheckFeatureGqaNoQuantLayout() const
+ge::graphStatus FiaTilingCheck::CheckFeatureLayout() const
 {
     const std::vector<std::string> layoutSupportList = {
         "BSH", "BSND", "BNSD", "TND", "NTD", "BSH_NBSD", "BSND_NBSD", "BNSD_NBSD", "TND_NTD", "NTD_TND", "BSH_BNSD", "BSND_BNSD", "BNSD_BSND"
