@@ -28,7 +28,7 @@ namespace MlaProlog {
  * @param col 待处理的列数  col <= 512 / sizeof(C)
  * @param sinCosRepStride 行与行之间sin/cos系数的偏移，单位为元素个数。
  */
-template <typename C>
+
 __aicore__ inline void RotaryPosEmb(const LocalTensor<C> &outputLocal, const LocalTensor<C> &inputLocal, const LocalTensor<C> &cosLocal,
                                     const LocalTensor<C> &sinLocal, const LocalTensor<uint8_t> &shareTmpUb, uint64_t row, uint64_t col,
                                     uint8_t sinCosRepStride) {
