@@ -14,10 +14,10 @@
  */
 #ifndef SPARSE_ATTN_SHAREDKV_SCFA_BLOCK_CUBE_H_
 #define SPARSE_ATTN_SHAREDKV_SCFA_BLOCK_CUBE_H_
-#include "../../../common/op_kernel/offset_calculator.h"
-#include "../../../common/op_kernel/matmul.h"
-#include "../../../common/op_kernel/FixpipeOut.h"
-#include "../../../common/op_kernel/CopyInL1.h"
+#include "common/offset_calculator.h"
+#include "common/matmul.h"
+#include "common/FixpipeOut.h"
+#include "common/CopyInL1.h"
 #include "kernel_operator_list_tensor_intf.h"
 
 #include "util_regbase.h" // todo：以下三个.h需要对应修改
