@@ -63,8 +63,6 @@ void CompressorTiling::ConvertOptionalParams(gert::TilingContext &context, Compr
     compressorContext.seqUsed.shape = context.GetOptionalInputShape(SEQ_USED_INPUT_INDEX);
     compressorContext.startPos.desc = context.GetOptionalInputDesc(START_POS_INPUT_INDEX);
     compressorContext.startPos.shape = context.GetOptionalInputShape(START_POS_INPUT_INDEX);
-    compressorContext.hadamard.desc = context.GetOptionalInputDesc(HADAMARD_INPUT_INDEX);
-    compressorContext.hadamard.shape = context.GetOptionalInputShape(HADAMARD_INPUT_INDEX);
 }
 
 ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, CompressorContext &compressorContext)
