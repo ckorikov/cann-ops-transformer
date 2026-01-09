@@ -36,7 +36,12 @@ enum class ROTARY_MODE : std::uint8_t {
     INTERLEAVE = static_cast<std::uint8_t>(1)
 };
 
-
+// BLOCK和REPEAT的字节数
+static constexpr uint64_t BYTE_BLOCK = 32UL;
+static constexpr uint32_t REPEAT_BLOCK_BYTE = 256U;
+// BLOCK和REPEAT的FP32元素数
+static constexpr uint32_t FP32_BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(float);
+static constexpr uint32_t FP32_REPEAT_ELEMENT_NUM = REPEAT_BLOCK_BYTE / sizeof(float);
 
 }
 #endif
