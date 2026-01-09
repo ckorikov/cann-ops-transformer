@@ -23,26 +23,26 @@
 namespace Compressor {
 /**
  * @brief ColumnSoftMax 对矩阵按列进行SoftMax
- * @param outLocal 输出tensor [row * col]，支持和inputLocal是同一块空间
- * @param inputLocal 输入tensor [row * col]
+ * @param dstLocal 输出tensor [row, col]，支持和srcLocal是同一块空间
+ * @param srcLocal 输入tensor [row, col]
  * @param shareTmpUb 临时buffer 内部需要的空间为 [floor(row / 2) * col * sizeof(float)]
  * @param row 行数
  * @param col 列数
  */
-__aicore__ inline void ColumnSoftMax(const LocalTensor<float> &outLocal, const LocalTensor<float> &inputLocal,
-                                     const LocalTensor<float> &shareTmpUb, const uint32_t row, const uint32_t col)
+__aicore__ inline void ColumnSoftMax(const LocalTensor<float> &dstLocal, const LocalTensor<float> &srcLocal,
+                                     const LocalTensor<float> &shareTmpUb, uint32_t row, uint32_t col)
 {
     uint32_t dtypeMask = FP32_REPEAT_ELEMENT_NUM;
     uint32_t dLoop = col / dtypeMask;
     uint32_t dRemain = col % dtypeMask;
     uint32_t repeatStride = col / FP32_BLOCK_ELEMENT_NUM;
-    ColumnMax(shareTmpUb, inputLocal, row, col);
-    MatSubsVec(outLocal, inputLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
+    ColumnMax(shareTmpUb, srcLocal, row, col);
+    MatSubsVec(dstLocal, srcLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
     PipeBarrier<PIPE_V>();
-    Exp(outLocal, outLocal, row * col);
+    Exp(dstLocal, dstLocal, row * col);
     PipeBarrier<PIPE_V>();
-    ColumnSum(shareTmpUb, outLocal, row, col);
-    MatDivsVec(outLocal, outLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
+    ColumnSum(shareTmpUb, dstLocal, row, col);
+    MatDivsVec(dstLocal, dstLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
 }
 
 } // namespace Compressor
