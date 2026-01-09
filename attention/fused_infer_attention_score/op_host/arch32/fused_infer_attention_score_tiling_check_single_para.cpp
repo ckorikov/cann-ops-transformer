@@ -373,6 +373,7 @@ ge::graphStatus FiaTilingCheck::CheckSingleParaQueryPaddingSize() const
         const std::vector<int64_t> querypaddingsizeShapeNumList = {SHAPE_NUM_ONE};
         if (ge::GRAPH_SUCCESS != CheckShapeSupport(opParamInfo_.queryPaddingSize.tensor, querypaddingsizeShapeNumList, QUERY_PADDING_SIZE_NAME)) {
             return ge::GRAPH_FAILED;
+        }
     }
 
     return ge::GRAPH_SUCCESS;
