@@ -20,8 +20,8 @@
 #include "../../../common/op_kernel/CopyInL1.h"
 #include "kernel_operator_list_tensor_intf.h"
 
-#include "util_regbase.h" // 以下三个.h不知道scfa如何处理，主要负责模板参数、regbase
-#include "sparse_attn_sharedkv_common.h"
+#include "util_regbase.h" // todo：以下三个.h需要对应修改
+#include "infer_flash_attention_comm.h"
 #include "flash_attention_score_common_regbase.h"
 
 using namespace AscendC;
@@ -31,12 +31,8 @@ using namespace fa_base_matmul;
 namespace BaseApi {
 template <LayOutTypeEnum LAYOUT>
 __aicore__ inline constexpr GmFormat GetQueryGmFormat() {
-    // if constexpr (LAYOUT == LayOutTypeEnum::LAYOUT_BSH) {
-    //     return GmFormat::BSNGD;
-    // } else if constexpr (LAYOUT == LayOutTypeEnum::LAYOUT_SBH) {
-    //     return GmFormat::SBNGD;
-    } else if constexpr (LAYOUT == LayOutTypeEnum::LAYOUT_BNSD) {
-        return GmFormat::BNGSD;
+    if constexpr (LAYOUT == LayOutTypeEnum::LAYOUT_BSH) {
+        return GmFormat::BSNGD;
     } else {
         return GmFormat::TNGD;
     }
@@ -46,13 +42,12 @@ TEMPLATES_DEF
 class FABlockCube {
 public:
     /* =================编译期常量的基本块信息================= */
-    static constexpr uint32_t s1BaseSize = (uint32_t)s1TemplateType; //来自模板参数
-    static constexpr uint32_t s2BaseSize = (uint32_t)s2TemplateType;
-    static constexpr uint32_t dBaseSize = (uint32_t)dTemplateType;
-    static constexpr uint32_t dVBaseSize = (uint32_t)dVTemplateType;
+    static constexpr uint32_t s1BaseSize = 64; // todo: FA中来自模板参数 先写固定值，后期根据SCFA情况修改
+    static constexpr uint32_t s2BaseSize = 128;
+    static constexpr uint32_t dBaseSize = 512;
+    static constexpr uint32_t dVBaseSize = 512;
     static constexpr bool bmm2Write2Ub = true; // 必为true
     static constexpr FixpipeConfig BMM2_FIXPIPE_CONFIG = {CO2Layout::ROW_MAJOR, bmm2Write2Ub};
-    // static constexpr uint32_t l1BaseD = isFp8 ? 256: ((IsSameType<INPUT_T, float>::value) ? (dBaseSize > 128 ? 64 : 128): 128);
     using mm2ResPos = Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>; // 必在UB
 
     __aicore__ inline FABlockCube() {};
@@ -67,15 +62,14 @@ public:
 
 private:
     __aicore__ inline void InitLocalBuffer();
-    __aicore__ inline void InitGmTensor(CVSharedParams<isInfer, isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr,
-        __gm__ int64_t *actualSeqKvlenAddr);
+    __aicore__ inline void InitGmTensor(CVSharedParams<isInfer, isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr);
     __aicore__ inline void CalcS1Coord(RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
-    __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+    __aicore__ inline void IterateBmm1SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo);
 
     // --------------------Bmm2--------------------------
-    __aicore__ inline void IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+    __aicore__ inline void IterateBmm2SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
         BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
         ConstInfo<isInfer, hasRope> &constInfo);
     TPipe *tPipe;
@@ -138,7 +132,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
     l0bBufferManager.Init(tPipe, 65536);  // 64 * 1024
     l0cBufferManager.Init(tPipe, 262144); // 256 * 1024
 
-    mmL0ABuffers.Init(l0aBufferManager, 32 * 1024);  // db类型，填入数值是总大小的一半
+    mmL0ABuffers.Init(l0aBufferManager, 16 * 1024);  // db类型，填入数值是总大小的一半
     mmL0BBuffers.Init(l0bBufferManager, 32 * 1024);
     mmL0CBuffers.Init(l0cBufferManager, 128 * 1024);
 }
@@ -165,11 +159,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::CalcS1Coord(RunInfo<isInfer> 
 {
     // 计算s1方向偏移
     coordInfo[runInfo.taskIdMod3].s1Coord = runInfo.s1oIdx * s1BaseSize;
-    if constexpr (isInfer) {
-        coordInfo[runInfo.taskIdMod3].s1Coord += runInfo.queryLeftPaddingSize;  // 左padding
-        // 推理无效行场景，s1方向起始跳过无效行
-        coordInfo[runInfo.taskIdMod3].s1Coord += (runInfo.nextTokensPerBatch < 0) ? -runInfo.nextTokensPerBatch : 0;
-    }
+    // 推理无效行场景，s1方向起始跳过无效行
+    coordInfo[runInfo.taskIdMod3].s1Coord += (runInfo.nextTokensPerBatch < 0) ? -runInfo.nextTokensPerBatch : 0; // todo
 }
 
 TEMPLATES_DEF_NO_DEFAULT
@@ -180,19 +171,19 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
     CalcS1Coord(runInfo, constInfo);
     // CalcS2Coord(runInfo, constInfo);
 
-    IterateBmm1(outputBuf,  runInfo, constInfo);
+    IterateBmm1SCFA(outputBuf,  runInfo, constInfo);
 }
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-    BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
     ConstInfo<isInfer, hasRope> &constInfo)
 {
-    IterateBmm2(outputBuf, inputBuf, runInfo, constInfo);
+    IterateBmm2SCFA(outputBuf, inputBuf, runInfo, constInfo);
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1SCFA(
     Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo<isInfer> &runInfo,
     ConstInfo<isInfer, hasRope> &constInfo)
 {
@@ -220,10 +211,11 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
 
     // 加载当前轮的右矩阵到L1
     mm1B = l1KBuffers.Get(); // TODO：这里使用GetPre()? 
-    // mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B    // todo: 这里需要根据海杰哥的操作处理同步，确保取tensor时，数据已经准备好
+    // mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
+    mm1B.WaitCrossCore();    //核间同步，这里需要根据V0操作处理同步，确保取tensor时，数据已经准备好
 
-    mm1B.Set<HardEvent::MTE2_MTE1>();  // 通知
-    mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
+    // mm1B.Set<HardEvent::MTE2_MTE1>();  // 通知
+    // mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
 
     mm1A.Wait<HardEvent::MTE2_MTE1>(); // 等待L1A
     Buffer<BufferType::L0C> mm1ResL0C = mmL0CBuffers.Get();
@@ -243,10 +235,11 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
         mm1A.Set<HardEvent::MTE1_MTE2>(); // 释放L1A
     }
 
-    mm1B.Set<HardEvent::MTE1_MTE2>();     // 释放L1B
+    // bmm2再释放
+    // mm1B.Set<HardEvent::MTE1_MTE2>();  // 释放L1B
 
     mm1ResL0C.Set<HardEvent::M_FIX>();    // 通知
-    mm1ResL0C.Wait<HardEvent::M_FIX>();   //等待L0C
+    mm1ResL0C.Wait<HardEvent::M_FIX>();   // 等待L0C
 
     FixpipeParamsC310<CO2Layout::ROW_MAJOR> fixpipeParams; // L0C→UB
     fixpipeParams.nSize = (runInfo.s2RealSize + 7) >> 3 << 3; // L0C上的bmm1结果矩阵N方向的size大小; 同mmadParams.n; 为什么要8个元素对齐(32B对齐) // 128
@@ -264,14 +257,14 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-    BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo<isInfer> &runInfo,
     ConstInfo<isInfer, hasRope> &constInfo)
 {
     Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputBuf.Get(); // P直接用无需搬运
     mm2A.WaitCrossCore();
 
-    outputBuf.WaitCrossCore();
+    outputBuf.WaitCrossCore(); //占用
 
     Buffer<BufferType::L1> mm2B = l1KBuffers.GetReused(); // V复用
     Buffer<BufferType::L0C> mm2ResL0C = mmL0CBuffers.Get();
@@ -279,8 +272,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType
     MMParam param = {(uint32_t)s1BaseSize,          // singleM 64
                         (uint32_t)constInfo.dSizeV, // singleN 512
                         (uint32_t)s2BaseSize,       // singleK 128
-                        useDn,    // isLeftTranspose // todo: 应该是直接0
-                        false     // isRightTranspose
+                        0,    // isLeftTranspose    // todo: useDn?
+                        1     // isRightTranspose
                     };
     MatmulN<INPUT_T, INPUT_T, T, 64, 128, 128, ABLayout::MK, ABLayout::KN>(
         mm2A.GetTensor<INPUT_T>(),
@@ -289,6 +282,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType
         mmL0BBuffers,
         mm2ResL0C.GetTensor<T>(),
         param);
+
+    mm2B.Set<HardEvent::MTE1_MTE2>();   // bmm2才释放KV，在这里释放
 
     mm2ResL0C.Set<HardEvent::M_FIX>();  // 通知
     mm2ResL0C.Wait<HardEvent::M_FIX>(); // 等待
@@ -312,16 +307,11 @@ TEMPLATES_DEF
 class FABlockCubeDummy {
 public:
     __aicore__ inline FABlockCubeDummy() {};
-    __aicore__ inline void InitCubeBlock(TPipe *pipe, BufferManager<BufferType::L1> *l1BufferManagerPtr,
-        __gm__ uint8_t *query, __gm__ uint8_t *key, __gm__ uint8_t *value, __gm__ uint8_t *blockTable, 
-        __gm__ uint8_t *queryRope, __gm__ uint8_t *keyRope) {}
+    __aicore__ inline void InitCubeBlock(TPipe *pipe, BufferManager<BufferType::L1> *l1BufferManagerPtr, __gm__ uint8_t *query) {}
     __aicore__ inline void InitCubeInput(CVSharedParams<isInfer, isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr) {}
     __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
         RunInfo<isInfer> &runInfo, ConstInfo<isInfer, hasRope> &constInfo) {}
-
-    // using mm2ResPos = typename std::conditional<bmm2Write2Ub, Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH>,
-    //     Buffer<BufferType::GM, SyncType::CROSS_CORE_SYNC_FORWARD>>::type;
-    __aicore__ inline void IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, // output一定在UB
+    __aicore__ inline void IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
         BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf,RunInfo<isInfer> &runInfo,
         ConstInfo<isInfer, hasRope> &constInfo) {}
 };
@@ -349,5 +339,5 @@ DEFINE_CUBE_BLOCK_TRAITS(FABlockCubeDummy);
 #define ARGS_TRAITS \
     CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_ARGS_TYPE)\
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_ARGS_CONST)
-
+}
 #endif // FLASH_ATTENTION_SCORE_BLOCK_CUBE_H_
