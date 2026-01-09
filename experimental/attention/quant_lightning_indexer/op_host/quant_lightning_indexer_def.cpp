@@ -61,6 +61,7 @@ public:
             .Format({ge::FORMAT_ND})
             .AutoContiguous();
         this->Output("sparse_indices").ParamType(REQUIRED).DataType({ge::DT_INT32}).Format({ge::FORMAT_ND});
+        this->Output("sparse_values").ParamType(REQUIRED).DataType({ge::DT_FLOAT}).Format({ge::FORMAT_ND});
         this->Attr("query_quant_mode").AttrType(REQUIRED).Int(0);  // 0: 默认值，per-token-head
         this->Attr("key_quant_mode").AttrType(REQUIRED).Int(0);    // 0: 默认值，per-token-head
         this->Attr("layout_query").AttrType(OPTIONAL).String("BSND");
@@ -69,6 +70,8 @@ public:
         this->Attr("sparse_mode").AttrType(OPTIONAL).Int(3);      // 3: 默认值，只计算下三角
         this->Attr("pre_tokens").AttrType(OPTIONAL).Int(9223372036854775807);  // 9223372036854775807: 默认值，int64的最大值
         this->Attr("next_tokens").AttrType(OPTIONAL).Int(9223372036854775807); // 9223372036854775807: 默认值，int64的最大值
+        this->Attr("cmp_ratio").AttrType(OPTIONAL).Int(1);          // 1: 压缩率
+        this->Attr("return_values").AttrType(OPTIONAL).Bool(false); // 是否返回sparse_values
         OpAICoreConfig aicore_config;
         aicore_config.DynamicCompileStaticFlag(true)
             .DynamicFormatFlag(true)
