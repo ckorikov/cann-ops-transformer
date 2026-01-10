@@ -67,8 +67,8 @@ enum class SparseType : uint8_t {
     BAND = 2,
     UNSUPPORTED = 3    // 超L2优化暂不支持sparse的场景
 };
-template<bool isInfer = false>
-struct RunParamStr;
+// template<bool isInfer = false>
+// struct RunParamStr;
 
 #define COMMON_RUN_PARAM \
     int64_t boIdx; \
@@ -91,13 +91,13 @@ struct RunParamStr;
     uint64_t b1SSAttenMaskOffset; \
     uint64_t b1SSOffsetAlign16; \
     
-template<>
-struct RunParamStr<false> {  // 分核与切块需要使用到参数
-    COMMON_RUN_PARAM;
-};
+// template<>
+// struct RunParamStr<false> {  // 分核与切块需要使用到参数
+//     COMMON_RUN_PARAM;
+// };
 
-template<>
-struct RunParamStr<true> {  // 分核与切块需要使用到参数
+// template<>
+struct RunParamStr{  // 分核与切块需要使用到参数
     COMMON_RUN_PARAM;
     /* 推理新增 */
     int64_t s1LoopTimes;
@@ -180,11 +180,7 @@ struct RunParamStr<true> {  // 分核与切块需要使用到参数
     uint8_t multiCoreIdxMod3 = 0; \
     int64_t sOuterOffset
 
-template<bool isInfer = false>
-struct RunInfo;
-
-template <>
-struct RunInfo<true> {
+struct RunInfo{
     COMMON_RUN_INFO;
     // 推理新增
     uint64_t pseShiftOffset;              // vector1 pse 的 offset
@@ -201,11 +197,6 @@ struct RunInfo<true> {
 
     // prefix相关
     int64_t prefixOffset;                  //保存当前循环prefix的地址偏移
-};
-
-template<>
-struct RunInfo<false> {
-    COMMON_RUN_INFO;
 };
 
 #define COMMON_CONST_INFO \
@@ -281,35 +272,6 @@ struct RunInfo<false> {
     float keepProb; \
     float scaleValue; \
     int64_t matmulMSize     /* 在matmul运算中，左矩阵的M轴大小需要区分GS1合轴与不合轴的情况 */
-
-
-#define ROPE_INFO \
-    /* rope参数 */ \
-    int64_t s1DR; \
-    int64_t gS1DR; \
-    int64_t n2GS1DR; \
-    int64_t s2DR; \
-    int64_t n2S2DR; \
-    int64_t gDR; \
-    int64_t n2DR; \
-    int64_t bN2DR; \
-    int64_t n2GDR; \
-    int64_t bN2GDR; \
-    int64_t s2BaseN2DR; \
-    int64_t s2BaseBN2DR; \
-    int64_t s1BaseN2GDR; \
-    int64_t s1BaseBN2GDR; \
-    int64_t s1BaseDR; \
-    int64_t s2BaseDR; \
-    int64_t mm1RopeKa; /* rope matmul 跳读参数*/ \
-    int64_t mm1RopeKb
-
-#define KVPREFIX_INFO \
-    /* prefix参数 */ \
-    bool isActualSharedPrefixLenNull = true; \
-    int64_t actualKVPrefixSize = 0; /* 保存prefix实际长度 */ \
-    int64_t kvPrefixSize = 0;  /* 保存prefix shape完整长度 */ \
-    int64_t prefixLoopCount = 0 /* 保存prefix参与的S2方向循环次数 */
 
 #define INFER_CONST_INFO \
     /* 推理新增 */ \
@@ -397,38 +359,10 @@ struct RunInfo<false> {
     uint32_t bnStartIdx; \
     uint32_t bnEndIdx;
 
- 
-template<bool isInfer = false, bool hasRope = false>
-struct ConstInfo;
 
-template<>
-struct ConstInfo<true, true> {
+struct ConstInfo{
     COMMON_CONST_INFO;
     INFER_CONST_INFO;
-    ROPE_INFO;
-    KVPREFIX_INFO;
-};
-
-template <>
-struct ConstInfo<true, false> {
-    COMMON_CONST_INFO;
-    INFER_CONST_INFO;
-    KVPREFIX_INFO;
-};
-
-template <>
-struct ConstInfo<false, true> {
-    COMMON_CONST_INFO;
-    ROPE_INFO;
-    int64_t n2GS1o; // 训练特有
-    int64_t gS1o;
-};
-
-template <>
-struct ConstInfo<false, false> {
-    COMMON_CONST_INFO;
-    int64_t n2GS1o; // 训练特有
-    int64_t gS1o;
 };
 
 /* only support b32 or b64 */
