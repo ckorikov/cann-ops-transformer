@@ -60,6 +60,11 @@ public:
             .DataType({ge::DT_INT32})
             .Format({ge::FORMAT_ND})
             .AutoContiguous();
+        this->Input("metadata")
+            .ParamType(OPTIONAL)
+            .DataType({ge::DT_INT32})
+            .Format({ge::FORMAT_ND})
+            .AutoContiguous();
         this->Output("sparse_indices").ParamType(REQUIRED).DataType({ge::DT_INT32}).Format({ge::FORMAT_ND});
         this->Output("sparse_values").ParamType(REQUIRED).DataType({ge::DT_FLOAT}).Format({ge::FORMAT_ND});
         this->Attr("query_quant_mode").AttrType(REQUIRED).Int(0);  // 0: 默认值，per-token-head
