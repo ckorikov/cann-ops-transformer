@@ -31,23 +31,23 @@ using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
 // 由于S2循环前，RunInfo还没有赋值，使用Bngs1Param临时存放B、N、S1轴相关的信息；同时减少重复计算
-struct RunParam {
+struct TempLoopInfo {
     uint32_t bn2IdxInCurCore = 0;
     uint32_t bIdx = 0U;
     uint32_t n2Idx = 0U;
     uint64_t s2BasicSizeTail = 0U; // S2方向循环的尾基本块大小
-    uint32_t s2LoopTimes = 0U; // S2方向循环的总次数，无论TND还是BXXD都是等于实际次数，不用减1
+    uint32_t s2LoopTimes = 0U;     // S2方向循环的总次数，无论TND还是BXXD都是等于实际次数，不用减1
     uint64_t actS2Size = 0ULL;
     uint64_t actS2SizeOri = 0ULL;
     bool curActSeqLenIsZero = false;
     int32_t nextTokensPerBatch = 0;
 
-    uint64_t actS1Size = 1ULL; // TND场景下当前Batch循环处理的S1轴的大小，非TND场景下不要用这个字段
+    uint64_t actS1Size = 1ULL;     // TND场景下当前Batch循环处理的S1轴的大小
     uint32_t tndCoreStartKVSplitPos;
     bool tndIsS2SplitCore;
 
     uint32_t gS1Idx = 0U;
-    uint64_t mBasicSizeTail = 0U; // gS1方向循环的尾基本块大小
+    uint64_t mBasicSizeTail = 0U;  // gS1方向循环的尾基本块大小
 };
 
 template <typename SAST> class SparseAttnSharedkvScfa {
@@ -93,12 +93,13 @@ private:
     static constexpr uint64_t SYNC_MM2RES_BUF2_FLAG = 11;
     static constexpr uint64_t SYNC_FDOUTPUT_BUF_FLAG = 12;
 
-    // static constexpr uint32_t BLOCK_ELEMENT_NUM = SASVectorService<SAST>::BYTE_BLOCK / sizeof(T);
+    // static constexpr uint32_t BLOCK_ELEMENT_NUM = SASVectorBlock<SAST>::BYTE_BLOCK / sizeof(T);
 
     static constexpr uint64_t kvHeadNum = 1ULL;
     static constexpr uint64_t headDim = 512ULL;
     static constexpr uint64_t headDimAlign = 512ULL;
     static constexpr uint32_t msdIterNum = 2U;
+    static constexpr uint64_t headDimRope = 64ULL;
 
     static constexpr uint32_t dbWorkspaceRatio = PRELOAD_NUM;
 
@@ -121,10 +122,10 @@ private:
     uint32_t usedCoreNum = 0U;
 
     ConstInfo constInfo{};
-    RunParam runParamInfo{};
+    TempLoopInfo tempLoopInfo{};
 
-    // QSASMatmulService<SAST> matmulService;
-    // QSASVectorService<SAST> vectorService;
+    SASCubeBlock<SAST> cubeBlock;
+    SASVectorBlock<SAST> vectorBlock;
 
     GlobalTensor<Q_T> queryGm;
     GlobalTensor<KV_T> oriKvGm;
@@ -163,6 +164,9 @@ private:
     __aicore__ inline void ProcessBalance();
     __aicore__ inline void PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
                                            RunInfo extraInfo[SAS_PRELOAD_TASK_CACHE_SIZE]);
+    __aicore__ inline bool OriSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
+    __aicore__ inline bool CmpSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
+    __aicore__ inline bool IsSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
     // ================================Offset Calc=====================================
     __aicore__ inline void GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx = 0);
     __aicore__ inline void GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1Idx, uint32_t n2Idx);
@@ -213,7 +217,6 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
     constInfo.mBaseSize = tilingData->innerSplitParams.mBaseSize;
     constInfo.s2BaseSize = tilingData->innerSplitParams.s2BaseSize;
 
-    constInfo.quantScaleRepoMode = QUANT_SCALE_REPO_MODE::COMBINE;
     constInfo.attentionMode = ATTENTION_MODE::MLA_ABSORB;
     constInfo.combineHeadDim = headDim;
 
@@ -230,9 +233,9 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
 template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitBuffers()
 {
     if ASCEND_IS_AIV {
-        // vectorService.InitBuffers(pipe);
+        vectorBlock.InitBuffers(pipe);
     } else {
-        // matmulService.InitBuffers(pipe);
+        cubeBlock.InitBuffers(pipe);
     }
 }
 
@@ -257,7 +260,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitAllZeroOutput(uint32_t 
 {
     if (constInfo.outputLayout == SAS_LAYOUT::TND) {
         uint32_t tBase = bIdx == 0 ? 0 : actualSeqLengthsQGm.GetValue(bIdx - 1);
-        uint32_t s1Count = runParamInfo.actS1Size;
+        uint32_t s1Count = tempLoopInfo.actS1Size;
 
         uint64_t attenOutOffset = (tBase + s1Idx) * kvHeadNum * constInfo.gSize * headDim +   // T轴、s1轴偏移
                                     n2Idx * constInfo.gSize * headDim;                        // N2轴偏移
@@ -289,25 +292,26 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitOutputSingleCore()
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx)
 {
-    runParamInfo.actS2SizeOri = GetActualSeqLenKV(bIdx);
-    runParamInfo.actS1Size = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
+    tempLoopInfo.actS2SizeOri = GetActualSeqLenKV(bIdx);
+    tempLoopInfo.actS1Size = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
 }
 
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1Idx,
                                                                                       uint32_t n2Idx)
 {
-    // if (runParamInfo.nextTokensPerBatch < 0 && s1Idx < (-runParamInfo.nextTokensPerBatch)) { // 存在行无效
-    //     runParamInfo.actS2Size = 0;
-    //     return;
-    // }
-    // int64_t threshold = runParamInfo.actS2SizeOri;
-    // if (constInfo.sparseMode == 3) {
-    //     threshold = static_cast<int64_t>(runParamInfo.nextTokensPerBatch) + s1Idx + 1;
-    // }
-    // runParamInfo.actS2Size = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > threshold) ?
-    //                                 threshold :
-    //                                 constInfo.sparseBlockCount * constInfo.sparseBlockSize;
+    if (tempLoopInfo.nextTokensPerBatch < 0 && s1Idx < (-tempLoopInfo.nextTokensPerBatch)) { //存在行无效
+        tempLoopInfo.actS2Size = 0;
+        return;
+    }
+    int64_t threshold = tempLoopInfo.actS2SizeOri;
+    if (constInfo.oriMaskMode == 3) {
+        threshold = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + s1Idx + 1;
+    }
+
+    tempLoopInfo.actS2Size = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > threshold) ?
+                                           threshold :
+                                           constInfo.sparseBlockCount * constInfo.sparseBlockSize;
 }
 
 template <typename SAST>
@@ -344,39 +348,112 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::DealActSeqLenIsZero(uint32_
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetPreNextTokensLeftUp()
 {
-    // if (constInfo.sparseMode == 3) {
-    //     runParamInfo.nextTokensPerBatch =
-    //         static_cast<int32_t>(runParamInfo.actS2SizeOri) - static_cast<int32_t>(runParamInfo.actS1Size);
-    // }
+    if (constInfo.oriMaskMode == 3) {
+        tempLoopInfo.nextTokensPerBatch =
+            static_cast<int32_t>(tempLoopInfo.actS2SizeOri) - static_cast<int32_t>(tempLoopInfo.actS1Size);
+    }
 }
 
 template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::UpdateInnerLoopCond()
 {
-    if ((runParamInfo.actS2Size == 0) || (runParamInfo.actS1Size == 0)) {
-        runParamInfo.curActSeqLenIsZero = true;
+    if ((tempLoopInfo.actS2Size == 0) || (tempLoopInfo.actS1Size == 0)) {
+        tempLoopInfo.curActSeqLenIsZero = true;
         return;
     }
-    runParamInfo.curActSeqLenIsZero = false;
-    runParamInfo.s2BasicSizeTail = runParamInfo.actS2Size % constInfo.s2BaseSize;
-    runParamInfo.s2BasicSizeTail =
-        (runParamInfo.s2BasicSizeTail == 0) ? constInfo.s2BaseSize : runParamInfo.s2BasicSizeTail;
-    runParamInfo.mBasicSizeTail = (runParamInfo.actS1Size * constInfo.gSize) % constInfo.mBaseSize;
-    runParamInfo.mBasicSizeTail =
-        (runParamInfo.mBasicSizeTail == 0) ? constInfo.mBaseSize : runParamInfo.mBasicSizeTail;
-    runParamInfo.s2LoopTimes = 0;
+    tempLoopInfo.curActSeqLenIsZero = false;
+    tempLoopInfo.mBasicSizeTail = (tempLoopInfo.actS1Size * constInfo.gSize) % constInfo.mBaseSize;
+    tempLoopInfo.mBasicSizeTail =
+        (tempLoopInfo.mBasicSizeTail == 0) ? constInfo.mBaseSize : tempLoopInfo.mBasicSizeTail;
+    tempLoopInfo.s2LoopTimes = 0;
 }
 
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::UpdateInner(uint32_t &s2End, uint32_t &curS2End,
                                                                             uint32_t s1Idx, bool isEnd)
 {
-    uint32_t s1BaseSize = 1;
-    int64_t s1Offset = s1BaseSize * s1Idx;
-    int64_t s2LastToken = Min(s1Offset + runParamInfo.nextTokensPerBatch + s1BaseSize, runParamInfo.actS2SizeOri);
-    s2LastToken = Min(constInfo.sparseBlockSize * constInfo.sparseBlockCount, s2LastToken);
-    curS2End = (s2LastToken + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
-    runParamInfo.s2LoopTimes = isEnd ? constInfo.s2End + 1 : curS2End;
+    if ((tempLoopInfo.actS2Size == 0) || (tempLoopInfo.actS1Size == 0)) {
+        tempLoopInfo.curActSeqLenIsZero = true;
+        return;
+    }
+    tempLoopInfo.curActSeqLenIsZero = false;
+    tempLoopInfo.mBasicSizeTail = (tempLoopInfo.actS1Size * constInfo.gSize) % constInfo.mBaseSize;
+    tempLoopInfo.mBasicSizeTail =
+        (tempLoopInfo.mBasicSizeTail == 0) ? constInfo.mBaseSize : tempLoopInfo.mBasicSizeTail;
+    tempLoopInfo.s2LoopTimes = 0;
 }
+
+
+template <typename SAST>
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+{
+    // 左闭右闭, 只针对sparse mode = 4, 可扩展, 更新left和right计算公式即可
+    uint32_t Ori_mask = 128;
+    int64_t left = tempLoopInfo.actS2SizeOri  - tempLoopInfo.actS1Size - Ori_mask;
+    int64_t right = tempLoopInfo.actS2SizeOri  - tempLoopInfo.actS1Size + 1;
+
+    
+    uint32_t s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
+    uint32_t s2StartIdx = s2LoopIdx * constInfo.s2BaseSize;
+    uint32_t s1DealSize = constInfo.mBaseSize / constInfo.gSize;
+    uint32_t s1EndIdx = ((s1StartIdx + s1DealSize) < tempLoopInfo.actS1Size ? (s1StartIdx + s1DealSize) : tempLoopInfo.actS1Size) - 1;
+    uint32_t s2EndIdx = ((s2StartIdx + constInfo.s2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + constInfo.s2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
+    uint32_t min_diff = s2StartIdx - s1EndIdx;
+    uint32_t max_diff = s2EndIdx - s1StartIdx;
+    // 满足条件, 不跳过
+    if (min_diff <= right && max_diff >= left) {
+        return false;
+    }
+    return true;
+}
+
+template <typename SAST>
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+{   
+    uint32_t ratio = 128;
+    // sparse mode = 3, 
+    // 对于Cmp的s2 loop times为 tempLoopInfo.actS2SizeOri // ratio, 不够除就丢掉
+    // 恢复压缩前, 只对S2进行压缩
+
+    
+    uint32_t oS2BaseSize = constInfo.s2BaseSize * ratio;
+    int64_t right = tempLoopInfo.actS2SizeOri - tempLoopInfo.actS1Size + 1;
+    int64_t left = -tempLoopInfo.actS1Size;
+    uint32_t s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
+    uint32_t s2StartIdx = s2LoopIdx * oS2BaseSize;
+    uint32_t s1DealSize = constInfo.mBaseSize / constInfo.gSize;
+    uint32_t s1EndIdx = ((s1StartIdx + s1DealSize) < tempLoopInfo.actS1Size ? (s1StartIdx + s1DealSize) : tempLoopInfo.actS1Size) - 1;
+    uint32_t s2EndIdx = ((s2StartIdx + oS2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + oS2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
+    uint32_t min_diff = s2StartIdx - s1EndIdx;
+    uint32_t max_diff = s2EndIdx - s1StartIdx;
+    if (min_diff <= right && max_diff >= left) {
+        // 满足mask条件也不能跳, 还需要满足一个条件
+        // 还需要判断s1EndIdx处, 当前基本块里面处理的数据除以ratio是否大于0
+        uint32_t s2NoMaskSize = s1EndIdx - tempLoopInfo.actS1Size + tempLoopInfo.actS2SizeOri + 1;
+        if ((s2NoMaskSize - s2StartIdx) / ratio > 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+template <typename SAST>
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::IsSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+{
+
+    // todo 需根据s2LoopIdx来判断是Ori还是Cmp
+    bool oriSkip = OriSkip(gS1LoopIdx, s2LoopIdx);
+    bool cmpSkip = CmpSkip(gS1LoopIdx, s2LoopIdx);
+    if (oriSkip || cmpSkip) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
 
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
@@ -401,8 +478,8 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     InitTilingData();
     InitActualSeqLen(cuSeqlensQ, seqUsedKV);
 
-    // 初始化计算参数
-    InitCalcParamsEach();
+    // 初始化计算参数 分和函數沒有
+    // InitCalcParamsEach();
     pipe = tPipe;
 
     // init global buffer
@@ -469,16 +546,16 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     }
 
     if ASCEND_IS_AIV {
-        // vectorService.InitParams(constInfo, tilingData);
-        // vectorService.InitVec0GlobalTensor(kvValidSizeGm_, oriKvGm, cmpKvGm, oriBlockTableGm, cmpBlockTableGm);
-        // vectorService.InitVec1GlobalTensor(actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm);
-        // vectorService.InitVec2GlobalTensor(accumOutGm, attentionOutGm);
+        // vectorBlock.InitParams(constInfo, tilingData);
+        // vectorBlock.InitVec0GlobalTensor(kvValidSizeGm_, oriKvGm, cmpKvGm, oriBlockTableGm, cmpBlockTableGm);
+        // vectorBlock.InitVec1GlobalTensor(actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm);
+        // vectorBlock.InitVec2GlobalTensor(accumOutGm, attentionOutGm);
     }
 
     if ASCEND_IS_AIC {
-        // matmulService.InitParams(constInfo);
-        // matmulService.InitMm1GlobalTensor(queryGm);
-        // matmulService.InitMm2GlobalTensor(attentionOutGm);
+        // cubeBlock.InitParams(constInfo);
+        // cubeBlock.InitMm1GlobalTensor(queryGm);
+        // cubeBlock.InitMm2GlobalTensor(attentionOutGm);
     }
     // 要在InitParams之后执行
     if (pipe != nullptr) {
@@ -486,196 +563,114 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     }
 }
 
-template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitCalcParamsEach()
-{
-    // 计算总的基本块
-//     uint32_t totalBaseNum = 0;
-//     uint32_t s1GBaseSize = constInfo.gSize;
-//     uint32_t actBatchS2 = 1;
-//     uint32_t coreNum = GetBlockNum();
-//     uint32_t currCoreIdx = aiCoreIdx;
-//     uint32_t actBatchS1 = 1;
-//     for (uint32_t bIdx = 0; bIdx < constInfo.batchSize; bIdx++) {
-//         uint32_t actBatchS1 = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
-//         if (LAYOUT_T != SAS_LAYOUT::TND) {
-//             if (actBatchS1 < constInfo.qSeqSize) {
-//                 constInfo.needInit = true;
-//             }
-//         }
-//         totalBaseNum += actBatchS1 * actBatchS2 ;
-//     }
-//     uint32_t avgBaseNum = 1;
-//     if (totalBaseNum > coreNum) {
-//         avgBaseNum = (totalBaseNum + coreNum - 1) / coreNum;
-//     } else {
-//         usedCoreNum = totalBaseNum;
-//     }
-//     if (aiCoreIdx >= usedCoreNum) {
-//         return;
-//     }
-// 	// 计算当前核的基本块
-//     uint32_t accumBaseNum = 0; // 当前累积的基本块数
-//     uint32_t lastValidBIdx = 0;
-//     uint32_t lastValidactBatchS1 = 0;
-//     bool setStart = false;
-//     uint32_t targetBaseNum = (currCoreIdx + 1) * avgBaseNum; // 计算当前的目标权重
-//     uint32_t targetStartBaseNum = targetBaseNum - avgBaseNum;
-//     for (uint32_t bN2Idx = 0; bN2Idx < constInfo.batchSize * constInfo.kvHeadNum; bN2Idx++) {
-//         uint32_t bIdx = bN2Idx / constInfo.kvHeadNum;
-//         actBatchS1 = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
-//         for (uint32_t s1GIdx = 0; s1GIdx < actBatchS1; s1GIdx++) {
-//             accumBaseNum += 1;
-//             if (!setStart && accumBaseNum >= targetStartBaseNum) {
-//                 constInfo.bN2Start = bN2Idx;
-//                 constInfo.gS1Start = s1GIdx;
-//                 setStart = true;
-//             }
-//             if (accumBaseNum >= targetBaseNum) {
-//                 // 更新当前核的End分核信息
-//                 constInfo.bN2End = bN2Idx;
-//                 constInfo.gS1End = s1GIdx;
-//                 constInfo.s2End = 0;
-//                 constInfo.coreStartKVSplitPos = 0;
-//                 if (aiCoreIdx != 0) {
-//                     GetAxisStartIdx(constInfo.bN2Start, constInfo.gS1Start, 0);
-//                 }
-//                 return;
-//             }
-//         }
-// 	    if ((actBatchS1 > 0) && (actBatchS2 > 0)) {
-//             lastValidBIdx = bIdx;
-//             lastValidactBatchS1 = actBatchS1;
-//         }
-//     }
-//     if (!setStart) {
-//         constInfo.bN2Start = lastValidBIdx;
-//         constInfo.gS1Start = lastValidactBatchS1 - 1;
-//     }
-//     if (accumBaseNum < targetBaseNum) {
-// 		// 更新最后一个核的End分核信息
-//         constInfo.bN2End = lastValidBIdx;
-//         constInfo.gS1End = lastValidactBatchS1 - 1;
-//         constInfo.s2End = 0;
-//         constInfo.coreStartKVSplitPos = 0;
-//         if (aiCoreIdx != 0) {
-//             GetAxisStartIdx(constInfo.bN2Start, constInfo.gS1Start, 0);
-//         }
-//         return;
-//     }
-}
-
 template <typename SAST>
 __aicore__ inline void SparseAttnSharedkvScfa<SAST>::CalcParams(uint32_t loop, uint64_t s2Start,
                                                                            uint32_t s2LoopIdx, RunInfo &info)
 {
-//     info.loop = loop;
-//     info.bIdx = runParamInfo.bIdx;
-//     info.gS1Idx = runParamInfo.gS1Idx;
-//     info.s2Idx = s2LoopIdx;
-//     info.curSInnerLoopTimes = runParamInfo.s2LoopTimes;
+    info.loop = loop;
+    info.bIdx = tempLoopInfo.bIdx;
+    info.gS1Idx = tempLoopInfo.gS1Idx;
+    info.s2Idx = s2LoopIdx;
+    info.curSInnerLoopTimes = tempLoopInfo.s2LoopTimes;
 
-//     info.tndIsS2SplitCore = runParamInfo.tndIsS2SplitCore;
-//     info.tndCoreStartKVSplitPos = runParamInfo.tndCoreStartKVSplitPos;
-//     info.isBmm2Output = false;
+    info.tndIsS2SplitCore = tempLoopInfo.tndIsS2SplitCore;
+    info.tndCoreStartKVSplitPos = tempLoopInfo.tndCoreStartKVSplitPos;
+    info.isBmm2Output = false;
 
-//     info.actS1Size = runParamInfo.actS1Size;
-//     info.actS2Size = runParamInfo.actS2Size;
+    info.actS1Size = tempLoopInfo.actS1Size;
     
-//     info.actMBaseSize = constInfo.mBaseSize;
-//     uint32_t remainedGS1Size = runParamInfo.actS1Size * constInfo.gSize - runParamInfo.gS1Idx;
-//     if (remainedGS1Size <= constInfo.mBaseSize && remainedGS1Size > 0) {
-//         info.actMBaseSize = runParamInfo.mBasicSizeTail;
-//     }
+    
+    info.actMBaseSize = constInfo.mBaseSize;
+    uint32_t remainedGS1Size = tempLoopInfo.actS1Size * constInfo.gSize - tempLoopInfo.gS1Idx;
+    if (remainedGS1Size <= constInfo.mBaseSize && remainedGS1Size > 0) {
+        info.actMBaseSize = tempLoopInfo.mBasicSizeTail;
+    }
 
-//     info.isValid = s2LoopIdx < runParamInfo.s2LoopTimes;
+    info.isValid = s2LoopIdx < tempLoopInfo.s2LoopTimes;
 
-//     if ASCEND_IS_AIV {
-//         info.mSize = info.actMBaseSize;
-//         info.mSizeV = (info.mSize <= 16) ? info.mSize : (((info.mSize + 15) / 16 + 1) / 2 * 16);
-//         info.mSizeVStart = 0;
-//         if (tmpBlockIdx % 2 == 1) {
-//             info.mSizeVStart = info.mSizeV;
-//             info.mSizeV = info.mSize - info.mSizeV;
-//         }
-//     }
+    if ASCEND_IS_AIV {
+        info.mSize = info.actMBaseSize;
+        info.mSizeV = (info.mSize <= 16) ? info.mSize : (((info.mSize + 15) / 16 + 1) / 2 * 16);
+        info.mSizeVStart = 0;
+        if (tmpBlockIdx % 2 == 1) {
+            info.mSizeVStart = info.mSizeV;
+            info.mSizeV = info.mSize - info.mSizeV;
+        }
+    }
 
-//     info.isChangeBatch = false;
+    info.isChangeBatch = false;
 
-//     info.isFirstSInnerLoop = s2LoopIdx == s2Start;
-//     if (info.isFirstSInnerLoop) {
-//         runParamInfo.bn2IdxInCurCore++;
-//     }
-//     info.isLastS2Loop = s2LoopIdx == runParamInfo.s2LoopTimes - 1;
-//     info.bn2IdxInCurCore = runParamInfo.bn2IdxInCurCore - 1;
-//     uint64_t actualSeqQPrefixSum;
-//     if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
-//         actualSeqQPrefixSum = (info.bIdx <= 0) ? 0 : actualSeqLengthsQGm.GetValue(info.bIdx - 1);
-//     } else {
-//         actualSeqQPrefixSum = (info.bIdx <= 0) ? 0 : info.bIdx * constInfo.qSeqSize;
-//     }
-//     info.tndBIdxOffsetForQ = actualSeqQPrefixSum * constInfo.qHeadNum * constInfo.combineHeadDim;
+    info.isFirstSInnerLoop = s2LoopIdx == s2Start;
+    if (info.isFirstSInnerLoop) {
+        tempLoopInfo.bn2IdxInCurCore++;
+    }
+    info.isLastS2Loop = s2LoopIdx == tempLoopInfo.s2LoopTimes - 1;
+    info.bn2IdxInCurCore = tempLoopInfo.bn2IdxInCurCore - 1;
+    uint64_t actualSeqQPrefixSum;
+    if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
+        actualSeqQPrefixSum = (info.bIdx <= 0) ? 0 : actualSeqLengthsQGm.GetValue(info.bIdx - 1);
+    } else {
+        actualSeqQPrefixSum = (info.bIdx <= 0) ? 0 : info.bIdx * constInfo.qSeqSize;
+    }
+    info.tndBIdxOffsetForQ = actualSeqQPrefixSum * constInfo.qHeadNum * headDim;
 
-//     uint64_t actualSeqKVPrefixSum;
-//     if constexpr (KV_LAYOUT_T == SAS_LAYOUT::TND) {
-//         actualSeqKVPrefixSum = (info.bIdx <= 0) ? 0 : actualSeqLengthsKVGm.GetValue(info.bIdx - 1);
-//     } else {
-//         actualSeqKVPrefixSum = (info.bIdx <= 0) ? 0 : info.bIdx * constInfo.kvSeqSize;
-//     }
-//     info.tndBIdxOffsetForKV = actualSeqKVPrefixSum * constInfo.kvHeadNum * constInfo.combineHeadDim;
+    uint64_t actualSeqKVPrefixSum;
+    if constexpr (KV_LAYOUT_T == SAS_LAYOUT::TND) {
+        actualSeqKVPrefixSum = (info.bIdx <= 0) ? 0 : actualSeqLengthsKVGm.GetValue(info.bIdx - 1);
+    } else {
+        actualSeqKVPrefixSum = (info.bIdx <= 0) ? 0 : info.bIdx * constInfo.kvSeqSize;
+    }
+    info.tndBIdxOffsetForKV = actualSeqKVPrefixSum * constInfo.kvHeadNum * headDim;
 
-//     if (info.isFirstSInnerLoop) {
-//         tensorACoreOffset = info.tndBIdxOffsetForQ + info.gS1Idx * constInfo.combineHeadDim;
-//         tensorBCoreOffset = info.tndBIdxOffsetForKV + info.n2Idx * constInfo.combineHeadDim;
-//         if (constInfo.quantScaleRepoMode == QUANT_SCALE_REPO_MODE::COMBINE) {
-//             attenOutOffset = (actualSeqQPrefixSum * constInfo.qHeadNum + info.gS1Idx) * headDim;
-//         } else {
-//             uint64_t tndBIdxRopeOffsetForQ = actualSeqQPrefixSum * constInfo.qHeadNum * headDimRope;
-//             tensorARopeCoreOffset = tndBIdxRopeOffsetForQ + info.gS1Idx * headDimRope;
-//             uint64_t tndBIdxRopeOffsetForK = actualSeqKVPrefixSum * constInfo.kvHeadNum * headDimRope;
-//             tensorBRopeCoreOffset = tndBIdxRopeOffsetForK + info.n2Idx * headDimRope;
-//             attenOutOffset = tensorACoreOffset;
-//         }
-//         if (constInfo.sparseMode == 3) {
-//             threshold = static_cast<int64_t>(runParamInfo.nextTokensPerBatch) + info.gS1Idx / constInfo.gSize + 1;
-//         } else {
-//             threshold = runParamInfo.actS2SizeOri;
-//         }
-//         if constexpr(LAYOUT_T == SAS_LAYOUT::BSND) {     // B,S1,N2 K
-//             topKBaseOffset = info.bIdx * constInfo.qSeqSize * constInfo.kvHeadNum * constInfo.sparseBlockCount +
-//                             info.gS1Idx / constInfo.gSize * constInfo.kvHeadNum * constInfo.sparseBlockCount +
-//                             info.n2Idx * constInfo.sparseBlockCount;
-//         } else if (LAYOUT_T == SAS_LAYOUT::TND) {   // T N2 K
-//             topKBaseOffset = info.tndBIdxOffsetForQ / constInfo.gSize / constInfo.combineHeadDim * constInfo.kvHeadNum *
-//                              constInfo.sparseBlockCount + info.n2Idx * constInfo.sparseBlockCount +
-//                              info.gS1Idx / constInfo.gSize * constInfo.kvHeadNum * constInfo.sparseBlockCount;
-//         } else {    // B N2 S1 K
-//             topKBaseOffset = info.bIdx * constInfo.kvHeadNum * constInfo.qSeqSize * constInfo.sparseBlockCount +
-//                             info.n2Idx * constInfo.qSeqSize * constInfo.sparseBlockCount +
-//                             info.gS1Idx / constInfo.gSize * constInfo.sparseBlockCount;
-//         }
-//     }
-//     info.topKBaseOffset = topKBaseOffset;
-//     info.threshold = threshold;
-//     info.tensorAOffset = tensorACoreOffset;
-//     info.tensorARopeOffset = tensorARopeCoreOffset;
-//     info.tensorBOffset = tensorBCoreOffset;
-//     info.tensorBRopeOffset = tensorBRopeCoreOffset;
-//     info.attenOutOffset = attenOutOffset;
+    if (info.isFirstSInnerLoop) {
+        uint64_t tndBIdxRopeOffsetForQ = actualSeqQPrefixSum * constInfo.qHeadNum * headDimRope;
+        tensorACoreOffset = info.tndBIdxOffsetForQ + info.gS1Idx * headDim;
+        tensorARopeCoreOffset = tndBIdxRopeOffsetForQ + info.gS1Idx * headDimRope;
+        
+        uint64_t tndBIdxRopeOffsetForK = actualSeqKVPrefixSum * constInfo.kvHeadNum * headDimRope;
+        tensorBCoreOffset = info.tndBIdxOffsetForKV + info.n2Idx * headDim;
+        tensorBRopeCoreOffset = tndBIdxRopeOffsetForK + info.n2Idx * headDimRope;
+        if (constInfo.oriMaskMode == 3) {
+            threshold = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + info.gS1Idx / constInfo.gSize + 1;
+        } else {
+            threshold = tempLoopInfo.actS2SizeOri;
+        }
+        if constexpr(LAYOUT_T == SAS_LAYOUT::BSND) {     // B,S1,N2 K
+            topKBaseOffset = info.bIdx * constInfo.qSeqSize * constInfo.kvHeadNum * constInfo.sparseBlockCount +
+                            info.gS1Idx / constInfo.gSize * constInfo.kvHeadNum * constInfo.sparseBlockCount +
+                            info.n2Idx * constInfo.sparseBlockCount;
+        } else if (LAYOUT_T == SAS_LAYOUT::TND) {        // T N2 K
+            topKBaseOffset = info.tndBIdxOffsetForQ / constInfo.gSize / constInfo.headDim * constInfo.kvHeadNum *
+                             constInfo.sparseBlockCount + info.n2Idx * constInfo.sparseBlockCount +
+                             info.gS1Idx / constInfo.gSize * constInfo.kvHeadNum * constInfo.sparseBlockCount;
+        } else {                                         // B N2 S1 K
+            topKBaseOffset = info.bIdx * constInfo.kvHeadNum * constInfo.qSeqSize * constInfo.sparseBlockCount +
+                            info.n2Idx * constInfo.qSeqSize * constInfo.sparseBlockCount +
+                            info.gS1Idx / constInfo.gSize * constInfo.sparseBlockCount;
+        }
+    }
+    info.topKBaseOffset = topKBaseOffset;
+    info.threshold = threshold;
+    info.tensorAOffset = tensorACoreOffset;
+    info.tensorARopeOffset = tensorARopeCoreOffset;
+    info.tensorBOffset = tensorBCoreOffset;
+    info.tensorBRopeOffset = tensorBRopeCoreOffset;
+    info.attenOutOffset = tensorACoreOffset;
 
-//     uint64_t sInnerOffsetDataSize = info.s2Idx * constInfo.s2BaseSize;
-//     info.s2BatchOffset = s2BatchBaseOffset + sInnerOffsetDataSize;
+    uint64_t sInnerOffsetDataSize = info.s2Idx * constInfo.s2BaseSize;
+    info.s2BatchOffset = s2BatchBaseOffset + sInnerOffsetDataSize;
 
-//     info.actS2SizeOri = runParamInfo.actS2SizeOri;
-//     // 计算实际基本块size
-//     if (runParamInfo.actS2Size > sInnerOffsetDataSize) {
-//         info.actualSingleProcessSInnerSize = runParamInfo.actS2Size - sInnerOffsetDataSize;
-//         info.actualSingleProcessSInnerSize = info.actualSingleProcessSInnerSize > constInfo.s2BaseSize ?
-//                                              constInfo.s2BaseSize : info.actualSingleProcessSInnerSize;
-//     } else {
-//         info.actualSingleProcessSInnerSize = 0;
-//     }
-    // info.actualSingleProcessSInnerSizeAlign =
-        // SASAlign((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)SASVectorService<SAST>::BYTE_BLOCK);
+    info.actS2SizeOri = tempLoopInfo.actS2SizeOri;
+    //计算实际基本块size
+    if (tempLoopInfo.actS2Size > sInnerOffsetDataSize) {
+        info.actualSingleProcessSInnerSize = tempLoopInfo.actS2Size - sInnerOffsetDataSize;
+        info.actualSingleProcessSInnerSize = info.actualSingleProcessSInnerSize > constInfo.s2BaseSize ?
+                                            constInfo.s2BaseSize : info.actualSingleProcessSInnerSize;
+    } else {
+        info.actualSingleProcessSInnerSize = 0;
+    }
+    info.actualSingleProcessSInnerSizeAlign =
+        SASAlign((uint32_t)info.actualSingleProcessSInnerSize, (uint32_t)SASVectorBlock<SAST>::BYTE_BLOCK);
 }
 
 template <typename SAST>
@@ -687,7 +682,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::ComputeMm1(const RunInfo &i
         MSplitInfo mSplitInfo;
         mSplitInfo.nBufferStartM = i * constInfo.nBufferMBaseSize;
         mSplitInfo.nBufferDealM = (i + 1 != nBufferLoopTimes) ? constInfo.nBufferMBaseSize : nBufferTail;
-        // matmulService.ComputeMm1(info, mSplitInfo);
+        // cubeBlock.ComputeMm1(info, mSplitInfo);
         CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_FIX>(constInfo.syncC1V1);
     }
 }
@@ -702,7 +697,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::ComputeMm2(const RunInfo &i
         mSplitInfo.nBufferStartM = i * constInfo.nBufferMBaseSize;
         mSplitInfo.nBufferDealM = (i + 1 != nBufferLoopTimes) ? constInfo.nBufferMBaseSize : nBufferTail;
         CrossCoreWaitFlag(constInfo.syncV1C2);
-        // matmulService.ComputeMm2(info, mSplitInfo);
+        // cubeBlock.ComputeMm2(info, mSplitInfo);
         CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_FIX>(constInfo.syncC2V2);
         // CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_FIX>(constInfo.syncC2V1);
     }
@@ -712,17 +707,17 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
 {
     if (aiCoreIdx < usedCoreNum) {
         if ASCEND_IS_AIV {
-            // vectorService.AllocEventID();
-            // vectorService.InitSoftmaxDefaultBuffer();
+            // vectorBlock.AllocEventID();
+            // vectorBlock.InitSoftmaxDefaultBuffer();
         } else {
-            // matmulService.AllocEventID();
+            // cubeBlock.AllocEventID();
         }
         ProcessBalance();
 
         if ASCEND_IS_AIV {
-            // vectorService.FreeEventID();
+            // vectorBlock.FreeEventID();
         } else {
-            // matmulService.FreeEventID();
+            // cubeBlock.FreeEventID();
         }
     }
 }
@@ -736,49 +731,67 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetBN2Idx(uint32_t bN2Idx, 
 
 template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::ProcessBalance()
 {
-    // RunInfo extraInfo[SAS_PRELOAD_TASK_CACHE_SIZE];
-    // uint32_t gloop = 0;
-    // int gS1LoopEnd;
-    // bool globalLoopStart = true;
+    RunInfo extraInfo[SAS_PRELOAD_TASK_CACHE_SIZE];
+    uint32_t gloop = 0;
+    int gS1LoopEnd;
+    bool globalLoopStart = true;
+    if ASCEND_IS_AIC {
+        CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_FIX>(constInfo.syncC2V1);
+        CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
+        CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
+        CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
+        CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
+    }
+    for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx <= constInfo.bN2End; bN2LoopIdx++) {
+        GetBN2Idx(bN2LoopIdx, tempLoopInfo.bIdx, tempLoopInfo.n2Idx);
+        GetActualSeqLen(tempLoopInfo.bIdx); // 获取actualSeqLength及ActualSeqLengthKV
+        GetPreNextTokensLeftUp();
+        if (tempLoopInfo.actS1Size == 0) {
+            continue;
+        }
+        int gS1SplitNum = (tempLoopInfo.actS1Size * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
+        gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End) ? constInfo.gS1End : gS1SplitNum - 1;
+        for (uint32_t gS1LoopIdx = constInfo.gS1Start; gS1LoopIdx <= gS1LoopEnd; gS1LoopIdx++) {
+            tempLoopInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
+            GetSparseActualSeqLen(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx); // TopK值sparse完后的ActualSeqLengthKV
+            UpdateInnerLoopCond();
 
-    // for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx <= constInfo.bN2End; bN2LoopIdx++) {
-    //     GetBN2Idx(bN2LoopIdx, runParamInfo.bIdx, runParamInfo.n2Idx);
-    //     GetActualSeqLen(runParamInfo.bIdx); // 获取actualSeqLength及ActualSeqLengthKV
-    //     GetPreNextTokensLeftUp();
-    //     if (runParamInfo.actS1Size == 0) {
-    //         continue;
-    //     }
-    //     int gS1SplitNum = (runParamInfo.actS1Size * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
-    //     gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End) ? constInfo.gS1End : gS1SplitNum - 1;
-    //     for (uint32_t gS1LoopIdx = constInfo.gS1Start; gS1LoopIdx <= gS1LoopEnd; gS1LoopIdx++) {
-    //         runParamInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
-    //         // TopK值sparse完后的ActualSeqLengthKV
-    //         GetSparseActualSeqLen(runParamInfo.bIdx, gS1LoopIdx, runParamInfo.n2Idx);
-    //         UpdateInnerLoopCond();
+            if (tempLoopInfo.curActSeqLenIsZero) {
+                DealActSeqLenIsZero(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx);
+            }
+            int s2SplitNum =
+                (tempLoopInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize; // S2切分份数
+            bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
+            tempLoopInfo.s2LoopTimes = s2SplitNum;
+            // 分核修改后需要打开
+            // 当前s2是否被切，决定了输出是否要写到attenOut上
+            tempLoopInfo.tndIsS2SplitCore =
+                ((constInfo.s2Start == 0) && (tempLoopInfo.s2LoopTimes == s2SplitNum)) ? false : true;
+            tempLoopInfo.tndCoreStartKVSplitPos = globalLoopStart ? constInfo.coreStartKVSplitPos : 0;
+            uint32_t extraLoop = isEnd ? 2 : 0;
 
-    //         if (runParamInfo.curActSeqLenIsZero) {
-    //             DealActSeqLenIsZero(runParamInfo.bIdx, gS1LoopIdx, runParamInfo.n2Idx);
-    //         }
-    //         int s2SplitNum =
-    //             (runParamInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize; // S2切分份数
-    //         bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
-    //         runParamInfo.s2LoopTimes = s2SplitNum;
-    //         // 分核修改后需要打开
-    //         // 当前s2是否被切，决定了输出是否要写到attenOut上
-    //         runParamInfo.tndIsS2SplitCore =
-    //             ((constInfo.s2Start == 0) && (runParamInfo.s2LoopTimes == s2SplitNum)) ? false : true;
-    //         runParamInfo.tndCoreStartKVSplitPos = globalLoopStart ? constInfo.coreStartKVSplitPos : 0;
-    //         uint32_t extraLoop = isEnd ? 2 : 0;
-    //         for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < (runParamInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
-    //             // PreloadPipeline loop初始值要求为 PRELOAD_NUM
-    //             PreloadPipeline(gloop, constInfo.s2Start, s2LoopIdx, extraInfo);
-    //             ++gloop;
-    //         }
-    //         globalLoopStart = false;
-    //         constInfo.s2Start = 0;
-    //     }
-    //     constInfo.gS1Start = 0;
-    // }
+            uint32_t curTopKIdx = 0;
+            uint64_t curOffsetInSparseBlock = 0;
+            for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < (tempLoopInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
+                // PreloadPipeline loop初始值要求为 PRELOAD_NUM
+                if (IsSkip(gS1LoopIdx, s2LoopIdx) && s2LoopIdx < tempLoopInfo.s2LoopTimes) {
+                    continue;
+                }
+                PreloadPipeline(gloop, constInfo.s2Start, s2LoopIdx, extraInfo);
+                ++gloop;
+            }
+            globalLoopStart = false;
+            constInfo.s2Start = 0;
+        }
+        constInfo.gS1Start = 0;
+    }
+    if ASCEND_IS_AIV {
+        CrossCoreWaitFlag(constInfo.syncC2V1);
+        CrossCoreWaitFlag(3);
+        CrossCoreWaitFlag(3);
+        CrossCoreWaitFlag(3);
+        CrossCoreWaitFlag(3);
+    }
 }
 
 template <typename SAST>
@@ -794,22 +807,22 @@ SparseAttnSharedkvScfa<SAST>::PreloadPipeline(uint32_t loop, uint64_t s2Start, u
 
     if (extraInfo0.isValid) {
         if ASCEND_IS_AIC {
-            ComputeMm1(extraInfo0);
+            // ComputeMm1(extraInfo0);
         } else {
-            // vectorService.MergeKv(extraInfo0);
+            // vectorBlock.MergeKv(extraInfo0);
         }
     }
     if (extraInfo2.isValid) {
         if ASCEND_IS_AIV {
-            // vectorService.ProcessVec1L(extraInfo2);
+            // vectorBlock.ProcessVec1L(extraInfo2);
         }
         if ASCEND_IS_AIC {
-            ComputeMm2(extraInfo2);
+            // ComputeMm2(extraInfo2);
         }
     }
     if (extraInfo1.isValid) {
         if ASCEND_IS_AIV {
-            // vectorService.ProcessVec2L(extraInfo1);
+            // vectorBlock.ProcessVec2L(extraInfo1);
         }
         extraInfo1.isValid = false;
     }
