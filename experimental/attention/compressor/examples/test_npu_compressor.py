@@ -50,7 +50,6 @@ class TestCustomMlaPrologV3(TestCase):
         cu_seqlens = torch.randint(1, 2, (B+1,), dtype=torch.int32).npu()
         seqused = torch.randint(1, 2, (B,), dtype=torch.int32).npu()
         start_pos = torch.randint(1, 2, (B,), dtype=torch.int32).npu()
-        hadamard = torch.rand(D, D, dtype=torch.bfloat16).npu()
 
         # start run custom ops
         cmp_kv = (
@@ -68,7 +67,6 @@ class TestCustomMlaPrologV3(TestCase):
                 cu_seqlens = cu_seqlens,
                 seqused = seqused,
                 start_pos = start_pos,
-                hadamard = hadamard,
                 rope_head_dim = rope_head_dim,
                 cmp_ratio = cmp_ratio,
                 coff = coff,
