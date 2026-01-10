@@ -475,6 +475,11 @@ public:
     uint32_t oriMaxBlockNumPerBatch_ = 0;
     uint32_t cmpMaxBlockNumPerBatch_ = 0;
     int32_t blockSize_ = 0;
+
+
+    // template mode
+    SASTemplateMode perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
+
     platform_ascendc::SocVersion socVersion_ = platform_ascendc::SocVersion::ASCEND910B;
     ge::DataType qType_ = ge::DT_FLOAT16;
     ge::DataType oriKvType_ = ge::DT_FLOAT16;

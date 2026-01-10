@@ -197,7 +197,19 @@ ge::graphStatus SASInfoParser::GetInOutDataType()
 
 ge::graphStatus SASInfoParser::GetSASTempateMode()
 {
-
+    if (opParamInfo_.oriKv.desc != nullptr) {
+        if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
+            perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
+        } else if (opParamInfo_.cmpKv.desc != nullptr) {
+            perfMode_ = SASTemplateMode::CFA_TEMPLATE_MODE;
+        } else {
+            perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
+        }
+        return ge::GRAPH_SUCCESS;
+    } else {
+        OP_LOGE(opName_, "oriKv is nullptr");
+        return ge::GRAPH_FAILED;
+    }
 }
 
 ge::graphStatus SASInfoParser::GetQueryAndOutLayout()
@@ -500,19 +512,7 @@ void SASInfoParser::GenerateInfo(SASTilingInfo &sasInfo)
     sasInfo.qLayout = qLayout_;
     sasInfo.kvLayout = kvLayout_;
     sasInfo.outLayout = outLayout_;
-    if (opParamInfo_.oriKv.desc != nullptr) {
-        if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
-            sasInfo.perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE;
-        } else if (opParamInfo_.cmpKv.desc != nullptr) {
-            sasInfo.perfMode == SASTemplateMode::CFA_TEMPLATE_MODE;
-        } else {
-            sasInfo.perfMode == SASTemplateMode::SWA_TEMPLATE_MODE;
-        }
-        return ge::GRAPH_SUCCESS;
-    } else {
-        OP_LOGE(opName_, "oriKv is nullptr");
-        return ge::GRAPH_FAILED;
-    }
+    sasInfo.perfMode = perfMode_;
 }
 
 ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
