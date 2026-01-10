@@ -40,7 +40,7 @@ struct TempLoopInfo {
     uint64_t actS2Size = 0ULL;
     uint64_t actS2SizeOri = 0ULL;
     bool curActSeqLenIsZero = false;
-    int32_t nextTokensPerBatch = 0;
+    // int32_t nextTokensPerBatch = 0;
 
     uint64_t actS1Size = 1ULL;     // TND场景下当前Batch循环处理的S1轴的大小
     uint32_t tndCoreStartKVSplitPos;
@@ -48,6 +48,10 @@ struct TempLoopInfo {
 
     uint32_t gS1Idx = 0U;
     uint64_t mBasicSizeTail = 0U;  // gS1方向循环的尾基本块大小
+
+
+    uint32_t cmpLoopTimes = 0;
+    uint32_t oriLoopTimes = 0;
 };
 
 template <typename SAST> class SparseAttnSharedkvScfa {
@@ -227,6 +231,10 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
     constInfo.syncV1C2 = SYNC_V1_C2_FLAG;
     constInfo.syncC2V2 = SYNC_C2_V2_FLAG;
     constInfo.syncV1NupdateC2 = SYNC_V1_NUPDATE_C2_FLAG;
+
+    // cmp
+    constInfo.cmpRatio = tilingData->baseParams.cmpRatio;
+    // ori
 
 }
 
@@ -442,14 +450,14 @@ template <typename SAST>
 __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::IsSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
 {
 
-    // todo 需根据s2LoopIdx来判断是Ori还是Cmp
-    bool oriSkip = OriSkip(gS1LoopIdx, s2LoopIdx);
-    bool cmpSkip = CmpSkip(gS1LoopIdx, s2LoopIdx);
-    if (oriSkip || cmpSkip) {
-        return true;
+    bool isSkip = false;
+    // 一个基本块只能是
+    if (s2LoopIdx < tempLoopInfo.oriLoopTimes) {
+        isSkip = OriSkip(gS1LoopIdx, s2LoopIdx);
     } else {
-        return false;
+        isSkip = CmpSkip(gS1LoopIdx, s2LoopIdx);
     }
+    return isSkip;
 }
 
 
@@ -759,10 +767,14 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             if (tempLoopInfo.curActSeqLenIsZero) {
                 DealActSeqLenIsZero(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx);
             }
-            int s2SplitNum =
-                (tempLoopInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize; // S2切分份数
+            uint32_t oriSplitNum = (tempLoopInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+            uint32_t cmpSplitNum = (TempLoopInfo.actS2Size / constInfo.cmpRatio + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+            uint32_t s2SplitNum = oriSplitNum + cmpSplitNum;
             bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
+            
             tempLoopInfo.s2LoopTimes = s2SplitNum;
+            tempLoopInfo.oriLoopTimes = oriSplitNum;
+            tempLoopInfo.cmpLoopTimes = cmpLoopTimes;
             // 分核修改后需要打开
             // 当前s2是否被切，决定了输出是否要写到attenOut上
             tempLoopInfo.tndIsS2SplitCore =

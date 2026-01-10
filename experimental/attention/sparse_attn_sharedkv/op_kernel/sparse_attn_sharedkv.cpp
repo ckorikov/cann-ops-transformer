@@ -16,8 +16,6 @@
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
 #include "sparse_attn_sharedkv_template_tiling_key.h"
-
-#def
 #include "arch32/sparse_attn_sharedkv_scfa_kernel.h"
 #include "sparse_attn_sharedkv_swa.h"
 // #include "sparse_attn_sharedkv_cfa.h"
