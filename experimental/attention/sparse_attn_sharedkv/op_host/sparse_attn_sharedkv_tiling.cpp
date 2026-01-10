@@ -195,6 +195,23 @@ ge::graphStatus SASInfoParser::GetInOutDataType()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus SASInfoParser::GetSASTempateMode()
+{
+    if (opParamInfo_.oriKv.desc != nullptr) {
+        if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
+            perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
+        } else if (opParamInfo_.cmpKv.desc != nullptr) {
+            perfMode_ = SASTemplateMode::CFA_TEMPLATE_MODE;
+        } else {
+            perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
+        }
+        return ge::GRAPH_SUCCESS;
+    } else {
+        OP_LOGE(opName_, "oriKv is nullptr");
+        return ge::GRAPH_FAILED;
+    }
+}
+
 ge::graphStatus SASInfoParser::GetQueryAndOutLayout()
 {
     // 获取q和attnOut的Layout基准值
@@ -495,6 +512,7 @@ void SASInfoParser::GenerateInfo(SASTilingInfo &sasInfo)
     sasInfo.qLayout = qLayout_;
     sasInfo.kvLayout = kvLayout_;
     sasInfo.outLayout = outLayout_;
+    sasInfo.perfMode = perfMode_;
 }
 
 ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
@@ -535,7 +553,9 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
     if (ge::GRAPH_SUCCESS != GetActualseqInfo()) {
         return ge::GRAPH_FAILED;
     }
-
+    if (ge::GRAPH_SUCCESS != GetSASTempateMode()) {
+        return ge::GRAPH_FAILED;
+    }
     GenerateInfo(sasInfo);
     return ge::GRAPH_SUCCESS;
 }
@@ -633,6 +653,9 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     uint32_t outputType = static_cast<uint32_t>(tilingInfo->outputType);
     uint32_t qLayout = static_cast<uint32_t>(tilingInfo->qLayout);
     uint32_t inputKvLayout = static_cast<uint32_t>(tilingInfo->kvLayout);
+    if (tilingInfo->perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE) {
+        perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
+    }
     uint32_t tilingKey =
         GET_TPL_TILING_KEY(0U, qLayout, inputKvLayout, static_cast<uint32_t>(perfMode_));
     context_->SetTilingKey(tilingKey);
