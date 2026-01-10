@@ -42,15 +42,16 @@ public:
     __aicore__ inline void InitParams(const struct ConstInfo &constInfo,
                                       const SparseAttnSharedkvTilingData *__restrict tilingData);
     __aicore__ inline void InitMm2ResInt32GmGlobalTensor(GlobalTensor<int32_t> mm2ResInt32Gm);
-    __aicore__ inline void InitVec0GlobalTensor(const GlobalTensor<int32_t> &kvValidSizeGm,
-                                                const GlobalTensor<KV_T> &kvMergeGm,
-                                                const GlobalTensor<KV_T> &keyRopeGm, const GlobalTensor<KV_T> &keyGm,
-                                                const GlobalTensor<int32_t> &blkTableGm);
+    __aicore__ inline void InitVec0GlobalTensor(const GlobalTensor<int32_t> &kvValidSizeGm,  
+                                                const GlobalTensor<KV_T> &kvMergeGm, 
+                                                const GlobalTensor<KV_T> &oriKvGm,
+                                                const GlobalTensor<KV_T> &cmpKvGm, 
+                                                const GlobalTensor<int32_t> &oriBlockTableGm, 
+                                                const GlobalTensor<int32_t> &cmpBlockTableGm);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
                                                 GlobalTensor<int32_t> actualSeqLengthsQGm,
                                                 GlobalTensor<int32_t> actualSeqLengthsKVGm, GlobalTensor<T> lseMaxFdGm,
-                                                GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm,
-                                                GlobalTensor<T> softmaxMaxGm, GlobalTensor<T> softmaxSumGm);
+                                                GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm);
     __aicore__ inline void InitVec2GlobalTensor(GlobalTensor<T> accumOutGm, GlobalTensor<UPDATE_T> vec2ResGm,
                                                 GlobalTensor<MM2_OUT_T> mm2ResGm, GlobalTensor<OUT_T> attentionOutGm);
     __aicore__ inline void AllocEventID();
@@ -168,12 +169,15 @@ private:
     GlobalTensor<T> accumOutGm;
     GlobalTensor<OUT_T> attentionOutGm;
     GlobalTensor<int32_t> blkTableGm_;
-
     GlobalTensor<KV_T> kvMergeGm_;
     GlobalTensor<KV_T> keyRopeGm_;
     GlobalTensor<KV_T> keyGm_;
     GlobalTensor<int32_t> topkGm_;
     GlobalTensor<int32_t> kvValidSizeGm_;
+    GlobalTensor<KV_T> oriKvGm_;
+    GlobalTensor<KV_T> cmpKvGm_;
+    GlobalTensor<int32_t> oriBlockTableGm_;
+    GlobalTensor<int32_t> cmpBlockTableGm_;
 
     // ================================Local Buffer区====================================
     TBuf<> inputBuff1;            // 32K
@@ -264,22 +268,24 @@ SASVectorBlock<SAST>::InitMm2ResInt32GmGlobalTensor(GlobalTensor<int32_t> mm2Res
 
 template <typename SAST>
 __aicore__ inline void SASVectorBlock<SAST>::InitVec0GlobalTensor(
-    const GlobalTensor<int32_t> &kvValidSizeGm, const GlobalTensor<KV_T> &kvMergeGm,
-    const GlobalTensor<KV_T> &keyRopeGm, const GlobalTensor<KV_T> &keyGm, const GlobalTensor<int32_t> &blkTableGm)
+    const GlobalTensor<int32_t> &kvValidSizeGm,  const GlobalTensor<KV_T> &kvMergeGm, const GlobalTensor<KV_T> &oriKvGm,
+    const GlobalTensor<KV_T> &cmpKvGm, const GlobalTensor<int32_t> &oriBlockTableGm, const GlobalTensor<int32_t> &cmpBlockTableGm)
 {
-    this->kvMergeGm_ = kvMergeGm;
-    this->keyRopeGm_ = keyRopeGm;
-    this->keyGm_ = keyGm;
-    this->blkTableGm_ = blkTableGm;
     this->kvValidSizeGm_ = kvValidSizeGm;
+    this->kvMergeGm_ = kvMergeGm;
+    this->oriKvGm_ = oriKvGm;
+    this->cmpKvGm_ = cmpKvGm;
+    this->oriBlockTableGm_ = oriBlockTableGm;
+    this->cmpBlockTableGm_ = cmpBlockTableGm;
 }
 
 template <typename SAST>
 __aicore__ inline void SASVectorBlock<SAST>::InitVec1GlobalTensor(
     GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
     GlobalTensor<int32_t> actualSeqLengthsQGm, GlobalTensor<int32_t> actualSeqLengthsKVGm, GlobalTensor<T> lseMaxFdGm,
-    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm, GlobalTensor<T> softmaxMaxGm, GlobalTensor<T> softmaxSumGm)
+    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm)
 {
+    // actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm
     this->mm1ResGm = mm1ResGm;
     this->vec1ResGm = vec1ResGm;
     this->actualSeqLengthsQGm = actualSeqLengthsQGm;
@@ -287,8 +293,6 @@ __aicore__ inline void SASVectorBlock<SAST>::InitVec1GlobalTensor(
     this->lseMaxFdGm = lseMaxFdGm;
     this->lseSumFdGm = lseSumFdGm;
     this->topkGm_ = topKGm;
-    this->softmaxMaxGm = softmaxMaxGm;
-    this->softmaxSumGm = softmaxSumGm;
 }
 
 template <typename SAST>

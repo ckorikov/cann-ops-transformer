@@ -554,16 +554,16 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     }
 
     if ASCEND_IS_AIV {
-        // vectorBlock.InitParams(constInfo, tilingData);
-        // vectorBlock.InitVec0GlobalTensor(kvValidSizeGm_, oriKvGm, cmpKvGm, oriBlockTableGm, cmpBlockTableGm);
-        // vectorBlock.InitVec1GlobalTensor(actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm);
-        // vectorBlock.InitVec2GlobalTensor(accumOutGm, attentionOutGm);
+        vectorBlock.InitParams(constInfo, tilingData);
+        vectorBlock.InitVec0GlobalTensor(kvValidSizeGm_, kvMergeGm_, oriKvGm, cmpKvGm, oriBlockTableGm, cmpBlockTableGm);
+        vectorBlock.InitVec1GlobalTensor(mm1ResGm, vec1ResGm, actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm);
+        vectorBlock.InitVec2GlobalTensor(accumOutGm, vec2ResGm, mm2ResGm, attentionOutGm);
     }
 
     if ASCEND_IS_AIC {
-        // cubeBlock.InitParams(constInfo);
-        // cubeBlock.InitMm1GlobalTensor(queryGm);
-        // cubeBlock.InitMm2GlobalTensor(attentionOutGm);
+        cubeBlock.InitParams(constInfo);
+        cubeBlock.InitMm1GlobalTensor(queryGm, oriKvGm, cmpKvGm, mm1ResGm);
+        cubeBlock.InitMm2GlobalTensor(vec1ResGm, mm2ResGm, attentionOutGm);
     }
     // 要在InitParams之后执行
     if (pipe != nullptr) {

@@ -123,11 +123,10 @@ public:
 
     __aicore__ inline SASCubeBlock(){};
     __aicore__ inline void InitParams(const ConstInfo &constInfo);
-    __aicore__ inline void InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<Q_T> qRopeGm,
-                                               GlobalTensor<KV_T> keyGm, GlobalTensor<KV_T> kRopeGm,
-                                               GlobalTensor<MM_OUT_T> mm1ResGm);
-    __aicore__ inline void InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<KV_T> valueGm,
-                                               GlobalTensor<MM_OUT_T> mm2ResGm, GlobalTensor<OUT_T> attentionOutGm);
+    __aicore__ inline void InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<KV_T> oriKvGm,
+                                               GlobalTensor<KV_T> cmpKV, GlobalTensor<MM_OUT_T> mm1ResGm);
+    __aicore__ inline void InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<MM_OUT_T> mm2ResGm, 
+                                               GlobalTensor<OUT_T> attentionOutGm);
     __aicore__ inline void InitPageAttentionInfo(const GlobalTensor<KV_T>& kvMergeGm,
                                                  GlobalTensor<int32_t> blockTableGm, GlobalTensor<int32_t> topKGm,
                                                  uint32_t blockSize, uint32_t maxBlockNumPerBatch);
@@ -196,6 +195,8 @@ private:
     GlobalTensor<KV_T> kRopeGm;
     GlobalTensor<MM_OUT_T> mm1ResGm;
     GlobalTensor<KV_T> kvMergeGm_;
+    GlobalTensor<KV_T> oriKvGm;
+    GlobalTensor<KV_T> cmpKvGm;
 
     // mm2
     GlobalTensor<KV_T> vec1ResGm;
@@ -262,26 +263,23 @@ template <typename SAST> __aicore__ inline void SASCubeBlock<SAST>::InitParams(c
 
 template <typename SAST>
 __aicore__ inline void
-SASCubeBlock<SAST>::InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<Q_T> qRopeGm,
-                                                   GlobalTensor<KV_T> keyGm, GlobalTensor<KV_T> kRopeGm,
-                                                   GlobalTensor<MM_OUT_T> mm1ResGm)
+SASCubeBlock<SAST>::InitMm1GlobalTensor(GlobalTensor<Q_T> queryGm, GlobalTensor<KV_T> oriKvGm,
+                                                   GlobalTensor<KV_T> cmpKvGm, GlobalTensor<MM_OUT_T> mm1ResGm)
 {
     // mm1
     this->queryGm = queryGm;
-    this->qRopeGm = qRopeGm;
-    this->keyGm = keyGm;
-    this->kRopeGm = kRopeGm;
+    this->oriKvGm = oriKvGm;
+    this->cmpKvGm = cmpKvGm;
     this->mm1ResGm = mm1ResGm;
 }
 
 template <typename SAST>
 __aicore__ inline void
-SASCubeBlock<SAST>::InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<KV_T> valueGm,
-                                                   GlobalTensor<MM_OUT_T> mm2ResGm, GlobalTensor<OUT_T> attentionOutGm)
+SASCubeBlock<SAST>::InitMm2GlobalTensor(GlobalTensor<KV_T> vec1ResGm, GlobalTensor<MM_OUT_T> mm2ResGm, 
+                                        GlobalTensor<OUT_T> attentionOutGm)
 {
     // mm2
     this->vec1ResGm = vec1ResGm;
-    this->valueGm = valueGm;
     this->mm2ResGm = mm2ResGm;
     this->attentionOutGm = attentionOutGm;
 }
