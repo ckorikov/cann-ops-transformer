@@ -335,7 +335,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitCubeVecSharedParams(
     sharedParams.oriWinLeft = sparseAttnSharedkvBaseParams->oriWinLeft;
     sharedParams.oriWinRight = sparseAttnSharedkvBaseParams->oriWinRight;
     sharedParams.layoutType = sparseAttnSharedkvBaseParams->outputLayout; 
-    sharedParams.kvQuantMode = sparseAttnSharedkvBaseParams->sparseBlockSize;
+    sharedParams.kvQuantMode = sparseAttnSharedkvBaseParams->kvQuantMode;
     sharedParams.tileSize = sparseAttnSharedkvBaseParams->tileSize;
     sharedParams.ropeHeadDim = sparseAttnSharedkvBaseParams->ropeHeadDim;
     

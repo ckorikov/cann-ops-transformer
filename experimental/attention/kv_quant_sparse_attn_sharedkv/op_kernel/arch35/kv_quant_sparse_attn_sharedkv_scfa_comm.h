@@ -25,39 +25,19 @@ constexpr static int64_t SPARSE_MODE_INT_DEFAULT = 2147483647;
 // T       - means data type when calc
 
 #define TEMPLATE_INTF \
-    template <typename INPUT_T, typename T, ImplModeEnum implMode, LayOutTypeEnum layout, \
+    template <typename Q_T, typename KV_T, typename T, ImplModeEnum implMode, LayOutTypeEnum layout, \
     S1TemplateType s1TemplateType, S2TemplateType s2TemplateType, DTemplateType dTemplateType, \
-    DTemplateType dVTemplateType, PseTypeEnum pseMode, bool hasAtten, bool hasDrop, bool hasRope,\
-    typename OUTPUT_T, bool isInfer, bool isPa, bool isFd, bool useDn>
+    DTemplateType dVTemplateType\
+    typename OUTPUT_T, bool isInfer, bool isPa, bool isFd>
 
 #define TEMPLATE_INTF_ARGS \
-    INPUT_T, T, implMode, layout, s1TemplateType, s2TemplateType, dTemplateType, dVTemplateType, \
-    pseMode, hasAtten, hasDrop, hasRope, OUTPUT_T, isInfer, isPa, isFd, useDn
+    Q_T, KV_T, T, implMode, layout, s1TemplateType, s2TemplateType, dTemplateType, dVTemplateType, \
+    OUTPUT_T, isPa, isFd
 
-#define ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(X) \
-    X(Q_T) \
-    X(KV_T) \
-    X(T) \
-    X(OUTPUT_T)
-
-#define ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(X) \
-    X(implMode, ImplModeEnum, ImplModeEnum::AA_HIGH_PRECISION) \
-    X(layout, LayOutTypeEnum, LayOutTypeEnum::None) \
-    X(s1TemplateType, S1TemplateType, S1TemplateType::Aligned128) \
-    X(s2TemplateType, S2TemplateType, S2TemplateType::Aligned128) \
-    X(dTemplateType, DTemplateType, DTemplateType::Aligned128) \
-    X(dVTemplateType, DTemplateType, DTemplateType::Aligned128) \
-    X(pseMode, PseTypeEnum, PseTypeEnum::PSE_NONE_TYPE) \
-    X(antiquantMode, AntiquantTypeEnum, AntiquantTypeEnum::PER_CHANNEL) \
-    X(hasAtten, bool, false) \
-    X(hasDrop, bool, false) \
-    X(hasRope, bool, false) \
-    X(isInfer, bool, false) \
-    X(isPa, bool, false) \
-    X(isFd, bool, false)
 
 #define CUBE_BLOCK_TRAITS_TYPE_FIELDS(X) \
-    X(INPUT_T) \
+    X(Q_T) \
+    X(KV_T) \
     X(T) \
     X(OUTPUT_T)
 
@@ -68,8 +48,6 @@ constexpr static int64_t SPARSE_MODE_INT_DEFAULT = 2147483647;
     X(s2TemplateType, S2TemplateType, S2TemplateType::Aligned128) \
     X(dTemplateType, DTemplateType, DTemplateType::Aligned128) \
     X(dVTemplateType, DTemplateType, DTemplateType::Aligned128) \
-    X(pseMode, PseTypeEnum, PseTypeEnum::PSE_NONE_TYPE) \
-    X(isInfer, bool, false) \
     X(isPa, bool, false) \
     X(isFd, bool, false)
 
@@ -88,22 +66,8 @@ template <CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TYPE_PARAM) \
 template <CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TEMPLATE_TYPE_NODEF) \
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_TEMPLATE_CONST_NODEF) bool end>
 
-/* 3. 生成有默认值, 不带ChildClass的Args */
+/* 3. 生成有默认值的Args */
 #define GEN_ARG_NAME(name, ...) name,
 #define TEMPLATE_ARGS \
     CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_ARG_NAME) \
     CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_ARG_NAME) end
-
-/*伪量化模板参数*/
-#define ANTIQUANT_TEMPLATE_ARGS \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_ARG_NAME) \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_ARG_NAME) end
-
-/*Antiquant Processor */
-#define ANTIQUANT_PROCESSOR_TEMPLATE_DEF \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_TEMPLATE_TYPE_NODEF) \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_TEMPLATE_CONST_NODEF) bool end
-
-#define ANTIQUANT_PROCESSOR_ARGS \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_TYPE_FIELDS(GEN_ARG_NAME) \
-    ANTIQUANT_CUBE_BLOCK_TRAITS_CONST_FIELDS(GEN_ARG_NAME) true
