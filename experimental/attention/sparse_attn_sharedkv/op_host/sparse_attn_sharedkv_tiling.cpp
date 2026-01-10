@@ -553,7 +553,9 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
     if (ge::GRAPH_SUCCESS != GetActualseqInfo()) {
         return ge::GRAPH_FAILED;
     }
-
+    if (ge::GRAPH_SUCCESS != GetSASTempateMode()) {
+        return ge::GRAPH_FAILED;
+    }
     GenerateInfo(sasInfo);
     return ge::GRAPH_SUCCESS;
 }
