@@ -237,6 +237,9 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
         }
     }
 
+    // TODO 使用所有核
+    baseParams_->usedCoreNum = aicNum_;
+
     context_->blockDim = aicNum_;
 
     OP_LOGI("Run big kernel");

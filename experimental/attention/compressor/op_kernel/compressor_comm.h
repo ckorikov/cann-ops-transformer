@@ -49,5 +49,56 @@ struct COMPType {
     static constexpr bool rotaryMode = ROTARY_MODE;
 };
 
+struct ConstInfo {
+    // 整个AICORE的任务信息, 左闭右开区间[ (bStart, s2Start), (bEnd, s2End) )
+    uint32_t bStart = 0U;
+    uint32_t sStart = 0U;
+    uint32_t bEnd = 0U;
+    uint32_t sEnd = 0U;
+
+    // 分核相关
+    uint32_t usedCoreNum = 24;
+    uint32_t dBaseSize = 64;
+    uint32_t mBaseSize = 256;
+    uint32_t tcSize = 0;
+    uint32_t tcBaseSize = 0;
+    uint32_t tcBasicBlockNum = 0;
+    uint32_t dBasicBlockNum = 0;
+    uint32_t coreGroupNum = 0;
+    uint32_t singleCoreDealTcBasicNum = 0;
+
+    // shape及参数
+    uint32_t batchSize = 0;
+    uint32_t hSize = 0;
+    uint32_t sSize = 0;
+    uint32_t headDim = 0;
+    uint32_t ropeHeadDim = 0;
+    uint32_t cmpRatio = 0;
+    float normEps = 0;
+    float reciprocalD = 0;
+
+    // pageAttention
+    uint32_t blockNum = 0;
+    uint32_t blockSize = 0;
+    uint32_t maxBlockNumPerBatch = 0;
+
+    // workSpace
+    uint32_t mmKVLeftResSize = 0;
+    uint32_t mmKVRightResSize = 0;
+    uint32_t mmScoreLeftResSize = 0;
+    uint32_t mmScoreRightResSize = 0;
+    uint32_t vecResSize = 0;
+
+    uint32_t aiCoreIdx = 0;
+};
+
+struct RunInfo {
+    bool isValid = false;
+
+    uint32_t bStart = 0;
+    uint32_t sStart = 0;
+    uint32_t dealTcNum = 0;
+};
+
 }
 #endif

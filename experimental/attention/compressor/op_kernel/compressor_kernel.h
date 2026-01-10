@@ -59,60 +59,33 @@ private:
     __aicore__ inline uint32_t CalcTcSize();
     __aicore__ inline uint32_t GetSeqLength(uint32_t index);
     __aicore__ inline uint32_t GetStartPos(uint32_t index);
+    __aicore__ inline void GetCurCoreStartIdx();
+    __aicore__ inline void CalcParams(RunInfo &info);
     __aicore__ inline uint32_t GetBasicNum();
     __aicore__ inline void InitTilingData();
-    __aicore__ inline bool IsNeedExcute();
+    __aicore__ inline bool IsNeedExcute(const RunInfo &info);
     __aicore__ inline uint32_t GetStartIdx();
     __aicore__ inline uint32_t GetEndIdx();
-    __aicore__ inline void ComputeMm1(uint32_t startIdx, uint32_t endIdx);
-    __aicore__ inline void ComputeVec1(uint32_t startIdx, uint32_t endIdx);
-    __aicore__ inline void ComputeVec2(uint32_t startIdx, uint32_t endIdx);
+    __aicore__ inline void ComputeMm1(const RunInfo &info);
+    __aicore__ inline void ComputeVec1(const RunInfo &info);
+    __aicore__ inline void ComputeVec2(const RunInfo &info);
 
     TPipe* pipe_;
     const optiling::CompressorTilingData* __restrict tilingData_;
-    uint32_t batchSize = 0;
-    uint32_t hSize = 0;
-    uint32_t sSize = 0;
-    uint32_t headDim = 0;
-    uint32_t ropeHeadDim = 0;
-    uint32_t cmpRatio = 0;
-    float normEps = 0;
-    float reciprocalD = 0;
+    ConstInfo constInfo{};
 
-    uint32_t blockNum = 0;
-    uint32_t blockSize = 0;
-    uint32_t maxBlockNumPerBatch = 0;
-
-    uint32_t mmKVLeftResSize = 0;
-    uint32_t mmKVRightResSize = 0;
-    uint32_t mmScoreLeftResSize = 0;
-    uint32_t mmScoreRightResSize = 0;
-    uint32_t vecResSize = 0;
-
-    // 分核信息
-    uint32_t coreNum = 24;
-    uint32_t dBaseSize = 64;
-    uint32_t mBaseSize = 256;
-    uint32_t tcSize = 0;
-    uint32_t tcBaseSize = 0;
-    uint32_t tcBasicBlockNum = 0;
-    uint32_t dBasicBlockNum = 0;
-    uint32_t coreGroupNum = 0;
-    uint32_t singleCoreDealTcBasicNum = 0;
+    uint32_t tcNumStart = 0;
 
     uint32_t accSeqLength = 0;
     uint32_t curActSeqLength = 0;
     uint32_t curStartPos = 0;
     uint32_t preActSeqIdx = 0;
     uint32_t preStartPosIdx = 0;
-    uint32_t bIdx = 0;
-    uint32_t sStartIdx = 0;
-    uint32_t sEndIdx = 0;
-    uint32_t bStart = 0;
-    uint32_t sStart = 0;
-    uint32_t bEnd = 0;
-    uint32_t sEnd = 0;
-    uint32_t dEnd = 0;
+
+    uint32_t curBStart = 0;
+    uint32_t curBEnd = 0;
+    uint32_t curSStart = 0;
+    uint32_t curSEnd = 0;
 
     uint32_t aiCoreIdx = 0;
 
@@ -159,14 +132,14 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
         __gm__ uint8_t *kvStateOut,
         __gm__ uint8_t *scoreStateOut,
         __gm__ uint8_t *workspace) {
-    // printf("[VERSION] 20260109-001\n");
+    // printf("[VERSION] 20260110-001\n");
     // printf("CompressorKernel::Init!!!!!\n");
 
     // TODO CV非1:2需处理 
     if ASCEND_IS_AIV {
-        aiCoreIdx = GetBlockIdx() / 2;
+        constInfo.aiCoreIdx = GetBlockIdx() / 2;
     } else {
-        aiCoreIdx = GetBlockIdx();
+        constInfo.aiCoreIdx = GetBlockIdx();
     }
 
     // GM Init
@@ -192,48 +165,50 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
         accSeqLength = curActSeqLength;
         // printf("[Init] curActSeqLength:%u\n", curActSeqLength);
     }
+    curStartPos = startPosGm_.GetValue(0);
 
     // 计算分核基本信息
-    tcSize = CalcTcSize();
-    tcBaseSize = mBaseSize / cmpRatio;
-    tcBasicBlockNum = (tcSize + tcBaseSize - 1) / tcBaseSize;       // TC方向的基本块
-    dBasicBlockNum = headDim / dBaseSize;                           // D方向的基本块
-    coreGroupNum = coreNum / dBasicBlockNum;                        // 核分为多少组
-    singleCoreDealTcBasicNum = (tcBasicBlockNum + coreGroupNum - 1) / coreGroupNum; // 处理的最大基本块数量
-    // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", tcSize, tcBaseSize, tcBasicBlockNum, dBasicBlockNum, coreGroupNum, singleCoreDealTcBasicNum);
-
-    curStartPos = startPosGm_.GetValue(0);
+    constInfo.tcSize = CalcTcSize();
+    constInfo.tcBaseSize = constInfo.mBaseSize / constInfo.cmpRatio;
+    constInfo.tcBasicBlockNum = (constInfo.tcSize + constInfo.tcBaseSize - 1) / constInfo.tcBaseSize;       // TC方向的基本块
+    constInfo.dBasicBlockNum = constInfo.headDim / constInfo.dBaseSize;                           // D方向的基本块
+    constInfo.coreGroupNum = constInfo.usedCoreNum / constInfo.dBasicBlockNum;                        // 核分为多少组
+    constInfo.singleCoreDealTcBasicNum = (constInfo.tcBasicBlockNum + constInfo.coreGroupNum - 1) / constInfo.coreGroupNum; // 处理的最大基本块数量
+    // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", 
+            constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
 }
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::InitTilingData() {
-    cmpRatio = tilingData_->baseParams.cmpRatio;
-    batchSize = tilingData_->baseParams.batchSize;
-    mBaseSize = tilingData_->innerSplitParams.mBaseSize;
-    dBaseSize = tilingData_->innerSplitParams.dBaseSize;
-    headDim = tilingData_->baseParams.headDim;
-    hSize = tilingData_->baseParams.hiddenSize;
-    ropeHeadDim = tilingData_->baseParams.ropeHeadDim;
-    normEps = tilingData_->baseParams.normEps;
-    reciprocalD = tilingData_->baseParams.reciprocalD;
+    constInfo.cmpRatio = tilingData_->baseParams.cmpRatio;
+    constInfo.batchSize = tilingData_->baseParams.batchSize;
+    constInfo.mBaseSize = tilingData_->innerSplitParams.mBaseSize;
+    constInfo.dBaseSize = tilingData_->innerSplitParams.dBaseSize;
+    constInfo.headDim = tilingData_->baseParams.headDim;
+    constInfo.hSize = tilingData_->baseParams.hiddenSize;
+    constInfo.sSize = tilingData_->baseParams.seqSize;
+    constInfo.ropeHeadDim = tilingData_->baseParams.ropeHeadDim;
+    constInfo.normEps = tilingData_->baseParams.normEps;
+    constInfo.reciprocalD = tilingData_->baseParams.reciprocalD;
+    constInfo.usedCoreNum = tilingData_->baseParams.usedCoreNum;
     
-    blockNum = tilingData_->pageAttentionParams.blockNum;
-    blockSize = tilingData_->pageAttentionParams.blockSize;
-    maxBlockNumPerBatch = tilingData_->pageAttentionParams.maxBlockNumPerBatch;
+    constInfo.blockNum = tilingData_->pageAttentionParams.blockNum;
+    constInfo.blockSize = tilingData_->pageAttentionParams.blockSize;
+    constInfo.maxBlockNumPerBatch = tilingData_->pageAttentionParams.maxBlockNumPerBatch;
 
-    mmKVLeftResSize = tilingData_->workspaceParams.mmKVLeftResSize;
-    mmKVRightResSize = tilingData_->workspaceParams.mmKVRightResSize;
-    mmScoreLeftResSize = tilingData_->workspaceParams.mmScoreLeftResSize;
-    mmScoreRightResSize = tilingData_->workspaceParams.mmScoreRightResSize;
-    vecResSize = tilingData_->workspaceParams.vecResSize;
-    // printf("[TILINGDATA] cmpRatio:%u batchSize:%u mBaseSize:%u dBaseSize:%u\n", cmpRatio, batchSize, mBaseSize, dBaseSize);
+    constInfo.mmKVLeftResSize = tilingData_->workspaceParams.mmKVLeftResSize;
+    constInfo.mmKVRightResSize = tilingData_->workspaceParams.mmKVRightResSize;
+    constInfo.mmScoreLeftResSize = tilingData_->workspaceParams.mmScoreLeftResSize;
+    constInfo.mmScoreRightResSize = tilingData_->workspaceParams.mmScoreRightResSize;
+    constInfo.vecResSize = tilingData_->workspaceParams.vecResSize;
+    // printf("[TILINGDATA] cmpRatio:%u batchSize:%u mBaseSize:%u dBaseSize:%u\n", constInfo.cmpRatio, constInfo.batchSize, constInfo.mBaseSize, constInfo.dBaseSize);
 }
 
 template <typename COMP>
 __aicore__ inline uint32_t CompressorKernel<COMP>::CalcTcSize() {
     uint32_t totalBasicNum = 0;
 
-    for (uint32_t i = 0; i < batchSize; ++i) {
+    for (uint32_t i = 0; i < constInfo.batchSize; ++i) {
         curStartPos = GetStartPos(i);
         curActSeqLength = GetSeqLength(i);
         totalBasicNum += GetBasicNum();
@@ -262,12 +237,13 @@ __aicore__ inline uint32_t CompressorKernel<COMP>::GetSeqLength(uint32_t index) 
             return curActSeqLength;
         }
     } else {
-        return sSize;
+        return constInfo.sSize;
     }
 }
 
 template <typename COMP>
 __aicore__ inline uint32_t CompressorKernel<COMP>::GetStartPos(uint32_t index) {
+    // printf("[GetStartPos] preStartPosIdx:%u index:%u\n", preStartPosIdx, index);
     if (preStartPosIdx != index) {
         curStartPos = startPosGm_.GetValue(index);
         preStartPosIdx = index;
@@ -278,76 +254,54 @@ __aicore__ inline uint32_t CompressorKernel<COMP>::GetStartPos(uint32_t index) {
 }
 
 template <typename COMP>
-__aicore__ inline bool CompressorKernel<COMP>::IsNeedExcute() {
-    if (bIdx == batchSize) {
-        return false;
-    }
-    return true;
-}
+__aicore__ inline void CompressorKernel<COMP>::GetCurCoreStartIdx() {
+    // 获取当前核开始索引
 
-template <typename COMP>
-__aicore__ inline uint32_t CompressorKernel<COMP>::GetStartIdx() {
     uint32_t totalBasicNum = 0;
     // 在当前batch的seq开始索引位置
     uint32_t startIdx = 0;
     // Tc的开始位置
-    uint32_t basicNumStart = (aiCoreIdx / dBasicBlockNum) * tcBaseSize * singleCoreDealTcBasicNum;
-
-    if (bIdx >= batchSize) {
-        return startIdx;
+    tcNumStart = (constInfo.aiCoreIdx / constInfo.dBasicBlockNum) * constInfo.tcBaseSize * constInfo.singleCoreDealTcBasicNum;
+    if (tcNumStart >= constInfo.tcSize) {
+        curBEnd = constInfo.batchSize;
+        return;
     }
-    // 第一次遍历计算当前核起始位置
-    if (bIdx == 0 && sEndIdx == 0) {
-        for (uint32_t i = bEnd; i < batchSize; ++i) {
-            if (totalBasicNum == basicNumStart) {
-                // printf("[PRINT] bIdx:%u basicNumStart:%u\n", bIdx, basicNumStart);
-                bIdx = i;
-                sStart = startIdx;
-                sStartIdx = startIdx;
-                return startIdx;
-            }
-            curStartPos = GetStartPos(i);
-            curActSeqLength = GetSeqLength(i);
+    // printf("[tcNumStart] aiCoreIdx:%u tcNumStart:%u\n", constInfo.aiCoreIdx, tcNumStart);
+    for (uint32_t i = 0; i < constInfo.batchSize; ++i) {
+        // TODO 考虑是否有其他情况
+        if (totalBasicNum == tcNumStart) {
+            // printf("[PRINT] b:%u tcNumStart:%u\n", i, tcNumStart);
+            curBEnd = i;
+            curSEnd = startIdx;
+            return;
+        }
+        curStartPos = GetStartPos(i);
+        curActSeqLength = GetSeqLength(i);
 
-            // 加上头块，若有
-            uint32_t curBasicNum = 0;
-            uint32_t headSize = 0;
-            if (curStartPos % cmpRatio != 0) {
-                headSize = cmpRatio - curStartPos % cmpRatio;
-                curBasicNum++;
-            }
-            // 加上中间整块及尾块
-            curBasicNum += (curActSeqLength - headSize + cmpRatio - 1) / cmpRatio;
-            // printf("[PRINT] bIdx:%u basicNumStart:%u headSize:%u basicNumStart:%u curBasicNum:%u  curStartPos:%u, curActSeqLength:%u\n", bIdx, basicNumStart, headSize, basicNumStart, curBasicNum, curStartPos, curActSeqLength);
-            if (totalBasicNum + curBasicNum > basicNumStart) {
-                bIdx = i;
-                bStart = i;
-                uint32_t curBasicNumStart = basicNumStart - totalBasicNum;
-                if (curBasicNumStart > 0 && headSize > 0) {
-                    startIdx = headSize + (curBasicNumStart - 1) * cmpRatio;
-                } else {
-                    startIdx = curBasicNumStart * cmpRatio;
-                }
-                sStart = startIdx;
-                sStartIdx = startIdx;
-                return startIdx;
-            }
-            totalBasicNum += curBasicNum;
+        // 加上头块，若有
+        uint32_t curBasicNum = 0;
+        uint32_t headSize = 0;
+        if (curStartPos % constInfo.cmpRatio != 0) {
+            headSize = constInfo.cmpRatio - curStartPos % constInfo.cmpRatio;
+            headSize = headSize > curActSeqLength ? curActSeqLength : headSize;
+            curBasicNum++;
         }
-    } else {
-        bIdx = bEnd;
-        curActSeqLength = GetSeqLength(bIdx);
-        if (sEndIdx == curActSeqLength) {
-            bIdx ++;
-            sStartIdx = startIdx;
-            return startIdx;
-        } else {
-            sStartIdx = sEndIdx;
-            return sStartIdx;
+        // 加上中间整块及尾块
+        curBasicNum += (curActSeqLength - headSize + constInfo.cmpRatio - 1) / constInfo.cmpRatio;
+        // printf("[PRINT] b:%u tcNumStart:%u headSize:%u curBasicNum:%u  curStartPos:%u, curActSeqLength:%u\n", i, tcNumStart, headSize, curBasicNum, curStartPos, curActSeqLength);
+        if (totalBasicNum + curBasicNum > tcNumStart) {
+            uint32_t curBasicNumStart = tcNumStart - totalBasicNum;
+            if (curBasicNumStart > 0 && headSize > 0) {
+                startIdx = headSize + (curBasicNumStart - 1) * constInfo.cmpRatio;
+            } else {
+                startIdx = curBasicNumStart * constInfo.cmpRatio;
+            }
+            curBEnd = i;
+            curSEnd = startIdx;
+            return;
         }
+        totalBasicNum += curBasicNum;
     }
-
-    return startIdx;
 }
 
 template <typename COMP>
@@ -355,54 +309,74 @@ __aicore__ inline uint32_t CompressorKernel<COMP>::GetBasicNum() {
     // 获取 m方向上对应基本单元Tc的个数
     uint32_t curBasicNum = 0;
     uint32_t headSize = 0;
-    if (curStartPos % cmpRatio != 0) {
-        headSize = cmpRatio - curStartPos % cmpRatio;
+    if (curStartPos % constInfo.cmpRatio != 0) {
+        headSize = constInfo.cmpRatio - curStartPos % constInfo.cmpRatio;
+        headSize = headSize > curActSeqLength ? curActSeqLength : headSize;
         curBasicNum++;
     }
     // 加上中间整块及尾块
-    curBasicNum += (curActSeqLength - headSize + cmpRatio - 1) / cmpRatio;
+    curBasicNum += (curActSeqLength - headSize + constInfo.cmpRatio - 1) / constInfo.cmpRatio;
     return curBasicNum;
 }
 
 template <typename COMP>
-__aicore__ inline uint32_t CompressorKernel<COMP>::GetEndIdx() {
-    // uint32_t basicNumEnd = aiCoreIdx * tcBaseSize * singleCoreDealTcBasicNum;
+__aicore__ inline void CompressorKernel<COMP>::CalcParams(RunInfo &info) {
+    if (curBStart >= constInfo.batchSize) {
+        return;
+    }
+
+    curBStart = curBEnd;
+    curSStart = curSEnd;
+
+    // sEnd到了seq末尾，下一个seq
+    curActSeqLength = GetSeqLength(curBStart);
+    if (curSStart == curActSeqLength) {
+        curBStart++;
+        curSStart = 0;
+    }
+
+    info.bStart = curBStart;
+    info.sStart = curSStart;
+    
+    uint32_t dealTcNum = constInfo.tcBaseSize + tcNumStart <= constInfo.tcSize ? constInfo.tcBaseSize : constInfo.tcSize - tcNumStart;
+    info.dealTcNum = dealTcNum;
+    tcNumStart += dealTcNum;
     uint32_t accBasicNum = 0;
-    uint32_t dealTcNum =  tcBaseSize;
-    for (uint32_t i = bIdx; i < batchSize; ++i) {
-        bEnd = i;
-        if (i == bIdx) {
+    
+    for (uint32_t i = curBStart; i < constInfo.batchSize; ++i) {
+        curBEnd = i;
+        if (i == curBStart) {
             curActSeqLength = GetSeqLength(i);
             curStartPos = GetStartPos(i);
             uint32_t curRemainTcNum = 0;
             // 计算起始batch的剩余seq长度 起始位置计算头块
             uint32_t headSize = 0;
-            if (curStartPos % cmpRatio != 0) {
-                headSize = (cmpRatio - curStartPos % cmpRatio);
+            if (curStartPos % constInfo.cmpRatio != 0) {
+                headSize = (constInfo.cmpRatio - curStartPos % constInfo.cmpRatio);
+                headSize = headSize > curActSeqLength ? curActSeqLength : headSize;
             }
-            if (sStartIdx == 0) {
-                curRemainTcNum = (curActSeqLength - headSize + cmpRatio - 1) / cmpRatio;
+            if (curSStart == 0) {
+                curRemainTcNum = (curActSeqLength - headSize + constInfo.cmpRatio - 1) / constInfo.cmpRatio;
                 curRemainTcNum = headSize == 0 ? curRemainTcNum : curRemainTcNum + 1;
             } else {
-                curRemainTcNum = (curActSeqLength - sStartIdx + cmpRatio - 1) / cmpRatio;
+                curRemainTcNum = (curActSeqLength - curSStart + constInfo.cmpRatio - 1) / constInfo.cmpRatio;
             }
             // printf("[GetEndIdx]  i:%u accBasicNum:%u dealTcNum:%u curRemainTcNum:%u headSize:%u curStartPos:%u curActSeqLength:%u \n", i, accBasicNum, dealTcNum, curRemainTcNum, headSize, curStartPos, curActSeqLength);
             if (curRemainTcNum > dealTcNum) {
-                if (sStartIdx == 0) {
+                if (curSStart == 0) {
                     if (headSize == 0) {
-                        sEndIdx = sStartIdx + dealTcNum * cmpRatio;
+                        curSEnd = curSStart + dealTcNum * constInfo.cmpRatio;
                     } else {
-                        sEndIdx = sStartIdx + headSize + (dealTcNum - 1) * cmpRatio;
+                        curSEnd = curSStart + headSize + (dealTcNum - 1) * constInfo.cmpRatio;
                     }
-                    
-                    return sEndIdx;
+                    return;
                 } else {
-                    sEndIdx = sStartIdx + dealTcNum * cmpRatio;
-                    return sEndIdx;
+                    curSEnd = curSStart + dealTcNum * constInfo.cmpRatio;
+                    return;
                 }
-            } else if (curRemainTcNum == dealTcNum || i == batchSize - 1) {
-                sEndIdx = curActSeqLength;
-                return sEndIdx;
+            } else if (curRemainTcNum == dealTcNum || i == constInfo.batchSize - 1) {
+                curSEnd = curActSeqLength;
+                return;
             } else {
                 accBasicNum += curRemainTcNum;
             }
@@ -414,71 +388,80 @@ __aicore__ inline uint32_t CompressorKernel<COMP>::GetEndIdx() {
             // printf("[GetEndIdx] accBasicNum:%u curBasicNum:%u dealTcNum:%u\n", accBasicNum, curBasicNum, dealTcNum);
             if (accBasicNum + curBasicNum > dealTcNum) {
                 uint32_t headSize = 0;
-                if (curStartPos % cmpRatio != 0) {
-                    headSize = cmpRatio - curStartPos % cmpRatio;
+                if (curStartPos % constInfo.cmpRatio != 0) {
+                    headSize = constInfo.cmpRatio - curStartPos % constInfo.cmpRatio;
+                    // 处理seq不足head大小的情况
+                    headSize = headSize > curActSeqLength ? curActSeqLength : headSize;
                 }
                 uint32_t curBasicNumEnd = dealTcNum - accBasicNum;
                 if (headSize == 0) {
-                    sEndIdx = curBasicNumEnd * cmpRatio;
+                    curSEnd = curBasicNumEnd * constInfo.cmpRatio;
                 } else {
-                    sEndIdx = headSize + (curBasicNumEnd - 1) * cmpRatio;
+                    curSEnd = headSize + (curBasicNumEnd - 1) * constInfo.cmpRatio;
                 }
-                sEndIdx = sEndIdx > curActSeqLength ? curActSeqLength : sEndIdx;
-                return sEndIdx;
+                curSEnd = curSEnd > curActSeqLength ? curActSeqLength : curSEnd;
+
+                return;
             } else if (accBasicNum + curBasicNum == dealTcNum) {
-                sEndIdx = curActSeqLength;
-                return sEndIdx;
+                curSEnd = curActSeqLength;
+                return;
             }
             accBasicNum += curBasicNum;
         }
-        
     }
-    return sEndIdx;
 }
 
 template <typename COMP>
-__aicore__ inline void CompressorKernel<COMP>::ComputeMm1(uint32_t startIdx, uint32_t endIdx) {
-    // printf("[COMPUTE] MM1 bStart:%d bEnd:%d startIdx:%d endIdx:%d\n", bIdx, bEnd, startIdx, endIdx);
+__aicore__ inline bool CompressorKernel<COMP>::IsNeedExcute(const RunInfo &info) {
+    if (info.bStart == constInfo.batchSize) {
+        return false;
+    }
+    return true;
 }
 
 template <typename COMP>
-__aicore__ inline void CompressorKernel<COMP>::ComputeVec1(uint32_t startIdx, uint32_t endIdx) {
-    // printf("[COMPUTE] VEC1 bStart:%d bEnd:%d startIdx:%d endIdx:%d\n", bIdx, bEnd, startIdx, endIdx);
+__aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
+    // printf("[COMPUTE] MM1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
 }
 
 template <typename COMP>
-__aicore__ inline void CompressorKernel<COMP>::ComputeVec2(uint32_t startIdx, uint32_t endIdx) {
-    // printf("[COMPUTE] VEC2 bStart:%d bEnd:%d startIdx:%d endIdx:%d\n", bIdx, bEnd, startIdx, endIdx);
+__aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
+    // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+}
+
+template <typename COMP>
+__aicore__ inline void CompressorKernel<COMP>::ComputeVec2(const RunInfo &info) {
+    // printf("[COMPUTE] VEC2 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
 }
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::Process() {
     // printf("CompressorKernel::Process!!!!!\n");
+    RunInfo extraInfo[1];
+    GetCurCoreStartIdx();
+
     
-    for (uint32_t i = 0; i < singleCoreDealTcBasicNum; ++i) {
+    for (uint32_t i = 0; i < constInfo.singleCoreDealTcBasicNum; ++i) {
+        RunInfo &extraInfo0 = extraInfo[0];
         
         // 获取各切分轴的起始核结束索引
-        uint32_t startIdx = GetStartIdx();
-        uint32_t endIdx = 0;
-        bool isNeedExcute = IsNeedExcute();
-        if (isNeedExcute) {
-            endIdx = GetEndIdx();
-        }
+        CalcParams(extraInfo0);
+        bool isNeedExcute = IsNeedExcute(extraInfo0);
         if ASCEND_IS_AIC {
             if (isNeedExcute) {
-                ComputeMm1(startIdx, endIdx);
+                ComputeMm1(extraInfo0);
                 CrossCoreSetFlag<SYNC_MODE2, PIPE_FIX>(SYNC_C1_V1_FLAG);
             }
         } else {
             if (isNeedExcute) {
                 CrossCoreWaitFlag(SYNC_C1_V1_FLAG);
-                ComputeVec1(startIdx, endIdx);
+                ComputeVec1(extraInfo0);
             }
             // 累积N个基本块/最后一次循环
-            if ((i + 1) % N == 0 || (i + 1) == singleCoreDealTcBasicNum) {
+            if ((i + 1) % N == 0 || (i + 1) == constInfo.singleCoreDealTcBasicNum) {
                 SyncAll();
                 if (isNeedExcute) {
-                    ComputeVec2(startIdx, endIdx);
+                    ComputeVec2(extraInfo0);
                 }
             }
         }
