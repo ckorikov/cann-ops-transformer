@@ -40,7 +40,7 @@ struct TempLoopInfo {
     uint64_t actS2Size = 0ULL;
     uint64_t actS2SizeOri = 0ULL;
     bool curActSeqLenIsZero = false;
-    // int32_t nextTokensPerBatch = 0;
+    int32_t nextTokensPerBatch = 0;
 
     uint64_t actS1Size = 1ULL;     // TND场景下当前Batch循环处理的S1轴的大小
     uint32_t tndCoreStartKVSplitPos;
@@ -768,13 +768,13 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
                 DealActSeqLenIsZero(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx);
             }
             uint32_t oriSplitNum = (tempLoopInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
-            uint32_t cmpSplitNum = (TempLoopInfo.actS2Size / constInfo.cmpRatio + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
+            uint32_t cmpSplitNum = (tempLoopInfo.actS2Size / constInfo.cmpRatio + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
             uint32_t s2SplitNum = oriSplitNum + cmpSplitNum;
             bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
             
             tempLoopInfo.s2LoopTimes = s2SplitNum;
             tempLoopInfo.oriLoopTimes = oriSplitNum;
-            tempLoopInfo.cmpLoopTimes = cmpLoopTimes;
+            tempLoopInfo.cmpLoopTimes = cmpSplitNum;
             // 分核修改后需要打开
             // 当前s2是否被切，决定了输出是否要写到attenOut上
             tempLoopInfo.tndIsS2SplitCore =
