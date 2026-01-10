@@ -76,7 +76,8 @@ private:
     uint32_t headDim = 0;
     uint32_t ropeHeadDim = 0;
     uint32_t cmpRatio = 0;
-    uint32_t normEps = 0;
+    float normEps = 0;
+    float reciprocalD = 0;
 
     uint32_t blockNum = 0;
     uint32_t blockSize = 0;
@@ -213,6 +214,8 @@ __aicore__ inline void CompressorKernel<COMP>::InitTilingData() {
     headDim = tilingData_->baseParams.headDim;
     hSize = tilingData_->baseParams.hiddenSize;
     ropeHeadDim = tilingData_->baseParams.ropeHeadDim;
+    normEps = tilingData_->baseParams.normEps;
+    reciprocalD = tilingData_->baseParams.reciprocalD;
     
     blockNum = tilingData_->pageAttentionParams.blockNum;
     blockSize = tilingData_->pageAttentionParams.blockSize;

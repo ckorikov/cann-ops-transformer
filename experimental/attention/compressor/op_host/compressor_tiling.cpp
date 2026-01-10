@@ -137,6 +137,8 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     baseParams_->csSize = baseShapeInfo_.sSize - (baseShapeInfo_.sSize %  baseShapeInfo_.rSize);
     baseParams_->cgSize = baseShapeInfo_.sSize / baseShapeInfo_.rSize;
     baseParams_->ropeHeadDim = *context_->ropeHeadDim;
+    baseParams_->normEps = *context_->normEps;
+    baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
 
     OPS_LOG_I(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
     
