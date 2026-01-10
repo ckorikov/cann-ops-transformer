@@ -11,7 +11,7 @@ add_op_to_compiled_list()
 
 if (BUILD_OPEN_PROJECT)
     target_sources(op_host_aclnn PRIVATE
-        kvquant_sparse_attn_sharedkv_def.cpp
+        kv_quant_sparse_attn_sharedkv_def.cpp
     )
 endif()
 
@@ -25,5 +25,5 @@ add_ops_compile_options(
 )
 
 if (NOT BUILD_OPS_RTY_KERNEL)
-    add_modules_sources(OPTYPE kvquant_sparse_attn_sharedkv ACLNNTYPE aclnn)
+    add_modules_sources(OPTYPE kv_quant_sparse_attn_sharedkv ACLNNTYPE aclnn)
 endif()

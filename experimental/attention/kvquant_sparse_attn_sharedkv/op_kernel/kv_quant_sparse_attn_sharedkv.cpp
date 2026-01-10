@@ -17,7 +17,7 @@
 #include "lib/matmul_intf.h"
 #include "kvquant_sparse_attn_sharedkv_template_tiling_key.h"
 #include "arch35/kv_quant_sparse_attn_sharedkv_scfa_kernel.h"
-#include "kvquant_sparse_attn_sharedkv_swa.h"
+#include "kv_quant_sparse_attn_sharedkv_scfa.h"
 // #include "sparse_attn_sharedkv_cfa.h"
 
 using namespace AscendC;
@@ -47,7 +47,7 @@ kvquant_sparse_attn_sharedkv(__gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm_
     TPipe tPipe;
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 
-    SAS_OP_IMPL(kvQuantSparseAttnSharedkvScfa, kvQuantSparseAttnSharedkvTilingData, half, half, half,
+    SAS_OP_IMPL(KvQuantSparseAttnSharedkvScfa, KvQuantSparseAttnSharedkvTilingData, half, half, half,
             FLASH_DECODE, static_cast<SAS_LAYOUT>(LAYOUT_T), static_cast<SAS_LAYOUT>(KV_LAYOUT_T));
 
     // if constexpr (ORIG_DTYPE_Q == DT_FLOAT16 && (ORIG_DTYPE_ORI_KV == DT_FLOAT16 || ORIG_DTYPE_CMP_KV == DT_FLOAT16) &&

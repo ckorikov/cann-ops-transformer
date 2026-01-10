@@ -42,11 +42,10 @@ public:
     __aicore__ inline KvQuantSparseAttnSharedkvScfa(){};
     __aicore__ inline void Init(__gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV,
                                 __gm__ uint8_t *cmpSparseIndices, __gm__ uint8_t* oriBlockTable,
-                                __gm__ uint8_t* cmpBlockTable, __gm__ uint8_t *sinks,
-                                __gm__ uint8_t *cuSeqlensQ, __gm__ uint8_t *seqUsedKV,
-                                __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
-                                const KvQuantSparseAttnSharedkvTilingData *__restrict tiling,
-				                __gm__ uint8_t *gmTiling, TPipe *tPipe);
+                                __gm__ uint8_t* cmpBlockTable, __gm__ uint8_t *cuSeqlensQ,
+                                __gm__ uint8_t *seqUsedKV, __gm__ uint8_t *sinks,
+                                __gm__ uint8_t *metadata, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace, 
+                                const KvQuantSparseAttnSharedkvTilingData *__restrict tiling, __gm__ uint8_t *gmTiling, TPipe *tPipe);
 
     __aicore__ inline void Process();
 
@@ -149,12 +148,11 @@ template <typename SAST> __aicore__ inline void KvQuantSparseAttnSharedkvScfa<SA
 template <typename SAST>
 __aicore__ inline void KvQuantSparseAttnSharedkvScfa<SAST>::Init(
                         __gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV,
-                        __gm__ uint8_t *cmpSparseIndices, __gm__ uint8_t* oriBlockTable,
-                        __gm__ uint8_t* cmpBlockTable, __gm__ uint8_t *sinks,
-                        __gm__ uint8_t *cuSeqlensQ, __gm__ uint8_t *seqUsedKV,
-                        __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace,
-                        const KvQuantSparseAttnSharedkvTilingData *__restrict tiling,
-                        __gm__ uint8_t *gmTiling, TPipe *tPipe)
+                                __gm__ uint8_t *cmpSparseIndices, __gm__ uint8_t* oriBlockTable,
+                                __gm__ uint8_t* cmpBlockTable, __gm__ uint8_t *cuSeqlensQ,
+                                __gm__ uint8_t *seqUsedKV, __gm__ uint8_t *sinks,
+                                __gm__ uint8_t *metadata, __gm__ uint8_t *attentionOut, __gm__ uint8_t *workspace, 
+                                const KvQuantSparseAttnSharedkvTilingData *__restrict tiling, __gm__ uint8_t *gmTiling, TPipe *tPipe)
 {
     if ASCEND_IS_AIV {
         tmpBlockIdx = GetBlockIdx(); // vec:0-47

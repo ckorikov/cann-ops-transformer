@@ -126,9 +126,9 @@ TILING_DATA_FIELD_DEF(uint32_t, actualLenDimsQ)
 TILING_DATA_FIELD_DEF(uint32_t, actualLenDimsKV)
 
 
-TILING_DATA_FIELD_DEF(int64_t, kv_quant_mode)
-TILING_DATA_FIELD_DEF(int64_t, tile_size)
-TILING_DATA_FIELD_DEF(int64_t, rope_head_dim)
+TILING_DATA_FIELD_DEF(int64_t, kvQuantMode)
+TILING_DATA_FIELD_DEF(int64_t, tileSize)
+TILING_DATA_FIELD_DEF(int64_t, ropeHeadDim)
 TILING_DATA_FIELD_DEF(float, softmaxScale) // 即 scaleValue
 TILING_DATA_FIELD_DEF(int64_t, cmpRatio)
 TILING_DATA_FIELD_DEF(uint32_t, outputLayout)
@@ -140,7 +140,7 @@ TILING_DATA_FIELD_DEF(int64_t, sparseBlockSize)
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(KvQuantSparseAttnSharedkvBaseParamsOp, KvQuantSparseAttnSharedkvBaseParams)
 
-BEGIN_TILING_DATA_DEF(KKvQuantSparseAttnSharedkvSingleCoreParams)
+BEGIN_TILING_DATA_DEF(KvQuantSparseAttnSharedkvSingleCoreParams)
 TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum);
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(KvQuantSparseAttnSharedkvSingleCoreParamsOp, KvQuantSparseAttnSharedkvSingleCoreParams)
@@ -188,9 +188,9 @@ struct SASParaInfo {
     SASTilingOptionalParaInfo metadata = {nullptr, nullptr};
     SASTilingRequiredParaInfo attnOut = {nullptr, nullptr};
 
-    const int64_t *kv_quant_mode = nullptr;
-    const int64_t *tile_size = nullptr;
-    const int64_t *rope_head_dim = nullptr;
+    const int64_t *kvQuantMode = nullptr;
+    const int64_t *tileSize = nullptr;
+    const int64_t *ropeHeadDim = nullptr;
     const float *softmaxScale = nullptr;
     const uint32_t *cmpRatio = nullptr;
     const uint32_t *oriMaskMode = nullptr;
@@ -226,9 +226,9 @@ public:
     bool isSameActualseq = true;
     uint32_t actualLenDimsKV = 0;
 
-    int64_t kv_quant_mode = 0;
-    int64_t tile_size = 0;
-    int64_t rope_head_dim = 0;
+    int64_t kvQuantMode = 0;
+    int64_t tileSize = 0;
+    int64_t ropeHeadDim = 0;
     float softmaxScale = 0;
     int64_t cmpRatio = 0;
     uint64_t oriMaskMode = 0;

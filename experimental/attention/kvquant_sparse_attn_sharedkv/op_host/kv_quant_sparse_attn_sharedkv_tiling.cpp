@@ -13,8 +13,8 @@
  * \brief
  */
 
-#include "kvquant_sparse_attn_sharedkv_tiling.h"
-#include "../op_kernel/kvquant_sparse_attn_sharedkv_template_tiling_key.h"
+#include "kv_quant_sparse_attn_sharedkv_tiling.h"
+#include "../op_kernel/kv_quant_sparse_attn_sharedkv_template_tiling_key.h"
 
 using namespace ge;
 using namespace AscendC;
@@ -158,9 +158,9 @@ ge::graphStatus SASInfoParser::GetAttrParaInfo()
                return ge::GRAPH_FAILED);
 
     OP_LOGI(context_->GetNodeName(), "GetAttrParaInfo start");
-    opParamInfo_.kv_quant_mode = attrs->GetAttrPointer<uint32_t>(ATTR_KV_QUANT_SCALE_INDEX);
-    opParamInfo_.tile_size = attrs->GetAttrPointer<uint32_t>(ATTR_TILE_SIZE_INDEX);
-    opParamInfo_.rope_head_dim = attrs->GetAttrPointer<uint32_t>(ATTR_ROPE_HEAD_DIM_INDEX);
+    opParamInfo_.kvQuantMode = attrs->GetAttrPointer<int64_t>(ATTR_KV_QUANT_SCALE_INDEX);
+    opParamInfo_.tileSize = attrs->GetAttrPointer<int64_t>(ATTR_TILE_SIZE_INDEX);
+    opParamInfo_.ropeHeadDim = attrs->GetAttrPointer<int64_t>(ATTR_ROPE_HEAD_DIM_INDEX);
     opParamInfo_.softmaxScale = attrs->GetAttrPointer<float>(ATTR_SOTFMAX_SCALE_INDEX);
     opParamInfo_.cmpRatio = attrs->GetAttrPointer<uint32_t>(ATTR_CMP_RATIO_INDEX);
     opParamInfo_.oriMaskMode = attrs->GetAttrPointer<uint32_t>(ATTR_ORI_MASK_MODE_INDEX);
@@ -488,9 +488,9 @@ void SASInfoParser::GenerateInfo(SASTilingInfo &sasInfo)
     sasInfo.actualSeqLenFlag = (opParamInfo_.sequsedKv.tensor != nullptr);
     sasInfo.isSameSeqAllKVTensor = isSameSeqAllKVTensor_;
 
-    sasInfo.kv_quant_mode = *opParamInfo_.kv_quant_mode;
-    sasInfo.tile_size = *opParamInfo_.tile_size;
-    sasInfo.rope_head_dim = *opParamInfo_.rope_head_dim;
+    sasInfo.kvQuantMode = *opParamInfo_.kvQuantMode;
+    sasInfo.tileSize = *opParamInfo_.tileSize;
+    sasInfo.ropeHeadDim = *opParamInfo_.ropeHeadDim;
     sasInfo.softmaxScale = *opParamInfo_.softmaxScale;
     sasInfo.cmpRatio = *opParamInfo_.cmpRatio;
     sasInfo.oriMaskMode = *opParamInfo_.oriMaskMode;
@@ -618,9 +618,9 @@ ge::graphStatus KvQuantSparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilin
     tilingData_.baseParams.set_actualLenDimsQ(tilingInfo->actualLenDimsQ);
     tilingData_.baseParams.set_actualLenDimsKV(tilingInfo->actualLenDimsKV);
 
-    tilingData_.baseParams.sey_kv_quant_mode(tilingInfo->kv_quant_mode);
-    tilingData_.baseParams.sey_tile_size(tilingInfo->tile_size);
-    tilingData_.baseParams.sey_rope_head_dim(tilingInfo->rope_head_dim);
+    tilingData_.baseParams.set_kvQuantMode(tilingInfo->kvQuantMode);
+    tilingData_.baseParams.set_tileSize(tilingInfo->tileSize);
+    tilingData_.baseParams.set_ropeHeadDim(tilingInfo->ropeHeadDim);
     tilingData_.baseParams.set_softmaxScale(tilingInfo->softmaxScale);
     tilingData_.baseParams.set_cmpRatio(tilingInfo->cmpRatio);
     tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(tilingInfo->outLayout));
