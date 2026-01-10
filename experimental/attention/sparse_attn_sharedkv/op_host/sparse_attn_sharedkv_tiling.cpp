@@ -199,11 +199,11 @@ ge::graphStatus SASInfoParser::GetSASTempateMode()
 {
     if (opParamInfo_.oriKv.desc != nullptr) {
         if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
-            perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE;
+            opParamInfo_.perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE;
         } else if (opParamInfo_.cmpKv.desc != nullptr) {
-            perfMode == SASTemplateMode::CFA_TEMPLATE_MODE;
+            opParamInfo_.perfMode == SASTemplateMode::CFA_TEMPLATE_MODE;
         } else {
-            perfMode == SASTemplateMode::SWA_TEMPLATE_MODE;
+            opParamInfo_.perfMode == SASTemplateMode::SWA_TEMPLATE_MODE;
         }
         return ge::GRAPH_SUCCESS;
     } else {
@@ -652,6 +652,9 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     uint32_t outputType = static_cast<uint32_t>(tilingInfo->outputType);
     uint32_t qLayout = static_cast<uint32_t>(tilingInfo->qLayout);
     uint32_t inputKvLayout = static_cast<uint32_t>(tilingInfo->kvLayout);
+    if (tilingInfo->perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE) {
+        perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
+    }
     uint32_t tilingKey =
         GET_TPL_TILING_KEY(0U, qLayout, inputKvLayout, static_cast<uint32_t>(perfMode_));
     context_->SetTilingKey(tilingKey);
