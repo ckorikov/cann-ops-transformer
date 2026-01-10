@@ -753,8 +753,8 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
     }
     // 适配左闭右开
     if (constInfo.bN2Start == constInfo.bN2End) {
-        if (constInfo.gS1Start != constInfo.gS1End || constInfo.s2Start != constInfo.s2Start) {
-            constInfo.bN2End += 1
+        if (constInfo.gS1Start != constInfo.gS1End || constInfo.s2Start != constInfo.s2End) {
+            constInfo.bN2End += 1;
         }
     }
     for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx < constInfo.bN2End; bN2LoopIdx++) {
@@ -772,7 +772,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             tempLoopInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
             tempLoopInfo.s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
             tempLoopInfo.s1EndIdx = Min((tempLoopInfo.gS1Idx + constInfo.mBaseSize) / constInfo.gSize, tempLoopInfo.actS1Size) - 1;
-            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1 + constInfo.oriRightLeft;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1 + constInfo.oriWinLeft;
             tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
             tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1;
             //
