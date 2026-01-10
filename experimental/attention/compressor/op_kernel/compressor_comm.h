@@ -26,17 +26,28 @@ using namespace AscendC;
 
 namespace Compressor {
 
-enum class QUANT_MODE : std::uint8_t {
-    NO_QUANT = static_cast<std::uint8_t>(0),
-    QUANT = static_cast<std::uint8_t>(1)
+enum class X_LAYOUT : std::uint8_t {
+    BSH = static_cast<std::uint8_t>(0),
+    TH = static_cast<std::uint8_t>(1)
 };
 
-enum class ROTARY_MODE : std::uint8_t {
-    HALF = static_cast<std::uint8_t>(0),
-    INTERLEAVE = static_cast<std::uint8_t>(1)
+enum class X_DTYPE : std::uint8_t {
+    BF16 = static_cast<std::uint8_t>(0),
+    FP16 = static_cast<std::uint8_t>(1)
 };
 
+enum class COFF : std::uint8_t {
+    DISABLE = static_cast<std::uint8_t>(0),
+    OVERLAP = static_cast<std::uint8_t>(1)
+};
 
+template <X_LAYOUT X_L, X_DTYPE X_T, COFF C, bool ROTARY_MODE, typename... Args>
+struct COMPType {
+    static constexpr X_LAYOUT xLayout = X_L;
+    static constexpr X_DTYPE xDtype = X_T;
+    static constexpr COFF coff = C;
+    static constexpr bool rotaryMode = ROTARY_MODE;
+};
 
 }
 #endif
