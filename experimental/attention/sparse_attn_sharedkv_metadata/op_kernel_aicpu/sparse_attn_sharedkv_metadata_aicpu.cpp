@@ -47,7 +47,7 @@ bool SparseAttnSharedkvMetadataCpuKernel::Prepare(
   GetAttrValueOpt(ctx, "batch_size", batchSize_);
   GetAttrValueOpt(ctx, "max_seqlen_q", querySeqSize_);
   GetAttrValueOpt(ctx, "max_seqlen_kv", kvSeqSize_);
-  GetAttrValueOpt(ctx, "top_k", topK_);
+  GetAttrValueOpt(ctx, "topk", topK_);
   GetAttrValueOpt(ctx, "cmp_ratio", cmpRatio_);
   GetAttrValueOpt(ctx, "ori_mask_mode", winMaskMode_);
   GetAttrValueOpt(ctx, "cmp_mask_mode", cmpMaskMode_);
@@ -63,7 +63,7 @@ bool SparseAttnSharedkvMetadataCpuKernel::Prepare(
   preToken_ = winLeft_;
   nextToken_ = 0;
   attentionMode_ = 1;
-  isS1G_ = (layoutQuery_ == "BSND" || layoutQuery_ == "BSH" || layoutQuery_ == "TND") ? true : false;
+  isS1G_ = (layoutQuery_ == "BSND" || layoutQuery_ == "BSH" || layoutQuery_ == "TND");
 
   return (ParamsCheck() && ParamsInit(cmpRatio_, topK_));
 }
