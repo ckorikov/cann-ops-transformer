@@ -52,6 +52,7 @@ constexpr uint32_t KEY_DEQUANT_SCALE_INDEX = 4;
 constexpr uint32_t ACTUAL_SEQ_Q_INDEX = 5;
 constexpr uint32_t ACTUAL_SEQ_K_INDEX = 6;
 constexpr uint32_t BLOCK_TABLE_INDEX = 7;
+constexpr uint32_t METADATA_INDEX = 8;
 constexpr uint32_t quant_lightning_indexer = 0;
 // Attributes Index
 constexpr uint32_t ATTR_QUERY_QUANT_MODE_INDEX = 0;
@@ -110,6 +111,7 @@ struct QLIParaInfo {
     TilingOptionalParaInfo actualSeqLengthsQ = {nullptr, nullptr};
     TilingOptionalParaInfo actualSeqLengthsK = {nullptr, nullptr};
     TilingOptionalParaInfo blockTable = {nullptr, nullptr};
+    TilingOptionalParaInfo metadata = {nullptr, nullptr};
     TilingRequiredParaInfo attenOut = {nullptr, nullptr};
 
     const int32_t *queryQuantMode = nullptr;

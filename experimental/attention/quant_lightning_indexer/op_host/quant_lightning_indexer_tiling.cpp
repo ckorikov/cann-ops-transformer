@@ -125,6 +125,8 @@ void QLIInfoParser::GetOptionalInputParaInfo()
     opParamInfo_.actualSeqLengthsK.desc = context_->GetOptionalInputDesc(ACTUAL_SEQ_K_INDEX);
     opParamInfo_.blockTable.tensor = context_->GetOptionalInputTensor(BLOCK_TABLE_INDEX);
     opParamInfo_.blockTable.desc = context_->GetOptionalInputDesc(BLOCK_TABLE_INDEX);
+    opParamInfo_.metadata.tensor = context_->GetOptionalInputTensor(METADATA_INDEX);
+    opParamInfo_.metadata.desc = context_->GetOptionalInputDesc(METADATA_INDEX);
 }
 
 void QLIInfoParser::GetInputParaInfo()
