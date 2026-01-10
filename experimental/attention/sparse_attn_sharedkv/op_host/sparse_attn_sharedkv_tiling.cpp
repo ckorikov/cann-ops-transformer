@@ -199,11 +199,11 @@ ge::graphStatus SASInfoParser::GetSASTempateMode()
 {
     if (opParamInfo_.oriKv.desc != nullptr) {
         if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
-            perfMode_ == SASTemplateMode::SCFA_TEMPLATE_MODE;
+            perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE;
         } else if (opParamInfo_.cmpKv.desc != nullptr) {
-            perfMode_ == SASTemplateMode::CFA_TEMPLATE_MODE;
+            perfMode == SASTemplateMode::CFA_TEMPLATE_MODE;
         } else {
-            perfMode_ == SASTemplateMode::SWA_TEMPLATE_MODE;
+            perfMode == SASTemplateMode::SWA_TEMPLATE_MODE;
         }
         return ge::GRAPH_SUCCESS;
     } else {
