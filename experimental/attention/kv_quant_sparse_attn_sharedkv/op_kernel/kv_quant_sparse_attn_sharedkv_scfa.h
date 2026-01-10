@@ -21,7 +21,7 @@
 #include "kernel_tiling/kernel_tiling.h"
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
-#include "kvquant_sparse_attn_sharedkv_common.h"
+#include "kv_quant_sparse_attn_sharedkv_common.h"
 
 using namespace matmul;
 using AscendC::CacheMode;

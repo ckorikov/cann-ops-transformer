@@ -15,7 +15,7 @@
 
 #include "kernel_operator.h"
 #include "lib/matmul_intf.h"
-#include "kvquant_sparse_attn_sharedkv_template_tiling_key.h"
+#include "kv_quant_sparse_attn_sharedkv_template_tiling_key.h"
 #include "arch35/kv_quant_sparse_attn_sharedkv_scfa_kernel.h"
 #include "kv_quant_sparse_attn_sharedkv_scfa.h"
 // #include "sparse_attn_sharedkv_cfa.h"
@@ -35,7 +35,7 @@ using namespace AscendC;
 
 template<int FLASH_DECODE, int LAYOUT_T, int KV_LAYOUT_T, int TEMPLATE_MODE>
  __global__ __aicore__ void
-kvquant_sparse_attn_sharedkv(__gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV,
+kv_quant_sparse_attn_sharedkv(__gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV,
                        __gm__ uint8_t *cmpSparseIndices, __gm__ uint8_t* oriBlockTable,
                        __gm__ uint8_t* cmpBlockTable, __gm__ uint8_t *cuSeqlensQ,
                        __gm__ uint8_t *seqUsedKV, __gm__ uint8_t *sinks,
