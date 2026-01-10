@@ -174,8 +174,7 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     constInfo.dBasicBlockNum = constInfo.headDim / constInfo.dBaseSize;                           // D方向的基本块
     constInfo.coreGroupNum = constInfo.usedCoreNum / constInfo.dBasicBlockNum;                        // 核分为多少组
     constInfo.singleCoreDealTcBasicNum = (constInfo.tcBasicBlockNum + constInfo.coreGroupNum - 1) / constInfo.coreGroupNum; // 处理的最大基本块数量
-    // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", 
-            constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
+    // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
 }
 
 template <typename COMP>
