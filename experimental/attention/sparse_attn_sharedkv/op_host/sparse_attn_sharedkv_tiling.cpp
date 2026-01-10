@@ -195,6 +195,23 @@ ge::graphStatus SASInfoParser::GetInOutDataType()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus SASInfoParser::GetSASTempateMode()
+{
+    if (opParamInfo_.oriKv.desc != nullptr) {
+        if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
+            perfMode_ == SASTemplateMode::SCFA_TEMPLATE_MODE;
+        } else if (opParamInfo_.cmpKv.desc != nullptr) {
+            perfMode_ == SASTemplateMode::CFA_TEMPLATE_MODE;
+        } else {
+            perfMode_ == SASTemplateMode::SWA_TEMPLATE_MODE;
+        }
+        return ge::GRAPH_SUCCESS;
+    } else {
+        OP_LOGE(opName_, "oriKv is nullptr");
+        return ge::GRAPH_FAILED;
+    }
+}
+
 ge::graphStatus SASInfoParser::GetQueryAndOutLayout()
 {
     // 获取q和attnOut的Layout基准值
@@ -535,7 +552,9 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
     if (ge::GRAPH_SUCCESS != GetActualseqInfo()) {
         return ge::GRAPH_FAILED;
     }
-
+    if (ge::GRAPH_SUCCESS != GetSASTempateMode()) {
+        return ge::GRAPH_FAILED;
+    }
     GenerateInfo(sasInfo);
     return ge::GRAPH_SUCCESS;
 }

@@ -249,6 +249,9 @@ public:
     SASLayout kvLayout = SASLayout::PA_ND;
     SASLayout outLayout = SASLayout::BSND;
 
+    // template mode
+    SASTemplateMode perfMode = SASTemplateMode::SWA_TEMPLATE_MODE;
+
 };
 
 
@@ -433,6 +436,7 @@ public:
     ge::graphStatus GetQkHeadDim();
     ge::graphStatus GetSparseBlockCount();
     ge::graphStatus GetActualseqInfo();
+    ge::graphStatus GetSASTempateMode();
     void GenerateInfo(SASTilingInfo &sasInfo);
     ge::graphStatus Parse(SASTilingInfo &sasInfo);
 
