@@ -72,7 +72,7 @@ ge::graphStatus CompressorTiling::ConvertContext(gert::TilingContext &context, C
         return ge::GRAPH_FAILED;
     }
 
-    OPS_LOGI("Getting Context");
+    OP_LOGI("Getting Context");
 
     compressorContext.opName = context.GetNodeName();
     compressorContext.opType = context.GetNodeType();
@@ -140,7 +140,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     baseParams_->normEps = *context_->normEps;
     baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
 
-    OPS_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
+    OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
     
     return ge::GRAPH_SUCCESS;
 }
@@ -198,7 +198,7 @@ ge::graphStatus CompressorTiling::CalcWorkSpace()
         context_->workSpaces[0] = workspaceSize_;
     }
     
-    OPS_LOGI(context_->opName, "Tiling info: workspaceSize_ = %zu", workspaceSize_);
+    OP_LOGI(context_->opName, "Tiling info: workspaceSize_ = %zu", workspaceSize_);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -239,7 +239,7 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
 
     context_->blockDim = aicNum_;
 
-    OPS_LOGI("Run big kernel");
+    OP_LOGI("Run big kernel");
 
     return ge::GRAPH_SUCCESS;
 }
@@ -275,8 +275,8 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
         *context_->rotaryMode == 2,
     );
 
-    OPS_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
-    OPS_LOGI(context_->opName, "Compressor tilingKey:%lu", context_->tilingKey);
+    OP_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
+    OP_LOGI(context_->opName, "Compressor tilingKey:%lu", context_->tilingKey);
 
     return ge::GRAPH_SUCCESS;
 }
@@ -286,7 +286,7 @@ CMP_EXTERN_C ge::graphStatus TilingCompressor(gert::TilingContext *context)
     OP_CHECK_IF(context == nullptr, OPS_REPORT_VECTOR_INNER_ERR("Compressor", "Context is nullptr."),
                return ge::GRAPH_FAILED);
 
-    OPS_LOGI("Getting Tiling");
+    OP_LOGI("Getting Tiling");
 
     CompressorContext compressorContext{};
     if (CompressorTiling::ConvertContext(*context, compressorContext) != ge::GRAPH_SUCCESS) {
