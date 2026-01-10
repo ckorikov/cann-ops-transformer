@@ -110,7 +110,7 @@ constexpr uint32_t SPARSE_LIMIT = 2048;
 constexpr uint32_t SPARSE_MODE_LOWER = 3;
 
 // -----------算子TilingData定义---------------
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvBaseParams)
+BEGIN_TILING_DATA_DEF(SparseAttnSharedkvBaseParamsMla)
 TILING_DATA_FIELD_DEF(uint32_t, batchSize)
 TILING_DATA_FIELD_DEF(uint32_t, qSeqSize)
 TILING_DATA_FIELD_DEF(uint32_t, kvSeqSize)
