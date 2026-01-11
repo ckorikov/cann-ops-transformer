@@ -51,25 +51,29 @@ public:
 
     __aicore__ inline FABlockCube() {};
     __aicore__ inline void InitCubeBlock(TPipe *pipe, BufferManager<BufferType::L1> *l1BufferManagerPtr, __gm__ uint8_t *query);
-    __aicore__ inline void InitCubeInput(CVSharedParams<isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr);
+    __aicore__ inline void InitCubeInput(CVSharedParams *sharedParams, __gm__ uint8_t *cuSeqlensQ);
     __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &output,
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf,
         RunInfo &runInfo, ConstInfo &constInfo);
 
     __aicore__ inline void IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo &runInfo,
+        BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputLeftBuf, 
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
         ConstInfo &constInfo);
 
 private:
     __aicore__ inline void InitLocalBuffer();
-    __aicore__ inline void InitGmTensor(CVSharedParams<isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr);
+    __aicore__ inline void InitGmTensor(CVSharedParams *sharedParams, __gm__ uint8_t *cuSeqlensQ);
     __aicore__ inline void CalcS1Coord(RunInfo &runInfo, ConstInfo &constInfo);
 
     __aicore__ inline void IterateBmm1SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf,
         RunInfo &runInfo, ConstInfo &constInfo);
 
     // --------------------Bmm2--------------------------
     __aicore__ inline void IterateBmm2SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo &runInfo,
+        BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputLeftBuf,
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
         ConstInfo &constInfo);
     TPipe *tPipe;
     /* =====================GM变量==================== */
@@ -112,10 +116,10 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitCubeBlock(
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitCubeInput(CVSharedParams<isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr)
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitCubeInput(CVSharedParams *sharedParams, __gm__ uint8_t *cuSeqlensQ)
 {
     if ASCEND_IS_AIC {
-        InitGmTensor(sharedParams, actualSeqQlenAddr);
+        InitGmTensor(sharedParams, cuSeqlensQ);
     }
 }
 
@@ -138,15 +142,15 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitLocalBuffer() {
 
 /* 初始化GmTensor,设置shape信息并计算strides */
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitGmTensor(CVSharedParams<isPa> *sharedParams,
-    __gm__ int64_t *actualSeqQlenAddr)
+__aicore__ inline void FABlockCube<TEMPLATE_ARGS>::InitGmTensor(CVSharedParams *sharedParams,
+    __gm__ uint8_t *cuSeqlensQ)
 {
     if constexpr (GmLayoutParams<Q_FORMAT>::CATEGORY == FormatCategory::GM_Q_OUT_BNGSD) {
         this->queryGm.offsetCalculator.Init(sharedParams->bSize, sharedParams->n2Size, sharedParams->gSize,
             sharedParams->s1Size, sharedParams->dSize);
     } else {  // GM_Q_OUT_TND
         GlobalTensor<int64_t> actualSeqQLen;
-        actualSeqQLen.SetGlobalBuffer(actualSeqQlenAddr);
+        actualSeqQLen.SetGlobalBuffer((__gm__ int64_t *)cuSeqlensQ);
         this->queryGm.offsetCalculator.Init(sharedParams->n2Size, sharedParams->gSize, sharedParams->dSize,
             actualSeqQLen, sharedParams->actualSeqLengthsSize);
     }
@@ -164,30 +168,32 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::CalcS1Coord(RunInfo &runInfo,
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1(
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo &runInfo,
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
     ConstInfo &constInfo)
 {
     CalcS1Coord(runInfo, constInfo);
     // CalcS2Coord(runInfo, constInfo);
 
-    IterateBmm1SCFA(outputBuf,  runInfo, constInfo);
+    IterateBmm1SCFA(outputBuf, inputRightBuf, runInfo, constInfo);
 }
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo &runInfo,
+    BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputLeftBuf,
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
     ConstInfo &constInfo)
 {
-    IterateBmm2SCFA(outputBuf, inputBuf, runInfo, constInfo);
+    IterateBmm2SCFA(outputBuf, inputLeftBuf, inputRightBuf, runInfo, constInfo);
 }
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1SCFA(
-    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf, RunInfo &runInfo,
+    Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
     ConstInfo &constInfo)
 {
     Buffer<BufferType::L1> mm1A;
-    Buffer<BufferType::L1> mm1B;
     // 左矩阵复用，S2的第一次循环加载左矩阵
     // 加载左矩阵到L1, 全载
     // query对ori_kv, cmp_kv都一样，无需区分
@@ -209,9 +215,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1SCFA(
     }
 
     // 加载当前轮的右矩阵到L1
-    mm1B = l1KBuffers.Get(); // TODO：这里使用GetPre()? 
     // mm1B.Wait<HardEvent::MTE1_MTE2>(); // 占用L1B
-    mm1B.WaitCrossCore();    //核间同步，这里需要根据V0操作处理同步，确保取tensor时，数据已经准备好
+    inputRightBuf.WaitCrossCore();    // 核间同步，这里需要根据V0操作处理同步，确保取tensor时，数据已经准备好
 
     // mm1B.Set<HardEvent::MTE2_MTE1>();  // 通知
     // mm1B.Wait<HardEvent::MTE2_MTE1>(); // 等待L1B
@@ -225,8 +230,8 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1SCFA(
                         0,    // isLeftTranspose
                         1     // isRightTranspose
     };
-    MatmulK<Q_T, KV_T, T, 64, 128, 128, ABLayout::MK, ABLayout::KN>(  // m,n不切，k切128
-        mm1A.GetTensor<Q_T>(), mm1B.GetTensor<KV_T>(),                // mm1B直接用tensor的数据
+    MatmulK<Q_T, Q_T, T, 64, 128, 128, ABLayout::MK, ABLayout::KN>(  // m,n不切，k切128
+        mm1A.GetTensor<Q_T>(), inputRightBuf.GetTensor<Q_T>(),                // mm1B直接用tensor的数据
         mmL0ABuffers, mmL0BBuffers,
         mm1ResL0C.GetTensor<T>(),
         param);
@@ -257,15 +262,15 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm1SCFA(
 
 TEMPLATES_DEF_NO_DEFAULT
 __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2SCFA(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-    BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf, RunInfo &runInfo,
+    BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputLeftBuf,
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
     ConstInfo &constInfo)
 {
-    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputBuf.Get(); // P直接用无需搬运
+    Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> mm2A = inputLeftBuf.Get(); // P直接用无需搬运
     mm2A.WaitCrossCore();
 
     outputBuf.WaitCrossCore(); //占用
 
-    Buffer<BufferType::L1> mm2B = l1KBuffers.GetReused(); // V复用
     Buffer<BufferType::L0C> mm2ResL0C = mmL0CBuffers.Get();
     mm2ResL0C.Wait<HardEvent::FIX_M>(); // 占用
     MMParam param = {(uint32_t)s1BaseSize,          // singleM 64
@@ -274,15 +279,15 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2SCFA(Buffer<Buffer
                         0,    // isLeftTranspose    // todo: useDn?
                         1     // isRightTranspose
                     };
-    MatmulN<T, KV_T, T, 64, 128, 128, ABLayout::MK, ABLayout::KN>(  // TODO: type确认
-        mm2A.GetTensor<T>(),
-        mm2B.GetTensor<KV_T>(),
+    MatmulN<Q_T, Q_T, T, 64, 128, 128, ABLayout::MK, ABLayout::KN>(  // TODO: type确认
+        mm2A.GetTensor<Q_T>(),
+        inputRightBuf.GetTensor<Q_T>(),
         mmL0ABuffers,
         mmL0BBuffers,
         mm2ResL0C.GetTensor<T>(),
         param);
 
-    mm2B.Set<HardEvent::MTE1_MTE2>();   // bmm2才释放KV，在这里释放
+    inputRightBuf.SetCrossCore();   // bmm2才释放KV，在这里释放
 
     mm2ResL0C.Set<HardEvent::M_FIX>();  // 通知
     mm2ResL0C.Wait<HardEvent::M_FIX>(); // 等待
@@ -307,11 +312,13 @@ class FABlockCubeDummy {
 public:
     __aicore__ inline FABlockCubeDummy() {};
     __aicore__ inline void InitCubeBlock(TPipe *pipe, BufferManager<BufferType::L1> *l1BufferManagerPtr, __gm__ uint8_t *query) {}
-    __aicore__ inline void InitCubeInput(CVSharedParams<isPa> *sharedParams, __gm__ int64_t *actualSeqQlenAddr) {}
+    __aicore__ inline void InitCubeInput(CVSharedParams *sharedParams, __gm__ uint8_t *cuSeqlensQ) {}
     __aicore__ inline void IterateBmm1(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf,
         RunInfo &runInfo, ConstInfo &constInfo) {}
     __aicore__ inline void IterateBmm2(Buffer<BufferType::UB, SyncType::CROSS_CORE_SYNC_BOTH> &outputBuf,
-        BuffersPolicy3buff<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputBuf,RunInfo &runInfo,
+        BuffersPolicyDB<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputLeftBuf,
+        Buffer<BufferType::L1, SyncType::CROSS_CORE_SYNC_FORWARD> &inputRightBuf, RunInfo &runInfo,
         ConstInfo &constInfo) {}
 };
 

@@ -26,7 +26,7 @@ using namespace AscendC;
         using CubeBlockType = typename std::conditional<g_coreType == AscendC::AIC,               \
             BaseApi::FABlockCube<__VA_ARGS__>, BaseApi::FABlockCubeDummy<__VA_ARGS__>>::type;     \
         using VecBlockType = typename std::conditional<g_coreType == AscendC::AIC,                \
-        BaseApi::SCFABlockVecDummy<__VA_ARGS__>, BaseApi::SCFABlockVec<__VA_ARGS__>>::type;       \
+            BaseApi::SCFABlockVecDummy<__VA_ARGS__>, BaseApi::SCFABlockVec<__VA_ARGS__>>::type;   \
         templateClass<CubeBlockType, VecBlockType> op;                                            \
         GET_TILING_DATA_WITH_STRUCT(tilingdataClass, tiling_data_in, tiling);                     \
         const tilingdataClass *__restrict tiling_data = &tiling_data_in;                          \

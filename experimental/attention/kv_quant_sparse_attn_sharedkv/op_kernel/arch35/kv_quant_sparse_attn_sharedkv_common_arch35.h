@@ -77,8 +77,8 @@ __aicore__ constexpr uint16_t Align64Func(uint16_t data) {
 }
 
 #define TEMPLATE_INTF \
-    template <typename Q_T, typename KV_T, typename T, typename OUTPUT_T, bool isFd, bool isPa, SAS_LAYOUT SAS_LAYOUT, \
-    SAS_KV_LAYOUT SAS_KV_LAYOUT, SASTemplateMode SASTemplateMode>
+    template <typename Q_T, typename KV_T, typename T, typename OUTPUT_T, bool isFd, bool isPa, SAS_LAYOUT LAYOUT_T, \
+    SAS_KV_LAYOUT KV_LAYOUT_T, SASTemplateMode TEMPLATE_MODE>
 
 #define TEMPLATE_INTF_ARGS \
     Q_T, KV_T, T, OUTPUT_T, isFd, isPa, LAYOUT_T, KV_LAYOUT_T, TEMPLATE_MODE
