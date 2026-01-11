@@ -122,21 +122,25 @@ ge::graphStatus CompressorTiling::GetNpuInfo()
 ge::graphStatus CompressorTiling::SetBaseInfo()
 {
     if (context_->x.shape->GetStorageShape().GetDimNum() == COMPRESSOR_DIM_NUM_3) {
-        baseShapeInfo_.bSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
-        baseShapeInfo_.sSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
-        baseShapeInfo_.hSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_2);
-        baseShapeInfo_.tSize = baseShapeInfo_.bSize * baseShapeInfo_.sSize;
+        baseParams_->batchSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
+        baseParams_->seqSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
+        baseParams_->hiddenSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_2);
+        baseParams_->tokenSize = baseParams_->batchSize * baseParams_->seqSize;
     } else {
-        baseShapeInfo_.tSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
-        baseShapeInfo_.hSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
+        baseParams_->batchSize = context_->blockTable.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
+        baseParams_->tokenSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
+        baseParams_->hiddenSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
     }
     
-    baseShapeInfo_.dSize = context_->normWeight.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
-    baseShapeInfo_.coffSize = static_cast<uint32_t>(*context_->coff);
-    baseShapeInfo_.rSize = static_cast<uint32_t>(*context_->cmpRatio);
-    baseShapeInfo_.csSize = baseShapeInfo_.sSize - (baseShapeInfo_.sSize %  baseShapeInfo_.rSize);
-    baseShapeInfo_.cgSize = baseShapeInfo_.sSize / baseShapeInfo_.rSize;
-    baseShapeInfo_.drSize = *context_->ropeHeadDim;
+    baseParams_->headDim = context_->normWeight.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
+    baseParams_->cmpRatio = static_cast<uint32_t>(*context_->cmpRatio);
+    baseParams_->csSize = baseParams_->seqSize - (baseParams_->seqSize %  baseParams_->cmpRatio);
+    baseParams_->cgSize = baseParams_->seqSize / baseParams_->cmpRatio;
+    baseParams_->ropeHeadDim = static_cast<uint32_t>(*context_->ropeHeadDim);
+    baseParams_->normEps = static_cast<float>(*context_->normEps);
+    baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
+
+    OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
     
     return ge::GRAPH_SUCCESS;
 }
@@ -233,6 +237,9 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
         }
     }
 
+    // TODO 使用所有核
+    baseParams_->usedCoreNum = aicNum_;
+
     context_->blockDim = aicNum_;
 
     OP_LOGI("Run big kernel");
@@ -244,7 +251,7 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
     uint8_t quantMode = 0;
-    uint8_t coff = *context_->coff;
+    uint8_t coff =  static_cast<uint8_t>(*context_->coff);
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH
@@ -266,7 +273,8 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
     context_->tilingKey = GET_TPL_TILING_KEY(
         static_cast<uint8_t>(dtype),
         static_cast<uint8_t>(layout),
-        static_cast<uint8_t>(2),
+        // TODO coff有问题
+        static_cast<uint8_t>(coff),
         *context_->rotaryMode == 2,
     );
 
