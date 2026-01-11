@@ -16,6 +16,8 @@
 #define VF_BASIC_BLOCK_ALIGNED128_UPDATE_SCFA_H
 
 #include "vf_basic_block_utils.h"
+#include "../util_regbase.h"
+#include "../kv_quant_sparse_attn_sharedkv_common_arch35.h"
 
 using namespace regbaseutil;
 
@@ -27,81 +29,79 @@ __simd_vf__ void ProcessVec1UpdateImpl128VF(
     __ubuf__ T * tmpExpSumUb, __ubuf__ T * tmpMaxUb, const uint32_t blockStride, const uint32_t repeatStride, 
     const uint16_t m, const T scale, const T minValue)
 {
-    RegTensor<float> vreg_input_x;
-    RegTensor<float> vreg_input_x_unroll;
-    RegTensor<float> vreg_max_tmp;
-    RegTensor<float> vreg_in_max;
-    RegTensor<float> vreg_max_new;
-    RegTensor<float> vreg_max_brc;
-    RegTensor<float> vreg_cur_max;
-    RegTensor<float> vreg_exp_sum;
-    RegTensor<float> vreg_in_exp_sum;
-    RegTensor<float> vreg_exp_even;
-    RegTensor<float> vreg_exp_odd;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_x;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_x_unroll;
+    AscendC::MicroAPI::RegTensor<float> vreg_max_tmp;
+    AscendC::MicroAPI::RegTensor<float> vreg_in_max;
+    AscendC::MicroAPI::RegTensor<float> vreg_max_new;
+    AscendC::MicroAPI::RegTensor<float> vreg_max_brc;
+    AscendC::MicroAPI::RegTensor<float> vreg_cur_max;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_sum;
+    AscendC::MicroAPI::RegTensor<float> vreg_in_exp_sum;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_even;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_odd;
 
     // bfloat16_t
-    RegTensor<bfloat16_t> vreg_exp_even_bf16;
-    RegTensor<bfloat16_t> vreg_exp_odd_bf16;
-    RegTensor<bfloat16_t> vreg_exp_bf16;
+    AscendC::MicroAPI::RegTensor<bfloat16_t> vreg_exp_even_bf16;
+    AscendC::MicroAPI::RegTensor<bfloat16_t> vreg_exp_odd_bf16;
+    AscendC::MicroAPI::RegTensor<bfloat16_t> vreg_exp_bf16;
 
-    UnalignRegForStore ureg_max;
-    UnalignRegForStore ureg_exp_sum;
-
-    MaskReg preg_all = CreateMask<float, MaskPattern::ALL>();
-    MaskReg preg_all_b16 = CreateMask<uint16_t, MaskPattern::ALL>();
+    AscendC::MicroAPI::UnalignRegForStore ureg_max;
+    AscendC::MicroAPI::UnalignRegForStore ureg_exp_sum;
+    AscendC::MicroAPI::MaskReg preg_all =  AscendC::MicroAPI::CreateMask<float,  AscendC::MicroAPI::MaskPattern::ALL>();
+    AscendC::MicroAPI::MaskReg preg_all_b16 =  AscendC::MicroAPI::CreateMask<uint16_t,  AscendC::MicroAPI::MaskPattern::ALL>();
 
     // x_max = max(src, axis=-1, keepdims=True); x_max = Max(x_max, inMax)
     for (uint16_t i = 0; i < m; ++i) {
-        LoadAlign(vreg_input_x, srcUb + i * s2BaseSize);
-        LoadAlign(vreg_input_x_unroll, srcUb + floatRepSize + i * s2BaseSize);
-        
-        Muls(vreg_input_x, vreg_input_x, scale, preg_all);  // Muls(scale)
-        Muls(vreg_input_x_unroll, vreg_input_x_unroll, scale, preg_all);
-        StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
-            (__ubuf__ T *&)srcUb + i * s2BaseSize, vreg_input_x, preg_all);
-        StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
-            (__ubuf__ T *&)srcUb + floatRepSize + i * s2BaseSize, vreg_input_x_unroll, preg_all);
-
-        Max(vreg_max_tmp, vreg_input_x, vreg_input_x_unroll, preg_all);
-        Reduce<MicroAPI::ReduceType::MAX, float, float, MicroAPI::MaskMergeMode::ZEROING>(
-            vreg_max_tmp, vreg_max_tmp, preg_all);
-        StoreUnAlign<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
+        AscendC::MicroAPI::LoadAlign(vreg_input_x, srcUb + i * s2BaseSize);
+        AscendC::MicroAPI::LoadAlign(vreg_input_x_unroll, srcUb + floatRepSize + i * s2BaseSize);
+    
+        AscendC::MicroAPI::Muls(vreg_input_x, vreg_input_x, scale, preg_all);  // Muls(scale)
+        AscendC::MicroAPI::Muls(vreg_input_x_unroll, vreg_input_x_unroll, scale, preg_all);
+        AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+           (__ubuf__ T *&)srcUb + i * s2BaseSize, vreg_input_x, preg_all);
+        AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+           (__ubuf__ T *&)srcUb + floatRepSize + i * s2BaseSize, vreg_input_x_unroll, preg_all);
+        AscendC::MicroAPI::Max(vreg_max_tmp, vreg_input_x, vreg_input_x_unroll, preg_all);
+        AscendC::MicroAPI::Reduce<MicroAPI::ReduceType::MAX, float, float, MicroAPI::MaskMergeMode::ZEROING>(
+           vreg_max_tmp, vreg_max_tmp, preg_all);
+        AscendC::MicroAPI::StoreUnAlign<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
             ((__ubuf__ T *&)tmpMaxUb), vreg_max_tmp, ureg_max, 1);
     }
-    StoreUnAlignPost<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
-            ((__ubuf__ T *&)tmpMaxUb), ureg_max, 0);
-    LoadAlign(vreg_in_max, inMaxUb);
-    LocalMemBar<MemType::VEC_STORE, MemType::VEC_LOAD>();
-    LoadAlign(vreg_cur_max, tmpMaxUb); // 获取新的max[s1, 1]
-    Max(vreg_max_new, vreg_cur_max, vreg_in_max, preg_all); // 计算新、旧max的最大值
-    StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
-        (__ubuf__ T *&)tmpMaxUb, vreg_max_new, preg_all);
-    LocalMemBar<MemType::VEC_STORE, MemType::VEC_LOAD>();
+    AscendC::MicroAPI::StoreUnAlignPost<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
+           ((__ubuf__ T *&)tmpMaxUb), ureg_max, 0);
+    AscendC::MicroAPI::LoadAlign(vreg_in_max, inMaxUb);
+    AscendC::MicroAPI::LocalMemBar<MemType::VEC_STORE, MemType::VEC_LOAD>();
+    AscendC::MicroAPI::LoadAlign(vreg_cur_max, tmpMaxUb); // 获取新的max[s1, 1]
+    AscendC::MicroAPI::Max(vreg_max_new, vreg_cur_max, vreg_in_max, preg_all); // 计算新、旧max的最大值
+    AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+       (__ubuf__ T *&)tmpMaxUb, vreg_max_new, preg_all);
+    AscendC::MicroAPI::LocalMemBar<MemType::VEC_STORE, MemType::VEC_LOAD>();
 
     for (uint16_t i = 0; i < m; ++i) {
-        LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_max_brc, tmpMaxUb + i);
-        LoadAlign<T, MicroAPI::LoadDist::DIST_DINTLV_B32>(
-            vreg_input_x, vreg_input_x_unroll, srcUb + i * s2BaseSize);
-        ExpSub(vreg_exp_even, vreg_input_x, vreg_max_brc, preg_all);
-        ExpSub(vreg_exp_odd, vreg_input_x_unroll, vreg_max_brc, preg_all);
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_max_brc, tmpMaxUb + i);
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_DINTLV_B32>(
+           vreg_input_x, vreg_input_x_unroll, srcUb + i * s2BaseSize);
+        AscendC::MicroAPI::ExpSub(vreg_exp_even, vreg_input_x, vreg_max_brc, preg_all);
+        AscendC::MicroAPI::ExpSub(vreg_exp_odd, vreg_input_x_unroll, vreg_max_brc, preg_all);
 
         // x_sum = sum(x_exp, axis=-1, keepdims=True)
-        Add(vreg_exp_sum, vreg_exp_even, vreg_exp_odd, preg_all);
-        Reduce<MicroAPI::ReduceType::SUM, float, float, MicroAPI::MaskMergeMode::ZEROING>(
-            vreg_exp_sum, vreg_exp_sum, preg_all);
-        StoreUnAlign<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
+        AscendC::MicroAPI::Add(vreg_exp_sum, vreg_exp_even, vreg_exp_odd, preg_all);
+        AscendC::MicroAPI::Reduce<MicroAPI::ReduceType::SUM, float, float, MicroAPI::MaskMergeMode::ZEROING>(
+           vreg_exp_sum, vreg_exp_sum, preg_all);
+        AscendC::MicroAPI::StoreUnAlign<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
             ((__ubuf__ T *&)tmpExpSumUb), vreg_exp_sum, ureg_exp_sum, 1);
 
         if constexpr (IsSameType<T2, bfloat16_t>::value) {
-            Cast<T2, T, castTraitZero>(vreg_exp_even_bf16, vreg_exp_even, preg_all);
-            Cast<T2, T, castTraitOne>(vreg_exp_odd_bf16, vreg_exp_odd, preg_all);
-            Or((RegTensor<uint16_t>&)vreg_exp_bf16, (RegTensor<uint16_t>&)vreg_exp_even_bf16,
+            AscendC::MicroAPI::Cast<T2, T, castTraitZero>(vreg_exp_even_bf16, vreg_exp_even, preg_all);
+            AscendC::MicroAPI::Cast<T2, T, castTraitOne>(vreg_exp_odd_bf16, vreg_exp_odd, preg_all);
+            AscendC::MicroAPI::Or((RegTensor<uint16_t>&)vreg_exp_bf16, (RegTensor<uint16_t>&)vreg_exp_even_bf16,
             (RegTensor<uint16_t>&)vreg_exp_odd_bf16, preg_all_b16);
-            StoreAlign<T2, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
+            AscendC::MicroAPI::StoreAlign<T2, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
                 ((__ubuf__ T2 *&)expUb), vreg_exp_bf16, blockStride, repeatStride, preg_all_b16);
         }
     }
-    StoreUnAlignPost<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
+    AscendC::MicroAPI::StoreUnAlignPost<float, MicroAPI::PostLiteral::POST_MODE_UPDATE>(
             ((__ubuf__ T *&)tmpExpSumUb), ureg_exp_sum, 0);
 }
 
