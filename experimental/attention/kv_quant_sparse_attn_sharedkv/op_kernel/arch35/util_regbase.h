@@ -16,8 +16,6 @@
 #ifndef FLASH_ATTENTION_UTIL_REGBASE_H
 #define FLASH_ATTENTION_UTIL_REGBASE_H
 
-#include "util.h"
-
 using AscendC::TQue;
 using AscendC::QuePosition;
 

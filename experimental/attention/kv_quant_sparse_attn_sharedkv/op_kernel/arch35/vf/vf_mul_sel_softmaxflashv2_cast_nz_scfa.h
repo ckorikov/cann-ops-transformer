@@ -15,7 +15,9 @@
 #ifndef MUL_SEL_SOFTMAX_FLASH_V2_CAST_NZ_SCFA_INTERFACE_H
 #define MUL_SEL_SOFTMAX_FLASH_V2_CAST_NZ_SCFA_INTERFACE_H
 
-#include "kernel_tensor.h"
+// #include "kernel_tensor.h"
+#include "../util_regbase.h"
+#include "../kv_quant_sparse_attn_sharedkv_common_arch35.h"
 #include "vf_basic_block_aligned128_no_update_scfa.h"
 #include "vf_basic_block_aligned128_update_scfa.h"
 #include "vf_basic_block_unaligned64_update_scfa.h"
@@ -29,8 +31,10 @@ namespace SCFaVectorApi {
 using AscendC::LocalTensor;
 
 enum OriginNRange {
-    EQ_128_SCFA,                 // originN == 128, better performance than GT_64_AND_LTE_128 (s2BaseSize=128)
+    EQ_128_SCFA = 0,                 // originN == 128, better performance than GT_64_AND_LTE_128 (s2BaseSize=128)
     GT_0_AND_LTE_64_SCFA,        // 0 < originN <= 64 (s2BaseSize <= 64 or tail s2)
+    GT_64_AND_LTE_128_SCFA,  // 64 < originN <= 128, support for non-alignment (s2BaseSize=128)
+    N_INVALID_SCFA
 };
 template <typename T, typename T2, uint32_t s1BaseSize = 64, uint32_t s2BaseSize = 128, OriginNRange oriNRange = EQ_128_SCFA>
 __aicore__ inline void ProcessVec1NoUpdate(

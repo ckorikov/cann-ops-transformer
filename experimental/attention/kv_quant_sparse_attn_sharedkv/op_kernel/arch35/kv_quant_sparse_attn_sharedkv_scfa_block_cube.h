@@ -28,9 +28,9 @@ using namespace AscendC::Impl::Detail;
 using namespace regbaseutil;
 using namespace fa_base_matmul;
 namespace BaseApi {
-template <LayOutTypeEnum LAYOUT>
+template <SAS_LAYOUT LAYOUT>
 __aicore__ inline constexpr GmFormat GetQueryGmFormat() {
-    if constexpr (LAYOUT == LayOutTypeEnum::LAYOUT_BSH) {
+    if constexpr (LAYOUT == SAS_LAYOUT::BSND) {
         return GmFormat::BSNGD;
     } else {
         return GmFormat::TNGD;
