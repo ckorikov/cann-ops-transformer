@@ -93,8 +93,9 @@ private:
     static constexpr uint32_t N = 2;
     static constexpr uint64_t SYNC_MODE2 = 2;
     static constexpr uint32_t SYNC_C1_V1_FLAG = 6;
+    static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
     
-    using X_T = typename AscendC::Conditional<IsSameType<COMP::xDtype, X_DTYPE>::value, bfloat16_t, half>::type;
+    using X_T = typename AscendC::Conditional<X_DTYPE, bfloat16_t, half>::type;
 
     // GM
     GlobalTensor<X_T> xGm_;
