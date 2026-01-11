@@ -393,6 +393,7 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::Init(__gm__ uint8_t *query
                        __gm__ uint8_t *workspace, const SparseFlashAttentionTilingDataMla *__restrict tiling,
                        __gm__ uint8_t *gmTiling, TPipe *tPipe)
 {
+    printf("---------进入kernel-----------");
     if ASCEND_IS_AIV {
         tmpBlockIdx = GetBlockIdx(); // vec:0-47
         aiCoreIdx = tmpBlockIdx / 2;
@@ -455,9 +456,10 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::Init(__gm__ uint8_t *query
 
     if constexpr (TEMPLATE_MODE == V_TEMPLATE) {
         // s2  d+rope bufNum
-        kvMergeGm_.SetGlobalBuffer((__gm__ KV_T *)(workspace + offset + aiCoreIdx * 512 * 576 * 4 * sizeof(KV_T)));
-        offset += GetBlockNum() * 512 * 576 * 4 * sizeof(KV_T);
-
+        // kvMergeGm_.SetGlobalBuffer((__gm__ KV_T *)(workspace + offset + aiCoreIdx * 512 * 576 * 4 * sizeof(KV_T)));
+        // offset += GetBlockNum() * 512 * 576 * 4 * sizeof(KV_T);
+        kvMergeGm_.SetGlobalBuffer((__gm__ KV_T *)(workspace + offset + aiCoreIdx * 512 * 512 * 4 * sizeof(KV_T)));
+        offset += GetBlockNum() * 512 * 512 * 4 * sizeof(KV_T);
         kvValidSizeGm_.SetGlobalBuffer(
             (__gm__ int32_t *)(workspace + offset + (aiCoreIdx * 2) * 128 * 4 * sizeof(int32_t)));
     }
@@ -732,6 +734,7 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::ComputeMm2(const RunInfo &
 template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::Process()
 {
     if (aiCoreIdx < usedCoreNum) {
+    // if (aiCoreIdx < 1) {
         if ASCEND_IS_AIV {
             vectorService.AllocEventID();
             vectorService.InitSoftmaxDefaultBuffer();
