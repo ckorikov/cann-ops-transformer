@@ -125,7 +125,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
         baseParams_->batchSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
         baseParams_->seqSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_1);
         baseParams_->hiddenSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_2);
-        baseParams_->tokenSize = baseShapeInfo_.bSize * baseShapeInfo_.sSize;
+        baseParams_->tokenSize = baseParams_->batchSize * baseParams_->seqSize;
     } else {
         baseParams_->batchSize = context_->blockTable.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
         baseParams_->tokenSize = context_->x.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
@@ -134,10 +134,10 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     
     baseParams_->headDim = context_->normWeight.shape->GetStorageShape().GetDim(COMPRESSOR_DIM_INDEX_0);
     baseParams_->cmpRatio = static_cast<uint32_t>(*context_->cmpRatio);
-    baseParams_->csSize = baseShapeInfo_.sSize - (baseShapeInfo_.sSize %  baseShapeInfo_.rSize);
-    baseParams_->cgSize = baseShapeInfo_.sSize / baseShapeInfo_.rSize;
-    baseParams_->ropeHeadDim = *context_->ropeHeadDim;
-    baseParams_->normEps = *context_->normEps;
+    baseParams_->csSize = baseParams_->seqSize - (baseParams_->seqSize %  baseParams_->cmpRatio);
+    baseParams_->cgSize = baseParams_->seqSize / baseParams_->cmpRatio;
+    baseParams_->ropeHeadDim = static_cast<uint32_t>(*context_->ropeHeadDim);
+    baseParams_->normEps = static_cast<float>(*context_->normEps);
     baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
 
     OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
@@ -251,7 +251,7 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
     uint8_t quantMode = 0;
-    uint8_t coff = *context_->coff;
+    uint8_t coff =  static_cast<uint8_t>(*context_->coff);
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH
