@@ -122,6 +122,10 @@ struct RunParamStr {  // 分核与切块需要使用到参数
     int64_t s2LoopCount; /* s2循环当前的循环index */ \
     int64_t s2LoopLimit; \
     int64_t s1oIdx = 0; /* s1轴的index */ \
+    int64_t loop = 0; /* for v0 */ \
+    int64_t s2BatchOffset = 0; /* for v0 */ \
+    int64_t gS1Idx = 0; /* for v0 */ \
+    int64_t curActualSeqLenOri; /* for v0 */ \
     int64_t boIdx = 0; /* b轴的index */ \
     int64_t n2oIdx = 0; /* n2轴的index */ \
     int64_t goIdx = 0; /* g轴的index */ \
@@ -174,6 +178,9 @@ struct RunInfo {
     int64_t dSizeV; \
     int64_t dBasicBlock; \
     int64_t dSizeRope; \
+    int64_t dSizeCombine; /* for v0 */ \
+    int64_t tileSize; /* for v0 */ \
+    int64_t sparseMode; /* for v0 */ \
     int64_t gSize; /* g轴的大小 */ \
     int64_t n2Size; \
     int64_t s1Size; /* s1总大小 */ \
@@ -250,6 +257,7 @@ struct RunInfo {
     /* service mm1 mm2 pageAttention */ \
     uint32_t blockSize; \
     uint32_t paLayoutType; \
+    uint32_t maxBlockNumPerBatch; /* for v0 */ \
     uint32_t oriMaxBlockNumPerBatch; \
     uint32_t cmpMaxBlockNumPerBatch; \
     bool rsvd1; \
@@ -307,6 +315,17 @@ struct RunInfo {
 
 
 struct ConstInfo{
+    // BUFFER的字节数
+    static constexpr uint32_t BUFFER_SIZE_BYTE_32B = 32;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_64B = 64;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_256B = 256;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_512B = 512;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_1K = 1024;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_2K = 2048;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_4K = 4096;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_8K = 8192;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_16K = 16384;
+    static constexpr uint32_t BUFFER_SIZE_BYTE_32K = 32768;
     COMMON_CONST_INFO;
     INFER_CONST_INFO;
 };
