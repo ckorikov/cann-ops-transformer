@@ -16,8 +16,7 @@
 #define KV_QUANT_SPARSE_ATTN_AHSREDKV_COMMON_ARCH35_H
 #include <type_traits>
 #include "kernel_tiling/kernel_tiling.h"
-// #include "attenmask.h"
-// #include "pse.h"
+#include "../kv_quant_sparse_attn_sharedkv_common.h"
 
 constexpr static int64_t SPARSE_MODE_INT_DEFAULT = 2147483647;
 
@@ -62,24 +61,6 @@ constexpr uint64_t MLA_L0A_SIZE = 64;
 constexpr uint64_t MLA_L0B_SIZE = 64; 
 constexpr uint64_t BASE_SIZE_128 = 128;
 constexpr uint64_t FLOAT_BYTES = 4;
-enum class SparseModeEnum {
-    ALL = 0,
-    NONE = 1,
-    ANY = 2,
-    CAUSAL = 3,
-    BAND = 4,
-    PREFIX = 5,
-    BAND_COMPRESS = 6,
-    RIGHT_DOWN_CAUSAL = 7,
-    RIGHT_DOWN_CAUSAL_BAND = 8,
-    BAND_LEFT_UP_CAUSAL = 9,
-};
-
-enum class ImplModeEnum {
-    AA_HIGH_PRECISION = 0,
-    AA_HIGH_PERFORMANCE = 1,
-    AA_INVALID_LINE_HIGH_PRECISION = 2
-};
 
 namespace BaseApi {
 struct CubeCoordInfo {
@@ -96,13 +77,11 @@ __aicore__ constexpr uint16_t Align64Func(uint16_t data) {
 }
 
 #define TEMPLATE_INTF \
-    template <typename Q_T, typename KV_T, typename T, ImplModeEnum implMode, LayOutTypeEnum layout, \
-    S1TemplateType s1TemplateType, S2TemplateType s2TemplateType, DTemplateType dTemplateType, \
-    DTemplateType dVTemplateType, typename OUTPUT_T, bool isPa, bool isFd>
+    template <typename Q_T, typename KV_T, typename T, typename OUTPUT_T, bool isFd, bool isPa, SAS_LAYOUT SAS_LAYOUT, \
+    SAS_KV_LAYOUT SAS_KV_LAYOUT, SASTemplateMode SASTemplateMode>
 
 #define TEMPLATE_INTF_ARGS \
-    Q_T, KV_T, T, implMode, layout, s1TemplateType, s2TemplateType, dTemplateType, dVTemplateType, \
-    OUTPUT_T, isPa, isFd
+    Q_T, KV_T, T, OUTPUT_T, isFd, isPa, LAYOUT_T, KV_LAYOUT_T, TEMPLATE_MODE
 
 #define CUBE_BLOCK_TRAITS_TYPE_FIELDS(X) \
     X(Q_T) \
@@ -111,14 +90,12 @@ __aicore__ constexpr uint16_t Align64Func(uint16_t data) {
     X(OUTPUT_T)
 
 #define CUBE_BLOCK_TRAITS_CONST_FIELDS(X) \
-    X(implMode, ImplModeEnum, ImplModeEnum::AA_HIGH_PRECISION) \
-    X(layout, LayOutTypeEnum, LayOutTypeEnum::None) \
-    X(s1TemplateType, S1TemplateType, S1TemplateType::Aligned128) \
-    X(s2TemplateType, S2TemplateType, S2TemplateType::Aligned128) \
-    X(dTemplateType, DTemplateType, DTemplateType::Aligned128) \
-    X(dVTemplateType, DTemplateType, DTemplateType::Aligned128) \
-    X(isPa, bool, false) \
-    X(isFd, bool, false)
+    X(isFd, bool, false) \
+    X(isPa, bool, true) \
+    X(LAYOUT_T, SAS_LAYOUT, SAS_LAYOUT::BSND) \
+    X(KV_LAYOUT_T, SAS_KV_LAYOUT, SAS_KV_LAYOUT::PA_ND) \
+    X(TEMPLATE_MODE, SASTemplateMode, SASTemplateMode::SCFA_TEMPLATE_MODE) \
+
 
 /* 1. 生成带默认值的模版Template */
 #define GEN_TYPE_PARAM(name) typename name,

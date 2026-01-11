@@ -22,7 +22,6 @@
 
 #include "util_regbase.h" // todo：以下三个.h需要对应修改
 #include "kv_quant_sparse_attn_sharedkv_common_arch35.h"
-// #include "kv_quant_sparse_attn_sharedkv_common_regbase.h"
 
 using namespace AscendC;
 using namespace AscendC::Impl::Detail;
@@ -74,7 +73,7 @@ private:
         ConstInfo &constInfo);
     TPipe *tPipe;
     /* =====================GM变量==================== */
-    static constexpr GmFormat Q_FORMAT = GetQueryGmFormat<layout>();
+    static constexpr GmFormat Q_FORMAT = GetQueryGmFormat<LAYOUT_T>();
     FaGmTensor<Q_T, Q_FORMAT> queryGm;
 
     /* =====================运行时变量==================== */
@@ -292,7 +291,7 @@ __aicore__ inline void FABlockCube<TEMPLATE_ARGS>::IterateBmm2SCFA(Buffer<Buffer
     fixpipeParams.nSize = ((uint32_t)constInfo.dSizeV + 7) >> 3 << 3; // L0C上的bmm1结果矩阵N方向的size大小, 分档计算且vector2中通过mask筛选出实际有效值
     fixpipeParams.mSize = s1BaseSize;                        // 有效数据不足16行，只需要输出部分行即可; L0C上的bmm1结果矩阵M方向的size大小; 同mmadParams.m
     fixpipeParams.srcStride = (s1BaseSize + 15) >> 4 << 4;   // L0C上bmm1结果相邻连续数据片段间隔（前面一个数据块的头与后面数据块的头的间隔）
-    fixpipeParams.dstStride = ((uint32_t)dVTemplateType + 15) >> 4 << 4;
+    fixpipeParams.dstStride = ((uint32_t)constInfo.dSizeV + 15) >> 4 << 4;
     fixpipeParams.dualDstCtl = 1;
     fixpipeParams.params.ndNum = 1;
     fixpipeParams.params.srcNdStride = 0;

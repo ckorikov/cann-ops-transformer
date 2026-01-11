@@ -17,7 +17,7 @@
 #define KV_QUANT_SPARSE_ATTN_SHAREDKV_SCFA_KERNEL_H
 #include "kv_quant_sparse_attn_sharedkv_common_arch35.h"
 #include "kv_quant_sparse_attn_sharedkv_scfa_block_cube.h"
-// #include "kv_quant_sparse_attn_sharedkv_scfa_block_vector.h"
+#include "kv_quant_sparse_attn_sharedkv_scfa_block_vector.h"
 #include "kernel_operator.h"
 
 // 线上编包
