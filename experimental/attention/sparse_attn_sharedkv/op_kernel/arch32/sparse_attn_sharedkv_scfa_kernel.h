@@ -204,9 +204,7 @@ private:
 template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitTilingData()
 {
     // singleCoreParams
-    usedCoreNum = tilingData->singleCoreParams.usedCoreNum;
-    // splitKVParams
-    constInfo.splitKVNum = tilingData->splitKVParams.s2;
+    usedCoreNum = tilingData->baseParams.usedCoreNum;
     // singleCoreTensorSize
     constInfo.mmResUbSize = 64 * 512;
     constInfo.bmm2ResUbSize = 64 * 512;
@@ -217,15 +215,12 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
     constInfo.kvSeqSize = tilingData->baseParams.kvSeqSize;
     constInfo.qSeqSize = tilingData->baseParams.qSeqSize;
     constInfo.oriMaxBlockNumPerBatch = tilingData->baseParams.oriMaxBlockNumPerBatch;
-    constInfo.cmpMaxBlockNumPerBatch = tilingData->baseParams.cmpMaxBlockNumPerBatch;
     constInfo.kvCacheBlockSize = tilingData->baseParams.paBlockSize;
     constInfo.outputLayout = static_cast<SAS_LAYOUT>(tilingData->baseParams.outputLayout);
     constInfo.kvHeadNum = kvHeadNum;
     constInfo.headDim = headDim;
     constInfo.sparseBlockSize = tilingData->baseParams.sparseBlockSize;
-    constInfo.sparseBlockCount = tilingData->baseParams.sparseBlockCount;
     constInfo.oriMaskMode = tilingData->baseParams.oriMaskMode;
-    constInfo.cmpMaskMode = tilingData->baseParams.cmpMaskMode;
     constInfo.oriWinLeft = tilingData->baseParams.oriWinLeft;
     constInfo.oriWinRight = tilingData->baseParams.oriWinRight;
 
@@ -247,7 +242,10 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
     constInfo.syncV1NupdateC2 = SYNC_V1_NUPDATE_C2_FLAG;
 
     // cmp
-    constInfo.cmpRatio = tilingData->baseParams.cmpRatio;
+    constInfo.cmpRatio = tilingData->cmpParams.cmpRatio;
+    constInfo.sparseBlockCount = tilingData->cmpParams.sparseBlockCount;
+    constInfo.cmpMaskMode = tilingData->cmpParams.cmpMaskMode;
+    constInfo.cmpMaxBlockNumPerBatch = tilingData->cmpParams.cmpMaxBlockNumPerBatch;
     // ori
 
 }
@@ -543,14 +541,6 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
 
     kvValidSizeGm_.SetGlobalBuffer(
         (__gm__ int32_t *)(workspace + offset + (aiCoreIdx * 2) * 128 * 4 * sizeof(int32_t)));
-
-    if constexpr (FLASH_DECODE) {
-        accumOutGm.SetGlobalBuffer((__gm__ float *)(workspace + offset));
-        offset = offset + tilingData->splitKVParams.accumOutSize * sizeof(float);
-        lseSumFdGm.SetGlobalBuffer((__gm__ float *)(workspace + offset));
-        lseMaxFdGm.SetGlobalBuffer((__gm__ float *)(workspace + offset) + tilingData->splitKVParams.logSumExpSize / 2);
-        offset = offset + tilingData->splitKVParams.logSumExpSize * sizeof(float);
-    }
 
     if ASCEND_IS_AIV {
         vectorBlock.InitParams(constInfo, tilingData);
