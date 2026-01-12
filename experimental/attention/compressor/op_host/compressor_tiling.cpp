@@ -188,11 +188,9 @@ ge::graphStatus CompressorTiling::CalcWorkSpace()
     constexpr uint32_t V1_RES_ELEM_SIZE = 2;       // 2: fp16/bf16
 
     workspaceSize_ = libapiSize_;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmKVLeftResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmKVRightResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmScoreLeftResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmScoreRightResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->vecResSize * V1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->preMm1ResSize * MM1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->curMm1ResSize * MM1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->vec1ResSize * V1_RES_ELEM_SIZE;
     
     // TODO 为后面改动预留
     workspaceSize_ += 1024 * 1024 * 1024;
