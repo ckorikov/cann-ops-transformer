@@ -20,7 +20,7 @@
 #include "compressor_vector_comm.h"
 #include "compressor_template_tiling_key.h"
 #include "compressor_tiling_data.h"
-#include "compressor_comm.h"
+#include "compressor_block_vec.h"
 
 using namespace AscendC;
 
@@ -474,7 +474,7 @@ __aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
     // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
-    vectorSrevice.ComputeVec1();
+    vectorService.ComputeVec1(info);
 }
 
 template <typename COMP>

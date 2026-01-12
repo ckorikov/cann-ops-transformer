@@ -20,10 +20,9 @@
 #include "kernel_tiling/kernel_tiling.h"
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
-#include "../fia_public_define.h"
-#include "../memory_copy.h"
+#include "compressor_comm.h"
 
-using namespace AttentionCommon;
+using namespace Compressor;
 using AscendC::CrossCoreSetFlag;
 using AscendC::CrossCoreWaitFlag;
 
@@ -32,7 +31,7 @@ public:
     // =================================类型定义区=================================
     // 中间计算数据类型为float，高精度模式
     using T = float;
-    constexpr uint64_t BLOCK_VEC_BASE_BUFFER_SIZE = 32 * 1024; // 32k
+    static constexpr uint64_t BLOCK_VEC_BASE_BUFFER_SIZE = 32 * 1024; // 32k
 
     __aicore__ inline CompressorBlockVector(){};
     // =================================设置参数=================================
@@ -57,11 +56,11 @@ public:
     // =================================资源管理=================================
     __aicore__ inline void InitBuffers(TPipe *pipe);
     // =================================执行计算=================================
-    __aicore__ inline void ComputeVec1();
-    __aicore__ inline void SetMSplitInfo(const RunInfo &info);
-    __aicore__ inline uint32_t GetSeqLength(uint32_t index);
+    __aicore__ inline void ComputeVec1(const Compressor::RunInfo &info);
+    __aicore__ inline uint32_t GetBasicNum();
+    __aicore__ inline void SetMSplitInfo(const Compressor::RunInfo &info);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<T> preMm1ResGm, GlobalTensor<T> curMm1ResGm, GlobalTensor<T> vec1ResGm);
-    __aicore__ inline void ComputeVec2(const RunInfo &info);
+    __aicore__ inline void ComputeVec2(const Compressor::RunInfo &info);
     __aicore__ inline void WriteToCacheState(GlobalTensor<T> &state, LocalTensor<T> &input, uint32_t batchIdx, uint32_t startSeqIdx, uint32_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
     __aicore__ inline void ReadFromCacheState(LocalTensor<T> &output, GlobalTensor<T> &state, uint32_t batchIdx, uint64_t startSeqIdx, uint64_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
     __aicore__ inline void ProcessSingleBatch(uint32_t batchIdx);
@@ -87,7 +86,7 @@ private:
     GlobalTensor<int32_t> startPosGm_;
     GlobalTensor<int32_t> cuSeqlensGm_;
     GlobalTensor<int32_t> blockTableGm_;
-}
+};
 
 template <typename COMP>
 __aicore__ inline void CompressorBlockVector<COMP>::InitParams(const ConstInfo &constInfo)
@@ -125,7 +124,7 @@ __aicore__ inline void CompressorBlockVector<COMP>::Init(
         accSeqLength_ = curActSeqLength_;
         // printf("[Init] curActSeqLength:%u\n", curActSeqLength);
     }
-    curStartPos = startPosGm_.GetValue(0);
+    curStartPos_ = startPosGm_.GetValue(0);
 }
 
 template <typename COMP> 
@@ -231,7 +230,7 @@ template <typename COMP>
 __aicore__ inline void CompressorBlockVector<COMP>::ProcessSingleBatch(uint32_t batchIdx)
 {
     uint32_t seqIdx = 0;
-    uint64_t seqUsed = GetSeqLength(batchIdx);
+    uint64_t seqUsed = GetSeqLength(0, batchIdx);
     uint64_t startPos = GetStartPos(batchIdx);
     uint64_t startSeqIdx = 0;
     uint64_t endSeqIdx = 0;
@@ -248,7 +247,22 @@ __aicore__ inline void CompressorBlockVector<COMP>::ProcessSingleBatch(uint32_t 
 }
 
 template <typename COMP>
- __aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const RunInfo &info)
+__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetBasicNum() {
+    // 获取 m方向上对应基本单元Tc的个数
+    uint32_t curBasicNum = 0;
+    uint32_t headSize = 0;
+    if (curStartPos_ % constInfo_.cmpRatio != 0) {
+        headSize = constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio;
+        headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
+        curBasicNum++;
+    }
+    // 加上中间整块及尾块
+    curBasicNum += (curActSeqLength_ - headSize + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
+    return curBasicNum;
+}
+
+template <typename COMP>
+ __aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compressor::RunInfo &info)
  {
     // TODO 处理0块需要考虑？
     // VEC0需要处理的大小
@@ -264,7 +278,7 @@ template <typename COMP>
         curBEnd = bIdx;
         // 计算起始batch的剩余块
         if (bIdx == mSplitInfo.vecStartB) {
-            curActSeqLength_ = GetSeqLength(bIdx);
+            curActSeqLength_ = GetSeqLength(mSplitInfo.vecStartB, bIdx);
             curStartPos_ = GetStartPos(bIdx);
             uint32_t curRemainTcNum = 0;
             // 计算起始batch的剩余seq长度 起始位置计算头块
@@ -299,7 +313,7 @@ template <typename COMP>
                 accBasicNum += curRemainTcNum;
             }
         } else {
-            curActSeqLength_ = GetSeqLength(bIdx);
+            curActSeqLength_ = GetSeqLength(mSplitInfo.vecStartB, bIdx);
             curStartPos_ = GetStartPos(bIdx);
             uint32_t curBasicNum = GetBasicNum();
             // printf("[GetEndIdx] accBasicNum:%u curBasicNum:%u dealTcNum:%u\n", accBasicNum, curBasicNum, dealTcNum);
@@ -318,11 +332,9 @@ template <typename COMP>
                     curSEnd = headSize + (curBasicNumEnd - 1) * constInfo_.cmpRatio;
                 }
                 curSEnd = curSEnd > curActSeqLength_ ? curActSeqLength_ : curSEnd;
-                info.sEnd = curSEnd;
                 return;
             } else if (accBasicNum + curBasicNum == mSplitInfo.dealTcNum) {
                 curSEnd = curActSeqLength_;
-                info.sEnd = curSEnd;
                 return;
             }
             accBasicNum += curBasicNum;
@@ -330,7 +342,7 @@ template <typename COMP>
     }
     mSplitInfo.vecEndS = curSEnd;
     mSplitInfo.vecEndB = curBEnd;
-    if (etBlockIdx() % 2 == 1) {
+    if (GetBlockIdx() % 2 == 1) {
         mSplitInfo.vecStartB = curBEnd;
         mSplitInfo.vecStartS = curSEnd;
         mSplitInfo.dealTcNum = info.dealTcNum - mSplitInfo.dealTcNum;
@@ -344,13 +356,13 @@ template <typename COMP>
  }
 
 template <typename COMP>
- __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec1(const RunInfo &info, LocalTensor<T> &mmResLeft, LocalTensor<T> &mmResRight)
+ __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec1(const Compressor::RunInfo &info)
 {
     // TODO 1分核
     SetMSplitInfo(info);
     uint32_t scLoopTimes = 0;
     uint32_t dLoopTimes = 0;
-    uint32_t splitSize = BLOCK_VEC_BASE_BUFFER_SIZE / (constInfo_.cmpRatio * COMP::coff * sizeof(T));
+    uint32_t splitSize = BLOCK_VEC_BASE_BUFFER_SIZE / (constInfo_.cmpRatio * static_cast<uint32_t>(COMP::coff) * sizeof(T));
     if (splitSize < constInfo_.headDim) {
         scLoopTimes = 1;
         dLoopTimes = (constInfo_.headDim + (splitSize - 1)) / splitSize;
@@ -362,7 +374,7 @@ template <typename COMP>
         for (uint32_t j = 0; j < dLoopTimes; j++) {
             for (uint32_t k = info.bStart; k < info.bEnd; k++) {
                 // 计算当前batch的seq 开始结束索引
-                curActSeqLength_ = GetSeqLength(batchIdx);
+                curActSeqLength_ = GetSeqLength(info.bStart, k);
                 uint32_t sStart = 0;
                 uint32_t sEnd = curActSeqLength_;
                 if (k == info.bStart) {
@@ -384,7 +396,7 @@ template <typename COMP>
 }
 
 template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::ComputeVec2(const RunInfo &info)
+__aicore__ inline void CompressorBlockVector<COMP>::ComputeVec2(const Compressor::RunInfo &info)
 {
     
 }

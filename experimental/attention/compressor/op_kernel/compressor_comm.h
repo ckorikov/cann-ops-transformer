@@ -51,8 +51,8 @@ enum class X_DTYPE : std::uint8_t {
 };
 
 enum class COFF : std::uint8_t {
-    DISABLE = static_cast<std::uint8_t>(0),
-    OVERLAP = static_cast<std::uint8_t>(1)
+    DISABLE = static_cast<std::uint8_t>(1),
+    OVERLAP = static_cast<std::uint8_t>(2)
 };
 
 enum class ROTARY_MODE : std::uint8_t {
@@ -124,7 +124,7 @@ struct MSplitInfo {
     uint32_t vecStartS = 0U;
     uint32_t vecEndB = 0U;
     uint32_t vecEndS = 0U;
-    uint32_t vecDealTc = 0U;
+    uint32_t dealTcNum = 0U;
 };
 
 // BLOCK和REPEAT的字节数
