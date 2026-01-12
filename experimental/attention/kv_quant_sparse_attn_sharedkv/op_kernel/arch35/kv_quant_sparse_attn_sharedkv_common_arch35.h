@@ -87,7 +87,7 @@ __aicore__ constexpr uint16_t Align64Func(uint16_t data) {
     X(Q_T) \
     X(KV_T) \
     X(T) \
-    X(OUTPUT_T)
+    X(OUTPUT_T) \
 
 #define CUBE_BLOCK_TRAITS_CONST_FIELDS(X) \
     X(isFd, bool, false) \
