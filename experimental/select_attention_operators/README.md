@@ -5,26 +5,25 @@ High performance Ascend-910B kernels for sparse attention pattern prediction for
 
 ```bash
 .
-|-- experiments - per kernel: data-generator, reference model, test, benchmark time and bandwidth
+|-- experiments - per kernel: test (functional correctness) and benchmark (time and bandwidth)
 |   |-- 2_quest_prefill_metadata - constructing metadata after prefill
 |   |-- 3_quest_block_select_paged - quest sparse mask predictor using metadata
 |   |-- 4_quest_block_select_paged_w -  quest sparse mask predictor using metadata with extra sink+window features
-|-- kernels - python packages, each having one or more ascendc kernels + 1 torch interface
-|   |-- select_attn_decoding_ops - predictor kernels (quest predictor)
-|   `-- select_attn_prefill_ops - metadata construction kernels 
+|-- kernels - python packages, each having one or more ascendc kernels and a single torch interface
+|   |-- select_attn_decoding_ops - predictor kernels (quest predictors of sparse pattern duting LLM decoding)
+|   `-- select_attn_prefill_ops - metadata construction kernels (prefill kernels)
 `-- scripts
     |-- build_kernels.sh - builds all kernels
-    |-- check_cann.sh - builds all kernels
-    |-- init_cann.sh - initialize the enbvironment and Ascend device version
-    `-- num_cores_map.sh - mapping "device --> number of cores"
+    `-- init_cann.sh - initialize the environment and Ascend device version
 ```
+
 ## Requirements
 Tested to work with:
 - Ascend910B2, Ascend910B4
 - CANN versions 8.0.RC3.beta1, 8.2.RC2, 8.3.RC1
 - Python 3.11.10
 - torch-npu version 2.4.0, 2.5.1.post1
-- see requirements.txt for all other requiremetns
+- see [requirements.txt](requirements.txt) for all other requiremetns
 
 ## Creating conda environment
 create conda environment
@@ -108,7 +107,7 @@ quest_block_select_paged_in_out_w(...) method of builtins.PyCapsule instance
         D = 128
         BLOCK_SIZE = 128
         H / N <= BLOCK_SIZE
-        MMBPR < 7 (below 5 is the most stable)
+        MMBPR <= 6
         k % 8 == 0
 ```
 
