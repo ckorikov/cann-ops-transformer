@@ -26,7 +26,7 @@ struct MatRpeatParam {
     uint32_t dtypeMask;
     uint32_t loopTimes;
     uint32_t colRemain;
-    uint32_t repeatStride;
+    uint8_t repeatStride;
 };
 
 struct RmsNormParam {
@@ -42,7 +42,7 @@ struct RmsNormParam {
  * @brief ColumnSum 对矩阵按列进行求和
  * @param dstLocal 输出tensor [1, col]，支持和shareTmpUb是同一块空间
  * @param srcLocal 输入tensor [row, col]
- * @param shareTmpUb 临时buffer 内部需要的空间为 [floor(row / 2) * col * sizeof(float)]
+ * @param shareTmpUb 临时buffer 内部需要的空间为 [ceil(row / 2) * col * sizeof(float)]
  * @param row 行数
  * @param col 列数
  */
@@ -51,25 +51,32 @@ __aicore__ inline void ColumnSum(const LocalTensor<float> &dstLocal, const Local
 {
     // 行数为1时，直接将srcLocal复制到dstLocal
     if (unlikely(row == 1)) {
-        Datacopy(dstLocal, srcLocal, row * col);
+        DataCopy(dstLocal, srcLocal, row * col);
         return;
     }
-    for (uint32_t mask = MAX_R * 2; mask > 1; mask >>= 1) {
+    for (uint32_t mask = MAX_R << 1; mask > 1; mask >>= 1) {
         if (row & mask) {
             // 将输入对半求和后放进临时空间
             Add(shareTmpUb, srcLocal, srcLocal[mask * col / 2], mask * col / 2);
             PipeBarrier<PIPE_V>();
             // 将余量加到前一半上
             if (unlikely(row > mask)) {
-                Add(shareTmpUb, shareTmpUb, srcLocal[mask * col], (row - mask) * col);
-                PipeBarrier<PIPE_V>();
+                if ((row - mask) > (mask >> 1)) {
+                    Add(shareTmpUb, shareTmpUb, srcLocal[mask * col], mask * col / 2);
+                    PipeBarrier<PIPE_V>();
+                    Add(shareTmpUb, shareTmpUb, srcLocal[(mask + (mask >> 1)) * col], (row - mask - (mask >> 1)) * col);
+                    PipeBarrier<PIPE_V>();
+                } else {
+                    Add(shareTmpUb, shareTmpUb, srcLocal[mask * col], (row - mask) * col);
+                    PipeBarrier<PIPE_V>();
+                }
             }
             // 每次将后一半行加到前一半上
             for (uint32_t i = mask >> 2; i > 1; i >>= 1) {
                 Add(shareTmpUb, shareTmpUb, shareTmpUb[i * col], i * col);
                 PipeBarrier<PIPE_V>();
             }
-            Add(dstLocal, shareTmpUb, shareTmpUb[i * col], i * col);
+            Add(dstLocal, shareTmpUb, shareTmpUb[col], col);
             PipeBarrier<PIPE_V>();
             break;
         }
@@ -80,34 +87,41 @@ __aicore__ inline void ColumnSum(const LocalTensor<float> &dstLocal, const Local
  * @brief ColumnMax 对矩阵按列进行求最大值
  * @param dstLocal 输出tensor [1, col]，支持和shareTmpUb是同一块空间
  * @param srcLocal 输入tensor [row, col]
- * @param shareTmpUb 临时buffer 内部需要的空间为 [floor(row / 2) * col * sizeof(float)]
+ * @param shareTmpUb 临时buffer 内部需要的空间为 [ceil(row / 2) * col * sizeof(float)]
  * @param row 行数
  * @param col 列数
  */
-__aicore__ inline void ColumnSum(const LocalTensor<float> &dstLocal, const LocalTensor<float> &srcLocal,
+__aicore__ inline void ColumnMax(const LocalTensor<float> &dstLocal, const LocalTensor<float> &srcLocal,
                                      const LocalTensor<float> &shareTmpUb, uint32_t row, uint32_t col)
 {
     // 行数为1时，直接将srcLocal复制到dstLocal
     if (unlikely(row == 1)) {
-        Datacopy(dstLocal, srcLocal, row * col);
+        DataCopy(dstLocal, srcLocal, row * col);
         return;
     }
-    for (uint32_t mask = MAX_R * 2; mask > 1; mask >>= 1) {
+    for (uint32_t mask = MAX_R << 1; mask > 1; mask >>= 1) {
         if (row & mask) {
             // 将输入对半求最大值后放进临时空间
             Max(shareTmpUb, srcLocal, srcLocal[mask * col / 2], mask * col / 2);
             PipeBarrier<PIPE_V>();
             // 将余量和前一半求最大值后加到前一半上
             if (unlikely(row > mask)) {
-                Max(shareTmpUb, shareTmpUb, srcLocal[mask * col], (row - mask) * col);
-                PipeBarrier<PIPE_V>();
+                if ((row - mask) > (mask >> 1)) {
+                    Max(shareTmpUb, shareTmpUb, srcLocal[mask * col], mask * col / 2);
+                    PipeBarrier<PIPE_V>();
+                    Max(shareTmpUb, shareTmpUb, srcLocal[(mask + (mask >> 1)) * col], (row - mask - (mask >> 1)) * col);
+                    PipeBarrier<PIPE_V>();
+                } else {
+                    Max(shareTmpUb, shareTmpUb, srcLocal[mask * col], (row - mask) * col);
+                    PipeBarrier<PIPE_V>();
+                }
             }
             // 每次将后一半行和前一半最大值后加到前一半上
             for (uint32_t i = mask >> 2; i > 1; i >>= 1) {
                 Max(shareTmpUb, shareTmpUb, shareTmpUb[i * col], i * col);
                 PipeBarrier<PIPE_V>();
             }
-            Max(dstLocal, shareTmpUb, shareTmpUb[i * col], i * col);
+            Max(dstLocal, shareTmpUb, shareTmpUb[col], col);
             PipeBarrier<PIPE_V>();
             break;
         }
@@ -131,10 +145,10 @@ __aicore__ inline void ColumnSum(const LocalTensor<float> &dstLocal, const Local
 __aicore__ inline void MatSubVec(const LocalTensor<float> &dstLocal, const LocalTensor<float> &src0Local,
                                  const LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
 {
-    uint32_t offset = 0;
     for (uint32_t row = 0; row < repeatParam.row; row += REPEAT_MAX_NUM) {
-        uint32_t repeatRowTimes = min(repeatParam.row - row + REPEAT_MAX_NUM, REPEAT_MAX_NUM);
-        for (uint32_t i = 0; i < dLoop; i++) {
+        uint32_t repeatRowTimes = Std::min(repeatParam.row - row, REPEAT_MAX_NUM);
+        uint32_t offset = 0;
+        for (uint32_t i = 0; i < repeatParam.loopTimes; i++) {
             Sub(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local[offset],
                 repeatParam.dtypeMask, repeatRowTimes,
                 {1, 1, 1, repeatParam.repeatStride, repeatParam.repeatStride, 0});
@@ -161,13 +175,13 @@ __aicore__ inline void MatSubVec(const LocalTensor<float> &dstLocal, const Local
             colRemain 剩余列数
             repeatStride 循环步长（内存中实际列长度）
  */
-__aicore__ inline void MatDivVec(LocalTensor<float> &dstLocal, LocalTensor<float> &src0Local,
-                                 LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
+__aicore__ inline void MatDivVec(const LocalTensor<float> &dstLocal, const LocalTensor<float> &src0Local,
+                                 const LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
 {
-    uint32_t offset = 0;
     for (uint32_t row = 0; row < repeatParam.row; row += REPEAT_MAX_NUM) {
-        uint32_t repeatRowTimes = min(repeatParam.row - row + REPEAT_MAX_NUM, REPEAT_MAX_NUM);
-        for (uint32_t i = 0; i < dLoop; i++) {
+        uint32_t repeatRowTimes = Std::min(repeatParam.row - row, REPEAT_MAX_NUM);
+        uint32_t offset = 0;
+        for (uint32_t i = 0; i < repeatParam.loopTimes; i++) {
             Div(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local[offset],
                 repeatParam.dtypeMask, repeatRowTimes,
                 {1, 1, 1, repeatParam.repeatStride, repeatParam.repeatStride, 0});
@@ -197,10 +211,10 @@ __aicore__ inline void MatDivVec(LocalTensor<float> &dstLocal, LocalTensor<float
 __aicore__ inline void MatMulVec(const LocalTensor<float> &dstLocal, const LocalTensor<float> &src0Local,
                                  const LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
 {
-    uint32_t offset = 0;
     for (uint32_t row = 0; row < repeatParam.row; row += REPEAT_MAX_NUM) {
-        uint32_t repeatRowTimes = min(repeatParam.row - row + REPEAT_MAX_NUM, REPEAT_MAX_NUM);
-        for (uint32_t i = 0; i < dLoop; i++) {
+        uint32_t repeatRowTimes = Std::min(repeatParam.row - row, REPEAT_MAX_NUM);
+        uint32_t offset = 0;
+        for (uint32_t i = 0; i < repeatParam.loopTimes; i++) {
             Mul(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local[offset],
                 repeatParam.dtypeMask, repeatRowTimes,
                 {1, 1, 1, repeatParam.repeatStride, repeatParam.repeatStride, 0});
@@ -230,10 +244,10 @@ __aicore__ inline void MatMulVec(const LocalTensor<float> &dstLocal, const Local
 __aicore__ inline void RowSum(const LocalTensor<float> &dstLocal, const LocalTensor<float> &srcLocal,
                               const LocalTensor<float> &shareTmpUb, const MatRpeatParam &repeatParam)
 {
-    uint32_t blockCount = rowColRepeatParams.loopTimes;
+    uint32_t blockCount = repeatParam.loopTimes;
     if (blockCount > 0 && repeatParam.colRemain > 0) {
         Add(shareTmpUb, srcLocal, srcLocal[blockCount * repeatParam.dtypeMask], repeatParam.colRemain,
-            rowColRepeatParams.row,
+            repeatParam.row,
             {1, 1, 1, repeatParam.repeatStride, repeatParam.repeatStride, repeatParam.repeatStride});
         AscendC::PipeBarrier<PIPE_V>();
     }
@@ -242,23 +256,23 @@ __aicore__ inline void RowSum(const LocalTensor<float> &dstLocal, const LocalTen
         blockCount = (blockCount + 1) >> 1;
         for (uint32_t i = 0; i < loopCount; i++) {
             Add(shareTmpUb[i * repeatParam.dtypeMask], srcLocal[i * repeatParam.dtypeMask],
-                srcLocal[(i + blockCount) * repeatParam.dtypeMask], repeatParam.dtypeMask, rowColRepeatParams.row,
+                srcLocal[(i + blockCount) * repeatParam.dtypeMask], repeatParam.dtypeMask, repeatParam.row,
                 {1, 1, 1, repeatParam.repeatStride, repeatParam.repeatStride, repeatParam.repeatStride});
         }
         AscendC::PipeBarrier<PIPE_V>();
     }
 
     WholeReduceSum(dstLocal, shareTmpUb,
-                   (rowColRepeatParams.col < rowColRepeatParams.dtypeMask) ? rowColRepeatParams.col :
-                                                                             rowColRepeatParams.dtypeMask,
-                   rowColRepeatParams.row, 1, 1, repeatParam.repeatStride);
+                   (repeatParam.col < repeatParam.dtypeMask) ? repeatParam.col :
+                                                                             repeatParam.dtypeMask,
+                   repeatParam.row, 1, 1, repeatParam.repeatStride);
 }
 
 /**
  * @brief RowDivs 矩阵每行除以对应元素
  * @param dstLocal 输出tensor [row, col]
  * @param src0Local 输入tensor [row, col]
- * @param src1Local 输入tensor [row, 1]，需要扩展到一个datablock中(实际内存需要为[row, col])
+ * @param src1Local 输入tensor [row, 1]，需要扩展到一个datablock中(实际内存需要为[row, FP32_BLOCK_ELEMENT_NUM])
  * @param repeatParam 描述待处理数据的排布，包括
             row 行数
             col 列数
@@ -270,19 +284,19 @@ __aicore__ inline void RowSum(const LocalTensor<float> &dstLocal, const LocalTen
 __aicore__ inline void RowDivs(const LocalTensor<float> &dstLocal, const LocalTensor<float> &src0Local,
                                const LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
 {
-    uint32_t offset = 0;
     for (uint32_t row = 0; row < repeatParam.row; row += REPEAT_MAX_NUM) {
-        uint32_t repeatRowTimes = min(repeatParam.row - row + REPEAT_MAX_NUM, REPEAT_MAX_NUM);
-        for (uint32_t i = 0; i < dLoop; i++) {
+        uint32_t repeatRowTimes = Std::min(repeatParam.row - row, REPEAT_MAX_NUM);
+        uint32_t offset = 0;
+        for (uint32_t i = 0; i < repeatParam.loopTimes; i++) {
             Div(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local,
                 repeatParam.dtypeMask, repeatRowTimes,
-                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, repeatParam.repeatStride});
+                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 1});
             offset += repeatParam.dtypeMask;
         }
         if (repeatParam.colRemain > 0) {
             Div(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local,
                 repeatParam.colRemain, repeatRowTimes,
-                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, repeatParam.repeatStride});
+                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 1});
         }
     }
 }
@@ -292,7 +306,7 @@ __aicore__ inline void RowDivs(const LocalTensor<float> &dstLocal, const LocalTe
  * @brief RowMuls 矩阵每行乘以相同元素
  * @param dstLocal 输出tensor [row, col]
  * @param src0Local 输入tensor [row, col]
- * @param src1Local 输入tensor [row, 1]，需要扩展到一个datablock中(实际内存需要为[row, col])
+ * @param src1Local 输入tensor [row, 1]，需要扩展到一个datablock中(实际内存需要为[row, FP32_BLOCK_ELEMENT_NUM])
  * @param repeatParam 描述待处理数据的排布，包括
             row 行数
             col 列数
@@ -304,19 +318,19 @@ __aicore__ inline void RowDivs(const LocalTensor<float> &dstLocal, const LocalTe
 __aicore__ inline void RowMuls(const LocalTensor<float> &dstLocal, const LocalTensor<float> &src0Local,
                                const LocalTensor<float> &src1Local, const MatRpeatParam &repeatParam)
 {
-    uint32_t offset = 0;
     for (uint32_t row = 0; row < repeatParam.row; row += REPEAT_MAX_NUM) {
-        uint32_t repeatRowTimes = min(repeatParam.row - row + REPEAT_MAX_NUM, REPEAT_MAX_NUM);
-        for (uint32_t i = 0; i < dLoop; i++) {
+        uint32_t repeatRowTimes = Std::min(repeatParam.row - row, REPEAT_MAX_NUM);
+        uint32_t offset = 0;
+        for (uint32_t i = 0; i < repeatParam.loopTimes; i++) {
             Mul(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local,
                 repeatParam.dtypeMask, repeatRowTimes,
-                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 0});
+                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 1});
             offset += repeatParam.dtypeMask;
         }
         if (repeatParam.colRemain > 0) {
             Mul(dstLocal[row * repeatParam.col + offset], src0Local[row * repeatParam.col + offset], src1Local,
                 repeatParam.colRemain, repeatRowTimes,
-                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 0});
+                {1, 1, 0, repeatParam.repeatStride, repeatParam.repeatStride, 1});
         }
     }
 }

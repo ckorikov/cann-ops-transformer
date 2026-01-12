@@ -16,18 +16,21 @@
 #ifndef ROPE_H
 #define ROPE_H
 
-namespace MlaProlog {
+#include "../compressor_comm.h"
+#include "../compressor_vector_comm.h"
 
-__aicore__ inline void SetGatherSrcOffset(const LocalTensor<uint32_t> &gatherOffsetLocal, uint32_t count,
-                                          uint32_t srcSizeof)
+namespace Compressor {
+
+template <typename T>
+__aicore__ inline void SetGatherSrcOffset(const LocalTensor<int32_t> &gatherOffsetLocal, uint32_t count)
 {
     for (uint32_t i = 0; i < 8; i++) {
         gatherOffsetLocal.SetValue(i, i ^ 1);
     }
-
-    uint32_t scalarValue = 8;
+    int32_t scalarValue = 8;
     while (scalarValue < count) {
-        uint32_t nextValue = scalarValue * 2;
+        int32_t nextValue = scalarValue * 2;
+        PipeBarrier<PIPE_V>();
         if (nextValue < count) {
             Adds(gatherOffsetLocal[scalarValue], gatherOffsetLocal, scalarValue, scalarValue);
         } else {
@@ -36,7 +39,8 @@ __aicore__ inline void SetGatherSrcOffset(const LocalTensor<uint32_t> &gatherOff
         }
         scalarValue = nextValue;
     }
-    Muls(gatherOffsetLocal, gatherOffsetLocal, srcSizeof, count);
+    PipeBarrier<PIPE_V>();
+    Muls(gatherOffsetLocal, gatherOffsetLocal, static_cast<int32_t>(sizeof(T)), count);
 }
 
 
@@ -48,14 +52,15 @@ __aicore__ inline void SetGatherSrcOffset(const LocalTensor<uint32_t> &gatherOff
  * @param sinLocal sin系数tensor [row, col]
  * @param shareTmpUb 临时buffer 内部需要的空间为 [2 * row * col * sizeof(float)]
  * @param row 待处理的行数
- * @param col 待处理的列数  
+ * @param col 待处理的列数
  * @param sinCosRepStride 行与行之间sin/cos系数的偏移，单位为元素个数。
  */
 
 template <ROTARY_MODE MODE>
 __aicore__ inline void RotaryPosEmb(const LocalTensor<float> &outputLocal, const LocalTensor<float> &inputLocal,
                                     const LocalTensor<float> &cosLocal, const LocalTensor<float> &sinLocal,
-                                    const LocalTensor<uint8_t> &shareTmpUb, const LocalTensor<uint32_t> &gatherOffsetLocal, uint64_t row, uint64_t col)
+                                    const LocalTensor<float> &shareTmpUb,
+                                    const LocalTensor<uint32_t> &gatherOffsetcastLocal, uint64_t row, uint64_t col)
 {
     uint64_t cnt = row * col;
     uint64_t half_col = col >> 1;
@@ -63,29 +68,38 @@ __aicore__ inline void RotaryPosEmb(const LocalTensor<float> &outputLocal, const
     LocalTensor<float> reArrLocal = shareTmpUb.ReinterpretCast<float>();
     LocalTensor<float> outputLocalSinTmp = shareTmpUb.ReinterpretCast<float>()[cnt];
     if constexpr (MODE == ROTARY_MODE::HALF) {
-        Datacopy(reArrLocal, inputLocal[half_col], {row, CeilDivT(half_col, BYTE_BLOCK), CeilDivT(half_col, BYTE_BLOCK), CeilDivT(half_col, BYTE_BLOCK)});
-        Datacopy(reArrLocal[half_col], inputLocal, {row, CeilDivT(half_col, BYTE_BLOCK), CeilDivT(half_col, BYTE_BLOCK), CeilDivT(half_col, BYTE_BLOCK)});
-        AscendC::PipeBarrier<PIPE_V>();
-        Muls(reArrLocal, -1.0f, half_col);
+        DataCopy(reArrLocal, inputLocal[half_col],
+                 {static_cast<uint16_t>(row), static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK)),
+                  static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK)),
+                  static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK))});
+        DataCopy(reArrLocal[half_col], inputLocal,
+                 {static_cast<uint16_t>(row), static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK)),
+                  static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK)),
+                  static_cast<uint16_t>(CeilDivT(half_col, BYTE_BLOCK))});
+        PipeBarrier<PIPE_V>();
+        Muls(reArrLocal, reArrLocal, -1.0f, half_col);
     } else if constexpr (MODE == ROTARY_MODE::INTERLEAVE) {
-        Gather(reArrLocal, inputLocal, gatherOffsetLocal, 0, col, row, CeilDivT(col, BYTE_BLOCK));
-        AscendC::PipeBarrier<PIPE_V>();
+        for (uint32_t i = 0; i < row; i++) {
+            Gather(reArrLocal[i * col], inputLocal[i * col], gatherOffsetcastLocal, 0, col);
+        }
+        PipeBarrier<PIPE_V>();
+        
         uint64_t mask[1] = {0xAAAAAAAAAAAAAAAA};
-        Muls(reArrLocal, -1.0f, mask, row, {1, 1, FP32_BLOCK_ELEMENT_NUM, FP32_BLOCK_ELEMENT_NUM});
+        Muls(reArrLocal, reArrLocal, -1.0f, mask, row, {1, 1, FP32_BLOCK_ELEMENT_NUM, FP32_BLOCK_ELEMENT_NUM});
     }
-    AscendC::PipeBarrier<PIPE_V>();
+    PipeBarrier<PIPE_V>();
     BinaryRepeatParams mulParams = {
-        1,                              // dstBlkStrideIn
-        1,                              // src0BlkStrideIn
-        1,                              // src1BlkStrideIn
-        col / FP32_BLOCK_ELEMENT_NUM,   // dstRepStrideIn
-        col / FP32_BLOCK_ELEMENT_NUM,   // src0RepStrideIn
-        col / FP32_BLOCK_ELEMENT_NUM    // src1RepStrideIn
+        1,                                                  // dstBlkStrideIn
+        1,                                                  // src0BlkStrideIn
+        1,                                                  // src1BlkStrideIn
+        static_cast<uint8_t>(col / FP32_BLOCK_ELEMENT_NUM), // dstRepStrideIn
+        static_cast<uint8_t>(col / FP32_BLOCK_ELEMENT_NUM), // src0RepStrideIn
+        static_cast<uint8_t>(col / FP32_BLOCK_ELEMENT_NUM)  // src1RepStrideIn
     };
     Mul(outputLocal, inputLocal, cosLocal, col, row, mulParams);
     Mul(outputLocalSinTmp, reArrLocal, sinLocal, col, row, mulParams);
-    AscendC::PipeBarrier<PIPE_V>();
+    PipeBarrier<PIPE_V>();
     Add(outputLocal, outputLocal, outputLocalSinTmp, cnt);
 }
-} // namespace MlaProlog
+} // namespace Compressor
 #endif
