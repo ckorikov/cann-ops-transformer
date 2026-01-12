@@ -41,12 +41,17 @@ enum class COFF : std::uint8_t {
     OVERLAP = static_cast<std::uint8_t>(1)
 };
 
-template <X_LAYOUT X_L, X_DTYPE X_T, COFF C, bool ROTARY_MODE, typename... Args>
+enum class ROTARY_MODE : std::uint8_t {
+    HALF = static_cast<std::uint8_t>(0),
+    INTERLEAVE = static_cast<std::uint8_t>(1)
+};
+
+template <X_LAYOUT X_L, X_DTYPE X_T, COFF C, ROTARY_MODE Rotary_Mode, typename... Args>
 struct COMPType {
     static constexpr X_LAYOUT xLayout = X_L;
     static constexpr X_DTYPE xDtype = X_T;
     static constexpr COFF coff = C;
-    static constexpr bool rotaryMode = ROTARY_MODE;
+    static constexpr ROTARY_MODE rotaryMode = Rotary_Mode;
 };
 
 struct ConstInfo {
@@ -83,11 +88,9 @@ struct ConstInfo {
     uint32_t maxBlockNumPerBatch = 0;
 
     // workSpace
-    uint32_t mmKVLeftResSize = 0;
-    uint32_t mmKVRightResSize = 0;
-    uint32_t mmScoreLeftResSize = 0;
-    uint32_t mmScoreRightResSize = 0;
-    uint32_t vecResSize = 0;
+    uint32_t preMm1ResSize = 0;
+    uint32_t curMm1ResSize = 0;
+    uint32_t vec1ResSize = 0;
 
     uint32_t aiCoreIdx = 0;
 };
@@ -97,6 +100,8 @@ struct RunInfo {
 
     uint32_t bStart = 0;
     uint32_t sStart = 0;
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
     uint32_t dealTcNum = 0;
 };
 
