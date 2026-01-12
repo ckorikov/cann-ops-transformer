@@ -139,6 +139,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     baseParams_->ropeHeadDim = static_cast<uint32_t>(*context_->ropeHeadDim);
     baseParams_->normEps = static_cast<float>(*context_->normEps);
     baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
+    coff = static_cast<uint8_t>(*context_->coff);
 
     OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
     
@@ -156,11 +157,12 @@ ge::graphStatus CompressorTiling::SetPageAttentionInfo()
 
 ge::graphStatus CompressorTiling::SetWorkSpaceInfo()
 {
-    workspaceParams_->mmKVLeftResSize = 256 * 64;
-    workspaceParams_->mmKVRightResSize = 256 * 64;
-    workspaceParams_->mmScoreLeftResSize = 256 * 64;
-    workspaceParams_->mmScoreRightResSize = 256 * 64;
-    workspaceParams_->vecResSize = 256 * 64;
+    if (coff == 2) {
+        workspaceParams_->preMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
+    }
+    
+    workspaceParams_->curMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
+    workspaceParams_->vec1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -175,7 +177,7 @@ ge::graphStatus CompressorTiling::SetScenarioInfo()
 ge::graphStatus CompressorTiling::SetInnerSplitInfo()
 {
     innerSplitParams_->mBaseSize = 256;
-    innerSplitParams_->dBaseSize = 64;
+    innerSplitParams_->dBaseSize = 64 * coff;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -251,7 +253,6 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
     uint8_t quantMode = 0;
-    uint8_t coff =  static_cast<uint8_t>(*context_->coff);
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH

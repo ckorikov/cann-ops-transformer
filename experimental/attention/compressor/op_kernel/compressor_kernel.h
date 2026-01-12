@@ -56,7 +56,10 @@ public:
     __aicore__ inline void Process();
 
 private:
+    // ================================Init functions==================================
+    __aicore__ inline void InitWorkspace(__gm__ uint8_t *workspace);
     __aicore__ inline uint32_t CalcTcSize();
+    // ================================Process functions================================
     __aicore__ inline uint32_t GetSeqLength(uint32_t index);
     __aicore__ inline uint32_t GetStartPos(uint32_t index);
     __aicore__ inline void GetCurCoreStartIdx();
@@ -69,9 +72,10 @@ private:
     __aicore__ inline void ComputeMm1(const RunInfo &info);
     __aicore__ inline void ComputeVec1(const RunInfo &info);
     __aicore__ inline void ComputeVec2(const RunInfo &info);
-
+    // ==============================TilingData&TPipe==============================
     TPipe* pipe_;
     const optiling::CompressorTilingData* __restrict tilingData_;
+    // ================================Task Info====================================
     ConstInfo constInfo{};
 
     uint32_t tcStart = 0;
@@ -96,6 +100,9 @@ private:
     static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
     
     using X_T = typename AscendC::Conditional<X_DTYPE, bfloat16_t, half>::type;
+    using T = float;
+    using MM1_OUT_T = T;
+    using VEC1_OUT_T = T;
 
     // GM
     GlobalTensor<X_T> xGm_;
@@ -111,6 +118,11 @@ private:
     GlobalTensor<int32_t> cuSeqlensGm_;
     GlobalTensor<int32_t> sequsedGm_;
     GlobalTensor<int32_t> startPosGm_;
+
+    // ===========================Workspace Global Tensor===========================
+    GlobalTensor<MM1_OUT_T> preMm1ResGm;
+    GlobalTensor<MM1_OUT_T> curMm1ResGm;
+    GlobalTensor<VEC1_OUT_T> vec1ResGm;
 };
 
 template <typename COMP>
@@ -195,12 +207,32 @@ __aicore__ inline void CompressorKernel<COMP>::InitTilingData() {
     constInfo.blockSize = tilingData_->pageAttentionParams.blockSize;
     constInfo.maxBlockNumPerBatch = tilingData_->pageAttentionParams.maxBlockNumPerBatch;
 
-    constInfo.mmKVLeftResSize = tilingData_->workspaceParams.mmKVLeftResSize;
-    constInfo.mmKVRightResSize = tilingData_->workspaceParams.mmKVRightResSize;
-    constInfo.mmScoreLeftResSize = tilingData_->workspaceParams.mmScoreLeftResSize;
-    constInfo.mmScoreRightResSize = tilingData_->workspaceParams.mmScoreRightResSize;
-    constInfo.vecResSize = tilingData_->workspaceParams.vecResSize;
+    constInfo.preMm1ResSize = tilingData_->workspaceParams.preMm1ResSize;
+    constInfo.curMm1ResSize = tilingData_->workspaceParams.curMm1ResSize;
+    constInfo.vec1ResSize = tilingData_->workspaceParams.vec1ResSize * N;
     // printf("[TILINGDATA] cmpRatio:%u batchSize:%u mBaseSize:%u dBaseSize:%u\n", constInfo.cmpRatio, constInfo.batchSize, constInfo.mBaseSize, constInfo.dBaseSize);
+}
+
+template <typename COMP>
+__aicore__ inline void CompressorKernel<COMP>::InitWorkspace(__gm__ uint8_t *workspace) {
+    static constexpr uint32_t dbWorkspaceRatio = PRELOAD_NUM;
+    uint64_t offset = 0;
+    // preMm1ResGm
+    preMm1ResGm.SetGlobalBuffer(
+        (__gm__ MM1_OUT_T *)(workspace + offset +
+                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.preMm1ResSize * sizeof(MM1_OUT_T)));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.preMm1ResSize * sizeof(MM1_OUT_T);
+
+    // curMm1ResGm
+    curMm1ResGm.SetGlobalBuffer(
+        (__gm__ MM1_OUT_T *)(workspace + offset +
+                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.curMm1ResSize * sizeof(MM1_OUT_T)));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.curMm1ResSize * sizeof(MM1_OUT_T);
+
+    // vec1Res
+    vec1ResGm.SetGlobalBuffer(
+        (__gm__ VEC1_OUT_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.vec1ResSize * sizeof(VEC1_OUT_T)));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.vec1ResSize * sizeof(VEC1_OUT_T);
 }
 
 template <typename COMP>
