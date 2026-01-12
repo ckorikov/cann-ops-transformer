@@ -33,7 +33,7 @@ ASCENDC_TPL_ARGS_DECL(compressor, // 算子唯一标识，与opType保持一致
     // bit:5-6  coff 0:无需overlap 1:需要overlap
     ASCENDC_TPL_UINT_DECL(COFF, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 1, 2),
     // bit:7  rotary_mode 0:half 1:interleave
-    ASCENDC_TPL_BOOL_DECL(ROTARY_MODE, 0, 1),
+    ASCENDC_TPL_UINT_DECL(ROTARY_MODE, ASCENDC_TPL_2_BW, ASCENDC_TPL_UI_LIST, 1, 2),
 );
 
 ASCENDC_TPL_SEL(
@@ -41,7 +41,7 @@ ASCENDC_TPL_SEL(
     ASCENDC_TPL_ARGS_SEL(ASCENDC_TPL_UINT_SEL(X_LAYOUT, ASCENDC_TPL_UI_LIST, 0, 1),
                         ASCENDC_TPL_UINT_SEL(X_DTYPE, ASCENDC_TPL_UI_LIST, 0, 1),
                         ASCENDC_TPL_UINT_SEL(COFF, ASCENDC_TPL_UI_LIST, 1, 2),
-                        ASCENDC_TPL_BOOL_SEL(ROTARY_MODE, 0, 1),
+                        ASCENDC_TPL_UINT_SEL(ROTARY_MODE, ASCENDC_TPL_UI_LIST, 1, 2),
                         ASCENDC_TPL_TILING_STRUCT_SEL(optiling::CompressorTilingData)),
 );
 

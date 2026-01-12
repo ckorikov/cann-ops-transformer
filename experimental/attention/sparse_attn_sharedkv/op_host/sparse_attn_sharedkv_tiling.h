@@ -27,7 +27,7 @@
 #include "platform/platform_info.h"
 
 namespace optiling {
-
+constexpr uint32_t BYTE_BLOCK = 32;
 // // ------------------公共定义--------------------------
 struct SASTilingRequiredParaInfo {
     const gert::CompileTimeTensorDesc *desc;
@@ -100,6 +100,7 @@ constexpr uint32_t DIM_IDX_THREE = 3;
 constexpr uint32_t DIM_IDX_FOUR = 4;
 
 // Dim Num
+constexpr uint32_t DIM_NUM_ONE = 1;
 constexpr uint32_t DIM_NUM_TWO = 2;
 constexpr uint32_t DIM_NUM_THREE = 3;
 constexpr uint32_t DIM_NUM_FOUR = 4;
@@ -245,7 +246,7 @@ public:
 
 
     // Layout
-    SASLayout qLayout = SASLayout::BSND;
+    SASLayout qLayout = SASLayout::TND;
     SASLayout kvLayout = SASLayout::PA_ND;
     SASLayout outLayout = SASLayout::BSND;
 
@@ -437,6 +438,7 @@ public:
     ge::graphStatus GetSparseBlockCount();
     ge::graphStatus GetActualseqInfo();
     ge::graphStatus GetSASTempateMode();
+    ge::graphStatus GetSinks();
     void GenerateInfo(SASTilingInfo &sasInfo);
     ge::graphStatus Parse(SASTilingInfo &sasInfo);
 

@@ -36,7 +36,7 @@ public:
             .Format({ge::FORMAT_ND, ge::FORMAT_ND})
             .AutoContiguous();
         this->Input("cmp_sparse_indices")
-            .ParamType(REQUIRED)
+            .ParamType(OPTIONAL)
             .DataType({ge::DT_INT32, ge::DT_INT32})
             .Format({ge::FORMAT_ND, ge::FORMAT_ND})
             .AutoContiguous();
@@ -93,6 +93,7 @@ public:
             .ExtendCfgInfo("aclnnSupport.value", "support_aclnn");
         this->AICore().AddConfig("ascend910b", aicore_config);
         this->AICore().AddConfig("ascend910_93", aicore_config);
+        this->AICore().AddConfig("ascend910_95", aicore_config);
     }
 };
 OP_ADD(SparseAttnSharedkv);
