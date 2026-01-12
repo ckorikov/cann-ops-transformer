@@ -56,8 +56,8 @@ struct SASType {
     using outputType = OUT_T;
     static constexpr bool flashDecode = FLASH_DECODE;
     static constexpr SAS_LAYOUT layout = LAYOUT_T;
-    static constexpr SAS_LAYOUT kvLayout = KV_LAYOUT_T;
-    static constexpr bool pageAttention = (KV_LAYOUT_T == SAS_LAYOUT::PA_ND);
+    static constexpr SAS_KV_LAYOUT kvLayout = KV_LAYOUT_T;
+    static constexpr bool pageAttention = (KV_LAYOUT_T == SAS_KV_LAYOUT::PA_ND);
 };
 
 // ================================Util functions==================================
