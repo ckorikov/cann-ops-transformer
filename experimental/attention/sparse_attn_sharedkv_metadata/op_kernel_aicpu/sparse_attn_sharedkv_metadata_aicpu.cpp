@@ -22,14 +22,12 @@
 namespace aicpu {
 uint32_t
 SparseAttnSharedkvMetadataCpuKernel::Compute(CpuKernelContext &ctx) {
-  context_ = &ctx;
   bool success = Prepare(ctx) && BalanceSchedule() && GenMetaData();
   return success ? KERNEL_STATUS_OK : KERNEL_STATUS_PARAM_INVALID;
 }
 
 bool SparseAttnSharedkvMetadataCpuKernel::Prepare(
     CpuKernelContext &ctx) {
-
   // input
   actSeqLenQ_ = ctx.Input(static_cast<uint32_t>(ParamId::actSeqLenQ));
   actSeqLenKV_ = ctx.Input(static_cast<uint32_t>(ParamId::actSeqLenKV));
@@ -76,8 +74,8 @@ bool SparseAttnSharedkvMetadataCpuKernel::ParamsInit(uint32_t cmpRatio_, uint32_
     groupSize_ = queryHeadNum_ / kvHeadNum_;
     uint32_t MBaseBlockLen = 128U;
     uint32_t s1BlockLen = MBaseBlockLen / groupSize_;
-    if (cmpRatio_ != 0) {
-        if (topK_ != 0) {
+    if (cmpRatio_ > 1) {
+        if (topK_ > 0) {
             isSCFA = true;
             s1BlockLen = 1U;
         } else {
@@ -846,7 +844,6 @@ optiling::detail::SasMetaData* metaDataPtr = (optiling::detail::SasMetaData*)met
             metaDataPtr->fdRes.fdBalanceEndIdx2[i] = splitRes_.fdRes.gS1IdxEndOfFdHeadSplit[i];
         }
     }
-    CUST_KERNEL_LOG_INFO(*this->context_,"Test GenMetaData, metaDataPtr->usedCoreNum: %u \n", metaDataPtr->usedCoreNum);
     return true;
 }
 
