@@ -98,7 +98,7 @@ def benchmark_quest_prefill():
     print("=" * 106)
     print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 106)
-    print(f"{'num_kv_heads':>3} {'batch_size':>3} {'Seq_len':>10} {'Outputs_equal':>15} "
+    print(f"{'N':>3} {'B':>3} {'Seq_len':>10} {'Outputs_equal':>15} "
           f"{'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} {'Our_BW_[TB/sec]':>16}")
     print("-" * 106)
 

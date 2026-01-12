@@ -88,7 +88,7 @@ def benchmark_quest_block_select_paged():
     print("=" * 124)
     print(f"  {DTYPE=}  {BLOCK_SIZE=}  {HEAD_DIM=}  {SAME_SEQ_LEN_ALL_REQS=}")
     print("=" * 124)
-    print(f"{'num_heads':>3} {'num_kv_heads':>3} {'batch_size':>3} {'mmbpr':>6} {'Max_seq_len':>12} {'k':>4} "
+    print(f"{'H':>3} {'N':>3} {'B':>3} {'MMBPR':>6} {'Max_seq_len':>12} {'k':>4} "
           f"{'Outputs_equal':>15} {'Ref_Latency_[usec]':>18} {'Our_Latency_[usec]':>18} {'Ref_BW_[TB/sec]':>16} "
           f"{'Our_BW_[TB/sec]':>16}")
     print("-" * 124)
