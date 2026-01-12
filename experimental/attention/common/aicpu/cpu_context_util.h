@@ -32,7 +32,7 @@ inline typename std::enable_if<std::is_integral_v<T>, bool>::type
 GetAttrValue(CpuKernelContext &ctx, const std::string &name, T &value) {
   auto attr = ctx.GetAttr(name);
   if (!attr) {
-    KERNEL_LOG_ERROR("attr is null: %s", name);
+    KERNEL_LOG_ERROR("attr is null: %s", name.c_str());
     return false;
   }
   value = static_cast<T>(attr->GetInt());
@@ -43,7 +43,7 @@ inline bool GetAttrValue(CpuKernelContext &ctx, const std::string &name,
                          std::string &value) {
   auto attr = ctx.GetAttr(name);
   if (!attr) {
-    KERNEL_LOG_ERROR("attr is null: %s", name);
+    KERNEL_LOG_ERROR("attr is null: %s", name.c_str());
     return false;
   }
   value = attr->GetString();
@@ -54,7 +54,7 @@ inline bool GetAttrValue(CpuKernelContext &ctx, const std::string &name,
                          bool &value) {
   auto attr = ctx.GetAttr(name);
   if (!attr) {
-    KERNEL_LOG_ERROR("attr is null: %s", name);
+    KERNEL_LOG_ERROR("attr is null: %s", name.c_str());
     return false;
   }
   value = attr->GetBool();
