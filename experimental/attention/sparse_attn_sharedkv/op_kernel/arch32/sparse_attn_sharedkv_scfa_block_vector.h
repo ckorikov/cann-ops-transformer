@@ -264,8 +264,8 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffer
 
     v0ValidSizeUb_ = v0ValidSizeBuff.Get<int32_t>();
 
-    sinksUb = sinksBuff.Get<T>();
-    sinksBrcbUb = sinksBrcbBuff.Get<T>();
+    sinksUb = sinksBuff.Get<SINKS_T>();
+    sinksBrcbUb = sinksBrcbBuff.Get<SINKS_T>();
 }
 
 template <typename SAST>
@@ -301,7 +301,7 @@ template <typename SAST>
 __aicore__ inline void SASVectorBlock<SAST>::InitVec1GlobalTensor(
     GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
     GlobalTensor<int32_t> actualSeqLengthsQGm, GlobalTensor<int32_t> actualSeqLengthsKVGm, GlobalTensor<T> lseMaxFdGm,
-    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm, GlobalTensor<T> sinksGm)
+    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm, GlobalTensor<SINKS_T> sinksGm)
 {
     // actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm
     this->mm1ResGm = mm1ResGm;
