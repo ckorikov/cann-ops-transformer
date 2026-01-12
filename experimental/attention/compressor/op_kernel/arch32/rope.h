@@ -80,7 +80,9 @@ __aicore__ inline void RotaryPosEmb(const LocalTensor<float> &dstLocal, const Lo
                   static_cast<uint16_t>(CeilDivT(half_col, FP32_BLOCK_ELEMENT_NUM)),
                   static_cast<uint16_t>(CeilDivT(half_col, FP32_BLOCK_ELEMENT_NUM))});
         PipeBarrier<PIPE_V>();
-        Muls(reArrLocal, reArrLocal, -1.0f, half_col);
+        Muls(reArrLocal, reArrLocal, float(-1), half_col, row,
+             {1, 1, static_cast<uint8_t>(CeilDivT(static_cast<uint32_t>(col), FP32_BLOCK_ELEMENT_NUM)),
+              static_cast<uint8_t>(CeilDivT(static_cast<uint32_t>(col), FP32_BLOCK_ELEMENT_NUM))});
     } else if constexpr (MODE == ROTARY_MODE::INTERLEAVE) {
         for (uint32_t i = 0; i < row; i++) {
             Gather(reArrLocal[i * col], srcLocal[i * col], gatherOffsetcastLocal, 0, col);
