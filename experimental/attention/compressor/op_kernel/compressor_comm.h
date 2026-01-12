@@ -55,6 +55,11 @@ enum class COFF : std::uint8_t {
     OVERLAP = static_cast<std::uint8_t>(1)
 };
 
+enum class ROTARY_MODE : std::uint8_t {
+    HALF = static_cast<std::uint8_t>(0),
+    INTERLEAVE = static_cast<std::uint8_t>(1)
+};
+
 template <X_LAYOUT X_L, X_DTYPE X_T, COFF C, bool ROTARY_MODE, typename... Args>
 struct COMPType {
     static constexpr X_LAYOUT xLayout = X_L;
