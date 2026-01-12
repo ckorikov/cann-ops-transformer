@@ -13,7 +13,6 @@
 # `bisheng` CLI: https://www.hiascend.com/document/detail/zh/canncommercial/800/developmentguide/opdevg/BishengCompiler/atlas_bisheng_10_0003.html
 # Adapted from: https://gitee.com/ascend/mstt/tree/master/sample/pytorch_adapter
 
-
 # validate cann environment
 source ../../scripts/num_cores_map.sh
 source ../../scripts/check_cann.sh

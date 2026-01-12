@@ -30,7 +30,6 @@ constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_V200 = 8;
 constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_HALF_V220 = 4;
 constexpr uint32_t REGION_PROPOSAL_DATA_SIZE_FLOAT_V220 = 2;
 
-
 /**
  * @brief bfloat16 Kernel implementation for Quest KV block selection with 
  * paged metadata in AscendC

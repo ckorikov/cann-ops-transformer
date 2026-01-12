@@ -40,7 +40,6 @@ extern void launch_quest_prefill_metadata(
     int32_t MMBPR
 );
 
-
 /**
  * This is the interface function which is invoked from the python level. 
  * It handles:

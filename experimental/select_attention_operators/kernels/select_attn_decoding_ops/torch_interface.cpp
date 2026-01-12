@@ -348,7 +348,6 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
     );
 }
 
-
 /**
  * Create the binding between this CPP function and python. Expose the function towards python.
  */

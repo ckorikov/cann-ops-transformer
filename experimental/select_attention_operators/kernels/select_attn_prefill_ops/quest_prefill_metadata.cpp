@@ -272,7 +272,6 @@ quest_prefill_metadata(GM_ADDR k_cache,
     op.Process();
 }
 
-
 /**
  * Kernel launch function
  */
