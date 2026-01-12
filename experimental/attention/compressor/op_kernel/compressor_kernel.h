@@ -16,14 +16,11 @@
 #ifndef COMPRESSOR_KERNEL_H
 #define COMPRESSOR_KERNEL_H
 
-#include "kernel_operator.h"
-#include "kernel_operator_list_tensor_intf.h"
-#include "kernel_tiling/kernel_tiling.h"
-#include "lib/matmul_intf.h"
-#include "lib/matrix/matmul/tiling.h"
+#include "compressor_comm.h"
+#include "compressor_vector_comm.h"
 #include "compressor_template_tiling_key.h"
 #include "compressor_tiling_data.h"
-#include "compressor_comm.h"
+#include "compressor_block_vec.h"
 
 using namespace AscendC;
 
@@ -98,6 +95,9 @@ private:
     static constexpr uint64_t SYNC_MODE2 = 2;
     static constexpr uint32_t SYNC_C1_V1_FLAG = 6;
     static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
+
+    // ==============================Service Define==============================
+    CompressorBlockVector<COMP> vectorService;
     static constexpr uint32_t PRELOAD_NUM = 2;
     
     using X_T = typename AscendC::Conditional<X_DTYPE, bfloat16_t, half>::type;
@@ -171,6 +171,7 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     startPosGm_.SetGlobalBuffer((__gm__ int32_t *)startPos);
 
     InitTilingData();
+    InitWorkspace(workspace);
 
     // 初始化 curActSeqLength、start_pos TODO考虑为None， 
     if (COMP::xLayout == X_LAYOUT::TH) {
@@ -188,6 +189,15 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     constInfo.coreGroupNum = constInfo.usedCoreNum / constInfo.dBasicBlockNum;                        // 核分为多少组
     constInfo.singleCoreDealTcBasicNum = (constInfo.tcBasicBlockNum + constInfo.coreGroupNum - 1) / constInfo.coreGroupNum; // 处理的最大基本块数量
     // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
+    if ASCEND_IS_AIC {
+
+    } else {
+        vectorService.InitParams(constInfo);
+        vectorService.Init(x, wKv, wGate, kvState, scoreState, ape, normWeight, ropeSin, ropeCos, blockTable, 
+                        cuSeqlens, seqUsed, startPos, cmpKvOut, kvStateOut, scoreStateOut);
+        vectorService.InitVec1GlobalTensor(preMm1ResGm, curMm1ResGm, vec1ResGm);
+    }
+    
 }
 
 template <typename COMP>
@@ -464,6 +474,7 @@ __aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
     // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    vectorService.ComputeVec1(info);
 }
 
 template <typename COMP>
