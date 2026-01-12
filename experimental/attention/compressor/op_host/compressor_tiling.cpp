@@ -139,6 +139,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     baseParams_->ropeHeadDim = static_cast<uint32_t>(*context_->ropeHeadDim);
     baseParams_->normEps = static_cast<float>(*context_->normEps);
     baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
+    coff = static_cast<uint8_t>(*context_->coff);
 
     OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio);
     
@@ -156,11 +157,12 @@ ge::graphStatus CompressorTiling::SetPageAttentionInfo()
 
 ge::graphStatus CompressorTiling::SetWorkSpaceInfo()
 {
-    workspaceParams_->mmKVLeftResSize = 256 * 64;
-    workspaceParams_->mmKVRightResSize = 256 * 64;
-    workspaceParams_->mmScoreLeftResSize = 256 * 64;
-    workspaceParams_->mmScoreRightResSize = 256 * 64;
-    workspaceParams_->vecResSize = 256 * 64;
+    workspaceParams_->preMm1ResSize = 0;
+    if (coff == 2) {
+        workspaceParams_->preMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
+    }
+    workspaceParams_->curMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
+    workspaceParams_->vec1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -175,7 +177,7 @@ ge::graphStatus CompressorTiling::SetScenarioInfo()
 ge::graphStatus CompressorTiling::SetInnerSplitInfo()
 {
     innerSplitParams_->mBaseSize = 256;
-    innerSplitParams_->dBaseSize = 64;
+    innerSplitParams_->dBaseSize = 64 * coff;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -186,11 +188,9 @@ ge::graphStatus CompressorTiling::CalcWorkSpace()
     constexpr uint32_t V1_RES_ELEM_SIZE = 2;       // 2: fp16/bf16
 
     workspaceSize_ = libapiSize_;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmKVLeftResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmKVRightResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmScoreLeftResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->mmScoreRightResSize * MM1_RES_ELEM_SIZE;
-    workspaceSize_ += aicNum_ * workspaceParams_->vecResSize * V1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->preMm1ResSize * MM1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->curMm1ResSize * MM1_RES_ELEM_SIZE;
+    workspaceSize_ += aicNum_ * workspaceParams_->vec1ResSize * V1_RES_ELEM_SIZE;
     
     // TODO 为后面改动预留
     workspaceSize_ += 1024 * 1024 * 1024;
@@ -250,8 +250,6 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
 ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
-    uint8_t quantMode = 0;
-    uint8_t coff =  static_cast<uint8_t>(*context_->coff);
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH
@@ -275,7 +273,7 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
         static_cast<uint8_t>(layout),
         // TODO coff有问题
         static_cast<uint8_t>(coff),
-        *context_->rotaryMode == 2,
+        static_cast<uint8_t>(*context_->rotaryMode),
     );
 
     OP_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);

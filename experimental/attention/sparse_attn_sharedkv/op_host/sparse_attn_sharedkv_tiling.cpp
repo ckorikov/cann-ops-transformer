@@ -30,6 +30,7 @@ static const std::string CMP_BLOCK_TABLE_NAME = "cmp_block_table";
 // static const std::string QUERY_ROPE_NAME = "query_rope";
 // static const std::string KEY_ROPE_NAME = "key_rope";
 // static const std::string ATTEN_OUT_NAME = "attention_out";
+static const std::string SINKS_NAME = "sinks";
 
 std::string SASLayoutToSerialString(SASLayout layout)
 {
@@ -452,6 +453,25 @@ ge::graphStatus SASInfoParser::GetSparseBlockCount()
     return ge::GRAPH_SUCCESS;
 }
 
+ge::graphStatus SASInfoParser::GetSinks()
+{
+    if (opParamInfo_.sinks.tensor == nullptr) {
+        OP_LOGE(opName_, "%s must be provided!", SINKS_NAME.c_str());
+        return ge::GRAPH_FAILED;
+    }
+    if (opParamInfo_.sinks.tensor->GetStorageShape().GetDimNum() != DIM_NUM_ONE) {
+        OP_LOGE(opName_, "the dim num of %s is %u, it should be %u.", SINKS_NAME.c_str(),
+            opParamInfo_.sinks.tensor->GetStorageShape().GetDimNum(), DIM_NUM_ONE);
+        return ge::GRAPH_FAILED;
+    }
+    if (opParamInfo_.sinks.tensor->GetStorageShape().GetDim(0) != n1Size_) {
+        OP_LOGE(opName_, "%s's dimension(%ld) should be equal to query head num(%u).", SINKS_NAME.c_str(),
+            opParamInfo_.sinks.tensor->GetStorageShape().GetDim(0), n1Size_);
+        return ge::GRAPH_FAILED;
+    }
+    return ge::GRAPH_SUCCESS;
+}
+
 ge::graphStatus SASInfoParser::GetActualseqInfo()
 {
     maxActualseq_ = static_cast<uint32_t>(s2Size_);
@@ -546,7 +566,8 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
         ge::GRAPH_SUCCESS != GetS1Size() ||
         ge::GRAPH_SUCCESS != GetS2Size() ||
         ge::GRAPH_SUCCESS != GetQkHeadDim() ||
-        ge::GRAPH_SUCCESS != GetSparseBlockCount()) {
+        ge::GRAPH_SUCCESS != GetSparseBlockCount() ||
+        ge::GRAPH_SUCCESS != GetSinks()) {
         return ge::GRAPH_FAILED;
     }
 
