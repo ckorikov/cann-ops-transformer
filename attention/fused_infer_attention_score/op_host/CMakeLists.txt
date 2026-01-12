@@ -24,7 +24,6 @@ if (BUILD_OPS_RTY_KERNEL)
                 --op_relocatable_kernel_binary=true
     )
 else()
-
     add_modules_sources(OPTYPE fused_infer_attention_score ACLNNTYPE aclnn_inner)
 endif()
 
