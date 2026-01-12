@@ -98,6 +98,7 @@ private:
     static constexpr uint64_t SYNC_MODE2 = 2;
     static constexpr uint32_t SYNC_C1_V1_FLAG = 6;
     static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
+    static constexpr uint32_t PRELOAD_NUM = 2;
     
     using X_T = typename AscendC::Conditional<X_DTYPE, bfloat16_t, half>::type;
     using T = float;
@@ -376,6 +377,7 @@ __aicore__ inline void CompressorKernel<COMP>::CalcParams(RunInfo &info) {
     
     for (uint32_t bIdx = curBStart; bIdx < constInfo.batchSize; ++bIdx) {
         curBEnd = bIdx;
+        info.bEnd = curBEnd;
         if (bIdx == curBStart) {
             curActSeqLength = GetSeqLength(bIdx);
             curStartPos = GetStartPos(bIdx);
@@ -400,13 +402,16 @@ __aicore__ inline void CompressorKernel<COMP>::CalcParams(RunInfo &info) {
                     } else {
                         curSEnd = curSStart + headSize + (dealTcNum - 1) * constInfo.cmpRatio;
                     }
+                    info.sEnd = curSEnd;
                     return;
                 } else {
                     curSEnd = curSStart + dealTcNum * constInfo.cmpRatio;
+                    info.sEnd = curSEnd;
                     return;
                 }
             } else if (curRemainTcNum == dealTcNum || bIdx == constInfo.batchSize - 1) {
                 curSEnd = curActSeqLength;
+                info.sEnd = curSEnd;
                 return;
             } else {
                 accBasicNum += curRemainTcNum;
@@ -431,10 +436,11 @@ __aicore__ inline void CompressorKernel<COMP>::CalcParams(RunInfo &info) {
                     curSEnd = headSize + (curBasicNumEnd - 1) * constInfo.cmpRatio;
                 }
                 curSEnd = curSEnd > curActSeqLength ? curActSeqLength : curSEnd;
-
+                info.sEnd = curSEnd;
                 return;
             } else if (accBasicNum + curBasicNum == dealTcNum) {
                 curSEnd = curActSeqLength;
+                info.sEnd = curSEnd;
                 return;
             }
             accBasicNum += curBasicNum;

@@ -100,6 +100,8 @@ struct RunInfo {
 
     uint32_t bStart = 0;
     uint32_t sStart = 0;
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
     uint32_t dealTcNum = 0;
 };
 
