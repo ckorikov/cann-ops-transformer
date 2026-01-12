@@ -372,7 +372,7 @@ template <typename COMP>
     }
     for (uint32_t i = 0; i < scLoopTimes; i++) {
         for (uint32_t j = 0; j < dLoopTimes; j++) {
-            for (uint32_t k = info.bStart; k < info.bEnd; k++) {
+            for (uint32_t k = info.bStart; k <= info.bEnd; k++) {
                 // 计算当前batch的seq 开始结束索引
                 curActSeqLength_ = GetSeqLength(info.bStart, k);
                 uint32_t sStart = 0;
@@ -383,7 +383,7 @@ template <typename COMP>
                 if (k == info.bEnd) {
                     sEnd = info.sEnd;
                 }
-                printf("[IDX] b:%u sStart:%u sEnd:%u", k, sStart, sEnd);
+                printf("[IDX] b:%u sStart:%u sEnd:%u\n", k, sStart, sEnd);
                 // 从UB拷贝到32k空间
                 // 存state
                 // 从state取
