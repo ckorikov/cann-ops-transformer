@@ -65,7 +65,16 @@ bool LightningIndexerQuantMetadataCpuKernel::ParamsCheck() {
 bool LightningIndexerQuantMetadataCpuKernel::ParamsInit() {
     
     groupSize_ = numHeadsQ_ / numHeadsK_;
-    mBaseSize_ = 4 * groupSize_;
+    if (actSeqLenQ_ == nullptr) {
+        auto shape = actSeqLenQ_->GetTensorShape();
+        const int32_t *s1Ptr = (int32_t*)actSeqLenQ_->GetData()
+        if (s1Ptr[bIdx] == 0) {
+            batchSize_ = shape->GetDimension(0)-1;
+        } else {
+            batchSize_ = shape->GetDimension(0);
+        }
+    }
+    mBaseSize_ = 256;
     if (soc_version_=="ascend910B"){
         s2BaseSize_ = 2048U; //仅用于A3
     } else {
