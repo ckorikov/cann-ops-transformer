@@ -48,7 +48,7 @@ enum class SASTemplateMode {
 };
 
 template <typename Q_T, typename KV_T, typename OUT_T, const bool FLASH_DECODE = false,
-	  SAS_LAYOUT LAYOUT_T = SAS_LAYOUT::BSND, SAS_LAYOUT KV_LAYOUT_T = SAS_LAYOUT::PA_ND, 
+	  SAS_LAYOUT LAYOUT_T = SAS_LAYOUT::BSND, SAS_LAYOUT KV_LAYOUT_T = SAS_KV_LAYOUT::PA_ND, 
       typename... Args>
 struct SASType {
     using queryType = Q_T;
