@@ -268,10 +268,10 @@ private:
     uint32_t aicCoreNum_ = 24U;
     uint32_t aivCoreNum_ = 48U;
     uint32_t batchSize_ = 0;
-    uint32_t querySeqSize_ = 0;
-    uint32_t queryHeadNum_ = 0;
-    uint32_t kvSeqSize_ = 0;
-    uint32_t kvHeadNum_ = 0;
+    uint32_t maxSeqlenQ_ = 0;
+    uint32_t maxSeqlenK_ = 0;
+    uint32_t numHeadsQ_ = 0;
+    uint32_t numHeadsK_ = 0;
     uint32_t headDim_ = 0;
     uint32_t topKSize_ = 0;
     uint32_t sparseBlockSize_ = 0;
