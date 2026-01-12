@@ -193,6 +193,11 @@ struct SASParaInfo {
     const char *layoutKv = nullptr;
 };
 
+struct InnerSplitParams {
+    uint32_t s1GBaseSize = 1;
+    uint32_t s2BaseSize = 1;
+};
+
 // -----------算子Tiling入参信息类---------------
 class SASTilingInfo {
 public:

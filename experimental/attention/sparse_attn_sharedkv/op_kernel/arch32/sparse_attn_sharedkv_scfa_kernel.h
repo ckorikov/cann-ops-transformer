@@ -489,7 +489,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     InitActualSeqLen(cuSeqlensQ, seqUsedKV);
 
     // 初始化计算参数 分和函數沒有
-    // InitCalcParamsEach();
+    InitCalcParamsEach();
     pipe = tPipe;
 
     // init global buffer
@@ -571,6 +571,100 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     if (pipe != nullptr) {
         InitBuffers();
     }
+}
+
+
+template <typename SAST>
+__aicore__ inline void SparseAttnSharedkvScfa<SAST>::InitCalcParamsEach()
+{
+    // TODO: 针对decode首case处理
+    constInfo.bN2Start = 0;
+    constInfo.gS1Start = 0;
+    constInfo.s2Start = 0;
+
+    if (aiCoreIdx == 0) {
+        constInfo.bN2End = 0;
+        constInfo.gS1End = 1; // 右开
+        constInfo.s2End = 0;
+    } else {
+        constInfo.bN2End = 0;
+        constInfo.gS1End = 0;
+    }
+
+
+    //计算总的基本块
+    // uint32_t totalBaseNum = 0;
+	// uint32_t s1GBaseSize = constInfo.gSize;
+	// uint32_t actBatchS2 = 1;
+	// uint32_t coreNum = GetBlockNum();
+    // uint32_t currCoreIdx = aiCoreIdx;
+    // uint32_t actBatchS1 = 1;
+    // for (uint32_t bIdx = 0; bIdx < constInfo.batchSize; bIdx++) {
+	// 	uint32_t actBatchS1 = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
+    //     if (actBatchS1 < constInfo.qSeqSize) {
+    //         constInfo.needInit = true;
+    //     }
+    //     totalBaseNum += actBatchS1*actBatchS2 ;
+    // }
+    // uint32_t avgBaseNum = 1;
+    // if (totalBaseNum > coreNum) {
+    //     avgBaseNum = (totalBaseNum + coreNum - 1) / coreNum;
+    // }else {
+    //     usedCoreNum = totalBaseNum;
+    // }
+    // if(aiCoreIdx>=usedCoreNum){
+    //     return;
+    // }
+	// //计算当前核的基本块
+	// uint32_t accumBaseNum = 0;                       // 当前累积的基本块数
+    // uint32_t targetBaseNum = 0;
+    // uint32_t lastValidBIdx = 0;
+    // uint32_t lastValidactBatchS1=0;
+    // bool setStart=false;
+	// targetBaseNum = (currCoreIdx + 1) * avgBaseNum;  // 计算当前的目标权重
+    // uint32_t targetStartBaseNum = targetBaseNum-avgBaseNum;
+    // for (uint32_t bN2Idx = 0; bN2Idx < constInfo.batchSize * constInfo.kvHeadNum; bN2Idx++) { 
+    //     uint32_t bIdx = bN2Idx / constInfo.kvHeadNum;
+	// 	actBatchS1 = GetBalanceActualSeqLengths(actualSeqLengthsQGm, bIdx);
+    //     for (uint32_t s1GIdx = 0; s1GIdx < actBatchS1; s1GIdx++) {
+    //         accumBaseNum += 1;
+    //         if(!setStart && accumBaseNum >= targetStartBaseNum){
+    //             constInfo.bN2Start = bN2Idx;
+    //             constInfo.gS1Start = s1GIdx;
+    //             setStart=true;
+    //         }
+    //         if (accumBaseNum >= targetBaseNum) {
+    //             // 更新当前核的End分核信息
+    //             constInfo.bN2End = bN2Idx;
+    //             constInfo.gS1End = s1GIdx;
+    //             constInfo.s2End = 0;
+    //             constInfo.coreStartKVSplitPos = 0;
+    //             if (aiCoreIdx != 0) {
+    //                 GetAxisStartIdx(constInfo.bN2Start, constInfo.gS1Start, 0);
+    //             }
+    //             return;
+	// 		}
+	// 	}
+	// 	if ((actBatchS1 > 0) && (actBatchS2 > 0)) {
+    //         lastValidBIdx = bIdx;
+    //         lastValidactBatchS1 = actBatchS1;
+    //     }
+    // }
+    // if (!setStart){
+    //     constInfo.bN2Start = lastValidBIdx;
+    //     constInfo.gS1Start = lastValidactBatchS1-1;
+    // }
+    // if (accumBaseNum < targetBaseNum) {
+	// 	// 更新最后一个核的End分核信息
+	// 	constInfo.bN2End = lastValidBIdx;
+    //     constInfo.gS1End = lastValidactBatchS1-1;
+    //     constInfo.s2End = 0;
+    //     constInfo.coreStartKVSplitPos = 0;
+    //     if (aiCoreIdx != 0) {
+    //         GetAxisStartIdx(constInfo.bN2Start, constInfo.gS1Start, 0);
+    //     }
+    //     return;
+    // }
 }
 
 template <typename SAST>

@@ -642,6 +642,12 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     workSpaces[0] = workspaceSize;
 
     // -------------set tilingdata-----------------
+    InnerSplitParams innerSplitParams;
+    innerSplitParams.s1GBaseSize = 64; 
+    innerSplitParams.s2BaseSize = 512;
+    tilingData_.innerSplitParams.set_mBaseSize(innerSplitParams.s1GBaseSize);
+    tilingData_.innerSplitParams.set_s2BaseSize(innerSplitParams.s2BaseSize);
+
     tilingData_.baseParams.set_batchSize(tilingInfo->bSize);
     tilingData_.baseParams.set_kvSeqSize(tilingInfo->s2Size);
     tilingData_.baseParams.set_qSeqSize(tilingInfo->s1Size);
