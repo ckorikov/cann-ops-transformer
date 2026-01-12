@@ -36,22 +36,13 @@ __aicore__ inline void GetSingleCoreParam(RunParamStr& runParam, const ConstInfo
     int32_t sIdx = runParam.boIdx;
     if (constInfo.isActualLenDimsNull) {
         actualS1Size = constInfo.s1Size;
-        if (constInfo.isGqa) {
-            actualS1Size = constInfo.gS1;
-        }
     } else {
         if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
             actualS1Size = (sIdx == 0) ? actualSeqQlenAddr[0] :
                 actualSeqQlenAddr[sIdx] - actualSeqQlenAddr[sIdx - 1];
-            if (constInfo.isGqa) {
-                actualS1Size *= constInfo.gSize;
-            }
         } else {
             actualS1Size = (constInfo.actualSeqLenSize == actualSeqMin) ? actualSeqQlenAddr[0] :
                 actualSeqQlenAddr[sIdx];
-            if (constInfo.isGqa) {
-                actualS1Size *= constInfo.gSize;
-            }
         }
     }
     if (constInfo.isActualLenDimsKVNull) {
@@ -173,15 +164,6 @@ __aicore__ inline void LoopSOuterOffsetInit(RunParamStr& runParam, const ConstIn
                 runParam.sOuterOffset * constInfo.n2GDv + runParam.n2oIdx * constInfo.gDv +
                 runParam.goIdx * constInfo.dSizeV;
         }
-
-        int64_t softmaxLseSeqOffset = seqOffset * constInfo.n2G;
-        if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
-            runParam.softmaxLseOffset = softmaxLseSeqOffset + runParam.sOuterOffset * constInfo.n2G +
-                runParam.n2oIdx * constInfo.gSize + runParam.goIdx;
-        } else {
-            runParam.softmaxLseOffset = softmaxLseSeqOffset + runParam.n2oIdx * constInfo.gS1 +
-                runParam.goIdx * constInfo.s1Size + runParam.sOuterOffset;
-        }
     }
 }
 
@@ -278,11 +260,7 @@ __aicore__ inline void ComputeOffset(const RunParamStr& runParam,
     const ConstInfo &constInfo, uint32_t sInnerLoopIdx, RunInfo &runInfo)
 {
     if ASCEND_IS_AIV {
-        if (!constInfo.isGqa) {
-            runInfo.vecCoreOffset = constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
-        } else {
-            runInfo.vecCoreOffset = 0;
-        }
+        runInfo.vecCoreOffset = constInfo.subBlockIdx * runInfo.firstHalfS1RealSize;
     } else {
         if constexpr (LAYOUT_T == SAS_LAYOUT::BSND || LAYOUT_T == SAS_LAYOUT::TND) {
             runInfo.valueOffset = runParam.valueCoreOffset + sInnerLoopIdx * constInfo.s2BaseN2Dv;

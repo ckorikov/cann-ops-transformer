@@ -33,8 +33,7 @@ enum class SAS_RUN_MODE {
 
 enum class SAS_LAYOUT {
     BSND = 0,
-    TND = 1,
-    PA_ND = 2
+    TND = 1
 };
 
 enum class SAS_KV_LAYOUT {
@@ -46,23 +45,6 @@ enum class SASTemplateMode {
     SWA_TEMPLATE_MODE = 0,
     CFA_TEMPLATE_MODE = 1,
     SCFA_TEMPLATE_MODE = 2
-};
-
-enum class QUANT_MODE {
-    PER_CHANNEL = 0,  // GQA支持
-    PER_TOKEN_HEAD = 1, // GQA支持
-    PER_TILE = 2,   // MLA支持
-};
-
-enum class ATTENTION_MODE {
-    GQA_MHA = 0,  // QKV headDim相等
-    MLA_NATIVE = 1, // Dn=128, Dr=64
-    MLA_ABSORB = 2,   // Dn=512, Dr=64
-};
-
-enum class QUANT_SCALE_REPO_MODE {
-    SEPARATE = 0,  // 分开存储
-    COMBINE = 1, // 合并存储，量化模式是PER_TOKEN_HEAD/PER_TILE时支持COMBINE模式，参数顺序为：Nope+Rope+DequantScale
 };
 
 template <typename Q_T, typename KV_T, typename OUT_T, const bool FLASH_DECODE = false,
