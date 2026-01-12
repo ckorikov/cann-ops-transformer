@@ -290,7 +290,7 @@ private:
   uint32_t kvHeadNum_ = 0;
   uint32_t headDim_ = 0;
   uint32_t topK_ = 0;
-  uint32_t cmpRatio_ = 0;
+  uint32_t cmpRatio_ = 1;
   uint32_t winMaskMode_ = 4;
   uint32_t cmpMaskMode_ = 3;
   uint32_t winLeft_ = 128;

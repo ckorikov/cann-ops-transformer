@@ -299,7 +299,7 @@ void SparseAttnSharedkvMetadataCpuKernel::CalcS1GCache(uint32_t s1GIdx,
     s1GCache.cmpS2Start = 0;
     s1GCache.cmpS2End = 0;
     // 计算CmpS2LastToken的长度
-    uint32_t cmpS2LastTokenSize = (winS2LastToken + 1) / cmpRatio_;
+    uint32_t cmpS2LastTokenSize = (cmpRatio_ > 0) ? (winS2LastToken + 1) / cmpRatio_ : 0;
     uint32_t actCmpS2LastTokenSize = 0;
     if (isCFA) {
         actCmpS2LastTokenSize = cmpS2LastTokenSize;
