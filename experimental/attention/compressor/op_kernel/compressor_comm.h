@@ -51,7 +51,7 @@ struct COMPType {
     static constexpr X_LAYOUT xLayout = X_L;
     static constexpr X_DTYPE xDtype = X_T;
     static constexpr COFF coff = C;
-    static constexpr bool rotaryMode = Rotary_Mode;
+    static constexpr ROTARY_MODE rotaryMode = Rotary_Mode;
 };
 
 struct ConstInfo {
