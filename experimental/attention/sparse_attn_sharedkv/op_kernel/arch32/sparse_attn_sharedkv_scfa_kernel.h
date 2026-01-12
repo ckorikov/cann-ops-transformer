@@ -412,8 +412,8 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t s2LoopIdx)
     uint32_t s2StartIdx = s2LoopIdx * constInfo.s2BaseSize;
     uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + constInfo.s2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + constInfo.s2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
-    uint32_t min_diff = s2StartIdx - s1EndIdx;
-    uint32_t max_diff = s2EndIdx - s1StartIdx;
+    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - s1EndIdx;
+    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - s1StartIdx;
     // 满足条件, 不跳过
     if (min_diff <= tempLoopInfo.oriMaskRight && max_diff >= tempLoopInfo.oriMaskLeft) {
         return false;
@@ -428,13 +428,13 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t s2LoopIdx)
     // sparse mode = 3, 
     // 对于Cmp的s2 loop times为 tempLoopInfo.actS2SizeOri // ratio, 不够除就丢掉
     // 恢复压缩前, 只对S2进行压缩
-    uint32_t oS2BaseSize = constInfo.s2BaseSize * ratio;
+    uint32_t oS2BaseSize = constInfo.s2BaseSize * constInfo.cmpRatio;
     uint32_t s1StartIdx = tempLoopInfo.s1StartIdx;
     uint32_t s2StartIdx = s2LoopIdx * oS2BaseSize;
     uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + oS2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + oS2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
-    uint32_t min_diff = s2StartIdx - s1EndIdx;
-    uint32_t max_diff = s2EndIdx - s1StartIdx;
+    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - s1EndIdx;
+    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - s1StartIdx;
     if (min_diff <= tempLoopInfo.cmpMaskRight) {
         // 满足mask条件也不能跳, 还需要满足一个条件
         // 还需要判断s1EndIdx处, 当前基本块里面处理的数据除以ratio是否大于0
@@ -457,7 +457,7 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::IsSkip( uint32_t s2LoopIdx)
     if (s2LoopIdx < tempLoopInfo.oriLoopTimes) {
         isSkip = OriSkip(s2LoopIdx);
     } else {
-        isSkip = CmpSkip(s2LoopIdx);
+        isSkip = CmpSkip(s2LoopIdx - tempLoopInfo.oriLoopTimes);
     }
     return isSkip;
 }
@@ -781,15 +781,15 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
         }
         int gS1SplitNum = (tempLoopInfo.actS1Size * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
         // 当处于最后一个BN2时, 且gS1End为0时, 说明当前BN2里的所有数据都在当前核处理
-        gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End - 1 && constInfo.gS1End != 0) ? constInfo.gS1End : gS1SplitNum - 1;
+        gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End - 1 && constInfo.gS1End != 0) ? constInfo.gS1End : gS1SplitNum;
         for (uint32_t gS1LoopIdx = constInfo.gS1Start; gS1LoopIdx < gS1LoopEnd; gS1LoopIdx++) {
             // 计算需要的数据, 避免重复计算
             tempLoopInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
             tempLoopInfo.s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
             tempLoopInfo.s1EndIdx = Min((tempLoopInfo.gS1Idx + constInfo.mBaseSize) / constInfo.gSize, tempLoopInfo.actS1Size) - 1;
-            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1 + constInfo.oriWinLeft;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + constInfo.oriWinLeft;
             tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
-            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
             //
             GetSparseActualSeqLen(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx); // TopK值sparse完后的ActualSeqLengthKV
             UpdateInnerLoopCond();
@@ -800,7 +800,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             uint32_t oriSplitNum = (tempLoopInfo.actS2Size + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
             uint32_t cmpSplitNum = (tempLoopInfo.actS2Size / constInfo.cmpRatio + constInfo.s2BaseSize - 1) / constInfo.s2BaseSize;
             uint32_t s2SplitNum = oriSplitNum + cmpSplitNum;
-            bool isEnd = (bN2LoopIdx == constInfo.bN2End) && (gS1LoopIdx == constInfo.gS1End);
+            bool isEnd = (bN2LoopIdx + 1 == constInfo.bN2End) && (gS1LoopIdx + 1 == constInfo.gS1End);
             
             tempLoopInfo.s2LoopTimes = s2SplitNum;
             tempLoopInfo.oriLoopTimes = oriSplitNum;
