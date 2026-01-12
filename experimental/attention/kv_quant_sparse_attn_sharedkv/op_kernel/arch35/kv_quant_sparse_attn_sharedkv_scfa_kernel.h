@@ -129,7 +129,13 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
     constInfo.s2BaseSize = metadataLocal.s2BaseSize;
     this->pipe = tPipe;
     vecBlock.InitVecBlock(tPipe, this->tilingData, this->sharedParams, this->aicIdx, constInfo.subBlockIdx, metadataLocal);
-    vecBlock.CleanOutput(attentionOut, constInfo);
+    constInfo.bSize = this->sharedParams.bSize;
+    constInfo.gSize = this->sharedParams.gSize;
+    constInfo.s1Size = this->sharedParams.s1Size;
+    constInfo.dSizeV = this->sharedParams.dSizeV;
+    constInfo.actualSeqLenSize = this->sharedParams.actualSeqLengthsSize;
+    constInfo.needInit = this->sharedParams.needInit;
+    vecBlock.CleanOutput(attentionOut, constInfo, cuSeqlensQ);
     /* cube侧不依赖sharedParams的scalar前置 */
     InitMMResBuf();
     if ASCEND_IS_AIC {
@@ -143,7 +149,7 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
             *tempTiling = *tempTilingSSbuf;
         }
     }
-
+    
     this->ComputeConstexpr();
     this->InitGlobalBuffer(query, oriKV, cmpKV, cmpSparseIndices, oriBlockTable, cmpBlockTable, cuSeqlensQ, sequsedKv, sinks, metadata,
         workspace, tiling, tPipe); // gm设置
@@ -209,18 +215,17 @@ template <typename CubeBlockType, typename VecBlockType>
 __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType>::ComputeConstexpr()
 {
     // 计算轴的乘积
-
+    // ConstInfo.bSize = sharedParams.bSize;
     constInfo.n2Size = sharedParams.n2Size;
-    constInfo.s1Size = sharedParams.s1Size;
+    // constInfo.s1Size = sharedParams.s1Size;
     constInfo.s2Size = sharedParams.s2Size;
     constInfo.dSize = sharedParams.dSize;
-    constInfo.dSizeV = sharedParams.dSizeV;
+    // constInfo.dSizeV = sharedParams.dSizeV;
     constInfo.dBasicBlock = Align64Func((uint16_t)constInfo.dSizeV);
     constInfo.dSizeNope = 448;
     constInfo.dSizeRope = 64;
     constInfo.tileSize = 64;
-    constInfo.gSize = sharedParams.gSize;
-    constInfo.s1OuterSize = sharedParams.s1OuterSize;
+    // constInfo.gSize = sharedParams.gSize;
     constInfo.s1S2 = constInfo.s1Size * constInfo.s2Size;
     constInfo.gS1 = constInfo.gSize * constInfo.s1Size;
     constInfo.n2G = constInfo.n2Size * constInfo.gSize;
@@ -271,7 +276,7 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
         this->constInfo.splitKVNum = this->sharedParams.splitKVNum;
         this->constInfo.sInnerLoopSize = CeilDivision(this->constInfo.s2Size, this->constInfo.splitKVNum);
     }
-    this->constInfo.actualSeqLenSize = this->sharedParams.actualSeqLengthsSize;
+    // this->constInfo.actualSeqLenSize = this->sharedParams.actualSeqLengthsSize;
     this->constInfo.actualSeqLenKVSize = this->sharedParams.actualSeqLengthsKVSize;
     this->constInfo.isActualLenDimsNull = static_cast<bool>(this->sharedParams.isActualSeqLengthsNull);
     this->constInfo.isActualLenDimsKVNull = static_cast<bool>(this->sharedParams.isActualSeqLengthsKVNull);
