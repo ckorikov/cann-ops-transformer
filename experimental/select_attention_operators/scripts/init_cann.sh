@@ -30,7 +30,7 @@ if [[ ! -v NumCoresMap["$SOC_VERSION"] ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
-source $CONDA_HOME/bin/activate ""
+conda activate sa
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
 export LD_LIBRARY_PATH=/usr/local/Ascend/driver/lib64/driver:$LD_LIBRARY_PATH
 
