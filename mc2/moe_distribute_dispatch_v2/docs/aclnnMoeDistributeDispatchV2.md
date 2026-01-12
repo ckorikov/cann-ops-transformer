@@ -12,8 +12,8 @@
 - 算子功能：对token数据进行量化（可选），当存在TP域通信时，先进行EP（Expert Parallelism）域的AllToAllV通信，再进行TP（Tensor Parallelism）域的AllGatherV通信；当不存在TP域通信时，进行EP（Expert Parallelism）域的AllToAllV通信。
 - 计算公式：
 $$
+expandXOut = AllToAllV(agOut)\\
 agOut = AllGatherV(X)\\
-expandXOut = AllToAllV(agOut)
 $$
 
 - <term>Atlas A2 训练系列产品/Atlas 800I A2 推理产品/A200I A2 Box 异构组件</term>：该接口必须与`aclnnMoeDistributeCombineV2`配套使用。
