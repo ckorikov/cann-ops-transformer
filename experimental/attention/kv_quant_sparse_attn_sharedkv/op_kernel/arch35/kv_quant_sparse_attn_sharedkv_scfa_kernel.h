@@ -91,8 +91,8 @@ private:
     GlobalTensor<KV_T> oriKeyGm; // kv不连续场景需要使用来获取shape
     keyGmType cmpKeyGm; // kv不连续场景需要使用来获取shape
     SasMetaData metadataLocal;
-    __gm__ int64_t *actualSeqQlenAddr;
-    __gm__ int64_t *actualSeqKvlenAddr;
+    __gm__ int32_t *actualSeqQlenAddr;
+    __gm__ int32_t *actualSeqKvlenAddr;
     /* 核Index信息 */
     int32_t aicIdx;
 
@@ -163,10 +163,10 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
         cmpKeyGm.SetGlobalBuffer((__gm__ KV_T *)(cmpKV));
     }
     if (cuSeqlensQ != nullptr) {
-        actualSeqQlenAddr = (__gm__ int64_t *)cuSeqlensQ;
+        actualSeqQlenAddr = (__gm__ int32_t *)cuSeqlensQ;
     }
     if (sequsedKv != nullptr) {
-        actualSeqKvlenAddr = (__gm__ int64_t *)sequsedKv;
+        actualSeqKvlenAddr = (__gm__ int32_t *)sequsedKv;
     }
 
     uint64_t singleCoreOffset = 0;
@@ -216,7 +216,9 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
     constInfo.dSize = sharedParams.dSize;
     constInfo.dSizeV = sharedParams.dSizeV;
     constInfo.dBasicBlock = Align64Func((uint16_t)constInfo.dSizeV);
-    constInfo.dSizeRope = 0;
+    constInfo.dSizeNope = 448;
+    constInfo.dSizeRope = 64;
+    constInfo.tileSize = 64;
     constInfo.gSize = sharedParams.gSize;
     constInfo.s1OuterSize = sharedParams.s1OuterSize;
     constInfo.s1S2 = constInfo.s1Size * constInfo.s2Size;
