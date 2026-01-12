@@ -23,10 +23,10 @@
 namespace Compressor {
 /**
  * @brief RmsNorm 对矩阵进行rmsnorm
- * @param outLocal 输出tensor [row * col]，支持和inputLocal是同一块空间
- * @param inputLocal 输入tensor [row * col]
- * @param gammaLocal 系数gamma [1 * col]
- * @param shareTmpUb 临时buffer 内部需要的空间为 [row * col * sizeof(float) + row *  ALIGN_BLOCK_SIZE]
+ * @param dstLocal 输出tensor [row, col]，支持和srcLocal是同一块空间
+ * @param srcLocal 输入tensor [row, col]
+ * @param gammaLocal 系数gamma [1, col]
+ * @param shareTmpUb 临时buffer 内部需要的空间为 [(row * col + row) * sizeof(float)]
  * @param rmsNormParams rms所需系数，包括
           reciprocal rmsnorm系数reciprocal
           epsilon rmsnorm系数epsilon
@@ -34,59 +34,57 @@ namespace Compressor {
           col 列数
  */
 template <typename GammaType>
-__aicore__ inline void RmsNorm(const LocalTensor<float> &outLocal, const LocalTensor<float> &inputLocal,
-                               const LocalTensor<GammaType> &gammaLocal, const LocalTensor<uint8_t> &shareTmpUb,
+__aicore__ inline void RmsNorm(const LocalTensor<float> &dstLocal, const LocalTensor<float> &srcLocal,
+                               const LocalTensor<GammaType> &gammaLocal, const LocalTensor<float> &shareTmpUb,
                                const RmsNormParam &rmsNormParams)
 {
     uint64_t cnt = rmsNormParams.row * rmsNormParams.col;
-    LocalTensor<float> xSquareLocal = shareTmpUb.ReinterpretCast<float>();
-    LocalTensor<float> xSumLocal = xSquareLocal[cnt];
+    LocalTensor<float> temp1Local = shareTmpUb.ReinterpretCast<float>();
+    LocalTensor<float> temp2Local = tempLocal[cnt];
 
-    // xSquare = input ^ 2
-    Mul(xSquareLocal, inputLocal, inputLocal, cnt);
-    AscendC::PipeBarrier<PIPE_V>();
+    // temp1Local = srcLocal ^ 2
+    Mul(temp1Local, srcLocal, srcLocal, cnt);
+    PipeBarrier<PIPE_V>();
     
     MatRpeatParam repeatParams = {
-        rmsNormParams.row;                                // row
-        rmsNormParams.col;                                // col
-        FP32_REPEAT_ELEMENT_NUM;                          // dtypeMask
-        rmsNormParams.col / dtypeMask;                    // loopTimes
-        rmsNormParams.col % dtypeMask;                    // colsRemain
-        rmsNormParams.col / FP32_BLOCK_ELEMENT_NUM;       // repeatStride
+        rmsNormParams.row,                                // row
+        rmsNormParams.col,                                // col
+        FP32_REPEAT_ELEMENT_NUM,                          // dtypeMask
+        rmsNormParams.col / FP32_REPEAT_ELEMENT_NUM,                    // loopTimes
+        rmsNormParams.col % FP32_REPEAT_ELEMENT_NUM,                    // colsRemain
+        static_cast<uint8_t>(rmsNormParams.col / FP32_BLOCK_ELEMENT_NUM),       // repeatStride
     };
 
-    // xSum = Sum(xSquare)
-    RowSum(xSumLocal, xSquareLocal, repeatParams)
-    AscendC::PipeBarrier<PIPE_V>();
+    // temp2Local[row] = Sum(temp1Local)
+    RowSum(temp2Local, temp1Local, temp1Local, repeatParams);
+    PipeBarrier<PIPE_V>();
 
 
-    // xSum = xSum * reciprocal(1/N)
-    Muls<float>(xSumLocal, xSumLocal, rmsNormParams.reciprocal, rmsNormParams.row);
-    AscendC::PipeBarrier<PIPE_V>();
+    // temp2Local[row] = temp2Local[row] * reciprocal(1/N)
+    Muls(temp2Local, temp2Local, rmsNormParams.reciprocal, rmsNormParams.row);
+    PipeBarrier<PIPE_V>();
 
-    // xSum = xSum + epsilon
-    Adds<float>(xSumLocal, xSumLocal, rmsNormParams.epsilon, rmsNormParams.row);
-    AscendC::PipeBarrier<PIPE_V>();
+    // temp2Local[row] = temp2Local[row] + epsilon
+    Adds(temp2Local, temp2Local, rmsNormParams.epsilon, rmsNormParams.row);
+    PipeBarrier<PIPE_V>();
 
-    // xSum = Sqrt(xSum)
-    Sqrt(xSumLocal, xSumLocal, rmsNormParams.row);
-    AscendC::PipeBarrier<PIPE_V>();
+    // temp2Local[row] = Sqrt(temp2Local[row])
+    Sqrt(temp2Local, temp2Local, rmsNormParams.row);
+    PipeBarrier<PIPE_V>();
 
-    // xSquare[row, 8] = brc(xSum[row, 1])
-    // for (uint32_t i = 0; i < rmsNormParams.row; i++) {
-    //     Brcb(xSquareLocal[i * FP32_BLOCK_ELEMENT_NUM], xSumLocal, 1, {1, 1});   
-    // }
-    // AscendC::PipeBarrier<PIPE_V>();
+    // temp1Local[row, 8] = brc(temp2Local[row, 1])
+    Brcb(temp1Local, temp2Local, CeilDivT(rmsNormParams.row, BRCB_NUM), {1, 1});   
+    PipeBarrier<PIPE_V>();
 
-    // output = inputLocal / xSquareLocal(sum)
-    RowDivs(outLocal, inputLocal, xSquareLocal, repeatParams);
-    AscendC::PipeBarrier<PIPE_V>();
+    // dstLocal = srcLocal / temp1Local(sum)
+    RowDivs(dstLocal, srcLocal, temp1Local, repeatParams);
+    PipeBarrier<PIPE_V>();
 
-    Cast(xSquareLocal, gammaLocal, RoundMode::CAST_NONE, rmsNormParams.col);
-    AscendC::PipeBarrier<PIPE_V>();
+    // Cast(xSquareLocal, gammaLocal, RoundMode::CAST_NONE, rmsNormParams.col);
+    // PipeBarrier<PIPE_V>();
 
-    // output = output * xSquare(gamma)
-    MatMulVec(outLocal, outLocal, xSquareLocal, repeatParams);
+    // dstLocal = dstLocal * gammaLocal
+    MatMulVec(dstLocal, dstLocal, gammaLocal, repeatParams);
 }
 } // namespace Compressor
 #endif // MLA_PROLOG_RMS_NORM_H

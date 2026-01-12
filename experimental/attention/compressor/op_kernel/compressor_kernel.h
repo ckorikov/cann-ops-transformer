@@ -20,7 +20,7 @@
 #include "compressor_vector_comm.h"
 #include "compressor_template_tiling_key.h"
 #include "compressor_tiling_data.h"
-#include "compressor_comm.h"
+#include "arch32/arch32.h"
 
 namespace Compressor {
 

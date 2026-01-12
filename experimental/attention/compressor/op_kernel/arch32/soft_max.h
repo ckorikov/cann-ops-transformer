@@ -35,14 +35,14 @@ __aicore__ inline void ColumnSoftMax(const LocalTensor<float> &dstLocal, const L
     uint32_t dtypeMask = FP32_REPEAT_ELEMENT_NUM;
     uint32_t dLoop = col / dtypeMask;
     uint32_t dRemain = col % dtypeMask;
-    uint32_t repeatStride = col / FP32_BLOCK_ELEMENT_NUM;
-    ColumnMax(shareTmpUb, srcLocal, row, col);
-    MatSubsVec(dstLocal, srcLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
+    uint8_t repeatStride = col / FP32_BLOCK_ELEMENT_NUM;
+    ColumnMax(shareTmpUb, srcLocal, shareTmpUb, row, col);
+    MatSubVec(dstLocal, srcLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
     PipeBarrier<PIPE_V>();
     Exp(dstLocal, dstLocal, row * col);
     PipeBarrier<PIPE_V>();
-    ColumnSum(shareTmpUb, dstLocal, row, col);
-    MatDivsVec(dstLocal, dstLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
+    ColumnSum(shareTmpUb, dstLocal, shareTmpUb, row, col);
+    MatDivVec(dstLocal, dstLocal, shareTmpUb, {row, col, dtypeMask, dLoop, dRemain, repeatStride});
 }
 
 } // namespace Compressor
