@@ -157,10 +157,10 @@ ge::graphStatus CompressorTiling::SetPageAttentionInfo()
 
 ge::graphStatus CompressorTiling::SetWorkSpaceInfo()
 {
+    workspaceParams_->preMm1ResSize = 0;
     if (coff == 2) {
         workspaceParams_->preMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
     }
-    
     workspaceParams_->curMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
     workspaceParams_->vec1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
 
@@ -250,7 +250,6 @@ ge::graphStatus CompressorTiling::RunBigKernelTiling(CompressorContext &context,
 ge::graphStatus CompressorTiling::GenTilingKey() const
 {
 
-    uint8_t quantMode = 0;
     // 0:BF16, 1:FP16
     uint8_t dtype = 0;
     // 0: BSH 1:TH
@@ -274,7 +273,7 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
         static_cast<uint8_t>(layout),
         // TODO coff有问题
         static_cast<uint8_t>(coff),
-        *context_->rotaryMode == 2,
+        static_cast<uint8_t>(*context_->rotaryMode),
     );
 
     OP_LOGI(context_->opName, "Compressor dtype:%hhu layout:%hhu  coff:%hhu rotary_mode:%hhu", dtype, layout, coff, context_->rotaryMode);
