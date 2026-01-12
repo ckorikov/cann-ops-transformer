@@ -111,7 +111,17 @@ struct RunInfo {
 
     uint32_t bStart = 0;
     uint32_t sStart = 0;
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
     uint32_t dealTcNum = 0;
+};
+
+struct MSplitInfo {
+    uint32_t vecStartB = 0U;
+    uint32_t vecStartS = 0U;
+    uint32_t vecEndB = 0U;
+    uint32_t vecEndS = 0U;
+    uint32_t vecDealTc = 0U;
 };
 
 // BLOCK和REPEAT的字节数

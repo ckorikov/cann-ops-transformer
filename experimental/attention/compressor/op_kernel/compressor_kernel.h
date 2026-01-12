@@ -91,6 +91,9 @@ private:
     static constexpr uint64_t SYNC_MODE2 = 2;
     static constexpr uint32_t SYNC_C1_V1_FLAG = 6;
     static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
+
+    // ==============================Service Define==============================
+    CompressorBlockVector<COMP> vectorService;
     
     using X_T = typename AscendC::Conditional<X_DTYPE, bfloat16_t, half>::type;
 
@@ -155,6 +158,7 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     startPosGm_.SetGlobalBuffer((__gm__ int32_t *)startPos);
 
     InitTilingData();
+    InitWorkspace(workspace);
 
     // 初始化 curActSeqLength、start_pos TODO考虑为None， 
     if (COMP::xLayout == X_LAYOUT::TH) {
@@ -172,6 +176,15 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     constInfo.coreGroupNum = constInfo.usedCoreNum / constInfo.dBasicBlockNum;                        // 核分为多少组
     constInfo.singleCoreDealTcBasicNum = (constInfo.tcBasicBlockNum + constInfo.coreGroupNum - 1) / constInfo.coreGroupNum; // 处理的最大基本块数量
     // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
+    if ASCEND_IS_AIC {
+
+    } else {
+        vectorService.InitParams(constInfo);
+        vectorService.Init(x, wKv, wGate, kvState, scoreState, ape, normWeight, ropeSin, ropeCos, blockTable, 
+                        cuSeqlens, seqUsed, startPos, cmpKvOut, kvStateOut, scoreStateOut);
+        vectorService.InitVec1GlobalTensor(preMm1ResGm, curMm1ResGm, vec1ResGm);
+    }
+    
 }
 
 template <typename COMP>
@@ -423,6 +436,7 @@ __aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
     // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    vectorSrevice.ComputeVec1();
 }
 
 template <typename COMP>
