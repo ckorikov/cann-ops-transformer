@@ -84,7 +84,6 @@ __aicore__ inline void DataCopyPA(LocalTensor<T> &dstTensor,  //l1
         uint64_t blockIdOffset = curS2Idx / shape.blockSize;   // 获取block table上的索引
         uint64_t reaminRowCnt = curS2Idx % shape.blockSize;    // 获取在单个块上超出的行数
         uint64_t idInBlockTable = blockTableGm.GetValue(blockTableBaseOffset + blockIdOffset); // 从block table上的获取编号
-        // 计算可以拷贝行数
         uint32_t copyRowCnt = shape.blockSize - reaminRowCnt;  //一次只能处理一个Block
         if (copyFinishRowCnt + copyRowCnt > shape.copyRowNum) {
             copyRowCnt = shape.copyRowNum - copyFinishRowCnt;  //一个block未拷满
@@ -153,8 +152,6 @@ private:
     static constexpr uint32_t N_SPLIT_SIZE = 128;     // n方向切分
     static constexpr uint32_t N_WORKSPACE_SIZE = 512; // n方向切分
 
-   // static constexpr uint32_t L1_BLOCK_SIZE = (64 * (512 + 64) * sizeof(Q_T));
-    // static constexpr uint32_t L1_BLOCK_OFFSET = 64 * (512 + 64); // 72K的元素个数
     static constexpr uint32_t L1_BLOCK_SIZE = (64 * 512 * sizeof(Q_T));
     static constexpr uint32_t L1_BLOCK_OFFSET = 64 * 512;
 
@@ -300,9 +297,9 @@ SASCubeBlock<SAST>::InitPageAttentionInfo(const GlobalTensor<KV_T>& kvMergeGm, G
 
 template <typename SAST> __aicore__ inline void SASCubeBlock<SAST>::InitBuffers(TPipe *pipe)
 {
-    pipe->InitBuffer(bufQPL1, L1_BLOCK_SIZE * 4); // (64K + 8K) * 4
+    pipe->InitBuffer(bufQPL1, L1_BLOCK_SIZE * 4);
     l1QPTensor = bufQPL1.Get<Q_T>();
-    pipe->InitBuffer(bufKVL1, L1_BLOCK_SIZE * 3); // (64K + 8K) * 3
+    pipe->InitBuffer(bufKVL1, L1_BLOCK_SIZE * 3);
     l1KVTensor = bufKVL1.Get<KV_T>();
 
     // L0A
@@ -560,35 +557,30 @@ __aicore__ inline void SASCubeBlock<SAST>::CalcTopKBlockInfo(
 template <typename SAST>
 __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const MSplitInfo mSplitInfo)
 {
-    // 最外层还需要一层m的循环
+
     uint32_t mSize = mSplitInfo.nBufferDealM;
     uint32_t mL1Size = M_SPLIT_SIZE;
     uint32_t mL1SizeAlign = SASAlign(M_SPLIT_SIZE, 16U);
     uint32_t mL1Loops = (mSize + M_SPLIT_SIZE - 1) / M_SPLIT_SIZE;
-    // printf("mL1Loops = (mSize + M_SPLIT_SIZE - 1) / M_SPLIT_SIZE = %u = ( %u + %u -1 ) / %u \n", mL1Loops, mSize, M_SPLIT_SIZE, M_SPLIT_SIZE);
-    uint32_t nSize = info.actualSingleProcessSInnerSize;   // 512
+    uint32_t nSize = info.actualSingleProcessSInnerSize;
     uint32_t nL1Size = N_SPLIT_SIZE;
     uint32_t nL1SizeAlign = SASAlign(N_SPLIT_SIZE, 16U);
     uint32_t nL1Loops = (nSize + N_SPLIT_SIZE - 1) / N_SPLIT_SIZE;
 
-    // uint32_t kSize = 576;
-    // uint32_t kL1Size = 288;
     uint32_t kSize = 512;
     uint32_t kL1Size = 256;
-    uint32_t kL1Loops = 2; // 2 : 576/288, mla专用 这里不考虑d泛化
+    uint32_t kL1Loops = 2;
 
-    // uint32_t kL0Size = 96;
     uint32_t kL0Size = 128;
-    uint32_t kL0Loops = (kL1Size + kL0Size - 1) / kL0Size; // 256 /128 = 2
+    uint32_t kL0Loops = (kL1Size + kL0Size - 1) / kL0Size; 
 
     LocalTensor<KV_T> bL1Tensor;
     LocalTensor<KV_T> kRopeTensor;
     LocalTensor<KV_T> kTensor;
-    // ka表示左矩阵4buf选择哪一块buf, kb表示右矩阵3buf选择哪一块buf
     uint32_t ka = 0, kb = 0;
     
     uint32_t curTopKIdx = info.curTopKIdx;
-    uint64_t curOffsetInSparseBlock = info.curOffsetInSparseBlock; //sparse Block块内偏移
+    uint64_t curOffsetInSparseBlock = info.curOffsetInSparseBlock;
     uint32_t copyRowCnt = 0;
     int64_t idInTopK = topKGm.GetValue(info.topKBaseOffset + curTopKIdx);
 
@@ -609,14 +601,12 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
         copyRowCntTmp = copyRowCnt;
         idInTopKTmp = idInTopK;
 
-        for (uint32_t kL1 = 0; kL1 < kL1Loops; kL1++) { // L1切k, 576/288, 这里不考虑d泛化
+        for (uint32_t kL1 = 0; kL1 < kL1Loops; kL1++) { 
             kvL1BufIter++;
             uint32_t kb = kvL1BufIter % 3;
             WaitFlag<HardEvent::MTE1_MTE2>(mte21KVIds[kb]);
             // 从k当中取当前的块
-            bL1Tensor = l1KVTensor[kb * L1_BLOCK_OFFSET]; // 64 * 512
-                // mm1拷贝主流程
-                // printf("bL1Tensor = l1KVTensor[kb * L1_BLOCK_OFFSET] = l1KVTensor[ %u * %u] \n", kb, L1_BLOCK_OFFSET);
+            bL1Tensor = l1KVTensor[kb * L1_BLOCK_OFFSET];
             uint32_t curSeqIdx = info.s2BatchOffset + nL1 * N_SPLIT_SIZE;
             uint32_t copyFinishRowCnt = 0;
             curTopKIdx = curTopKIdxTmp;
@@ -624,111 +614,57 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
             copyRowCnt = copyRowCntTmp;
             idInTopK = idInTopKTmp;
             if (kL1 == 0) {
-                // printf("-------------KL1== 0 --------\n");
                 Nd2NzParams nd2nzPara;
                 nd2nzPara.ndNum = 1;
-                nd2nzPara.nValue = nL1Size;                 // 128
-                nd2nzPara.dValue = constInfo.headDim >> 1;  // 256
-                nd2nzPara.srcDValue = constInfo.headDim;    // 512
-                nd2nzPara.dstNzC0Stride = nL1SizeAlign;  // 128
-                nd2nzPara.dstNzNStride = 1;  //
-                nd2nzPara.srcNdMatrixStride = 0;
-                nd2nzPara.dstNzMatrixStride = 0;
-                // constInfo.headDim:512
-                DataCopy(bL1Tensor,
-                            kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize +
-                                    nL1 * N_SPLIT_SIZE * constInfo.headDim],
-                            nd2nzPara);  // //  实际搬运大小：256 *128 =32k  拷贝没问题
-                // DumpTensor(kvMergeGm_[ 0 * N_WORKSPACE_SIZE * kSize], 1111111, 512 * 512);
-                // DumpTensor(bL1Tensor, 1111111, 128 * 256);
-                // DumpTensor(kvMergeGm_[ 1 * N_WORKSPACE_SIZE * kSize], 1111112, 512 * 512);
-                // DumpTensor(kvMergeGm_[ 2 * N_WORKSPACE_SIZE * kSize], 1111113, 512 * 512);
-                // DumpTensor(kvMergeGm_[ 3 * N_WORKSPACE_SIZE * kSize], 1111114, 512 * 512);
-                // printf("info.loop % 4 * N_WORKSPACE_SIZE * kSize + nL1 * N_SPLIT_SIZE * constInfo.headDim = %u % 4 * %u * %u + %u * %u * %u\n", info.loop, N_WORKSPACE_SIZE, kSize, nL1, N_SPLIT_SIZE, constInfo.headDim);        0 % 4 * 512 * 512 + 1/2/3 * 128 * 512                  //  0 % 4 * 512 * 512 + 0 * 128 * 512
-                // nd2nzPara.dValue = constInfo.headDimRope >> 1;
-                // nd2nzPara.srcDValue = constInfo.headDimRope;
-                // DataCopy(
-                //     bL1Tensor[nL1SizeAlign * (constInfo.headDim >> 1)],
-                //     kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize + N_WORKSPACE_SIZE * constInfo.headDim +
-                //                nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
-                //     nd2nzPara);
-            } else {
-                // LocalTensor<Q_T> kTmpTensor = bL1Tensor[(constInfo.headDimRope >> 1) * nL1SizeAlign];
-                // printf("nL1SizeAlign为：%u", nL1SizeAlign); 
-                LocalTensor<Q_T> kTmpTensor = bL1Tensor[nL1SizeAlign * (constInfo.headDim >> 1)];  //  nL1SizeAlign = 128
-                Nd2NzParams nd2nzPara;
-                nd2nzPara.ndNum = 1;
-                nd2nzPara.nValue = nL1Size;                 // 行数
-                nd2nzPara.dValue = constInfo.headDim >> 1;  // constInfo.headDim;
+                nd2nzPara.nValue = nL1Size;
+                nd2nzPara.dValue = constInfo.headDim >> 1;
                 nd2nzPara.srcDValue = constInfo.headDim;
                 nd2nzPara.dstNzC0Stride = nL1SizeAlign;
                 nd2nzPara.dstNzNStride = 1;
                 nd2nzPara.srcNdMatrixStride = 0;
                 nd2nzPara.dstNzMatrixStride = 0;
-                // DumpTensor(kvMergeGm_, 1111, 512 *512);
-                // printf("kvMergeGm_的偏移为：info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDim= %u %4 * %u  * %u + ( %u >>1) + %u * %u * u \n", info.loop, N_WORKSPACE_SIZE, kSize, constInfo.headDim, nL1, N_SPLIT_SIZE, constInfo.headDim);
-                // printf("kvMergeGm_的偏移为： %u \n", info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDim);
-                // printf("kTmpTensor的偏移为：bL1Tensor[%u * (%u >> 1)]", )
-                DataCopy(kTmpTensor,
+                DataCopy(bL1Tensor,
+                            kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize +
+                                    nL1 * N_SPLIT_SIZE * constInfo.headDim],
+                            nd2nzPara);  
+
+            } else {
+                Nd2NzParams nd2nzPara;
+                nd2nzPara.ndNum = 1;
+                nd2nzPara.nValue = nL1Size;
+                nd2nzPara.dValue = constInfo.headDim >> 1;
+                nd2nzPara.srcDValue = constInfo.headDim;
+                nd2nzPara.dstNzC0Stride = nL1SizeAlign;
+                nd2nzPara.dstNzNStride = 1;
+                nd2nzPara.srcNdMatrixStride = 0;
+                nd2nzPara.dstNzMatrixStride = 0;
+                DataCopy(bL1Tensor,
                             kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) +
                                     nL1 * N_SPLIT_SIZE * constInfo.headDim],
-                            nd2nzPara);  // copy没问题
-                // printf("kvMergeGm_的偏移为： %u\n", info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDim);  // 256  65792 131328 196864
-                // DumpTensor(kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) +
-                //                     nL1 * N_SPLIT_SIZE * constInfo.headDim], 1101, 1050);
-                // DumpTensor(kvMergeGm_[ 0 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1)  ], 1111111, 512 * 512);
-                // DumpTensor(kTmpTensor, 1111112, 128 * 256);
-                // nd2nzPara.dValue = constInfo.headDimRope >> 1;
-                // nd2nzPara.srcDValue = constInfo.headDimRope;
-                // DataCopy(
-                //     bL1Tensor,
-                //     kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize + N_WORKSPACE_SIZE * constInfo.headDim +
-                //                (constInfo.headDimRope >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
-                //     nd2nzPara);
-            }
+                            nd2nzPara);
 
             SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
             WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
             mL1Size = M_SPLIT_SIZE;
             mL1SizeAlign = SASAlign(M_SPLIT_SIZE, 16U);
-            for (uint32_t mL1 = 0; mL1 < mL1Loops; mL1++) {  // 64
+            for (uint32_t mL1 = 0; mL1 < mL1Loops; mL1++) {
                 uint32_t aL1PaddingSize = 0; // 用于使左矩阵对齐到尾部, 以保证两块32K内存连续
                 if (mL1 == (mL1Loops - 1)) {
-                    // 尾块重新计算size
                     mL1Size = mSize - (mL1Loops - 1) * M_SPLIT_SIZE;
-                    // printf("mL1Size = mSize - (mL1Loops - 1) * M_SPLIT_SIZE = %u = %u - ( %u - 1 ) * % u", mL1Size, mSize, mL1Loops, M_SPLIT_SIZE); // 
                     mL1SizeAlign = SASAlign(mL1Size, 16U);
-                    // mL1SizeAlign<128 kL1=0时需要偏移, 确保qRope能一半拷贝到当前tensor, 一半拷贝到下一个tensor
-                    // aL1PaddingSize = (M_SPLIT_SIZE - mL1SizeAlign) * 288;
-                    aL1PaddingSize = (M_SPLIT_SIZE - mL1SizeAlign) * 256;  // M_SPLIT_SIZE :128 ;  mL1SizeAlign : 64
+                    aL1PaddingSize = (M_SPLIT_SIZE - mL1SizeAlign) * 256;
                 }
                 uint32_t mIdx = qpL1BufIter + mL1;
                 ka = GetQPL1RealIdx(mIdx, kL1);
-                // printf("kL1为： %u, aL1PaddingSize为： %u,", kL1, aL1PaddingSize); 0 1 0 1 0 1 0 1
-                // printf("ka * L1_BLOCK_OFFSET + (1 - kL1) * aL1PaddingSize = %u *%u + (1 - %u ) * %u", ka, L1_BLOCK_OFFSET, kL1, aL1PaddingSize);
                 LocalTensor<Q_T> aL1Tensor =
                     l1QPTensor[ka * L1_BLOCK_OFFSET + (1 - kL1) * aL1PaddingSize];
-                // printf("ML1 == %u", mL1);
-                if (nL1 == 0) { // mL1=0, mL1=1两次
+                if (nL1 == 0) {
                     if (kL1 == 0) {
                         WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka]);
                         WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka + 1]);
-                        // printf("mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE = %u + %u * %u", mSplitInfo.nBufferStartM, mL1, M_SPLIT_SIZE);  // nBufferStartM : 0 ;  mL1 :0;M_SPLIT_SIZE :128
-                        // printf("mL1size为：%u", mL1Size); //64
                         CopyInMm1AToL1(aL1Tensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256, 0);
-                        // 由于L1里面是NZ, 这里q rope的偏移为整块q nope切k的后大小, 256为headDim的一半
-                        // LocalTensor<Q_T> qRopeTensor =
-                        //     aL1Tensor[mL1SizeAlign *
-                        //               256];
-                        // CopyInMm1ARopeToL1(qRopeTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size);
                     } else {
-                        // 32为rope headDim的一半
-                        // printf("--------kL1!=0-------");
-                        // printf("mL1为： %u/n", mL1);  // 一次 0 
-                        // printf("M_SPLIT_SIZE为： %u/n", M_SPLIT_SIZE);  // 一次 128 
-                        // printf("mL1Size为： %u/n", mL1Size);   //一次 64
-                        // printf("------kL1= %u, mL1 = %u-------\n",kL1 , mL1);  // kL1= 1, mL1 = 0
-                        LocalTensor<Q_T> qTmpTensor = aL1Tensor; // review  * 0
+                        LocalTensor<Q_T> qTmpTensor = aL1Tensor;
                         CopyInMm1AToL1(qTmpTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256,
                                        256);
                     }
@@ -739,30 +675,15 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
                 LocalTensor cL0Tensor =
                     cL0TensorPingPong[(cL0BufIter % 2) *
                                       (L0C_PP_SIZE / sizeof(MM_OUT_T))]; // 需要保证cL0BufIter和m步调一致
-                for (uint32_t kL0 = 0; kL0 < kL0Loops; kL0++) { // 0 copy一半，1 copy一半
-                    // printf("kL0 / kL0Loops = %u / %u \n", kL0, kL0Loops);
+                for (uint32_t kL0 = 0; kL0 < kL0Loops; kL0++) {
                     WaitFlag<HardEvent::M_MTE1>(Mte1MmABEventId(abL0BufIter % 2));
                     LocalTensor<KV_T> aL0Tensor = aL0TensorPingPong[(abL0BufIter % 2) * (L0A_PP_SIZE / sizeof(KV_T))];
-                    // printf("mL1SizeAlign, kL0Size = %u , %u \n", mL1SizeAlign, kL0Size);
                     LoadDataMm1A(aL0Tensor, aL1Tensor, kL0, kL0Size, mL1SizeAlign, kL0Size);
                     LocalTensor<KV_T> bL0Tensor = bL0TensorPingPong[(abL0BufIter % 2) * (L0B_PP_SIZE / sizeof(KV_T))];
-                    // printf("nL1SizeAlign =%u \n", nL1SizeAlign);
-                    // printf("kL0 = %u \n", kL0);
-                    // printf("此时 nL1 = %u, kL1 = %u, mL1 = %u, kL0 = %u", nL1, kL1, mL1, kL0);
-                    if (kL1 == 0) {
-                        LocalTensor<Q_T> bL1TmpTensor = bL1Tensor;
-                        DumpTensor(bL1TmpTensor[128 * 128 * kL0], 11, 128 * 128);
-                        LoadDataMm1B(bL0Tensor, bL1TmpTensor, kL0, kL0Size, kL0Size, nL1SizeAlign);
-                    } else {
-                        LocalTensor<Q_T> bL1TmpTensor = bL1Tensor[128 *256];
-                        DumpTensor(bL1TmpTensor[128 * 128 * kL0], 11, 128 * 128);
-                        LoadDataMm1B(bL0Tensor, bL1TmpTensor, kL0, kL0Size, kL0Size, nL1SizeAlign);
-                    }
-                    // LoadDataMm1B(bL0Tensor, bL1Tensor, kL0, kL0Size, kL0Size, nL1SizeAlign);  // kL0Size =128 
+                    LoadDataMm1B(bL0Tensor, bL1Tensor, kL0, kL0Size, kL0Size, nL1SizeAlign);
                     SetFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
                     WaitFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
 
-                    // m == 1的时候需要特殊处理
                     MmadParams mmadParams;
                     mmadParams.m = mL1SizeAlign;
                     mmadParams.n = nL1SizeAlign;
@@ -772,7 +693,6 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
                     mmadParams.unitFlag =
                         (kL1 == 1 && kL0 == (kL0Loops - 1)) ? 0b11 : 0b10; // 累加最后一次翻转flag, 表示可以搬出
                     Mmad(cL0Tensor, aL0Tensor, bL0Tensor, mmadParams);
-                    DumpTensor(cL0Tensor,112,512);
                     if ((mmadParams.m / 16) * (mmadParams.n / 16) < 10) {
                         PipeBarrier<PIPE_M>();
                     }
@@ -794,7 +714,6 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
                     fixParams.unitFlag = 0b11;
                     fixParams.ndNum = 1; // 输出ND
 
-                    // 输出偏移info.loop % (constInfo.preLoadNum)) * mmResUbSize是否在matmul里计算
                     Fixpipe(mm1ResGm[(info.loop % (constInfo.preLoadNum)) * constInfo.mmResUbSize + nL1 * N_SPLIT_SIZE +
                                      (mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE) *
                                          info.actualSingleProcessSInnerSizeAlign],
