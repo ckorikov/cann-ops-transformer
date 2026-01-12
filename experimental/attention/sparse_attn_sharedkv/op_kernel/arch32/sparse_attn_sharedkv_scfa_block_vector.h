@@ -32,6 +32,7 @@ public:
     using KV_T = typename SAST::kvType;
     using OUT_T = typename SAST::outputType;
     using UPDATE_T = T;
+    using SINKS_T = T;
     using MM1_OUT_T = float;
     using MM2_OUT_T = float;
 
@@ -51,11 +52,13 @@ public:
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
                                                 GlobalTensor<int32_t> actualSeqLengthsQGm,
                                                 GlobalTensor<int32_t> actualSeqLengthsKVGm, GlobalTensor<T> lseMaxFdGm,
-                                                GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm);
+                                                GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm, GlobalTensor<T> sinksGm);
     __aicore__ inline void InitVec2GlobalTensor(GlobalTensor<T> accumOutGm, GlobalTensor<UPDATE_T> vec2ResGm,
                                                 GlobalTensor<MM2_OUT_T> mm2ResGm, GlobalTensor<OUT_T> attentionOutGm);
     __aicore__ inline void AllocEventID();
     __aicore__ inline void FreeEventID();
+    __aicore__ inline void CopySinksIn();
+    __aicore__ inline void SliceAndContactSinksValue(uint32_t nIdx, uint32_t dealRowCount);
     __aicore__ inline void InitSoftmaxDefaultBuffer();
     // ================================Base Vector==========================================
     __aicore__ inline void RowDivs(LocalTensor<float> dstUb, LocalTensor<float> src0Ub, LocalTensor<float> src1Ub,
@@ -140,14 +143,17 @@ private:
     static constexpr uint64_t SYNC_INPUT_BUF2_PONG_FLAG = 5;
     static constexpr uint64_t SYNC_OUTPUT_BUF1_FLAG = 4;
     static constexpr uint64_t SYNC_OUTPUT_BUF2_FLAG = 5;
+    static constexpr uint64_t SYNC_SINKS_BUF_FLAG = 6;
     static constexpr uint32_t INPUT1_BUFFER_OFFSET = ConstInfo::BUFFER_SIZE_BYTE_32K;
     static constexpr uint32_t SOFTMAX_TMP_BUFFER_OFFSET = ConstInfo::BUFFER_SIZE_BYTE_1K;
     static constexpr uint32_t BASE_BLOCK_MAX_ELEMENT_NUM = ConstInfo::BUFFER_SIZE_BYTE_32K / sizeof(T);  // 32768/4=8096
     static constexpr uint32_t BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(T);                                // 32/4=8
+    static constexpr uint32_t MAX_N1_SIZE = 128U;
     static constexpr T FLOAT_E_SCALAR = 8388608;
     static constexpr T LN2 = 0.6931471805599453094172;
     static constexpr T RECIP_OF_LN2 = 1 / LN2;
     static constexpr T SOFTMAX_MIN_NUM = -2e38;
+    static constexpr SINKS_T R0 = 1.0f;
 
     const SparseAttnSharedkvTilingData *__restrict tilingData;
 
@@ -161,6 +167,7 @@ private:
     GlobalTensor<T> lseMaxFdGm;
     GlobalTensor<T> softmaxMaxGm;
     GlobalTensor<T> softmaxSumGm;
+    GlobalTensor<T> sinksGm;
 
     GlobalTensor<int32_t> actualSeqLengthsQGm;
     GlobalTensor<int32_t> actualSeqLengthsKVGm;
@@ -188,6 +195,9 @@ private:
     TBuf<> tmpBuff1;              // 32K
     TBuf<> v0ValidSizeBuff;       // 8K
 
+    TBuf<> sinksBuff;              // 1K
+    TBuf<> sinksBrcbBuff;          // 12K
+
     TBuf<> nValueBuff;
     TBuf<> cofValueBuff;
     TBuf<> aMlaSumBuff;
@@ -209,6 +219,8 @@ private:
     LocalTensor<KV_T> kvMergUb_;
     LocalTensor<KV_T> ropeMergUb_;
     LocalTensor<int32_t> v0ValidSizeUb_;
+    LocalTensor<SINKS_T> sinksUb;
+    LocalTensor<SINKS_T> sinksBrcbUb;
 };
 
 template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffers(TPipe *pipe)
@@ -233,6 +245,9 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffer
     pipe->InitBuffer(softmaxMaxDefaultBuff, ConstInfo::BUFFER_SIZE_BYTE_1K);
     pipe->InitBuffer(softmaxSumDefaultBuff, ConstInfo::BUFFER_SIZE_BYTE_1K);
 
+    pipe->InitBuffer(sinksBuff, MAX_N1_SIZE * sizeof(SINKS_T));
+    pipe->InitBuffer(sinksBrcbBuff, MAX_N1_SIZE * sizeof(SINKS_T) * BLOCK_ELEMENT_NUM);
+
     nValueUb = nValueBuff.Get<T>();
     cofValueUb = cofValueBuff.Get<T>();
     aMlaSumUb = aMlaSumBuff.Get<T>();
@@ -248,6 +263,9 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffer
     ropeMergUb_ = inputBuff2.Get<KV_T>();
 
     v0ValidSizeUb_ = v0ValidSizeBuff.Get<int32_t>();
+
+    sinksUb = sinksBuff.Get<SINKS_T>();
+    sinksBrcbUb = sinksBrcbBuff.Get<SINKS_T>();
 }
 
 template <typename SAST>
@@ -283,7 +301,7 @@ template <typename SAST>
 __aicore__ inline void SASVectorBlock<SAST>::InitVec1GlobalTensor(
     GlobalTensor<MM1_OUT_T> mm1ResGm, GlobalTensor<KV_T> vec1ResGm,
     GlobalTensor<int32_t> actualSeqLengthsQGm, GlobalTensor<int32_t> actualSeqLengthsKVGm, GlobalTensor<T> lseMaxFdGm,
-    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm)
+    GlobalTensor<T> lseSumFdGm, GlobalTensor<int32_t> topKGm, GlobalTensor<SINKS_T> sinksGm)
 {
     // actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm
     this->mm1ResGm = mm1ResGm;
@@ -293,6 +311,7 @@ __aicore__ inline void SASVectorBlock<SAST>::InitVec1GlobalTensor(
     this->lseMaxFdGm = lseMaxFdGm;
     this->lseSumFdGm = lseSumFdGm;
     this->topkGm_ = topKGm;
+    this->sinksGm = sinksGm;
 }
 
 template <typename SAST>
@@ -327,8 +346,51 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::FreeEventI
     WaitFlag<AscendC::HardEvent::MTE3_V>(SYNC_OUTPUT_BUF2_FLAG);
 }
 
+template <typename SFAT> __aicore__ inline void SASVectorBlock<SFAT>::CopySinksIn()
+{
+    DataCopyExtParams dataCopyParams;
+    dataCopyParams.blockCount = 1U;
+    dataCopyParams.blockLen = constInfo.qHeadNum * sizeof(T);
+    dataCopyParams.srcStride = 0U;
+    dataCopyParams.dstStride = 0U;
+    DataCopyPadExtParams<T> padParams;
+    DataCopyPad(sinksUb, sinksGm, dataCopyParams, padParams);
+    SetFlag<AscendC::HardEvent::MTE2_V>(SYNC_SINKS_BUF_FLAG);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(SYNC_SINKS_BUF_FLAG);
+    uint32_t repeatTimes = (constInfo.qHeadNum + BLOCK_ELEMENT_NUM - 1U) / BLOCK_ELEMENT_NUM;  // 每次处理 8 datablocks
+    Brcb(sinksBrcbUb, sinksUb, repeatTimes, {1, BLOCK_ELEMENT_NUM});
+    PipeBarrier<PIPE_V>();
+    
+    DataCopyParams repeatParams;
+    repeatParams.blockCount = 1;  // 搬到有一个块超过单个vec核减分核M轴大小即可，核间切分每个vec256
+    repeatParams.blockLen = constInfo.qHeadNum;
+    repeatParams.srcStride = 0U;
+    repeatParams.dstStride = 0U;
+    for (uint32_t i ; i <= 256U / constInfo.qHeadNum; i++) {
+        DataCopy(sinksBrcbUb[constInfo.qHeadNum * BLOCK_ELEMENT_NUM * i], sinksBrcbUb, repeatParams);
+    }
+    PipeBarrier<PIPE_V>();
+}
+
+template <typename SFAT> __aicore__ inline void SASVectorBlock<SFAT>::SliceAndContactSinksValue(uint32_t nIdx, uint32_t dealRowCount)
+{
+    uint32_t repeatTimesOnce = 128;  //由于WholeReduceMax接口中repeatTimes支持范围（0,255），因此需要分多次调用WholeReduceMax，这里就使用每次repeatTime=128
+    uint32_t loopTimes = (dealRowCount + repeatTimesOnce - 1) / repeatTimesOnce;
+    uint32_t repeatTimes = repeatTimesOnce;
+
+    for (uint32_t loop = 0; loop < loopTimes; ++loop) {
+        if (loop == loopTimes - 1) {
+            repeatTimes = dealRowCount - loop * repeatTimesOnce;
+        }
+        WholeReduceMax(softmaxMaxDefaultUb[loop * repeatTimesOnce], sinksBrcbUb[(nIdx + loop * repeatTimesOnce) * BLOCK_ELEMENT_NUM],
+            BLOCK_ELEMENT_NUM * BLOCK_ELEMENT_NUM, repeatTimes, 1, 0, 1, ReduceOrder::ORDER_ONLY_VALUE);
+        PipeBarrier<PIPE_V>();
+    }
+}
+
 template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitSoftmaxDefaultBuffer()
 {
+    CopySinksIn();
     Duplicate(softmaxMaxDefaultUb, SOFTMAX_MIN_NUM, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
     Duplicate(softmaxSumDefaultUb, ConstInfo::FLOAT_ZERO, SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T));
 }
@@ -527,7 +589,7 @@ __aicore__ inline void SASVectorBlock<SAST>::SoftmaxFlashV2Compute(
     uint32_t outIdx = info.loop % (constInfo.preLoadNum);
     uint32_t softmaxOutOffset = outIdx * SOFTMAX_TMP_BUFFER_OFFSET / sizeof(T) + baseOffset;
     if (info.isFirstSInnerLoop) {
-        inMaxTensor = softmaxMaxDefaultUb;
+        inMaxTensor = softmaxMaxDefaultUb[startRow];
         inSumTensor = softmaxSumDefaultUb;
     } else {
         uint32_t inIdx = (info.loop - 1) % (constInfo.preLoadNum);
@@ -790,6 +852,8 @@ __aicore__ inline void SASVectorBlock<SAST>::ProcessVec1SingleBuf(const RunInfo 
     }
     uint32_t loopCount = (mSplitInfo.vecDealM + mSplitSize - 1) / mSplitSize;
     uint32_t tailSplitSize = mSplitInfo.vecDealM - (loopCount - 1) * mSplitSize;
+
+    SliceAndContactSinksValue((mSplitInfo.nBufferStartM + mSplitInfo.vecStartM) % constInfo.qHeadNum, mSplitInfo.vecDealM);
 
     DataCopyExtParams dataCopyParams;
     dataCopyParams.blockCount = 1;

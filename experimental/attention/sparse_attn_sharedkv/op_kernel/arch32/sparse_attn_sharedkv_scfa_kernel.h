@@ -71,6 +71,7 @@ public:
     using Q_T = typename SAST::queryType;
     using KV_T = typename SAST::kvType;
     using OUT_T = typename SAST::outputType;
+    using SINKS_T = float;
     using UPDATE_T = T;
     using MM1_OUT_T = T;
     using MM2_OUT_T = T;
@@ -144,7 +145,7 @@ private:
     GlobalTensor<Q_T> queryGm;
     GlobalTensor<KV_T> oriKvGm;
     GlobalTensor<KV_T> cmpKvGm;
-    GlobalTensor<Q_T> sinksGm;
+    GlobalTensor<SINKS_T> sinksGm;
 
     GlobalTensor<OUT_T> attentionOutGm;
     GlobalTensor<int32_t> oriBlockTableGm;
@@ -497,7 +498,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     cmpKvGm.SetGlobalBuffer((__gm__ KV_T *)cmpKV);
     
     if (sinks != nullptr) {
-        sinksGm.SetGlobalBuffer((__gm__ Q_T *)sinks);
+        sinksGm.SetGlobalBuffer((__gm__ SINKS_T *)sinks);
     }
 
     attentionOutGm.SetGlobalBuffer((__gm__ OUT_T *)attentionOut);
@@ -557,7 +558,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Init(
     if ASCEND_IS_AIV {
         vectorBlock.InitParams(constInfo, tilingData);
         vectorBlock.InitVec0GlobalTensor(kvValidSizeGm_, kvMergeGm_, oriKvGm, cmpKvGm, oriBlockTableGm, cmpBlockTableGm);
-        vectorBlock.InitVec1GlobalTensor(mm1ResGm, vec1ResGm, actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm);
+        vectorBlock.InitVec1GlobalTensor(mm1ResGm, vec1ResGm, actualSeqLengthsQGm, actualSeqLengthsKVGm, lseMaxFdGm, lseSumFdGm, topKGm, sinksGm);
         vectorBlock.InitVec2GlobalTensor(accumOutGm, vec2ResGm, mm2ResGm, attentionOutGm);
     }
 
