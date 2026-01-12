@@ -16,11 +16,8 @@
 #ifndef COMPRESSOR_KERNEL_H
 #define COMPRESSOR_KERNEL_H
 
-#include "kernel_operator.h"
-#include "kernel_operator_list_tensor_intf.h"
-#include "kernel_tiling/kernel_tiling.h"
-#include "lib/matmul_intf.h"
-#include "lib/matrix/matmul/tiling.h"
+#include "compressor_comm.h"
+#include "compressor_vector_comm.h"
 #include "compressor_template_tiling_key.h"
 #include "compressor_tiling_data.h"
 #include "compressor_comm.h"
