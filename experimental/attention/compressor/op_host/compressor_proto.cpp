@@ -31,7 +31,6 @@ namespace ops {
     constexpr uint32_t CU_SEQ_LEN_INPUT_INDEX = 10;
     constexpr uint32_t SEQ_USED_INPUT_INDEX = 11;
     constexpr uint32_t START_POS_INPUT_INDEX = 12;
-    constexpr uint32_t HADAMARD_INPUT_INDEX = 13;
 
     // ATTR
     constexpr uint32_t ROPE_HEAD_DIM_ATTR_INDEX = 0;
@@ -91,8 +90,6 @@ ge::graphStatus GetCompressorShapeDim(const gert::InferShapeContext* context, Co
     OPS_LOG_E_IF_NULL(context, seqUsedShape, return ge::GRAPH_FAILED)
     auto startPosShape = context->GetRequiredInputShape(START_POS_INPUT_INDEX);    // (B,)
     OPS_LOG_E_IF_NULL(context, startPosShape, return ge::GRAPH_FAILED)
-    auto hadamardShape = context->GetRequiredInputShape(HADAMARD_INPUT_INDEX);    // (D, D)
-    OPS_LOG_E_IF_NULL(context, hadamardShape, return ge::GRAPH_FAILED)
 
 
     if (xShape->GetDimNum() == DIM_NUM_3) {                // BS

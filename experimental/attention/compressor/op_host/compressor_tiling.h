@@ -54,7 +54,6 @@ namespace optiling {
     constexpr uint32_t CU_SEQ_LEN_INPUT_INDEX = 10;
     constexpr uint32_t SEQ_USED_INPUT_INDEX = 11;
     constexpr uint32_t START_POS_INPUT_INDEX = 12;
-    constexpr uint32_t HADAMARD_INPUT_INDEX = 13;
 
     // ATTR
     constexpr uint32_t ROPE_HEAD_DIM_ATTR_INDEX = 0;
@@ -114,11 +113,6 @@ enum class ROTARY_MODE:uint8_t {
     INTERLEAVE = 2
 };
 
-enum class ROTATE_MODE:uint8_t {
-    DISABLE = 0,
-    HADAMARD = 1
-};
-
 struct CompressorContext {
     const char *opName;
     const char *opType;
@@ -137,7 +131,6 @@ struct CompressorContext {
     OptionalParaInfo cuSeqlens;
     OptionalParaInfo seqUsed;
     OptionalParaInfo startPos;
-    OptionalParaInfo hadamard;
     RequiredParaInfo cmpKv;
 
     const int *ropeHeadDim;
@@ -145,7 +138,6 @@ struct CompressorContext {
     const int *cmpRatio;
     const float *normEps;
     const int *rotaryMode;
-    const int *rotateMode;
     
     size_t *workSpaces;
     uint64_t tilingKey;
