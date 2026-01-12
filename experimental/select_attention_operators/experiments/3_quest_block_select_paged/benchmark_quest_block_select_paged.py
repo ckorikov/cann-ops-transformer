@@ -17,9 +17,9 @@ Measures:
 *  correctness comparison with reference implementation
 """
 from typing import Callable
+import itertools
 import torch
 import torch_npu
-import itertools
 
 from select_attn_decoding_ops import quest_block_select_paged, quest_block_select_paged_in_out
 from ref_quest_block_select_paged import ref_quest_block_select_paged

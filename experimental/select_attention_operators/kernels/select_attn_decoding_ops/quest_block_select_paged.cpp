@@ -469,7 +469,7 @@ extern "C" __global__ __aicore__ void quest_block_select_paged_half(
             AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
             
             // Compute block scores for this metadata block
-            uint8_t repeatTimes = BLOCK_SIZE;  // TODO: acceleration opportunity: possible to accelerate by setting to "seq_len_curr_meta_blk" that is defined below, this will save the unnecessary BLOCK_SIZE-seq_len_curr_meta_blk computations
+            uint8_t repeatTimes = BLOCK_SIZE;  // acceleration opportunity: possible to accelerate by setting to "seq_len_curr_meta_blk" that is defined below, this will save the unnecessary BLOCK_SIZE-seq_len_curr_meta_blk computations
             AscendC::BinaryRepeatParams mul_repeat_params = {1,1,1,8,0,8};
             AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
             AscendC::Mul(maxblock_lt, grouped_query_lt, maxblock_lt, mask, repeatTimes, mul_repeat_params); // minblock_lt is not actually product query*minblock_lt 

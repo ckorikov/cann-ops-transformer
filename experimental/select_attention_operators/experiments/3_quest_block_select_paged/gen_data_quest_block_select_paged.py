@@ -7,10 +7,10 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
-import torch
-import torch_npu
 import math
 from typing import Tuple, List
+import torch
+import torch_npu
 
 SEED = 42
 
@@ -75,7 +75,8 @@ def gen_quest_paged_inputs(batch_size: int,
 
 
 def compare_indices(reference: torch.Tensor, custom: torch.Tensor, 
-                    tol_percentage: float = 0.02, verbose = False) -> bool:
+                    tol_percentage: float = 0.02, 
+                    verbose: bool = False) -> bool:
     """
     Compares tensors of integer numbers, requiring the last dimension to contain 
     the same set of numbers.

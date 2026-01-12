@@ -11,10 +11,10 @@
 Single input testing (for debugging) -> Run this file with python <filename>
 Wide range testing (for validation) -> Run this file with pytest <filename>
 """
+from itertools import product
 import pytest
 import torch
 import torch_npu
-from itertools import product
 from select_attn_prefill_ops import quest_prefill_metadata
 from ref_quest_prefill_metadata import ref_quest_prefill_metadata
 from gen_data_quest_prefill_metadata import gen_quest_prefill_inputs, compare_tensors, ceil_div

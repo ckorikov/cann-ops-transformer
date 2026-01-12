@@ -7,8 +7,8 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
-import torch
 import math
+import torch
 
 
 def ceil_div(a, b):
@@ -170,8 +170,10 @@ def ref_quest_paged_fast(query: torch.Tensor,              # (batch_size, num_he
         relevant_maxblocks = maxblocks[meta_block_ids]  # [num_valid_blocks, block_size, num_kv_heads, head_dim]
         relevant_minblocks = minblocks[meta_block_ids]  # [num_valid_blocks, block_size, num_kv_heads, head_dim]
 
-        if relevant_maxblocks.dtype == torch.bfloat16: relevant_maxblocks = relevant_maxblocks.float()
-        if relevant_minblocks.dtype == torch.bfloat16: relevant_minblocks = relevant_minblocks.float()
+        if relevant_maxblocks.dtype == torch.bfloat16: 
+            relevant_maxblocks = relevant_maxblocks.float()
+        if relevant_minblocks.dtype == torch.bfloat16: 
+            relevant_minblocks = relevant_minblocks.float()
 
         # Reshape [num_kv_heads, head_dim] -> [1, 1, num_kv_heads, head_dim] easier to do fast multiplication
         batch_query_reshaped = batch_query.unsqueeze(0).unsqueeze(0)  # [1, 1, num_kv_heads, head_dim]

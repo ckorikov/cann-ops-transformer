@@ -16,9 +16,9 @@ Measures:
 *  effective bandwidth (TB/s) - bytes moved / time
 *  correctness comparison with reference implementation
 """
+import itertools
 import torch
 import torch_npu
-import itertools
 
 from select_attn_decoding_ops import quest_block_select_paged_in_out_w
 from ref_quest_block_select_paged_w import ref_quest_block_select_paged_w

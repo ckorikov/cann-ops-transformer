@@ -17,7 +17,7 @@ CURRENT_DIR = os.path.dirname(__file__)
 
 PACKAGE_NAME = 'select_attn_prefill_ops'
 VERSION = '0.3.1'
-num_cores=os.environ.get('NUM_CORES', 0)
+num_cores = os.environ.get('NUM_CORES', 0)
 
 setup(
     name=PACKAGE_NAME,

@@ -97,7 +97,8 @@ def gen_quest_prefill_inputs(
 
 
 def compare_tensors(ref: torch.Tensor, custom: torch.Tensor, *, 
-                    rtol = 1e-2, atol = 1e-3, verbose: bool = True) -> bool:
+                    rtol: float = 1e-2, atol: float = 1e-3, 
+                    verbose: bool = True) -> bool:
     """
     compare tensors with a relaxed fp16 tolerance
     """
@@ -106,10 +107,12 @@ def compare_tensors(ref: torch.Tensor, custom: torch.Tensor, *,
         return False
     try:
         torch.testing.assert_close(ref, custom, rtol=rtol, atol=atol)
-        if verbose: print("PASSED")
+        if verbose: 
+            print("PASSED")
         return True
     except AssertionError as e:
-        if verbose: print("FAILED")
+        if verbose: 
+            print("FAILED")
         print(e)
         return False
 

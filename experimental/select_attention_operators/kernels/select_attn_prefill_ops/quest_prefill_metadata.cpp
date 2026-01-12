@@ -74,7 +74,6 @@ public:
 
             /* main loop across the BLOCK_SIZE*BLOCK_SIZE toekns to build 1 metadata block*/
             for (int32_t meta_blk = 0; meta_blk < num_meta_blocks_in_request; meta_blk++){
-
                 /* allocate metadata output minblock and maxblock for this head */
                 LocalTensor<half> max_lt = max_out_q_.AllocTensor<half>();
                 LocalTensor<half> min_lt = min_out_q_.AllocTensor<half>();
@@ -85,7 +84,6 @@ public:
                 int32_t num_kv_blocks_completed = meta_blk * BLOCK_SIZE_;
                 int32_t num_kv_blocks_todo_curr_iter = min(num_kv_blocks_in_request - num_kv_blocks_completed, BLOCK_SIZE_);
                 for (int32_t blk = 0; blk < num_kv_blocks_todo_curr_iter; ++blk) {
-
                     // tail check - set ntokens_to_reduce to the number of valid tokens in the current K block
                     int32_t ntokens_to_reduce;
                     if ((blk == num_kv_blocks_todo_curr_iter - 1) && 

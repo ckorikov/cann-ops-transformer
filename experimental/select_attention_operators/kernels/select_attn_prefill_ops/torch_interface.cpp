@@ -93,7 +93,6 @@ void quest_prefill_metadata(at::Tensor k_cache,
     TORCH_CHECK(D == maxblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", maxblocks.size(DIM3), " from maxblocks");
     TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
 
-    
     // allocate input tensors
     uint8_t *k_cache_ptr = reinterpret_cast<uint8_t *>(k_cache.storage().data_ptr().get());
     uint8_t *block_tables_ptr = reinterpret_cast<uint8_t *>(block_tables.storage().data_ptr().get());

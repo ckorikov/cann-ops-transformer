@@ -14,9 +14,9 @@ Measures:
 *  effective bandwidth (TB/s) - bytes moved / time
 *  correctness comparison with reference implementation
 """
+import itertools
 import torch
 import torch_npu
-import itertools
 
 from select_attn_prefill_ops import quest_prefill_metadata
 from ref_quest_prefill_metadata import ref_quest_prefill_metadata
@@ -211,17 +211,25 @@ def benchmark_quest_prefill():
         ####### Print results #######
         print(f"{n:>3} {b:>3} {seq_len:>10} {are_equal:>15} ", end='')
         
-        if run_ref and ref_duration is not None: print(f"{ref_duration:>18.2f} ", end='')
-        else: print(f"{'N/A':>18} ", end='')
+        if run_ref and ref_duration is not None: 
+            print(f"{ref_duration:>18.2f} ", end='')
+        else: 
+            print(f"{'N/A':>18} ", end='')
         
-        if run_our and our_duration is not None: print(f"{our_duration:>18.2f} ", end='')
-        else: print(f"{'N/A':>18} ", end='')
+        if run_our and our_duration is not None: 
+            print(f"{our_duration:>18.2f} ", end='')
+        else: 
+            print(f"{'N/A':>18} ", end='')
         
-        if run_ref and ref_bw is not None: print(f"{ref_bw:>16.3f} ", end='')
-        else: print(f"{'N/A':>16} ", end='')
+        if run_ref and ref_bw is not None: 
+            print(f"{ref_bw:>16.3f} ", end='')
+        else: 
+            print(f"{'N/A':>16} ", end='')
         
-        if run_our and our_bw is not None: print(f"{our_bw:>16.3f}")
-        else: print(f"{'N/A':>16}")
+        if run_our and our_bw is not None: 
+            print(f"{our_bw:>16.3f}")
+        else: 
+            print(f"{'N/A':>16}")
 
     print("=" * 106)
 

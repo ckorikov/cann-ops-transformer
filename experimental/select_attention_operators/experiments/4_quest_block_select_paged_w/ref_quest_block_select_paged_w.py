@@ -8,8 +8,8 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
 
-import torch
 import math
+import torch
 
 
 def ceil_div(a, b):
@@ -72,7 +72,8 @@ def ref_quest_paged_slow(query: torch.Tensor,              # (batch_size, num_he
     num_meta_blocks, block_size, num_kv_heads, head_dim_blocks = maxblocks.shape
     mmbpr = metadata_block_tables.shape[1]
     
-    if query.dtype == torch.bfloat16: query = query.float()   
+    if query.dtype == torch.bfloat16: 
+        query = query.float()   
 
     assert head_dim == head_dim_blocks, f"Query dimension {head_dim} doesn't match block dimension {head_dim_blocks}" 
     

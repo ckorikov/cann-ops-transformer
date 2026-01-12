@@ -8,10 +8,10 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
 
-import torch
-import torch_npu
 import math
 from typing import Tuple, List
+import torch
+import torch_npu
 
 SEED = 42
 

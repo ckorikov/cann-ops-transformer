@@ -100,7 +100,7 @@ at::Tensor quest_block_select_paged(at::Tensor query,
     TORCH_CHECK(k > 0, "k must be positive, got ", k);
     TORCH_CHECK(num_meta_blocks == minblocks.size(DIM0), "num_meta_blocks mismatch: inferred ", num_meta_blocks, " from maxblocks, got ", minblocks.size(DIM0), " from minblocks");
     TORCH_CHECK(H / N <= BLOCK_SIZE, "H/N head group size cannot exceed BLOCK_SIZE=",BLOCK_SIZE, " given H/N=", H/N);
-    TORCH_CHECK(MMBPR < 7, "maximum metablocks per request (MMBPR) cannot exceed 6 for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
+    TORCH_CHECK(MMBPR <= MAXMBPR, "maximum metablocks per request (MMBPR) cannot exceed ", MAXMBPR, " for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
 
     // validate data types
     bool use_bfloat16 = is_bfloat16(query);
@@ -190,7 +190,6 @@ void quest_block_select_paged_in_out(at::Tensor query,
     int32_t k = selected_indices.sizes()[DIM2];
     int k_round = DIV_ROUNDUP_MUL(k * BYTES_PER_IDX, BYTES_ASCEND_DATA_BLOCK) / BYTES_PER_IDX;
 
-    
     // validate input shapes
     TORCH_CHECK(k == k_round, "last dimenstion (", DIM2, ") of selected_indices argument must be a multiple of 8. Given:", k);
     TORCH_CHECK(D == DIM128, "D must be equal to ", DIM128," for high performance operations, got ", D);
@@ -204,7 +203,7 @@ void quest_block_select_paged_in_out(at::Tensor query,
     TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
     TORCH_CHECK(num_meta_blocks == minblocks.size(DIM0), "num_meta_blocks mismatch: inferred ", num_meta_blocks, " from maxblocks, got ", minblocks.size(DIM0), " from minblocks");
     TORCH_CHECK(k > 0, "k must be positive, got ", k);
-    TORCH_CHECK(MMBPR < 7, "maximum metablocks per request (MMBPR) cannot exceed 6 for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
+    TORCH_CHECK(MMBPR < MAXMBPR, "maximum metablocks per request (MMBPR) cannot exceed ", MAXMBPR, " for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
     TORCH_CHECK(H / N <= BLOCK_SIZE, "H/N head group size cannot exceed BLOCK_SIZE=",BLOCK_SIZE, " given H/N=", H/N);
     TORCH_CHECK(B == selected_indices.size(DIM0), "selected indices 0 dim must have size: ",B, " given: ",selected_indices.size(DIM0));
     TORCH_CHECK(N == selected_indices.size(DIM1), "selected indices 1 dim must have size: ",N, " given: ",selected_indices.size(DIM1));
@@ -249,7 +248,6 @@ void quest_block_select_paged_in_out(at::Tensor query,
         k_round,
         use_bfloat16
     );
-
 }
 
 /**
@@ -301,7 +299,6 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
     int32_t num_meta_blocks = maxblocks.sizes()[DIM0];
     int k_round = DIV_ROUNDUP_MUL(k * BYTES_PER_IDX, BYTES_ASCEND_DATA_BLOCK) / BYTES_PER_IDX;
 
-    
     // validate input shapes
     TORCH_CHECK(D == DIM128, "D must be equal to ", DIM128," for high performance operations, got ", D);
     TORCH_CHECK(k == k_round, "last dimenstion (", DIM2, ") of selected_indices argument must be a multiple of 8. Given:", k);
@@ -315,7 +312,7 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
     TORCH_CHECK(num_meta_blocks == minblocks.size(DIM0), "num_meta_blocks mismatch: inferred ", num_meta_blocks, " from maxblocks, got ", minblocks.size(DIM0), " from minblocks");
     TORCH_CHECK(D == minblocks.size(DIM3), "Head dimension D mismatch: expected ", D, " from query, got ", minblocks.size(DIM3), " from minblocks");
     TORCH_CHECK(k > 0, "k must be positive, got ", k);
-    TORCH_CHECK(MMBPR <= 6, "maximum metablocks per request (MMBPR) cannot exceed 6 for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
+    TORCH_CHECK(MMBPR <= MAXMBPR, "maximum metablocks per request (MMBPR) cannot exceed ", MAXMBPR, " for this kernel. Your MMBPR=", MMBPR, " as inferred from dim=1 of metadata_block_tables argument.");
     TORCH_CHECK(H / N <= BLOCK_SIZE, "H/N head group size cannot exceed BLOCK_SIZE=",BLOCK_SIZE, " given H/N=", H/N);
     TORCH_CHECK(B == selected_indices.size(DIM0), "selected indices 0 dim must have size: ",B, " given: ",selected_indices.size(DIM0));
     TORCH_CHECK(N == selected_indices.size(DIM1), "selected indices 1 dim must have size: ",N, " given: ",selected_indices.size(DIM1));
@@ -349,7 +346,6 @@ void quest_block_select_paged_in_out_w(at::Tensor query,
         selected_indices_ptr, B, N, H, BLOCK_SIZE, D, MMBPR, num_meta_blocks, tokens_since_metadata_update,
         k_round, use_bfloat16
     );
-
 }
 
 
