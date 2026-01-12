@@ -261,6 +261,7 @@ Range<uint32_t> SparseAttnSharedkvMetadataCpuKernel::CalcS2Range(
     // get valid range
     s2FirstToken = Clip(s2FirstToken, static_cast<int64_t>(0), static_cast<int64_t>(batchCache.s2Size - 1U));
     s2LastToken = Clip(s2LastToken, static_cast<int64_t>(0), static_cast<int64_t>(batchCache.s2Size - 1U));
+    winS2LastToken = s2LastToken;
 
     s2Start = static_cast<uint32_t>(s2FirstToken) / s2BaseSize_;
     s2End = static_cast<uint32_t>(s2LastToken) / s2BaseSize_ + 1U; // end of block index, Right-open interval
@@ -297,11 +298,17 @@ void SparseAttnSharedkvMetadataCpuKernel::CalcS1GCache(uint32_t s1GIdx,
     // cmp部分s2起止
     s1GCache.cmpS2Start = 0;
     s1GCache.cmpS2End = 0;
+    // 计算CmpS2LastToken的长度
+    uint32_t cmpS2LastTokenSize = (winS2LastToken + 1) / cmpRatio_;
+    uint32_t actCmpS2LastTokenSize = 0;
     if (isCFA) {
-        s1GCache.cmpS2End = s1GCache.winS2End / cmpRatio_;
+        actCmpS2LastTokenSize = cmpS2LastTokenSize;
     } else if (isSCFA) {
-        s1GCache.cmpS2End = std::min(s1GCache.winS2End / cmpRatio_, topK_);
+        // CmpS2LastToken与topk取最小
+        actCmpS2LastTokenSize = std::min(cmpS2LastTokenSize, topK_);
     }
+    // 将token长度转化为token索引，然后由token索引计算s2索引
+    s1GCache.cmpS2End = (actCmpS2LastTokenSize == 0) ? 0 : (actCmpS2LastTokenSize - 1) / s2BaseSize_ + 1U;
 
     // 处理win部分block信息
     if (s1GCache.winS2Start >= s1GCache.winS2End) {

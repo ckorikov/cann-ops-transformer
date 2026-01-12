@@ -316,6 +316,8 @@ private:
   bool supportFd = false;
   uint32_t sparseMode_ = 0;
   uint32_t attentionMode_ = 1;
+  uint32_t winS2LastToken = 0;
+
 private:
   enum class ParamId : uint32_t {
     // input
