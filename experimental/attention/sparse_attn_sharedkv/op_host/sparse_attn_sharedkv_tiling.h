@@ -27,7 +27,7 @@
 #include "platform/platform_info.h"
 
 namespace optiling {
-
+constexpr uint32_t BYTE_BLOCK = 32;
 // // ------------------公共定义--------------------------
 struct SASTilingRequiredParaInfo {
     const gert::CompileTimeTensorDesc *desc;
@@ -246,7 +246,7 @@ public:
 
 
     // Layout
-    SASLayout qLayout = SASLayout::BSND;
+    SASLayout qLayout = SASLayout::TND;
     SASLayout kvLayout = SASLayout::PA_ND;
     SASLayout outLayout = SASLayout::BSND;
 

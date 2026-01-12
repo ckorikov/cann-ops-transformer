@@ -902,7 +902,7 @@ __aicore__ inline int64_t SASVectorBlock<SAST>::GetKeyGmOffset(int64_t realS2Idx
     if constexpr (PAGE_ATTENTION) {
         int64_t blkTableIdx = realS2Idx / constInfo.kvCacheBlockSize;
         int64_t blkTableOffset = realS2Idx % constInfo.kvCacheBlockSize;
-        realKeyGmOffset = blkTableGm_.GetValue(runInfo.bIdx * constInfo.oriMaxBlockNumPerBatch + blkTableIdx) *
+        realKeyGmOffset = blkTableGm_.GetValue(runInfo.bIdx * constInfo.cmpMaxBlockNumPerBatch + blkTableIdx) *
                                 static_cast<int64_t>(constInfo.kvCacheBlockSize) *
                                 static_cast<int64_t>(constInfo.kvHeadNum) +
                                 blkTableOffset;
@@ -945,11 +945,11 @@ SASVectorBlock<SAST>::CopyInSingleKv(int64_t &mte2Size, int64_t mte3Size, int64_
     intriParams.srcStride = 0;
     DataCopyPadExtParams<KV_T> padParams;
     DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * 512 + (mte2Size - mte3Size) * constInfo.headDim],
-                keyGm_[keyBNBOffset * constInfo.headDim], intriParams, padParams);
-    intriParams.blockLen = validS2Count * constInfo.headDimRope * sizeof(KV_T);
+                cmpKvGm_[keyBNBOffset * constInfo.headDim], intriParams, padParams);
+    // intriParams.blockLen = validS2Count * constInfo.headDimRope * sizeof(KV_T);
 
-    DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * constInfo.headDimRope],
-                keyRopeGm_[keyBNBOffset * constInfo.headDimRope], intriParams, padParams);
+    // DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * constInfo.headDimRope],
+    //             keyRopeGm_[keyBNBOffset * constInfo.headDimRope], intriParams, padParams);
     mte2Size += validS2Count;
 }
 
@@ -958,7 +958,7 @@ __aicore__ inline void SASVectorBlock<SAST>::CopyInKv(int64_t &mte2Size, int64_t
                                                         int64_t realS2Idx1, int64_t realS2Idx2, const RunInfo &runInfo)
 {
     int64_t s2IdLimit = runInfo.curActualSeqLenOri;
-    if (constInfo.oriMaskMode == 3) {
+    if (constInfo.cmpMaskMode == 3) {
         s2IdLimit = runInfo.curActualSeqLenOri - runInfo.actS1Size + runInfo.gS1Idx / constInfo.gSize + 1;
     }
 
@@ -969,28 +969,29 @@ __aicore__ inline void SASVectorBlock<SAST>::CopyInKv(int64_t &mte2Size, int64_t
     }
 
     int64_t keySrcStride = 0;
-    int64_t keyRopeSrcStride = 0;
+    // int64_t keyRopeSrcStride = 0;
     if constexpr (PAGE_ATTENTION) {
         int64_t blkTableSrcStride =
         ((keyOffset1 > keyOffset2 ? (keyOffset1 - keyOffset2) :
         (keyOffset2 - keyOffset1)) - constInfo.sparseBlockSize);
         keySrcStride = blkTableSrcStride * constInfo.headDim * sizeof(KV_T);
-        keyRopeSrcStride = blkTableSrcStride * constInfo.headDimRope * sizeof(KV_T);
+        // keyRopeSrcStride = blkTableSrcStride * constInfo.headDimRope * sizeof(KV_T);
     } else {
         int64_t keyRopeOffset1 = GetKeyRopeGmOffset(realS2Idx1, runInfo, s2IdLimit);
         int64_t keyRopeOffset2 = GetKeyRopeGmOffset(realS2Idx2, runInfo, s2IdLimit);
         keySrcStride = ((keyOffset1 > keyOffset2 ? (keyOffset1 - keyOffset2) :
                         (keyOffset2 - keyOffset1)) - constInfo.sparseBlockSize) * constInfo.headDim * sizeof(KV_T);
-        keyRopeSrcStride = ((keyRopeOffset1 > keyRopeOffset2 ? (keyRopeOffset1 - keyRopeOffset2) :
-                            (keyRopeOffset2 - keyRopeOffset1)) - constInfo.sparseBlockSize) *
-                             constInfo.headDimRope * sizeof(KV_T);
+        // keyRopeSrcStride = ((keyRopeOffset1 > keyRopeOffset2 ? (keyRopeOffset1 - keyRopeOffset2) :
+        //                     (keyRopeOffset2 - keyRopeOffset1)) - constInfo.sparseBlockSize) *
+        //                      constInfo.headDimRope * sizeof(KV_T);
     }
-    
+    // (!PAGE_ATTENTION && (keyRopeSrcStride >= INT32_MAX || keyRopeSrcStride < 0)) ||
     if (unlikely(keySrcStride >= INT32_MAX || keySrcStride < 0 ||
-        (!PAGE_ATTENTION && (keyRopeSrcStride >= INT32_MAX || keyRopeSrcStride < 0)) ||
+        (!PAGE_ATTENTION) ||
         realS2Idx1 + constInfo.sparseBlockSize >= s2IdLimit ||
         realS2Idx2 + constInfo.sparseBlockSize >= s2IdLimit)) {
         // stride溢出、stride为负数、s2超长等异常场景，还原成2条搬运指令
+        // 因为需要拷贝两块
         CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx1, keyOffset1, s2IdLimit, runInfo);
         CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx2, keyOffset2, s2IdLimit, runInfo);
     } else {
@@ -1006,13 +1007,13 @@ __aicore__ inline void SASVectorBlock<SAST>::CopyInKv(int64_t &mte2Size, int64_t
             startGmOffset = keyOffset2;
         }
         DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * 512 + (mte2Size - mte3Size) * constInfo.headDim],
-                    keyGm_[startGmOffset * constInfo.headDim], intriParams, padParams);
+                    cmpKvGm_[startGmOffset * constInfo.headDim], intriParams, padParams);
 
-        intriParams.blockLen = constInfo.sparseBlockSize * constInfo.headDimRope * sizeof(KV_T);
-        intriParams.dstStride = 0;
-        intriParams.srcStride = keyRopeSrcStride;
-        DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * constInfo.headDimRope],
-                    keyRopeGm_[startGmOffset * constInfo.headDimRope], intriParams, padParams);
+        // intriParams.blockLen = constInfo.sparseBlockSize * constInfo.headDimRope * sizeof(KV_T);
+        // intriParams.dstStride = 0;
+        // intriParams.srcStride = keyRopeSrcStride;
+        // DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * constInfo.headDimRope],
+        //             keyRopeGm_[startGmOffset * constInfo.headDimRope], intriParams, padParams);
         mte2Size += ((keyOffset1 > -1) + (keyOffset2 > -1)) * constInfo.sparseBlockSize;
     }
 }
@@ -1034,12 +1035,15 @@ __aicore__ inline void SASVectorBlock<SAST>::CopyOutMrgeResult(int64_t mte2Size,
     dataCopyParams.srcStride = 0;
     dataCopyParams.dstStride = 0;
 
-    DataCopyPad(kvMergeGm_[runInfo.loop % 4 * 512 * 576 + (s2GmStartOffset + mte3Size)*constInfo.headDim],
+    // DataCopyPad(kvMergeGm_[runInfo.loop % 4 * 512 * 576 + (s2GmStartOffset + mte3Size)*constInfo.headDim],
+    //             kvMergUb_[mergeMte3Idx % 2 * 32 * 512], dataCopyParams);
+    DataCopyPad(kvMergeGm_[runInfo.loop % 4 * 512 * 512 + (s2GmStartOffset + mte3Size)*constInfo.headDim],
                 kvMergUb_[mergeMte3Idx % 2 * 32 * 512], dataCopyParams);
-
-    dataCopyParams.blockLen = constInfo.headDimRope * sizeof(KV_T);
-    DataCopyPad(kvMergeGm_[runInfo.loop % 4 * 512 * 576 + 512 * 512 + (s2GmStartOffset + mte3Size) *
-                constInfo.headDimRope], ropeMergUb_[mergeMte3Idx % 2 * 32 * 64], dataCopyParams);
+    // DumpTensor(kvMergeGm_[runInfo.loop % 4 * 512 * 512 + (s2GmStartOffset + mte3Size)*constInfo.headDim], 9999991,512);
+    // DumpTensor(kvMergUb_[mergeMte3Idx % 2 * 32 * 512], 9999992, 512);
+    // dataCopyParams.blockLen = constInfo.headDimRope * sizeof(KV_T);
+    // DataCopyPad(kvMergeGm_[runInfo.loop % 4 * 512 * 576 + 512 * 512 + (s2GmStartOffset + mte3Size) *
+    //             constInfo.headDimRope], ropeMergUb_[mergeMte3Idx % 2 * 32 * 64], dataCopyParams);
 }
 
 // b s1 k
@@ -1071,12 +1075,14 @@ __aicore__ inline void SASVectorBlock<SAST>::MergeKv(const RunInfo &runInfo)
     if (s2GmLimit > s2ProcessSize) {
         s2GmLimit = s2ProcessSize;
     }
+    // 处理两个基本块
     for (int64_t s2GmOffsetArray = s2GmStartOffset; s2GmOffsetArray < s2GmLimit; s2GmOffsetArray += 2 * constInfo.sparseBlockSize) {
         if (needWaitMte3ToMte2) {
             WaitFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx % 2);
             needWaitMte3ToMte2 = false;
         }
         GetRealS2Idx(s2GmOffsetArray, s2IdxArray0, topkGmBaseOffset, runInfo);
+        // 特殊情况，一般不考虑
         if (unlikely(s2IdxArray0 < 0)) {
             CopyOutMrgeResult(mte2Size, mte3Size, s2GmStartOffset, mergeMte3Idx, runInfo);
             SetFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx % 2);
@@ -1084,7 +1090,9 @@ __aicore__ inline void SASVectorBlock<SAST>::MergeKv(const RunInfo &runInfo)
             break;
         }
         GetRealS2Idx(s2GmOffsetArray + constInfo.sparseBlockSize, s2IdxArray1, topkGmBaseOffset, runInfo);
+        // 两个块从 gm --> ub
         CopyInKv(mte2Size, mte3Size, mergeMte3Idx, s2IdxArray0, s2IdxArray1, runInfo);
+        // ub --> gm
         if ((mte2Size - mte3Size + 2 * constInfo.sparseBlockSize > 32) ||
             s2GmOffsetArray + 2 * constInfo.sparseBlockSize >= s2GmLimit) {
             CopyOutMrgeResult(mte2Size, mte3Size, s2GmStartOffset, mergeMte3Idx, runInfo);
@@ -1094,35 +1102,44 @@ __aicore__ inline void SASVectorBlock<SAST>::MergeKv(const RunInfo &runInfo)
             needWaitMte3ToMte2 = true;
         }
     }
-
+    // 尾块处理
+    
     if (unlikely(s2GmStartOffset + mte2Size < s2GmLimit)) {
         SetFlag<AscendC::HardEvent::MTE3_V>(0);
         WaitFlag<AscendC::HardEvent::MTE3_V>(0);
         WaitFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx & 1);
+        // 填充0 
         Duplicate(kvMergUb_, static_cast<KV_T>(0.0), constInfo.headDim);
         SetFlag<AscendC::HardEvent::V_MTE3>(0);
         WaitFlag<AscendC::HardEvent::V_MTE3>(0);
+
 
         DataCopyExtParams dataCopyParams;
         dataCopyParams.blockCount = 1;
         dataCopyParams.blockLen = constInfo.headDim * sizeof(KV_T);
         dataCopyParams.srcStride = 0;
         dataCopyParams.dstStride = 0;
+        // 拷贝尾块
+        // for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
+        //     DataCopyPad(kvMergeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 + s2GmOffset * constInfo.headDim],
+        //                 kvMergUb_, dataCopyParams);
+        // }
         for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
-            DataCopyPad(kvMergeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 + s2GmOffset * constInfo.headDim],
+            DataCopyPad(kvMergeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 512 + s2GmOffset * constInfo.headDim],
                         kvMergUb_, dataCopyParams);
         }
-        dataCopyParams.blockLen = constInfo.headDimRope * sizeof(KV_T);
-        for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
-            DataCopyPad(kvMergeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 + 512 * constInfo.headDim +
-                                   s2GmOffset * constInfo.headDimRope],
-                        kvMergUb_, dataCopyParams);
-        }
+        // dataCopyParams.blockLen = constInfo.headDimRope * sizeof(KV_T);
+        // for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
+        //     DataCopyPad(kvMergeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 + 512 * constInfo.headDim +
+        //                            s2GmOffset * constInfo.headDimRope],
+        //                 kvMergUb_, dataCopyParams);
+        // }
         SetFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx & 1);
         mergeMte3Idx++;
     }
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(0);
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(1);
+    // 记录有效长度
     v0ValidSizeUb_.SetValue(runInfo.loop % MERGE_CACHE_GM_BUF_NUM, mte2Size);
     SetFlag<AscendC::HardEvent::S_MTE3>(1);
     WaitFlag<AscendC::HardEvent::S_MTE3>(1);
@@ -1131,6 +1148,7 @@ __aicore__ inline void SASVectorBlock<SAST>::MergeKv(const RunInfo &runInfo)
     dataCopyParams.blockLen = 128 * sizeof(int32_t);
     dataCopyParams.srcStride = 0;
     dataCopyParams.dstStride = 0;
+    // 将有效长度数据搬运到GM 
     DataCopyPad(kvValidSizeGm_[runInfo.loop % MERGE_CACHE_GM_BUF_NUM * (128 * 2) + GetSubBlockIdx() * 128],
                 v0ValidSizeUb_, dataCopyParams);
     return;
