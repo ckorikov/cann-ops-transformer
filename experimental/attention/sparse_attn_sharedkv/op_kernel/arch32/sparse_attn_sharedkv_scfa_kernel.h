@@ -47,11 +47,21 @@ struct TempLoopInfo {
     bool tndIsS2SplitCore;
 
     uint32_t gS1Idx = 0U;
+    uint32_t s1StartIdx = 0;
+    uint32_t s1EndIdx = 0;
     uint64_t mBasicSizeTail = 0U;  // gS1方向循环的尾基本块大小
 
 
     uint32_t cmpLoopTimes = 0;
     uint32_t oriLoopTimes = 0;
+
+    
+    // sparsemode = 4
+    int64_t oriMaskRight = 0; // 对应ori mask的时候 右边那条线
+    int64_t oriMaskLeft = 0; // 对应ori mask的时候 左边那条线
+
+    // sparsemode = 3
+    int64_t cmpMaskRight = 0; // 对应cmp mask的时候 右边那个线
 };
 
 template <typename SAST> class SparseAttnSharedkvScfa {
@@ -168,9 +178,9 @@ private:
     __aicore__ inline void ProcessBalance();
     __aicore__ inline void PreloadPipeline(uint32_t loop, uint64_t s2Start, uint64_t s2LoopIdx,
                                            RunInfo extraInfo[SAS_PRELOAD_TASK_CACHE_SIZE]);
-    __aicore__ inline bool OriSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
-    __aicore__ inline bool CmpSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
-    __aicore__ inline bool IsSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx);
+    __aicore__ inline bool OriSkip(uint32_t s2LoopIdx);
+    __aicore__ inline bool CmpSkip(uint32_t s2LoopIdx);
+    __aicore__ inline bool IsSkip(uint32_t s2LoopIdx);
     // ================================Offset Calc=====================================
     __aicore__ inline void GetActualSeqLen(uint32_t bIdx, uint32_t s1Idx = 0);
     __aicore__ inline void GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1Idx, uint32_t n2Idx);
@@ -217,6 +227,9 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::In
     constInfo.cmpMaskMode = tilingData->baseParams.cmpMaskMode;
     constInfo.oriWinLeft = tilingData->baseParams.oriWinLeft;
     constInfo.oriWinRight = tilingData->baseParams.oriWinRight;
+
+    constInfo.actualLenDimsQ = tilingData->baseParams.actualLenDimsQ;
+    constInfo.actualLenDimsKV = tilingData->baseParams.actualLenDimsKV;
     // innerSplitParams
     constInfo.mBaseSize = tilingData->innerSplitParams.mBaseSize;
     constInfo.s2BaseSize = tilingData->innerSplitParams.s2BaseSize;
@@ -252,8 +265,6 @@ __aicore__ inline void
 SparseAttnSharedkvScfa<SAST>::InitActualSeqLen(__gm__ uint8_t *actualSeqLengthsQ,
                                                           __gm__ uint8_t *actualSeqLengths)
 {
-    constInfo.actualLenDimsQ = tilingData->baseParams.actualLenDimsQ;
-    constInfo.actualLenDimsKV = tilingData->baseParams.actualLenDimsKV;
     if (constInfo.actualLenDimsKV != 0) {
         actualSeqLengthsKVGm.SetGlobalBuffer((__gm__ int32_t *)actualSeqLengths, constInfo.actualLenDimsKV);
     }
@@ -312,6 +323,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint3
         tempLoopInfo.actS2Size = 0;
         return;
     }
+    
     int64_t threshold = tempLoopInfo.actS2SizeOri;
     if (constInfo.oriMaskMode == 3) {
         threshold = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + s1Idx + 1;
@@ -392,48 +404,37 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::UpdateInner(uint32_t &s2End
 
 
 template <typename SAST>
-__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t s2LoopIdx)
 {
     // 左闭右闭, 只针对sparse mode = 4, 可扩展, 更新left和right计算公式即可
-    uint32_t Ori_mask = 128;
-    int64_t left = tempLoopInfo.actS2SizeOri  - tempLoopInfo.actS1Size - Ori_mask;
-    int64_t right = tempLoopInfo.actS2SizeOri  - tempLoopInfo.actS1Size + 1;
-
-    
-    uint32_t s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
+    uint32_t s1StartIdx = tempLoopInfo.s1StartIdx;
     uint32_t s2StartIdx = s2LoopIdx * constInfo.s2BaseSize;
-    uint32_t s1DealSize = constInfo.mBaseSize / constInfo.gSize;
-    uint32_t s1EndIdx = ((s1StartIdx + s1DealSize) < tempLoopInfo.actS1Size ? (s1StartIdx + s1DealSize) : tempLoopInfo.actS1Size) - 1;
+    uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + constInfo.s2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + constInfo.s2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
     uint32_t min_diff = s2StartIdx - s1EndIdx;
     uint32_t max_diff = s2EndIdx - s1StartIdx;
     // 满足条件, 不跳过
-    if (min_diff <= right && max_diff >= left) {
+    if (min_diff <= tempLoopInfo.oriMaskRight && max_diff >= tempLoopInfo.oriMaskLeft) {
         return false;
     }
     return true;
 }
 
 template <typename SAST>
-__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t s2LoopIdx)
 {   
     uint32_t ratio = 128;
     // sparse mode = 3, 
     // 对于Cmp的s2 loop times为 tempLoopInfo.actS2SizeOri // ratio, 不够除就丢掉
     // 恢复压缩前, 只对S2进行压缩
-
-    
     uint32_t oS2BaseSize = constInfo.s2BaseSize * ratio;
-    int64_t right = tempLoopInfo.actS2SizeOri - tempLoopInfo.actS1Size + 1;
-    int64_t left = -tempLoopInfo.actS1Size;
-    uint32_t s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
+    uint32_t s1StartIdx = tempLoopInfo.s1StartIdx;
     uint32_t s2StartIdx = s2LoopIdx * oS2BaseSize;
-    uint32_t s1DealSize = constInfo.mBaseSize / constInfo.gSize;
-    uint32_t s1EndIdx = ((s1StartIdx + s1DealSize) < tempLoopInfo.actS1Size ? (s1StartIdx + s1DealSize) : tempLoopInfo.actS1Size) - 1;
+    uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + oS2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + oS2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
     uint32_t min_diff = s2StartIdx - s1EndIdx;
     uint32_t max_diff = s2EndIdx - s1StartIdx;
-    if (min_diff <= right && max_diff >= left) {
+    if (min_diff <= tempLoopInfo.cmpMaskRight) {
         // 满足mask条件也不能跳, 还需要满足一个条件
         // 还需要判断s1EndIdx处, 当前基本块里面处理的数据除以ratio是否大于0
         uint32_t s2NoMaskSize = s1EndIdx - tempLoopInfo.actS1Size + tempLoopInfo.actS2SizeOri + 1;
@@ -447,15 +448,15 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t gS1LoopIdx
 
 
 template <typename SAST>
-__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::IsSkip(uint32_t gS1LoopIdx, uint32_t s2LoopIdx)
+__aicore__ inline bool SparseAttnSharedkvScfa<SAST>::IsSkip( uint32_t s2LoopIdx)
 {
 
     bool isSkip = false;
     // 一个基本块只能是
     if (s2LoopIdx < tempLoopInfo.oriLoopTimes) {
-        isSkip = OriSkip(gS1LoopIdx, s2LoopIdx);
+        isSkip = OriSkip(s2LoopIdx);
     } else {
-        isSkip = CmpSkip(gS1LoopIdx, s2LoopIdx);
+        isSkip = CmpSkip(s2LoopIdx);
     }
     return isSkip;
 }
@@ -750,7 +751,13 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
         CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
         CrossCoreSetFlag<ConstInfo::SAS_SYNC_MODE2, PIPE_MTE2>(3);
     }
-    for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx <= constInfo.bN2End; bN2LoopIdx++) {
+    // 适配左闭右开
+    if (constInfo.bN2Start == constInfo.bN2End) {
+        if (constInfo.gS1Start != constInfo.gS1End || constInfo.s2Start != constInfo.s2End) {
+            constInfo.bN2End += 1;
+        }
+    }
+    for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx < constInfo.bN2End; bN2LoopIdx++) {
         GetBN2Idx(bN2LoopIdx, tempLoopInfo.bIdx, tempLoopInfo.n2Idx);
         GetActualSeqLen(tempLoopInfo.bIdx); // 获取actualSeqLength及ActualSeqLengthKV
         GetPreNextTokensLeftUp();
@@ -758,9 +765,17 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             continue;
         }
         int gS1SplitNum = (tempLoopInfo.actS1Size * constInfo.gSize + constInfo.mBaseSize - 1) / constInfo.mBaseSize;
-        gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End) ? constInfo.gS1End : gS1SplitNum - 1;
-        for (uint32_t gS1LoopIdx = constInfo.gS1Start; gS1LoopIdx <= gS1LoopEnd; gS1LoopIdx++) {
+        // 当处于最后一个BN2时, 且gS1End为0时, 说明当前BN2里的所有数据都在当前核处理
+        gS1LoopEnd = (bN2LoopIdx == constInfo.bN2End - 1 && constInfo.gS1End != 0) ? constInfo.gS1End : gS1SplitNum - 1;
+        for (uint32_t gS1LoopIdx = constInfo.gS1Start; gS1LoopIdx < gS1LoopEnd; gS1LoopIdx++) {
+            // 计算需要的数据, 避免重复计算
             tempLoopInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
+            tempLoopInfo.s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
+            tempLoopInfo.s1EndIdx = Min((tempLoopInfo.gS1Idx + constInfo.mBaseSize) / constInfo.gSize, tempLoopInfo.actS1Size) - 1;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1 + constInfo.oriWinLeft;
+            tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + 1;
+            //
             GetSparseActualSeqLen(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx); // TopK值sparse完后的ActualSeqLengthKV
             UpdateInnerLoopCond();
 
@@ -786,7 +801,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             uint64_t curOffsetInSparseBlock = 0;
             for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < (tempLoopInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
                 // PreloadPipeline loop初始值要求为 PRELOAD_NUM
-                if (IsSkip(gS1LoopIdx, s2LoopIdx) && s2LoopIdx < tempLoopInfo.s2LoopTimes) {
+                if (IsSkip(s2LoopIdx) && s2LoopIdx < tempLoopInfo.s2LoopTimes) {
                     continue;
                 }
                 PreloadPipeline(gloop, constInfo.s2Start, s2LoopIdx, extraInfo);
