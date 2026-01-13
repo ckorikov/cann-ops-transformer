@@ -85,6 +85,7 @@ struct ConstInfo {
     uint32_t dBasicBlockNum = 0;
     uint32_t coreGroupNum = 0;
     uint32_t singleCoreDealTcBasicNum = 0;
+    uint32_t nSize = 0;
 
     // shape及参数
     uint32_t batchSize = 0;
@@ -116,6 +117,8 @@ struct RunInfo {
     uint32_t sStart = 0;
     uint32_t bEnd = 0;
     uint32_t sEnd = 0;
+    uint32_t bStartSeqIdx = 0;
+    uint32_t bEndSeqIdx = 0;
     uint32_t dealTcNum = 0;
 };
 

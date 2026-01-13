@@ -20,7 +20,7 @@
 #include "kernel_tiling/kernel_tiling.h"
 #include "lib/matmul_intf.h"
 #include "lib/matrix/matmul/tiling.h"
-#include "compressor_comm.h"
+#include "../compressor_comm.h"
 
 using namespace Compressor;
 using AscendC::CrossCoreSetFlag;
