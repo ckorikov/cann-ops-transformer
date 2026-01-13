@@ -122,6 +122,7 @@ struct RunInfo {
     static constexpr uint32_t n2Idx = 0;
     uint64_t actS1Size = 1;
     uint64_t actS2SizeOri = 0ULL;
+    uint64_t curActualSeqLenOri = 0ULL;
 
     uint32_t gS1Idx;
     uint64_t actS2Size = 1;
@@ -129,6 +130,8 @@ struct RunInfo {
     bool isLastS2Loop;
     int32_t nextTokensPerBatch = 0;
     int64_t threshold;
+    uint32_t curTopKIdx = 0;
+    uint64_t curOffsetInSparseBlock = 0;
 };
 
 struct ConstInfo {
@@ -212,8 +215,8 @@ struct ConstInfo {
     int64_t cmpRatio = 0;
 
     // win
-    int64_t oriWinLeft = 0;
     int64_t oriWinRight = 0;
+    int64_t oriWinLeft = 128;
 
     // attention模式与量化模式
     ATTENTION_MODE attentionMode = ATTENTION_MODE::MLA_ABSORB;

@@ -27,7 +27,6 @@
 #include "platform/platform_info.h"
 
 namespace optiling {
-
 // // ------------------公共定义--------------------------
 struct SASTilingRequiredParaInfo {
     const gert::CompileTimeTensorDesc *desc;
@@ -68,6 +67,10 @@ enum class KvStorageMode : uint32_t {
     PAGE_ATTENTION = 2
 };
 
+struct InnerSplitParams {
+    uint32_t s1GBaseSize = 1;
+    uint32_t s2BaseSize = 1;
+};
 // ------------------算子原型索引常量定义----------------
 // Inputs Index
 constexpr uint32_t Q_INDEX = 0;
@@ -100,9 +103,19 @@ constexpr uint32_t DIM_IDX_THREE = 3;
 constexpr uint32_t DIM_IDX_FOUR = 4;
 
 // Dim Num
+constexpr uint32_t DIM_NUM_ONE = 1;
 constexpr uint32_t DIM_NUM_TWO = 2;
 constexpr uint32_t DIM_NUM_THREE = 3;
 constexpr uint32_t DIM_NUM_FOUR = 4;
+
+// 常量
+constexpr uint32_t MAX_BLOCK_SIZE = 1024;
+constexpr uint32_t COPYND2NZ_SRC_STRIDE_LIMITATION = 65535;
+constexpr uint32_t NUM_BYTES_FLOAT = 4;
+constexpr uint32_t NUM_BYTES_FLOAT16 = 2;
+constexpr uint32_t NUM_BYTES_BF16 = 2;
+constexpr uint32_t BYTE_BLOCK = 32;
+// const uint32_t SAS_MAX_AIC_CORE_NUM = 26; // 25 + 1 保证数组8字节对齐
 
 // 入参限制常量
 constexpr uint32_t HEAD_DIM_LIMIT = 128;
@@ -110,60 +123,52 @@ constexpr uint32_t SPARSE_LIMIT = 2048;
 constexpr uint32_t SPARSE_MODE_LOWER = 3;
 
 // -----------算子TilingData定义---------------
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvBaseParamsMla)
+BEGIN_TILING_DATA_DEF(SparseAttnSharedkvSwaParams)
 TILING_DATA_FIELD_DEF(uint32_t, batchSize)
 TILING_DATA_FIELD_DEF(uint32_t, qSeqSize)
 TILING_DATA_FIELD_DEF(uint32_t, kvSeqSize)
 TILING_DATA_FIELD_DEF(int64_t, paBlockSize)
 TILING_DATA_FIELD_DEF(uint32_t, oriMaxBlockNumPerBatch)
-TILING_DATA_FIELD_DEF(uint32_t, cmpMaxBlockNumPerBatch)
 TILING_DATA_FIELD_DEF(uint32_t, nNumOfQInOneGroup)
-TILING_DATA_FIELD_DEF(uint32_t, sparseBlockCount)
 TILING_DATA_FIELD_DEF(uint32_t, actualLenDimsQ)
 TILING_DATA_FIELD_DEF(uint32_t, actualLenDimsKV)
 
 TILING_DATA_FIELD_DEF(float, softmaxScale) // 即 scaleValue
-TILING_DATA_FIELD_DEF(int64_t, cmpRatio)
 TILING_DATA_FIELD_DEF(uint32_t, outputLayout)
 TILING_DATA_FIELD_DEF(uint64_t, oriMaskMode)
-TILING_DATA_FIELD_DEF(uint64_t, cmpMaskMode)
 TILING_DATA_FIELD_DEF(int64_t, oriWinLeft)
 TILING_DATA_FIELD_DEF(int64_t, oriWinRight)
 TILING_DATA_FIELD_DEF(int64_t, sparseBlockSize)
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvBaseParamsOp, SparseAttnSharedkvBaseParams)
 
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvSingleCoreParams)
 TILING_DATA_FIELD_DEF(uint32_t, usedCoreNum);
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvSingleCoreParamsOp, SparseAttnSharedkvSingleCoreParams)
 
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvSingleCoreTensorSize)
 TILING_DATA_FIELD_DEF(uint32_t, mmResUbSize);
 TILING_DATA_FIELD_DEF(uint32_t, bmm2ResUbSize);
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvSingleCoreTensorSizeOp, SparseAttnSharedkvSingleCoreTensorSize)
 
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvSplitKVParams)
-TILING_DATA_FIELD_DEF(uint32_t, s2)             // S2切分份数
-TILING_DATA_FIELD_DEF(uint32_t, accumOutSize)   // FD workspace
-TILING_DATA_FIELD_DEF(uint32_t, logSumExpSize)  // FD workspace
-END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvSplitKVParamsOp, SparseAttnSharedkvSplitKVParams)
-
-// 内切基本块参数
-BEGIN_TILING_DATA_DEF(SparseAttnSharedkvInnerSplitParams)
 TILING_DATA_FIELD_DEF(uint32_t, mBaseSize)
 TILING_DATA_FIELD_DEF(uint32_t, s2BaseSize)
 END_TILING_DATA_DEF
-REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvInnerSplitParamsOp, SparseAttnSharedkvInnerSplitParams)
+REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvSwaParamsOp, SparseAttnSharedkvSwaParams)
+
+BEGIN_TILING_DATA_DEF(SparseAttnSharedkvCmpParams)
+
+TILING_DATA_FIELD_DEF(uint32_t, cmpMaxBlockNumPerBatch)
+TILING_DATA_FIELD_DEF(uint32_t, sparseBlockCount)
+TILING_DATA_FIELD_DEF(int64_t, cmpRatio)
+TILING_DATA_FIELD_DEF(uint64_t, cmpMaskMode)
+END_TILING_DATA_DEF
+REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvCmpParamsOp, SparseAttnSharedkvCmpParams)
+
+// // 内切基本块参数
+// BEGIN_TILING_DATA_DEF(SparseAttnSharedkvInnerSplitParams)
+// // TILING_DATA_FIELD_DEF(uint32_t, mBaseSize)
+// // TILING_DATA_FIELD_DEF(uint32_t, s2BaseSize)
+// END_TILING_DATA_DEF
+// REGISTER_TILING_DATA_CLASS(SparseAttnSharedkvInnerSplitParamsOp, SparseAttnSharedkvInnerSplitParams)
 
 BEGIN_TILING_DATA_DEF(SparseAttnSharedkvTilingData)
-TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvBaseParams, baseParams);
-TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvSplitKVParams, splitKVParams);
-TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvSingleCoreParams, singleCoreParams);
-TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvSingleCoreTensorSize, singleCoreTensorSize);
-TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvInnerSplitParams, innerSplitParams);
+TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvSwaParams, baseParams);
+TILING_DATA_FIELD_DEF_STRUCT(SparseAttnSharedkvCmpParams, cmpParams);
 END_TILING_DATA_DEF
 
 REGISTER_TILING_DATA_CLASS(SparseAttnSharedkv, SparseAttnSharedkvTilingData)
@@ -243,11 +248,13 @@ public:
     ge::DataType cmpKvType = ge::DT_FLOAT16;
     ge::DataType outputType = ge::DT_FLOAT16;
 
-
     // Layout
-    SASLayout qLayout = SASLayout::BSND;
+    SASLayout qLayout = SASLayout::TND;
     SASLayout kvLayout = SASLayout::PA_ND;
     SASLayout outLayout = SASLayout::BSND;
+
+    // template mode
+    SASTemplateMode perfMode = SASTemplateMode::SWA_TEMPLATE_MODE;
 
 };
 
@@ -393,7 +400,10 @@ private:
 
 std::string SASLayoutToSerialString(SASLayout layout);
 
-
+template <typename T> inline T Align(T num, T rnd)
+{
+    return (((rnd) == 0) ? 0 : (((num) + (rnd) - 1) / (rnd) * (rnd)));
+}
 
 class SASInfoParser {
 public:
@@ -419,6 +429,7 @@ public:
     ge::graphStatus GetInOutDataType();
     ge::graphStatus GetQueryAndOutLayout();
     ge::graphStatus GetKvLayout();
+    ge::graphStatus GetSASTemplateMode();
     void SetSASShape();
     ge::graphStatus GetN1Size();
     ge::graphStatus GetN2Size();
@@ -431,8 +442,10 @@ public:
     ge::graphStatus GetMaxBlockNumPerBatch();
     ge::graphStatus GetBlockSize();
     ge::graphStatus GetQkHeadDim();
+    ge::graphStatus GetValueHeadDim();
     ge::graphStatus GetSparseBlockCount();
     ge::graphStatus GetActualseqInfo();
+    ge::graphStatus GetSinks();
     void GenerateInfo(SASTilingInfo &sasInfo);
     ge::graphStatus Parse(SASTilingInfo &sasInfo);
 
@@ -457,12 +470,16 @@ public:
     uint32_t headDim_ = 0;
     uint32_t qTSize_ = 0;
     uint32_t qkHeadDim_ = 0;
+    uint32_t vHeadDim_ = 0;
     int64_t sparseBlockSize_ = 0;
     int64_t sparseBlockCount_ = 0;
     uint32_t maxActualseq_ = 0;
     bool isSameSeqAllKVTensor_ = true;
     uint32_t actualLenDimsKV_ = 0;
     uint32_t actualLenDimsQ_ = 0;
+
+    uint32_t aicNum_ = 0;
+    uint32_t aivNum_ = 0;
     // Layout
     SASLayout qLayout_ = SASLayout::BSND;
     SASLayout outLayout_ = SASLayout::BSND;
@@ -471,6 +488,10 @@ public:
     uint32_t oriMaxBlockNumPerBatch_ = 0;
     uint32_t cmpMaxBlockNumPerBatch_ = 0;
     int32_t blockSize_ = 0;
+
+    // template mode
+    SASTemplateMode perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
+
     platform_ascendc::SocVersion socVersion_ = platform_ascendc::SocVersion::ASCEND910B;
     ge::DataType qType_ = ge::DT_FLOAT16;
     ge::DataType oriKvType_ = ge::DT_FLOAT16;
@@ -497,6 +518,8 @@ public:
     ge::graphStatus DoOpTiling(SASTilingInfo *tilingInfo);
 
 private:
+    void SplitBalanced(SASTilingInfo *tilingInfo);
+    void CalcUbBmm(SASTilingInfo *tilingInfo);
     gert::TilingContext *context_ = nullptr;
     SASTemplateMode perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
     SparseAttnSharedkvTilingData tilingData_;
@@ -505,6 +528,26 @@ private:
     uint64_t tilingKey_{0};
 
     SASTilingInfo *sasInfo_ = nullptr;
+
+    size_t libapiSize_ = 0;
+
+    uint32_t kvSplitPart_ = 1;
+    size_t mmResUbSize_ = 0;
+    size_t bmm2ResUbSize_ = 0;
+    size_t qPreSizeMla_= 0;
+    uint32_t sInnerLoopTimes_ = 0;
+    uint32_t sInnerSize_ = 0;
+    uint32_t sInnerSizeTail_ = 0;
+    uint32_t sInnerSizeAlign_ = 0;
+    uint32_t kvSplit_ = 0;
+    uint32_t usedCoreNum_ = 0;
+    uint32_t formerCoreNum_ = 0;
+    uint32_t blockSplitBn2Range_ = 0;
+    uint32_t tailSplitedBatchRange_ = 0;
+    
+    uint32_t headDimAlign_ = 0;
+    uint32_t mBaseSize_ = 128;
+    uint32_t mFdBaseSize_ = 8;
 };
 
 }

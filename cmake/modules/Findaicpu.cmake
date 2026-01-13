@@ -25,6 +25,7 @@ if(BUILD_WITH_INSTALLED_DEPENDENCY_CANN_PKG)
     ${ASCEND_DIR}/${SYSTEM_PREFIX}/pkg_inc/aicpu_common/context/cpu_proto
     ${ASCEND_DIR}/${SYSTEM_PREFIX}/pkg_inc/aicpu_common/context/utils
     ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/experiment/datagw/aicpu/common
+    ${ASCEND_DIR}/${SYSTEM_PREFIX}/include/aicpu_common/context/utils
   )
 else()
   set(AICPU_INC_DIRS

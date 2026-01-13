@@ -15,8 +15,6 @@
  */
 #include "register/op_impl_registry.h"
 #include "../../sparse_attn_sharedkv/op_kernel/sparse_attn_sharedkv_metadata.h"
-#undef DISABLE_COMPILE_V1
-#include "../op_graph/sparse_attn_sharedkv_metadata_proto.h"
 
 using namespace ge;
 

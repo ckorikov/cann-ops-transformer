@@ -17,18 +17,21 @@
 #include "lib/matmul_intf.h"
 #include "kv_quant_sparse_attn_sharedkv_template_tiling_key.h"
 #include "arch35/kv_quant_sparse_attn_sharedkv_scfa_kernel.h"
-#include "kv_quant_sparse_attn_sharedkv_scfa.h"
-// #include "sparse_attn_sharedkv_cfa.h"
+#include "kv_quant_sparse_attn_sharedkv_common.h"
 
 using namespace AscendC;
 
 #define SAS_OP_IMPL(templateClass, tilingdataClass, ...)                                          \
     do {                                                                                          \
-        templateClass<SASType<__VA_ARGS__>> op;                                                   \
+        using CubeBlockType = typename std::conditional<g_coreType == AscendC::AIC,               \
+            BaseApi::SCFABlockCube<__VA_ARGS__>, BaseApi::SCFABlockCubeDummy<__VA_ARGS__>>::type; \
+        using VecBlockType = typename std::conditional<g_coreType == AscendC::AIC,                \
+            BaseApi::SCFABlockVecDummy<__VA_ARGS__>, BaseApi::SCFABlockVec<__VA_ARGS__>>::type;   \
+        templateClass<CubeBlockType, VecBlockType> op;                                            \
         GET_TILING_DATA_WITH_STRUCT(tilingdataClass, tiling_data_in, tiling);                     \
         const tilingdataClass *__restrict tiling_data = &tiling_data_in;                          \
         op.Init(query, oriKV, cmpKV, cmpSparseIndices, oriBlockTable, cmpBlockTable, cuSeqlensQ,  \
-                seqUsedKV, sinks, metadata, attentionOut, user, tiling_data, tiling, &tPipe);    \
+                seqUsedKV, sinks, metadata, attentionOut, user, tiling_data, tiling, &tPipe);     \
         op.Process();                                                                             \
     } while (0)
 
@@ -47,15 +50,7 @@ kv_quant_sparse_attn_sharedkv(__gm__ uint8_t *query, __gm__ uint8_t *oriKV, __gm
     TPipe tPipe;
     __gm__ uint8_t *user = GetUserWorkspace(workspace);
 
-    SAS_OP_IMPL(KvQuantSparseAttnSharedkvScfa, KvQuantSparseAttnSharedkvTilingData, half, half, half,
-            FLASH_DECODE, static_cast<SAS_LAYOUT>(LAYOUT_T), static_cast<SAS_LAYOUT>(KV_LAYOUT_T));
-
-    // if constexpr (ORIG_DTYPE_Q == DT_FLOAT16 && (ORIG_DTYPE_ORI_KV == DT_FLOAT16 || ORIG_DTYPE_CMP_KV == DT_FLOAT16) &&
-    //               ORIG_DTYPE_ATTN_OUT == DT_FLOAT16) {
-    //     SAS_OP_IMPL(SparseAttnSharedkvScfa, SparseAttnSharedkvTilingData, half, half, half,
-    //         FLASH_DECODE, static_cast<SAS_LAYOUT>(LAYOUT_T), static_cast<SAS_LAYOUT>(KV_LAYOUT_T));
-    // } else { // bf16
-    //     SAS_OP_IMPL(SparseAttnSharedkvScfa, SparseAttnSharedkvTilingData, bfloat16_t, bfloat16_t, bfloat16_t,
-    //         FLASH_DECODE, static_cast<SAS_LAYOUT>(LAYOUT_T), static_cast<SAS_LAYOUT>(KV_LAYOUT_T));
-    // }
+    SAS_OP_IMPL(BaseApi::KvQuantSparseAttnSharedkvScfa, KvQuantSparseAttnSharedkvTilingData, bfloat16_t,
+        fp8_e4m3fn_t, float, bfloat16_t, FLASH_DECODE, true, static_cast<SAS_LAYOUT>(LAYOUT_T),
+        static_cast<SAS_KV_LAYOUT>(KV_LAYOUT_T), static_cast<SASTemplateMode>(TEMPLATE_MODE));
 }
