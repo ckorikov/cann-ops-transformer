@@ -317,19 +317,20 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetActualSeqLen(uint32_t bI
 }
 
 template <typename SAST>
-__aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1Idx,
+__aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1EndIdx,
                                                                                       uint32_t n2Idx)
 {
-    if (tempLoopInfo.nextTokensPerBatch < 0 && s1Idx < (-tempLoopInfo.nextTokensPerBatch)) { //存在行无效
+    // 行无效通过ori部分判断, ori部分如果有行无效那么ori和cmp都有
+    if (tempLoopInfo.oriMaskRight < 0 && tempLoopInfo.tempLoopInfo.s1EndIdx < -tempLoopInfo.oriMaskRight) {
         tempLoopInfo.actS2Size = 0;
         return;
     }
     
+    // 对于cmp部分还有top k, tempLoopInfo.actS2Size只针对cmp
     int64_t threshold = tempLoopInfo.actS2SizeOri;
     if (constInfo.cmpMaskMode == 3) {
-        threshold = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + s1Idx + 1;
+        threshold = static_cast<int64_t>(tempLoopInfo.cmpMaskRight) + s1Idx + 1;
     }
-
     tempLoopInfo.actS2Size = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > threshold) ?
                                            threshold :
                                            constInfo.sparseBlockCount * constInfo.sparseBlockSize;
@@ -424,7 +425,6 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t s2LoopIdx)
 template <typename SAST>
 __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t s2LoopIdx)
 {   
-    uint32_t ratio = 128;
     // sparse mode = 3, 
     // 对于Cmp的s2 loop times为 tempLoopInfo.actS2SizeOri // ratio, 不够除就丢掉
     // 恢复压缩前, 只对S2进行压缩
@@ -439,7 +439,7 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t s2LoopIdx)
         // 满足mask条件也不能跳, 还需要满足一个条件
         // 还需要判断s1EndIdx处, 当前基本块里面处理的数据除以ratio是否大于0
         uint32_t s2NoMaskSize = s1EndIdx - tempLoopInfo.actS1Size + tempLoopInfo.actS2SizeOri + 1;
-        if ((s2NoMaskSize - s2StartIdx) / ratio > 0) {
+        if ((s2NoMaskSize - s2StartIdx) / constInfo.cmpRatio > 0) {
             return false;
         }
     }
@@ -789,7 +789,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             tempLoopInfo.s1EndIdx = Min((tempLoopInfo.gS1Idx + constInfo.mBaseSize) / constInfo.gSize, tempLoopInfo.actS1Size) - 1;
             tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + constInfo.oriRight;
             tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
-            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
+            tempLoopInfo.cmpMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
             //
             GetSparseActualSeqLen(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx); // TopK值sparse完后的ActualSeqLengthKV
             UpdateInnerLoopCond();
