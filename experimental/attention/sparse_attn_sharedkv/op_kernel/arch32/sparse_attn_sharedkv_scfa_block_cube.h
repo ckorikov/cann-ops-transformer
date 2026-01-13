@@ -732,7 +732,7 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
     }
     qpL1BufIter += mL1Loops;
 }
-}
+
 
 template <typename SAST>
 __aicore__ inline void SASCubeBlock<SAST>::ComputeMm2(const RunInfo &info, const MSplitInfo mSplitInfo)
