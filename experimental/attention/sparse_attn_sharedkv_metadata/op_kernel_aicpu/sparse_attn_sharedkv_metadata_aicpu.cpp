@@ -58,7 +58,7 @@ bool SparseAttnSharedkvMetadataCpuKernel::Prepare(
 
   coreNum_ = 24U;
   sparseMode_ = 4;
-  preToken_ = winLeft_;
+  preToken_ = winLeft_ - 1;
   nextToken_ = 0;
   attentionMode_ = 1;
   isS1G_ = (layoutQuery_ == "BSND" || layoutQuery_ == "BSH" || layoutQuery_ == "TND");
@@ -138,7 +138,6 @@ void SparseAttnSharedkvMetadataCpuKernel::CalcSplitInfo(SplitContext &splitConte
             splitInfo.isKvSeqAllZero = false;
         }
     }
-    return;
 }
 
 int64_t SparseAttnSharedkvMetadataCpuKernel::CalcPreTokenLeftUp(
