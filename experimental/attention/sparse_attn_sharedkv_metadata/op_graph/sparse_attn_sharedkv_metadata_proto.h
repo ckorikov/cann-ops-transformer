@@ -41,6 +41,9 @@ REG_OP(SparseAttnSharedkvMetadata)
     .ATTR(layout_kv, String, "PA_ND")
     .ATTR(has_ori_kv, Bool, true)
     .ATTR(has_cmp_kv, Bool, true)
+    .REQUIRED_ATTR(soc_version, String)
+    .REQUIRED_ATTR(aic_core_num, Int)
+    .REQUIRED_ATTR(aiv_core_num, Int)
     .OP_END_FACTORY_REG(SparseAttnSharedkvMetadata)
 
 } // namespace ge

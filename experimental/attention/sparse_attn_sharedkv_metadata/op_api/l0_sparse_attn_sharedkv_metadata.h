@@ -34,6 +34,9 @@ const aclTensor* SparseAttnSharedkvMetadata(
     char *layoutKvOptional,
     bool hasOriKvOptional,
     bool hasCmpKvOptional,
+    const char *socVersion,
+    int64_t aicCoreNum,
+    int64_t aivCoreNum,
     const aclTensor* metaData,
     aclOpExecutor* executor);
 } // namespace l0op

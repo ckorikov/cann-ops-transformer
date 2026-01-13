@@ -93,10 +93,14 @@ aclnnStatus aclnnSparseAttnSharedkvMetadataGetWorkspaceSize(
       oriWinRightOptional, layoutQOptional, layoutKvOptional, hasOriKvOptional, hasCmpKvOptional, metaData);
   CHECK_RET(ret == ACLNN_SUCCESS, ret);
 
+  const op::PlatformInfo &npuInfo = op::GetCurrentPlatformInfo();
+  uint32_t aicCoreNum = npuInfo.GetCubeCoreNum();
+  uint32_t aivCoreNum = npuInfo.GetVectorCoreNum();
+  const char* socVersion = npuInfo.GetSocLongVersion().c_str();
   auto output = l0op::SparseAttnSharedkvMetadata(
       cuSeqLensQOptional, sequsedKvOptional, numHeadsQ, numHeadsKv, headDim, batchSizeOptional, maxSeqlenQOptional, 
       maxSeqlenKvOptional, topKOptional, cmpRatioOptional, oriMaskModeOptional, cmpMaskModeOptional, oriWinLeftOptional, 
-      oriWinRightOptional, layoutQOptional, layoutKvOptional, hasOriKvOptional, hasCmpKvOptional, metaData, 
+      oriWinRightOptional, layoutQOptional, layoutKvOptional, hasOriKvOptional, hasCmpKvOptional, socVersion, aicCoreNum, aivCoreNum, metaData, 
       uniqueExecutor.get());
   CHECK_RET(output != nullptr, ACLNN_ERR_INNER_NULLPTR);
 
