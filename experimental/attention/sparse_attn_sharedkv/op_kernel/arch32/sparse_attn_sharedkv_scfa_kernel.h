@@ -810,10 +810,10 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
                 ((constInfo.s2Start == 0) && (tempLoopInfo.s2LoopTimes == s2SplitNum)) ? false : true;
             tempLoopInfo.tndCoreStartKVSplitPos = globalLoopStart ? constInfo.coreStartKVSplitPos : 0;
             uint32_t extraLoop = isEnd ? 2 : 0;
-
             uint32_t curTopKIdx = 0;
             uint64_t curOffsetInSparseBlock = 0;
-            for (uint32_t s2LoopIdx = constInfo.s2Start; s2LoopIdx < (tempLoopInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
+            uint32_t s2LoopEnd = (isEnd && constInfo.s2End != 0) ? constInfo.s2End : tempLoopInfo.s2LoopTimes;
+            for (uint32_t s2LoopIdx = constInfo.s2Start; s2LoopIdx < (s2LoopEnd + extraLoop); s2LoopIdx++) {
                 // PreloadPipeline loop初始值要求为 PRELOAD_NUM
                 if (IsSkip(s2LoopIdx) && s2LoopIdx < tempLoopInfo.s2LoopTimes) {
                     continue;
