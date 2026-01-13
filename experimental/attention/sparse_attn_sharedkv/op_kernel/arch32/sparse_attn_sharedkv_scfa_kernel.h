@@ -679,16 +679,16 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::CalcParams(uint32_t loop, u
         } else {
             info.actualSingleProcessSInnerSize = constInfo.s2BaseSize;
         }
-        
+
     } else {
         info.isOri = false;
         uint64_t sInnerOffsetDataSize = (s2LoopIdx - tempLoopInfo.oriLoopTimes) * constInfo.s2BaseSize;
-        info.actualSingleProcessSInnerSize = tempLoopInfo.actS2Size / constInfo.cmpRatio- sInnerOffsetDataSize;
+        info.actualSingleProcessSInnerSize = tempLoopInfo.actS2Size / constInfo.cmpRatio - sInnerOffsetDataSize;
         if (info.actualSingleProcessSInnerSize <= 0) {
             info.actualSingleProcessSInnerSize = 0;
         } else {
-            info.actualSingleProcessSInnerSize = info.actualSingleProcessSInnerSize > constInfo.s2BaseSize ?
-                            constInfo.s2BaseSize : info.actualSingleProcessSInnerSize;
+            info.actualSingleProcessSInnerSize = info.actualSingleProcessSInnerSize < constInfo.s2BaseSize ?
+                            info.actualSingleProcessSInnerSize : constInfo.s2BaseSize;
         }
     }
     info.actualSingleProcessSInnerSizeAlign =
