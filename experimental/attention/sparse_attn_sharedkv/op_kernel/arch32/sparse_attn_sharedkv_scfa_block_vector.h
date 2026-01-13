@@ -246,7 +246,7 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffer
     pipe->InitBuffer(softmaxSumDefaultBuff, ConstInfo::BUFFER_SIZE_BYTE_1K);
 
     pipe->InitBuffer(sinksBuff, MAX_N1_SIZE * sizeof(SINKS_T));
-    pipe->InitBuffer(sinksBrcbBuff, MAX_N1_SIZE * sizeof(SINKS_T) * BLOCK_ELEMENT_NUM);
+    pipe->InitBuffer(sinksBrcbBuff, MAX_N1_SIZE * sizeof(SINKS_T) * BLOCK_ELEMENT_NUM * 3U);  // 分配256+N1大小内存，其中256是m轴VEC最大切块，
 
     nValueUb = nValueBuff.Get<T>();
     cofValueUb = cofValueBuff.Get<T>();
@@ -366,7 +366,7 @@ template <typename SFAT> __aicore__ inline void SASVectorBlock<SFAT>::CopySinksI
     repeatParams.blockLen = constInfo.qHeadNum;
     repeatParams.srcStride = 0U;
     repeatParams.dstStride = 0U;
-    for (uint32_t i ; i <= 256U / constInfo.qHeadNum; i++) {
+    for (uint32_t i = 1; i <= 256U / constInfo.qHeadNum; i++) {
         DataCopy(sinksBrcbUb[constInfo.qHeadNum * BLOCK_ELEMENT_NUM * i], sinksBrcbUb, repeatParams);
     }
     PipeBarrier<PIPE_V>();
