@@ -12,7 +12,6 @@
  * \file flash_attention_score_block_vec_base_scfa.h
  * \brief
  */
- // TODO 修改
 #ifndef KV_QUANT_SPARSE_ATTN_SHAREDKV_SCFA_BLOCK_VECTOR_H
 #define KV_QUANT_SPARSE_ATTN_SHAREDKV_SCFA_BLOCK_VECTOR_H
 
@@ -22,6 +21,8 @@
 #include "common/buffer_manager.h"
 #include "common/buffer.h"
 #include "kernel_operator_list_tensor_intf.h"
+#include "lib/matmul_intf.h"
+#include "lib/matrix/matmul/tiling.h"
 
 #include "vf/vf_mul_sel_softmaxflashv2_cast_nz_scfa.h"
 #include "vf/vf_flashupdate_new_scfa.h"
@@ -32,26 +33,20 @@ using namespace AscendC::Impl::Detail;
 using namespace optiling;
 using namespace optiling::detail;
 using namespace regbaseutil;
+using namespace matmul;
 
 namespace BaseApi {
 TEMPLATES_DEF
 class SCFABlockVec {
 public:
     /* =================编译期常量的基本块信息================= */
-    // TODO 来自模板参数 后续修改
-    // static constexpr uint32_t s1BaseSize = (uint32_t)s1TemplateType;
-    // static constexpr uint32_t s2BaseSize = (uint32_t)s2TemplateType;
-    static constexpr uint32_t s1BaseSize = 64;
-    static constexpr uint32_t s2BaseSize = 128;
-    static constexpr uint32_t vec1HalfS1BaseSize = s1BaseSize >> 1;
-    static constexpr uint32_t vec1Srcstride = (s1BaseSize >> 1) + 1;
+    static constexpr uint32_t s1BaseSize = 64; 
+    static constexpr uint32_t s2BaseSize = 128; 
+    static constexpr uint32_t vec1Srcstride = (s1BaseSize >> 1) + 1; 
+    static constexpr uint32_t dVTemplateType = 512;
+    static constexpr uint32_t dTemplateAlign64 = Align64Func((uint16_t)dVTemplateType);
 
-    // TODO 确认传参自哪里
-    // static constexpr uint32_t dTemplateAlign64 = Align64Func((uint16_t)dVTemplateType);
-    uint32_t dVTemplateType = 512;
-    static constexpr uint32_t dTemplateAlign64 = Align64Func((uint16_t)512);
     SasMetaData metadataVecLocal;
-
     // ==================== Functions ======================
     __aicore__ inline SCFABlockVec() {};
     __aicore__ inline void InitVecBlock(TPipe *pipe, const KvQuantSparseAttnSharedkvTilingData *__restrict tiling,
@@ -68,11 +63,11 @@ public:
     // 初始化LocalTensor
     __aicore__ inline void InitLocalBuffer(TPipe *pipe, ConstInfo &constInfo);
     // 初始化attentionOutGM
-    __aicore__ inline void CleanOutput(__gm__ uint8_t *attentionOut, ConstInfo &constInfo);
+    __aicore__ inline void CleanOutput(__gm__ uint8_t *attentionOut, ConstInfo &constInfo, __gm__ uint8_t *cuSeqlensQ);
     __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV, __gm__ uint8_t *cmpSparseIndices,
         __gm__ uint8_t *oriBlockTable, __gm__ uint8_t *cmpBlockTable, __gm__ uint8_t *cuSeqlensQ, __gm__ uint8_t *sequsedKv,
         __gm__ uint8_t *sinks);
-    __aicore__ inline void InitOutputSingleCore(ConstInfo &constInfo);
+    __aicore__ inline void InitOutputSingleCore(ConstInfo &constInfo, __gm__ uint8_t *cuSeqlensQ);
 
     // ==================== Vector0 ======================
     __aicore__ inline void ProcessMergeKv(const RunInfo &runInfo);
@@ -134,13 +129,12 @@ public:
     TBuf<> softmaxExpBuf[2]; 
     /* =================初始化后不变的信息================= */
     T negativeFloatScalar;
-
 protected:
 /* VEC2_RES_T 表示bmm2ResUb当前的类型，VEC2_RES_T = Q_T那么不需要做Cast。另外，无效行场景当前默认需要做Cast */
+    using VEC2_RES_T = T;
     template <typename VEC2_RES_T>
     __aicore__ inline void Bmm2DataCopyOut(RunInfo &runInfo, ConstInfo &constInfo,
         LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize = 0);
-    using VEC2_RES_T = float;
     template <typename VEC2_RES_T>
     __aicore__ inline void CopyOutAttentionOut(
     RunInfo &runInfo, ConstInfo &constInfo, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize);
@@ -819,7 +813,6 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::ProcessVec1(
     this->stage1OutQue[stage1Offset].template EnQue(stage1CastTensor);
     this->stage1OutQue[stage1Offset].template DeQue<Q_T>();
     LocalTensor<Q_T> mm2AL1Tensor = outputBuf.GetTensor<Q_T>();
-
     DataCopy(mm2AL1Tensor[constInfo.subBlockIdx * (BLOCK_BYTE / sizeof(Q_T)) * (runInfo.s1RealSize - runInfo.halfS1RealSize)], stage1CastTensor,
         {s2BaseSize / 16, (uint16_t)runInfo.halfS1RealSize,
         (uint16_t)(vec1Srcstride - runInfo.halfS1RealSize),
@@ -843,7 +836,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::ProcessVec2(
         return;
     }
     
-    // TOTO:为什么是BaseSize
+    // TOTO:s1切1，g方向当前无尾块  mm2Res: s1Base * dV
     runInfo.vec2S1RealSize = runInfo.vec2S1BaseSize; 
     int64_t vec2CalcSize = runInfo.vec2S1RealSize * dTemplateAlign64;
 
@@ -882,7 +875,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::Bmm2DataCopyOut(
     RunInfo &runInfo, ConstInfo &constInfo, LocalTensor<VEC2_RES_T> &vec2ResUb, int64_t vec2S1Idx, int64_t vec2CalcSize)
 {
     LocalTensor<OUTPUT_T> attenOut;
-    int64_t dSizeAligned64 = (int64_t)dVTemplateType;
+    int64_t dSizeAligned64 = (int64_t)dTemplateAlign64;
 
     if constexpr (!IsSameType<Q_T, VEC2_RES_T>::value) {
         attenOut.SetAddr(vec2ResUb.address_);
@@ -898,31 +891,17 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::Bmm2DataCopyOut(
     dataCopyParams.blockCount = runInfo.vec2S1RealSize;
 
     int64_t attenOutOffset = constInfo.dSizeV;
-    // TODO 确认用模板参数还是constInfo
-    // if constexpr (layout == SAS_LAYOUT::TND) {
     if (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND)) {
-        attenOutOffset = constInfo.n2GDv;
-        if (constInfo.isPfaGS1Merge) {
-            attenOutOffset = 0;
-            dataCopyParams.blockLen *= constInfo.gSize;
-            dataCopyParams.blockCount /= constInfo.gSize;
-        } else if (constInfo.isGqa) {
-            attenOutOffset = constInfo.dSizeV;
-        }
-    } else {
-        if (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND)) {
-            attenOutOffset = constInfo.n2GDv;
-            if (constInfo.isPfaGS1Merge) {
-                attenOutOffset = 0;
-                dataCopyParams.blockLen *= constInfo.gSize;
-                dataCopyParams.blockCount /= constInfo.gSize;
-            } else if (constInfo.isGqa) {
-                attenOutOffset = constInfo.dSizeV;
-            }
-        }
+        attenOutOffset = 0;
+        dataCopyParams.blockLen *= constInfo.gSize;
+        dataCopyParams.blockCount /= constInfo.gSize;
+    } else if (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND)) {
+        attenOutOffset = 0;
+        dataCopyParams.blockLen *= constInfo.gSize;
+        dataCopyParams.blockCount /= constInfo.gSize;
     }
 
-    if (constInfo.isPfaGS1Merge && dSizeAligned64 - constInfo.dSizeV != 0 && (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND) || constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND))) {
+    if (dSizeAligned64 - constInfo.dSizeV != 0 && (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND) || constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND))) {
         for(int64_t i = 0; i < runInfo.vec2S1BaseSize / constInfo.gSize; i++){
             attenOutOffset = i * constInfo.dSizeV * constInfo.gSize * constInfo.n2Size;
             dataCopyParams.blockLen = constInfo.dSizeV * sizeof(OUTPUT_T);
@@ -932,8 +911,8 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::Bmm2DataCopyOut(
                 attenOut[i * constInfo.gSize * dSizeAligned64], dataCopyParams);
         }
     } else {
-        DataCopyPad(this->attentionOutGm[runInfo.attentionOutOffset + vec2S1Idx * runInfo.vec2S1BaseSize * attenOutOffset],
-            attenOut, dataCopyParams); 
+        // DataCopyPad(this->attentionOutGm[runInfo.attentionOutOffset + vec2S1Idx * runInfo.vec2S1BaseSize * attenOutOffset],
+        //     attenOut, dataCopyParams);
     }
 }
 
@@ -946,22 +925,42 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::CopyOutAttentionOut(
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitOutputSingleCore(ConstInfo &constInfo)
+__aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitOutputSingleCore(ConstInfo &constInfo, __gm__ uint8_t *cuSeqlensQ)
 {
-    auto &initParams = this->tilingData->initOutputParams;
-    uint32_t tailSize = initParams.totalOutputSize - constInfo.aivIdx * initParams.singleCoreSize;
-    uint32_t singleInitOutputSize = tailSize < initParams.singleCoreSize ? tailSize : initParams.singleCoreSize;
-    InitOutput<OUTPUT_T>(this->attentionOutGm[constInfo.aivIdx * initParams.singleCoreSize], singleInitOutputSize, 0.0);
+    uint32_t coreNum = GetBlockNum();
+    uint32_t vecBlockIdx = GetBlockIdx(); // vec:0-47
+    uint64_t totalOutputSize = 0;
+    GlobalTensor<int32_t>actualSeqQLenGM;
+    if (cuSeqlensQ != nullptr) {
+        actualSeqQLenGM.SetGlobalBuffer((__gm__ int32_t *)cuSeqlensQ);
+    }
+
+    // n2 = 1, n1 = gn2 = gSize
+    if(constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND)) {
+        totalOutputSize = constInfo.bSize * constInfo.gSize * constInfo.s1Size * constInfo.dSizeV;
+    }else if(constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND)) {
+        totalOutputSize = actualSeqQLenGM.GetValue(constInfo.actualSeqLenSize - 1) * constInfo.gSize * constInfo.dSizeV;
+    }
+
+    if (coreNum != 0) {
+    uint64_t singleCoreSize = (totalOutputSize + (2 * coreNum) - 1) / (2 * coreNum);  // 2 means c:v = 1:2
+    uint64_t tailSize = totalOutputSize - vecBlockIdx * singleCoreSize;
+    uint64_t singleInitOutputSize = tailSize < singleCoreSize ? tailSize : singleCoreSize;
+        if (singleInitOutputSize > 0) {
+            matmul::InitOutput<OUTPUT_T>(this->attentionOutGm[vecBlockIdx * singleCoreSize], singleInitOutputSize, 0);
+        }
+    }
+    SyncAll();
 }
 
 TEMPLATES_DEF_NO_DEFAULT
-__aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::CleanOutput(__gm__ uint8_t *attentionOut, ConstInfo &constInfo) 
+__aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::CleanOutput(__gm__ uint8_t *attentionOut, ConstInfo &constInfo, __gm__ uint8_t *cuSeqlensQ) 
 {
     if ASCEND_IS_AIV {
         this->attentionOutGm.SetGlobalBuffer((__gm__ OUTPUT_T *)attentionOut);
-        // if (this->tilingData->initOutputParams.needInit == 1) {
-        //     InitOutputSingleCore(constInfo);
-        // }
+        if (constInfo.needInit == 1) {
+            InitOutputSingleCore(constInfo, cuSeqlensQ);
+        }
     }
 }
 
@@ -1028,7 +1027,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitLocalBuffer(TPipe *pipe,
     uint32_t mm2ResultSize = s1BaseSize / CV_RATIO * dTemplateAlign64 * sizeof(T);
 
     SoftmaxInitBuffer();
-
+    
     tPipe->InitBuffer(stage1OutQue[0], 1, 8448); // （32 + 1） * 128 * 2(bf16)
     tPipe->InitBuffer(stage1OutQue[1], 1, 8448);
     tPipe->InitBuffer(stage2OutBuf, 32 * dTemplateAlign64 * sizeof(T)); //s1Base/cv_ratio * 512 * 4(float)
@@ -1052,11 +1051,10 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitCubeVecSharedParams(
     sharedParams.gSize = sparseAttnSharedkvBaseParams.nNumOfQInOneGroup; 
     sharedParams.s1Size = sparseAttnSharedkvBaseParams.qSeqSize;
     sharedParams.s2Size = sparseAttnSharedkvBaseParams.kvSeqSize;
-    sharedParams.dSize = sparseAttnSharedkvBaseParams.actualLenDimsQ;
-    sharedParams.dSizeV = sparseAttnSharedkvBaseParams.actualLenDimsKV;
+    sharedParams.actualSeqLengthsSize = sparseAttnSharedkvBaseParams.actualLenDimsQ;
+    sharedParams.actualSeqLengthsKVSize = sparseAttnSharedkvBaseParams.actualLenDimsKV;
     sharedParams.sparseBlockCount = sparseAttnSharedkvBaseParams.sparseBlockCount;
     sharedParams.sparseBlockSize = sparseAttnSharedkvBaseParams.sparseBlockSize;
-    sharedParams.softmaxScale = sparseAttnSharedkvBaseParams.softmaxScale; 
     sharedParams.cmpRatio = sparseAttnSharedkvBaseParams.cmpRatio;
     sharedParams.oriMaskMode = sparseAttnSharedkvBaseParams.oriMaskMode;
     sharedParams.cmpMaskMode = sparseAttnSharedkvBaseParams.cmpMaskMode;
@@ -1066,39 +1064,27 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitCubeVecSharedParams(
     sharedParams.kvQuantMode = sparseAttnSharedkvBaseParams.kvQuantMode;
     sharedParams.tileSize = sparseAttnSharedkvBaseParams.tileSize;
     sharedParams.ropeHeadDim = sparseAttnSharedkvBaseParams.ropeHeadDim;
-    
-    // sharedParams.isGqa = sparseAttnSharedkvBaseParams->isGqa; 
-    // sharedParams.isPfaGS1Merge = (sparseAttnSharedkvBaseParams->isGqa && sharedParams.s1Size > 1); 
-    // sharedParams.actualSeqLengthsSize = sparseAttnSharedkvBaseParams->actualSeqLengthsSize;
-    // sharedParams.actualSeqLengthsKVSize = sparseAttnSharedkvBaseParams->actualSeqLengthsKVSize;
-    // sharedParams.isActualSeqLengthsNull = sparseAttnSharedkvBaseParams->isActualSeqLengthsNull;
-    // sharedParams.isActualSeqLengthsKVNull = sparseAttnSharedkvBaseParams->isActualSeqLengthsKVNull
-    // pageAttention
+    sharedParams.softmaxScale = sparseAttnSharedkvBaseParams.softmaxScale; 
+    sharedParams.dSize = sparseAttnSharedkvBaseParams.dSize;
+    sharedParams.dSizeV = sparseAttnSharedkvBaseParams.dSizeV;
+
+    // pageAttention, rope在C侧搬运时使用
     if constexpr (isPa) {
-        // sharedParams.blockSize = sparseAttnSharedkvBaseParams->paBlockSize;
-        // sharedParams.paLayoutType = sparseAttnSharedkvBaseParams->paLayoutType;
-        // sharedParams.oriMaxBlockNumPerBatch = sparseAttnSharedkvBaseParams->oriMaxBlockNumPerBatch; 
-        // sharedParams.cmpMaxBlockNumPerBatch = sparseAttnSharedkvBaseParams->cmpMaxBlockNumPerBatch;
+        sharedParams.blockSize = sparseAttnSharedkvBaseParams.paBlockSize;
+        sharedParams.oriMaxBlockNumPerBatch = sparseAttnSharedkvBaseParams.oriMaxBlockNumPerBatch; 
+        sharedParams.cmpMaxBlockNumPerBatch = sparseAttnSharedkvBaseParams.cmpMaxBlockNumPerBatch;
     }
     
-    // TODO 补充从metadata获取
-    // auto &multiCoreParamsRegbase = this->tilingData->multiCoreParamsRegbase;
-    // sharedParams.s1OuterSize = multiCoreParamsRegbase.s1OuterSize;
-    // sharedParams.coreNum = multiCoreParamsRegbase.coreNum;
-    sharedParams.s1OuterSize = 64;
-    sharedParams.coreNum = 32;
-    /* 多核切分偏移计算 */
-    // sharedParams.multiCoreInnerOffset = multiCoreParamsRegbase.sparseStartIdx[aicIdx];
-    // sharedParams.multiCoreInnerLimit = multiCoreParamsRegbase.sparseStartIdx[aicIdx + 1];
-    // sharedParams.bnStartIdx = multiCoreParamsRegbase.bnStartIdx[aicIdx];
-    // sharedParams.bnEndIdx = multiCoreParamsRegbase.bnStartIdx[aicIdx + 1];
-    // sharedParams.needInit = this->tilingData->initOutputParams.needInit;
+    // actQ->TND, actKV pa场景任意layout均有
+    sharedParams.isActualSeqLengthsNull = 1U; // 非tnd true 
+    sharedParams.isActualSeqLengthsKVNull = 0U; // 均flase 
+    if constexpr (LAYOUT_T == SAS_LAYOUT::TND){
+        sharedParams.isActualSeqLengthsNull = 0U; // flase  
+    }
 
-    // sharedParams.multiCoreInnerOffset = multiCoreParamsRegbase.sparseStartIdx[aicIdx];
-    // sharedParams.multiCoreInnerLimit = multiCoreParamsRegbase.sparseStartIdx[aicIdx + 1];
-    // sharedParams.bnStartIdx = multiCoreParamsRegbase.bnStartIdx[aicIdx];
-    // sharedParams.bnEndIdx = multiCoreParamsRegbase.bnStartIdx[aicIdx + 1];
-    // sharedParams.needInit = this->tilingData->initOutputParams.needInit;
+    sharedParams.coreNum = metadataVecLocal.usedCoreNum;
+    /* 多核切分偏移计算 */
+    sharedParams.needInit = 1; //
 
     if ASCEND_IS_AIV {
         if (subBlockIdx == 0) {
@@ -1125,15 +1111,9 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::GetExtremeValue(
 TEMPLATES_DEF
 class SCFABlockVecDummy {
 public:
-    // TODO:需修改为模板参数
-    // static constexpr uint32_t s1BaseSize = (uint32_t)s1TemplateType;
-    // static constexpr uint32_t s2BaseSize = (uint32_t)s2TemplateType;
-    static constexpr uint32_t s1BaseSize = 64;
-    static constexpr uint32_t s2BaseSize = 128;
     // TODO 是否需要补充其他函数
     __aicore__ inline SCFABlockVecDummy() {};
-    __aicore__ inline void CleanOutput(__gm__ uint8_t *attentionOut,
-        ConstInfo &constInfo) {}
+    __aicore__ inline void CleanOutput(__gm__ uint8_t *attentionOut, ConstInfo &constInfo, __gm__ uint8_t *cuSeqlensQ) {}
     __aicore__ inline void InitGlobalBuffer(__gm__ uint8_t *oriKV, __gm__ uint8_t *cmpKV, __gm__ uint8_t *cmpSparseIndices,
         __gm__ uint8_t *oriBlockTable, __gm__ uint8_t *cmpBlockTable, __gm__ uint8_t *cuSeqlensQ, __gm__ uint8_t *sequsedKv,
         __gm__ uint8_t *sinks) {}
