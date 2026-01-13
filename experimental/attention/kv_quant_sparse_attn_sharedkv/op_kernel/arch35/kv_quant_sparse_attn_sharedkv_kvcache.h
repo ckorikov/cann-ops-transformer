@@ -38,8 +38,7 @@ __aicore__ inline void GetSingleCoreParam(RunParamStr& runParam, const ConstInfo
         actualS1Size = constInfo.s1Size;
     } else {
         if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
-            actualS1Size = (sIdx == 0) ? actualSeqQlenAddr[0] :
-                actualSeqQlenAddr[sIdx] - actualSeqQlenAddr[sIdx - 1];
+            actualS1Size = actualSeqQlenAddr[sIdx + 1] - actualSeqQlenAddr[sIdx];
         } else {
             actualS1Size = (constInfo.actualSeqLenSize == actualSeqMin) ? actualSeqQlenAddr[0] :
                 actualSeqQlenAddr[sIdx];
@@ -81,7 +80,7 @@ __aicore__ inline void GetKeyCoreOffsetParam(RunParamStr& runParam, const ConstI
         runParam.keyCoreOffset = keyInnerOffsetSize + runParam.n2oIdx * constInfo.dSize;
     } else if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
         if constexpr (!isPa) {
-            keyInnerOffsetSize = (sIdx == 0) ? 0 : actualSeqKvlenAddr[sIdx - 1] * constInfo.n2D;
+            keyInnerOffsetSize = actualSeqKvlenAddr[sIdx] * constInfo.n2D;
         } else {
             keyInnerOffsetSize = sIdx * constInfo.n2S2D;
         }
@@ -151,8 +150,8 @@ __aicore__ inline void LoopSOuterOffsetInit(RunParamStr& runParam, const ConstIn
         int64_t actualSeqLen = 0;
         int64_t seqOffset = 0;
         if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
-            actualSeqLen = (sIdx == 0) ? actualSeqQlenAddr[0] : actualSeqQlenAddr[sIdx] - actualSeqQlenAddr[sIdx - 1];
-            seqOffset = (sIdx == 0) ? 0 : actualSeqQlenAddr[sIdx - 1];
+            actualSeqLen = actualSeqQlenAddr[sIdx + 1] - actualSeqQlenAddr[sIdx];
+            seqOffset = actualSeqQlenAddr[sIdx];
         } else {
             actualSeqLen = constInfo.s1Size;
             seqOffset = sIdx * constInfo.s1Size;
@@ -189,7 +188,7 @@ __aicore__ inline bool ComputeLastBN(RunParamStr& runParam, __gm__ int32_t *actu
 {
     if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
         // TND格式下 相邻Batch中当actualSeqQlen相等时则返回true
-        if (runParam.boIdx > 0 && actualSeqQlenAddr[runParam.boIdx] - actualSeqQlenAddr[runParam.boIdx - 1] == 0) {
+        if (runParam.boIdx > 0 && actualSeqQlenAddr[runParam.boIdx + 1] - actualSeqQlenAddr[runParam.boIdx] == 0) {
             return true;
         }
     }
@@ -233,6 +232,9 @@ TEMPLATE_INTF
 __aicore__ inline bool ComputeS2LoopInfo(RunParamStr& runParam, const ConstInfo &constInfo)
 {
     if (runParam.actualS2Size == 0) {
+        runParam.oriKvLoopEndIdx = 0;
+        runParam.cmpKvLoopEndIdx = 0;
+        runParam.s2LoopEndIdx = 0;
         return true;
     }
     uint32_t s2BaseSize = constInfo.s2BaseSize;
