@@ -169,6 +169,8 @@ struct RunInfo {
 
 #define COMMON_CONST_INFO \
     /* 全局的基本块信息 */ \
+    uint32_t bSize; \
+    uint32_t needInit; \
     uint32_t s1BaseSize; \
     uint32_t s2BaseSize; \
     int64_t dSize; \
@@ -240,10 +242,10 @@ struct RunInfo {
     uint8_t layoutType; \
     uint8_t subBlockIdx;\
     bool softMaxCheckRes; \
-    int64_t matmulMSize     /* 在matmul运算中，左矩阵的M轴大小需要区分GS1合轴与不合轴的情况 */
+    int64_t matmulMSize; /* 在matmul运算中，左矩阵的M轴大小需要区分GS1合轴与不合轴的情况 */ 
 
 #define INFER_CONST_INFO \
-    /* 推理新增 */ \
+    /* 推理 */ \
     bool isActualLenDimsNull; /* 判断是否有actualseq */ \
     bool isActualLenDimsKVNull; /* 判断是否有actualseq_kv */ \
     bool isGqa; \
@@ -295,10 +297,6 @@ struct RunInfo {
     int64_t kvQuantMode; \
     int64_t tileSize; \
     int64_t ropeHeadDim; \
-    /* core params */ \
-    volatile int64_t multiCoreInnerOffset;  /* 二次赋值的变量需要volatile修饰 */ \
-    volatile int64_t multiCoreInnerLimit;  /* 二次赋值的变量需要volatile修饰 */ \
-    uint32_t s1OuterSize;  \
     uint32_t coreNum;  \
     uint32_t needInit : 1; \
     uint32_t layoutType : 4;  \
@@ -307,8 +305,10 @@ struct RunInfo {
     uint32_t actualSeqLengthsSize; \
     uint32_t actualSeqLengthsKVSize; \
     uint32_t splitKVNum; /* FD */ \
-    uint32_t bnStartIdx; \
-    uint32_t bnEndIdx;
+    /* pa params */  \
+    uint32_t blockSize; \
+    uint32_t oriMaxBlockNumPerBatch; \
+    uint32_t cmpMaxBlockNumPerBatch; 
 
 
 struct ConstInfo{

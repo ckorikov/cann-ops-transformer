@@ -642,7 +642,7 @@ __aicore__ inline void SASCubeBlock<SAST>::ComputeMm1(const RunInfo &info, const
                             kvMergeGm_[info.loop % 4 * N_WORKSPACE_SIZE * kSize + (constInfo.headDim >> 1) +
                                     nL1 * N_SPLIT_SIZE * constInfo.headDim],
                             nd2nzPara);
-
+            }
             SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
             WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
             mL1Size = M_SPLIT_SIZE;
