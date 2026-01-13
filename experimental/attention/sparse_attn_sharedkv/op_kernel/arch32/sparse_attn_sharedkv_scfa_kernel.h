@@ -328,7 +328,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen()
     // 对于cmp部分还有top k, tempLoopInfo.actS2Size只针对cmp
     int64_t threshold = tempLoopInfo.actS2SizeOri;
     if (constInfo.cmpMaskMode == 3) {
-        threshold = static_cast<int64_t>(tempLoopInfo.cmpMaskRight) + tempLoopInfo.s1EndIdx + 1;
+        threshold = static_cast<int64_t>(tempLoopInfo.cmpMaskRight) + static_cast<int64_t>(tempLoopInfo.s1EndIdx) + 1;
     }
     tempLoopInfo.actS2Size = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > threshold) ?
                                            threshold :
@@ -412,8 +412,8 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::OriSkip(uint32_t s2LoopIdx)
     uint32_t s2StartIdx = s2LoopIdx * constInfo.s2BaseSize;
     uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + constInfo.s2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + constInfo.s2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
-    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - s1EndIdx;
-    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - s1StartIdx;
+    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - static_cast<int64_t>(s1EndIdx);
+    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - static_cast<int64_t>(s1StartIdx);
     // 满足条件, 不跳过
     if (min_diff <= tempLoopInfo.oriMaskRight && max_diff >= tempLoopInfo.oriMaskLeft) {
         return false;
@@ -432,8 +432,8 @@ __aicore__ inline bool SparseAttnSharedkvScfa<SAST>::CmpSkip(uint32_t s2LoopIdx)
     uint32_t s2StartIdx = s2LoopIdx * oS2BaseSize;
     uint32_t s1EndIdx = tempLoopInfo.s1EndIdx;
     uint32_t s2EndIdx = ((s2StartIdx + oS2BaseSize) < tempLoopInfo.actS2SizeOri ? (s2StartIdx + oS2BaseSize) : tempLoopInfo.actS2SizeOri) - 1;
-    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - s1EndIdx;
-    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - s1StartIdx;
+    int64_t min_diff = static_cast<int64_t>(s2StartIdx) - static_cast<int64_t>(s1EndIdx);
+    int64_t max_diff = static_cast<int64_t>(s2EndIdx) - static_cast<int64_t>(s1StartIdx);
     if (min_diff <= tempLoopInfo.cmpMaskRight) {
         // 满足mask条件也不能跳, 还需要满足一个条件
         // 还需要判断s1EndIdx处, 当前基本块里面处理的数据除以ratio是否大于0
@@ -775,9 +775,9 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
         GetBN2Idx(bN2LoopIdx, tempLoopInfo.bIdx, tempLoopInfo.n2Idx);
         GetActualSeqLen(tempLoopInfo.bIdx); // 获取actualSeqLength及ActualSeqLengthKV
         GetPreNextTokensLeftUp();
-        tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + constInfo.oriWinRight;
-        tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
-        tempLoopInfo.cmpMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
+        tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - static_cast<int64_t>(tempLoopInfo.actS1Size) + constInfo.oriWinRight;
+        tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - static_cast<int64_t>(tempLoopInfo.actS1Size) - constInfo.oriWinLeft;
+        tempLoopInfo.cmpMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - static_cast<int64_t>(tempLoopInfo.actS1Size);
         if (tempLoopInfo.actS1Size == 0) {
             continue;
         }
