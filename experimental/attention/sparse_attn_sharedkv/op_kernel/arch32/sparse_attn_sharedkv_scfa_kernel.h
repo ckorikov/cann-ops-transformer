@@ -786,7 +786,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             tempLoopInfo.gS1Idx = gS1LoopIdx * constInfo.mBaseSize;
             tempLoopInfo.s1StartIdx = tempLoopInfo.gS1Idx / constInfo.gSize;
             tempLoopInfo.s1EndIdx = Min((tempLoopInfo.gS1Idx + constInfo.mBaseSize) / constInfo.gSize, tempLoopInfo.actS1Size) - 1;
-            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + constInfo.oriRight;
+            tempLoopInfo.oriMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size + constInfo.oriWinRight;
             tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
             tempLoopInfo.cmpMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
             //
