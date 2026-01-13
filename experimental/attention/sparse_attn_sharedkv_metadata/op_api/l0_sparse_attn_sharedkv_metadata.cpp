@@ -60,13 +60,12 @@ const aclTensor* SparseAttnSharedkvMetadata(
 
   auto ret = ADD_TO_LAUNCHER_LIST_AICPU(
       SparseAttnSharedkvMetadata,
-      OP_ATTR_NAMES({"num_heads_q", "num_heads_kv", "head_dim", "batch_size", "max_seqlen_q", "max_seqlen_kv"
+      OP_ATTR_NAMES({"num_heads_q", "num_heads_kv", "head_dim", "batch_size", "max_seqlen_q", "max_seqlen_kv", 
                      "topk", "cmp_ratio", "ori_mask_mode", "cmp_mask_mode",
                      "ori_win_left", "ori_win_right", "layout_q", "layout_kv",
                      "has_ori_kv", "has_cmp_kv"}),
       OP_INPUT(cuSeqLensQOptional, sequsedKvOptional), OP_OUTPUT(metaData),
-      OP_ATTR(cuSeqLensQOptional, sequsedKvOptional, 
-              numHeadsQ, numHeadsKv, headDim, batchSizeOptional, maxSeqlenQOptional, maxSeqlenKvOptional, topKOptional,
+      OP_ATTR(numHeadsQ, numHeadsKv, headDim, batchSizeOptional, maxSeqlenQOptional, maxSeqlenKvOptional, topKOptional,
               cmpRatioOptional, oriMaskModeOptional, cmpMaskModeOptional, oriWinLeftOptional, oriWinRightOptional,
               layoutQOptional, layoutKvOptional, hasOriKvOptional, hasCmpKvOptional));
   OP_CHECK(ret == ACL_SUCCESS,
