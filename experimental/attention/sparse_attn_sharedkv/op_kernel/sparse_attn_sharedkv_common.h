@@ -215,8 +215,8 @@ struct ConstInfo {
     int64_t cmpRatio = 0;
 
     // win
-    int64_t oriWinLeft = 0;
     int64_t oriWinRight = 0;
+    int64_t oriWinLeft = 128;
 
     // attention模式与量化模式
     ATTENTION_MODE attentionMode = ATTENTION_MODE::MLA_ABSORB;
