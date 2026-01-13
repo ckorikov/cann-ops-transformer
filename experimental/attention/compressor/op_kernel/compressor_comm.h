@@ -112,11 +112,17 @@ struct ConstInfo {
 struct RunInfo {
     bool isValid = false;
 
+    // c1v1分核信息 b是左闭右闭，s是左闭右开
     uint32_t bStart = 0;
     uint32_t sStart = 0;
     uint32_t bEnd = 0;
     uint32_t sEnd = 0;
     uint32_t dealTcNum = 0;
+
+    // v2分核信息 sc是左闭右开
+    uint32_t scStart = 0;
+    uint32_t scEnd = 0;
+    uint32_t dealScSize = 0;
 };
 
 struct MSplitInfo {
