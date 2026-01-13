@@ -317,11 +317,10 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetActualSeqLen(uint32_t bI
 }
 
 template <typename SAST>
-__aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint32_t bIdx, uint32_t s1EndIdx,
-                                                                                      uint32_t n2Idx)
+__aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen()
 {
     // 行无效通过ori部分判断, ori部分如果有行无效那么ori和cmp都有
-    if (tempLoopInfo.oriMaskRight < 0 && tempLoopInfo.tempLoopInfo.s1EndIdx < -tempLoopInfo.oriMaskRight) {
+    if (tempLoopInfo.oriMaskRight < 0 && tempLoopInfo.s1EndIdx < -tempLoopInfo.oriMaskRight) {
         tempLoopInfo.actS2Size = 0;
         return;
     }
@@ -329,7 +328,7 @@ __aicore__ inline void SparseAttnSharedkvScfa<SAST>::GetSparseActualSeqLen(uint3
     // 对于cmp部分还有top k, tempLoopInfo.actS2Size只针对cmp
     int64_t threshold = tempLoopInfo.actS2SizeOri;
     if (constInfo.cmpMaskMode == 3) {
-        threshold = static_cast<int64_t>(tempLoopInfo.cmpMaskRight) + s1Idx + 1;
+        threshold = static_cast<int64_t>(tempLoopInfo.cmpMaskRight) + tempLoopInfo.s1EndIdx + 1;
     }
     tempLoopInfo.actS2Size = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > threshold) ?
                                            threshold :
@@ -791,7 +790,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             tempLoopInfo.oriMaskLeft = static_cast<int64_t>(tempLoopInfo.actS2SizeOri)  - tempLoopInfo.actS1Size - constInfo.oriWinLeft;
             tempLoopInfo.cmpMaskRight = static_cast<int64_t>(tempLoopInfo.actS2SizeOri) - tempLoopInfo.actS1Size;
             //
-            GetSparseActualSeqLen(tempLoopInfo.bIdx, gS1LoopIdx, tempLoopInfo.n2Idx); // TopK值sparse完后的ActualSeqLengthKV
+            GetSparseActualSeqLen(); // TopK值sparse完后的ActualSeqLengthKV
             UpdateInnerLoopCond();
 
             if (tempLoopInfo.curActSeqLenIsZero) {
