@@ -273,7 +273,7 @@ __aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compress
     uint32_t bEnd = 0;
     uint32_t sEnd = 0;
 
-    auto tcEndInfo = CalcTcEndIdx(mSplitInfo.vecStartB, mSplitInfo.vecStartS, mSplitInfo.dealTcNum, constInfo_.cmpRatio, bEnd, sEnd);
+    CalcTcEndIdx(mSplitInfo.vecStartB, mSplitInfo.vecStartS, mSplitInfo.dealTcNum, bEnd, sEnd);
     mSplitInfo.vecEndB = bEnd;
     mSplitInfo.vecEndS = sEnd;
     if (GetBlockIdx() % 2 == 1) {
@@ -291,11 +291,8 @@ __aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compress
 
 // 根据计算Tc开始结束索引
 template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::SCalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd) {
-    TcEndInfo tcEndInfo{};
+__aicore__ inline void CompressorBlockVector<COMP>::CalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd) {
     uint32_t accBasicNum = 0;
-    uint32_t bEnd = 0;
-    uint32_t sEnd = 0;
     for (int bIdx = bStart; bIdx < constInfo_.batchSize; ++bIdx) {
         bEnd = bIdx;
         // 计算起始batch的剩余块
@@ -335,7 +332,7 @@ __aicore__ inline void CompressorBlockVector<COMP>::SCalcTcEndIdx(uint32_t bStar
                 accBasicNum += curRemainTcNum;
             }
         } else {
-            curActSeqLength_ = GetSeqLength(bIdx);
+            curActSeqLength_ = GetSeqLength(bStart, bIdx);
             curStartPos_ = GetStartPos(bIdx);
             uint32_t curBasicNum = GetBasicNum();
             // printf("[GetEndIdx] accBasicNum:%u curBasicNum:%u dealTcNum:%u\n", accBasicNum, curBasicNum, dealTcNum);

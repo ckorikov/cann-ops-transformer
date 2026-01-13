@@ -285,7 +285,7 @@ __aicore__ inline uint32_t CompressorKernel<COMP>::GetSeqLength(uint32_t bIdx) {
 
 template <typename COMP>
 __aicore__ inline uint32_t CompressorKernel<COMP>::GetStartPos(uint32_t bIdx) {
-    // printf("[GetStartPos] preStartPosIdx:%u index:%u\n", preStartPosIdx, index);
+    // printf("[GetStartPos] preStartPosIdx:%u index:%u\n", preStartPosIdx, bIdx);
     if (preStartPosIdx != bIdx) {
         curStartPos = startPosGm_.GetValue(bIdx);
         preStartPosIdx = bIdx;
