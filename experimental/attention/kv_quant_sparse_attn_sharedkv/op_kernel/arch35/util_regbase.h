@@ -83,8 +83,8 @@ enum class SparseType : uint8_t {
     uint32_t firstHalfS1RealSize; \
     int64_t tensorQOffset;         /* query的offset souter层确定 */ \
     int64_t attentionOutOffset;    /* attentionOut的offset souter层确定 */ \
-    int64_t actualS1Size;      /* Q的actualSeqLength */ \
-    int64_t actualS2Size;    /* KV的actualSeqLength */ \
+    int32_t actualS1Size;      /* Q的actualSeqLength */ \
+    int32_t actualS2Size;    /* KV的actualSeqLength */ \
     uint64_t b1SSOffset; \
     uint64_t b1SSAttenMaskOffset; \
     uint64_t b1SSOffsetAlign16; \
@@ -122,10 +122,7 @@ struct RunParamStr {  // 分核与切块需要使用到参数
     int64_t s2LoopCount; /* s2循环当前的循环index */ \
     int64_t s2LoopLimit; \
     int64_t s1oIdx = 0; /* s1轴的index */ \
-    int64_t loop = 0; /* for v0 */ \
-    int64_t s2BatchOffset = 0; /* for v0 */ \
-    int64_t gS1Idx = 0; /* for v0 */ \
-    int64_t curActualSeqLenOri; /* for v0 */ \
+    int64_t loop = 0; /* for v0 perload loop */ \
     int64_t boIdx = 0; /* b轴的index */ \
     int64_t n2oIdx = 0; /* n2轴的index */ \
     int64_t goIdx = 0; /* g轴的index */ \
@@ -146,8 +143,8 @@ struct RunParamStr {  // 分核与切块需要使用到参数
     int64_t attentionOutOffset; \
     int64_t s1SizeAcc; /* 对于非TND场景 = boIdx * pseInfo.s2Size; TND场景等于前面boIdx个batch的s2之和（每个batch的s2不同）*/ \
     int64_t s2SizeAcc; /* 对于非TND场景 = boIdx * pseInfo.s2Size; TND场景等于前面boIdx个batch的s2之和（每个batch的s2不同）*/ \
-    int64_t actualS1Size; /* 非TND场景=总s1Size, Tnd场景下当前batch对应的s1 */ \
-    int64_t actualS2Size; /* 非TND场景=总s2Size, Tnd场景下当前batch对应的s2 */ \
+    int32_t actualS1Size; /* 非TND场景=总s1Size, Tnd场景下当前batch对应的s1 */ \
+    int32_t actualS2Size; /* 非TND场景=总s2Size, Tnd场景下当前batch对应的s2 */ \
     int64_t preTokensPerBatch; /* vector2 左上顶点的pretoken */ \
     int64_t nextTokensPerBatch; /* vector2 左上顶点的nexttoken */ \
     uint8_t taskIdMod2; \
@@ -177,10 +174,10 @@ struct RunInfo {
     int64_t dSize; \
     int64_t dSizeV; \
     int64_t dBasicBlock; \
+    int64_t dSizeNope; /* for v0 */ \
     int64_t dSizeRope; \
-    int64_t dSizeCombine; /* for v0 */ \
     int64_t tileSize; /* for v0 */ \
-    int64_t sparseMode; /* for v0 */ \
+    int64_t sparseMode = 3; /* for v0 */ \
     int64_t gSize; /* g轴的大小 */ \
     int64_t n2Size; \
     int64_t s1Size; /* s1总大小 */ \

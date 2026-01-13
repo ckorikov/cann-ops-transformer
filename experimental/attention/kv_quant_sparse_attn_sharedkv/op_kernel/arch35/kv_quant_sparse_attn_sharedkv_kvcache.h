@@ -27,12 +27,12 @@ using namespace AscendC::Impl::Detail;
 
 TEMPLATE_INTF
 __aicore__ inline void GetSingleCoreParam(RunParamStr& runParam, const ConstInfo &constInfo,
-    __gm__ int64_t *actualSeqQlenAddr, __gm__ int64_t * actualSeqKvlenAddr)
+    __gm__ int32_t *actualSeqQlenAddr, __gm__ int32_t * actualSeqKvlenAddr)
 {
-    int64_t actualS1Size = 0;
-    int64_t actualS2Size = 0;
-    int64_t actualSeqMin = 1;
-    int64_t actualSeqKVMin = 1;
+    int32_t actualS1Size = 0;
+    int32_t actualS2Size = 0;
+    int32_t actualSeqMin = 1;
+    int32_t actualSeqKVMin = 1;
     int32_t sIdx = runParam.boIdx;
     if (constInfo.isActualLenDimsNull) {
         actualS1Size = constInfo.s1Size;
@@ -95,7 +95,7 @@ __aicore__ inline void GetKeyCoreOffsetParam(RunParamStr& runParam, const ConstI
 
 TEMPLATE_INTF
 __aicore__ inline void ComputeParamBatch(RunParamStr& runParam, const ConstInfo &constInfo,
-    __gm__ int64_t *actualSeqQlenAddr, __gm__ int64_t *actualSeqKvlenAddr)
+    __gm__ int32_t *actualSeqQlenAddr, __gm__ int32_t *actualSeqKvlenAddr)
 {
     GetSingleCoreParam<TEMPLATE_INTF_ARGS>(runParam, constInfo, actualSeqQlenAddr, actualSeqKvlenAddr);
 }
@@ -145,7 +145,7 @@ __aicore__ inline void ComputeSouterParam(RunParamStr& runParam, const ConstInfo
 
 TEMPLATE_INTF
 __aicore__ inline void LoopSOuterOffsetInit(RunParamStr& runParam, const ConstInfo &constInfo,
-    int32_t sIdx, __gm__ int64_t *actualSeqQlenAddr)
+    int32_t sIdx, __gm__ int32_t *actualSeqQlenAddr)
 {
     if ASCEND_IS_AIV {
         int64_t actualSeqLen = 0;
@@ -169,7 +169,7 @@ __aicore__ inline void LoopSOuterOffsetInit(RunParamStr& runParam, const ConstIn
 
 TEMPLATE_INTF
 __aicore__ inline bool ComputeParamS1(RunParamStr& runParam, const ConstInfo &constInfo,
-    uint32_t sOuterLoopIdx, __gm__ int64_t *actualSeqQlenAddr)
+    uint32_t sOuterLoopIdx, __gm__ int32_t *actualSeqQlenAddr)
 {
     // 后续的函数依赖 sOuterOffset
     ComputeSouterParam<TEMPLATE_INTF_ARGS>(runParam, constInfo, sOuterLoopIdx);
@@ -185,7 +185,7 @@ __aicore__ inline bool ComputeParamS1(RunParamStr& runParam, const ConstInfo &co
 }
 
 TEMPLATE_INTF
-__aicore__ inline bool ComputeLastBN(RunParamStr& runParam, __gm__ int64_t *actualSeqQlenAddr) 
+__aicore__ inline bool ComputeLastBN(RunParamStr& runParam, __gm__ int32_t *actualSeqQlenAddr) 
 {
     if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
         // TND格式下 相邻Batch中当actualSeqQlen相等时则返回true
