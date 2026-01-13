@@ -26,10 +26,6 @@ namespace optiling {
 // static const std::string QUERY_NAME = "query";
 static const std::string ORI_BLOCK_TABLE_NAME = "ori_block_table";
 static const std::string CMP_BLOCK_TABLE_NAME = "cmp_block_table";
-// static const std::string SPARSE_INDICES_NAME = "sparse_indices";
-// static const std::string QUERY_ROPE_NAME = "query_rope";
-// static const std::string KEY_ROPE_NAME = "key_rope";
-// static const std::string ATTEN_OUT_NAME = "attention_out";
 static const std::string SINKS_NAME = "sinks";
 
 std::string SASLayoutToSerialString(SASLayout layout)
@@ -98,9 +94,9 @@ ge::graphStatus SASInfoParser::GetNpuInfo()
     OP_CHECK_IF(platformInfo_ == nullptr, OP_LOGE(opName_, "GetPlatformInfo is nullptr."), return ge::GRAPH_FAILED);
 
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(platformInfo_);
-    uint32_t aivNum = ascendcPlatform.GetCoreNumAiv();
-    uint32_t aicNum = ascendcPlatform.GetCoreNumAic();
-    OP_CHECK_IF(aicNum == 0 || aivNum == 0, OP_LOGE(opName_, "num of core obtained is 0."), return ge::GRAPH_FAILED);
+    aivNum_ = ascendcPlatform.GetCoreNumAiv();
+    aicNum_ = ascendcPlatform.GetCoreNumAic();
+    OP_CHECK_IF(aicNum_ == 0 || aivNum_ == 0, OP_LOGE(opName_, "num of core obtained is 0."), return ge::GRAPH_FAILED);
 
     socVersion_ = ascendcPlatform.GetSocVersion();
     if ((socVersion_ != platform_ascendc::SocVersion::ASCEND910B) &&
@@ -196,7 +192,7 @@ ge::graphStatus SASInfoParser::GetInOutDataType()
     return ge::GRAPH_SUCCESS;
 }
 
-ge::graphStatus SASInfoParser::GetSASTempateMode()
+ge::graphStatus SASInfoParser::GetSASTemplateMode()
 {
     if (opParamInfo_.oriKv.desc != nullptr) {
         if (opParamInfo_.cmpKv.desc != nullptr && opParamInfo_.cmpSparseIndices.tensor != nullptr) {
@@ -440,7 +436,17 @@ ge::graphStatus SASInfoParser::GetQkHeadDim()
 {
     // 获取qkHeadDim基准值
     // 以query的D维度为基准
-    qkHeadDim_ = GetAxisNum(qShape_, SASAxis::D, qLayout_);
+    qkHeadDim_ = GetAxisNum(oriKvShape_, SASAxis::D, qLayout_);
+    return ge::GRAPH_SUCCESS;
+}
+
+ge::graphStatus SASInfoParser::GetValueHeadDim()
+{
+    // 获取qkHeadDim基准值
+    // 以query的D维度为基准
+    if (opParamInfo_.oriKv.tensor != nullptr) {
+        vHeadDim_ = GetAxisNum(oriKvShape_, SASAxis::D, kvLayout_);
+    }
     return ge::GRAPH_SUCCESS;
 }
 
@@ -552,7 +558,8 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
 
     if (ge::GRAPH_SUCCESS != GetInOutDataType() ||
         ge::GRAPH_SUCCESS != GetQueryAndOutLayout() ||
-        ge::GRAPH_SUCCESS != GetKvLayout()) {
+        ge::GRAPH_SUCCESS != GetKvLayout() ||
+        ge::GRAPH_SUCCESS != GetSASTemplateMode()) {
         return ge::GRAPH_FAILED;
     }
 
@@ -566,15 +573,13 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
         ge::GRAPH_SUCCESS != GetS1Size() ||
         ge::GRAPH_SUCCESS != GetS2Size() ||
         ge::GRAPH_SUCCESS != GetQkHeadDim() ||
+        ge::GRAPH_SUCCESS != GetValueHeadDim() ||
         ge::GRAPH_SUCCESS != GetSparseBlockCount() ||
         ge::GRAPH_SUCCESS != GetSinks()) {
         return ge::GRAPH_FAILED;
     }
 
     if (ge::GRAPH_SUCCESS != GetActualseqInfo()) {
-        return ge::GRAPH_FAILED;
-    }
-    if (ge::GRAPH_SUCCESS != GetSASTempateMode()) {
         return ge::GRAPH_FAILED;
     }
     GenerateInfo(sasInfo);
@@ -599,16 +604,44 @@ static ge::graphStatus TilingPrepareForSparseAttnSharedkv(gert::TilingParseConte
     return ge::GRAPH_SUCCESS;
 }
 
+void SparseAttnSharedkvTiling::CalcUbBmm(SASTilingInfo *tilingInfo)
+{
+    uint32_t cubeMSize = tilingInfo->gSize * tilingInfo->s1Size;
+    uint32_t maxMSize = mBaseSize_; 
+    if (cubeMSize > maxMSize) {
+        cubeMSize = maxMSize;
+    }
+    mmResUbSize_ = sInnerSizeAlign_ * Align(cubeMSize, 16U);// kernel按照16对齐写出，tiling按照这个原则分配内存
+    bmm2ResUbSize_ = headDimAlign_ * Align(cubeMSize, 16U);// kernel按照16对齐写出，tiling按照这个原则分配内存
+
+    qPreSizeMla_ = tilingInfo->gSize * headDimAlign_ * tilingInfo->s1Size;
+}
+
+void SparseAttnSharedkvTiling::SplitBalanced(SASTilingInfo *tilingInfo)
+{
+    uint32_t s2Size = tilingInfo->s2Size;
+    sInnerSize_ = 512; // 512:s2默认切分大小
+    sInnerLoopTimes_ = (s2Size + sInnerSize_ - 1) / sInnerSize_;
+    sInnerSizeTail_ = s2Size - (sInnerLoopTimes_ - 1) * sInnerSize_;
+    if (sInnerSize_ > s2Size) {
+        sInnerSize_ = s2Size;
+    }
+    sInnerSizeAlign_ = Align(sInnerSize_, BYTE_BLOCK); // 元素个数按照基本块大小对齐
+
+    CalcUbBmm(tilingInfo);
+
+    InnerSplitParams innerSplitParams;
+    innerSplitParams.s1GBaseSize = tilingInfo->gSize;
+    innerSplitParams.s2BaseSize = sInnerSize_;
+    tilingData_.baseParams.set_mBaseSize(innerSplitParams.s1GBaseSize);
+    tilingData_.baseParams.set_s2BaseSize(innerSplitParams.s2BaseSize);
+    tilingData_.baseParams.set_mmResUbSize(mmResUbSize_);
+    tilingData_.baseParams.set_bmm2ResUbSize(bmm2ResUbSize_);
+}
+
 // --------------------------SparseAttnSharedkvTiling类成员函数定义-----------------------
 ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
 {
-    // if (opParamInfo_.cmpKv.tensor != nullptr) {
-    //     perfMode_ = SASTemplateMode::SWA_TEMPLATE_MODE;
-    // } else if (opParamInfo_.cmpSparseIndices.tensor != nullptr) {
-    //     perfMode_ = SASTemplateMode::CFA_TEMPLATE_MODE;
-    // } else {
-    //     perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
-    // }
     // -------------set blockdim-----------------
     auto ascendcPlatform = platform_ascendc::PlatformAscendC(tilingInfo->platformInfo);
     uint32_t aivNum = ascendcPlatform.GetCoreNumAiv();
@@ -617,6 +650,7 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     context_->SetBlockDim(blockDim);
     OP_LOGI(tilingInfo->opName, "SAS block dim: %u aiv Num: %u aic Num: %u.", blockDim, aivNum, aicNum);
 
+    SplitBalanced(tilingInfo);
     // -------------set workspacesize-----------------
     constexpr uint32_t MM1_RES_ELEM_SIZE = 4;         // 4: fp32
     constexpr uint32_t DOUBLE_BUFFER = 2;             // 双Buffer
@@ -645,42 +679,41 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     tilingData_.baseParams.set_batchSize(tilingInfo->bSize);
     tilingData_.baseParams.set_kvSeqSize(tilingInfo->s2Size);
     tilingData_.baseParams.set_qSeqSize(tilingInfo->s1Size);
-    tilingData_.baseParams.set_sparseBlockCount(tilingInfo->sparseBlockCount);
     tilingData_.baseParams.set_nNumOfQInOneGroup(tilingInfo->gSize);
     tilingData_.baseParams.set_paBlockSize(tilingInfo->blockSize);
     tilingData_.baseParams.set_oriMaxBlockNumPerBatch(tilingInfo->oriMaxBlockNumPerBatch);
-    tilingData_.baseParams.set_cmpMaxBlockNumPerBatch(tilingInfo->cmpMaxBlockNumPerBatch);
     tilingData_.baseParams.set_actualLenDimsQ(tilingInfo->actualLenDimsQ);
     tilingData_.baseParams.set_actualLenDimsKV(tilingInfo->actualLenDimsKV);
 
     tilingData_.baseParams.set_softmaxScale(tilingInfo->softmaxScale);
-    tilingData_.baseParams.set_cmpRatio(tilingInfo->cmpRatio);
     tilingData_.baseParams.set_outputLayout(static_cast<uint32_t>(tilingInfo->outLayout));
     tilingData_.baseParams.set_oriMaskMode(tilingInfo->oriMaskMode);
-    tilingData_.baseParams.set_cmpMaskMode(tilingInfo->cmpMaskMode);
     tilingData_.baseParams.set_oriWinLeft(tilingInfo->oriWinLeft);
     tilingData_.baseParams.set_oriWinRight(tilingInfo->oriWinRight);
     tilingData_.baseParams.set_sparseBlockSize(tilingInfo->sparseBlockSize);
 
-    tilingData_.singleCoreParams.set_usedCoreNum(blockDim);
+    tilingData_.cmpParams.set_cmpMaxBlockNumPerBatch(tilingInfo->cmpMaxBlockNumPerBatch);
+    tilingData_.cmpParams.set_sparseBlockCount(tilingInfo->sparseBlockCount);
+    tilingData_.cmpParams.set_cmpRatio(tilingInfo->cmpRatio);
+    tilingData_.cmpParams.set_cmpMaskMode(tilingInfo->cmpMaskMode);
 
+    usedCoreNum_ = aicNum;
+    tilingData_.baseParams.set_usedCoreNum(usedCoreNum_);
     tilingData_.SaveToBuffer(context_->GetRawTilingData()->GetData(), context_->GetRawTilingData()->GetCapacity());
     context_->GetRawTilingData()->SetDataSize(tilingData_.GetDataSize());
 
     // -------------set tilingkey-----------------
     // DT_Q, DT_KV, DT_OUT, PAGE_ATTENTION, FLASH_DECODE, LAYOUT_T, KV_LAYOUT_T
-    uint32_t qType = static_cast<uint32_t>(tilingInfo->qType);
-    uint32_t oriKvType = static_cast<uint32_t>(tilingInfo->oriKvType);
-    uint32_t outputType = static_cast<uint32_t>(tilingInfo->outputType);
+    // uint32_t qType = static_cast<uint32_t>(tilingInfo->qType);
+    // uint32_t oriKvType = static_cast<uint32_t>(tilingInfo->oriKvType);
+    // uint32_t outputType = static_cast<uint32_t>(tilingInfo->outputType);
     uint32_t qLayout = static_cast<uint32_t>(tilingInfo->qLayout);
     uint32_t inputKvLayout = static_cast<uint32_t>(tilingInfo->kvLayout);
-    if (tilingInfo->perfMode == SASTemplateMode::SCFA_TEMPLATE_MODE) {
-        perfMode_ = SASTemplateMode::SCFA_TEMPLATE_MODE;
-    }
+
     uint32_t tilingKey =
         GET_TPL_TILING_KEY(0U, qLayout, inputKvLayout, static_cast<uint32_t>(perfMode_));
     context_->SetTilingKey(tilingKey);
-    
+
     return ge::GRAPH_SUCCESS;
 }
 
