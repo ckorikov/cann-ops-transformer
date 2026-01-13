@@ -805,7 +805,7 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvScfa<SAST>::Pr
             tempLoopInfo.oriLoopTimes = oriSplitNum;
             tempLoopInfo.cmpLoopTimes = cmpSplitNum;
             uint32_t s2LoopEnd = (isEnd && constInfo.s2End != 0) ? constInfo.s2End : tempLoopInfo.s2LoopTimes;
-            tempLoopInfo.s2LoopTimes = constInfo.s2End - constInfo.s2Start;
+            tempLoopInfo.s2LoopTimes = s2LoopEnd - constInfo.s2Start;
             // 分核修改后需要打开
             // 当前s2是否被切，决定了输出是否要写到attenOut上
             tempLoopInfo.tndIsS2SplitCore =
