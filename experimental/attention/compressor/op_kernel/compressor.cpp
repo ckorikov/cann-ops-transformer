@@ -17,7 +17,7 @@
  
 using namespace Compressor;
 
-template<uint8_t X_LAYOUT, int8_t X_DTYPE, int8_t COFF, bool ROTARY_MODE>
+template<uint8_t XLayout, uint8_t XDType, uint8_t Coff, uint8_t RotaryMode>
 __global__ __aicore__ void compressor(
     __gm__ uint8_t *x,
     __gm__ uint8_t *wKv,
@@ -42,7 +42,11 @@ __global__ __aicore__ void compressor(
     GET_TILING_DATA_WITH_STRUCT(optiling::CompressorTilingData, tilingDataIn, tiling);
     const optiling::CompressorTilingData *__restrict tilingData = &tilingDataIn;
     TPipe pipe;
-    CompressorKernel op(&pipe, tilingData);
+    constexpr auto xLayout = static_cast<X_LAYOUT>(XLayout);
+    constexpr auto xDtype = static_cast<X_DTYPE>(XDType);
+    constexpr auto coff = static_cast<COFF>(Coff);
+    constexpr auto rotaryMode = static_cast<ROTARY_MODE>(RotaryMode);
+    CompressorKernel<COMPType<xLayout, xDtype, coff, rotaryMode>> op(&pipe, tilingData);
     op.Init(x,
             wKv,
             wGate,

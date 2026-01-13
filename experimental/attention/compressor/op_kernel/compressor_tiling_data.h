@@ -33,6 +33,8 @@ namespace optiling {
         uint32_t cmpRatio;              // Compress ratio
         uint32_t cgSize;                // Compress group size
         float normEps;                  // RMSNorm eps
+        float reciprocalD;              // 1分之D
+        uint32_t usedCoreNum;           // 使用核数
     };
 
     struct CompressorPageAttentionParams {
@@ -53,11 +55,9 @@ namespace optiling {
     };
 
     struct CompressorWorkspaceParams {
-        uint32_t mmKVLeftResSize;
-        uint32_t mmKVRightResSize;
-        uint32_t mmScoreLeftResSize;
-        uint32_t mmScoreRightResSize;
-        uint32_t vecResSize;
+        uint32_t preMm1ResSize;
+        uint32_t curMm1ResSize;
+        uint32_t vec1ResSize;
     };
 
     struct CompressorTilingData {

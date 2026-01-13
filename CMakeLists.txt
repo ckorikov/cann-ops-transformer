@@ -39,6 +39,11 @@ set(ASCEND_ALL_COMPUTE_UNIT       "ascend910b;ascend910_93;ascend910_95;kirinx90
 set(SOC_VERSION_LIST ascend910b ascend910_93 ascend910_95 kirinx90)
 set(ARCH_DIRECTORY_LIST arch32 arch32 arch35 arch32)
 
+if ("ascend910_95" IN_LIST ASCEND_COMPUTE_UNIT)
+message(STATUS "build with 3~8 packages........")
+set(BUILD_WITH_3_8_PACKAGE  ON CACHE BOOL "build with 3~8 package and opsbase")
+endif()
+
 foreach(SOC_VERSION ${ASCEND_COMPUTE_UNIT})
   list(FIND SOC_VERSION_LIST ${SOC_VERSION} INDEX)
   if(NOT INDEX EQUAL -1)
@@ -117,13 +122,9 @@ if (BUILD_OPEN_PROJECT)
         include(cmake/third_party/ascend_protobuf.cmake)
 
         include(cmake/third_party/makeself-fetch.cmake)
+        include(cmake/opbuild.cmake)
         include(cmake/custom_build.cmake)
         message(STATUS "End building custom package.")
-        include(cmake/opbuild.cmake)
-        merge_graph_headers(
-            TARGET merge_ops_proto ALL
-            OUT_DIR ${ASCEND_GRAPH_CONF_DST}
-        )
         if (ENABLE_OPS_HOST)
             gen_aclnn_with_opdef()
         endif()

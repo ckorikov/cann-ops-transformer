@@ -25,10 +25,34 @@
 using namespace AscendC;
 
 namespace Compressor {
+template <typename T>
+__aicore__ inline T CeilDivT(T num1, T num2)
+{
+    if (num2 == 0) {
+        return static_cast<T>(0);
+    }
+    return (num1 + num2 - 1) / num2;
+}
 
-enum class QUANT_MODE : std::uint8_t {
-    NO_QUANT = static_cast<std::uint8_t>(0),
-    QUANT = static_cast<std::uint8_t>(1)
+template <typename T>
+__aicore__ inline T Align(T num, T rnd)
+{
+    return (((rnd) == 0) ? 0 : (((num) + (rnd)-1) / (rnd) * (rnd)));
+}
+
+enum class X_LAYOUT : std::uint8_t {
+    BSH = static_cast<std::uint8_t>(0),
+    TH = static_cast<std::uint8_t>(1)
+};
+
+enum class X_DTYPE : std::uint8_t {
+    BF16 = static_cast<std::uint8_t>(0),
+    FP16 = static_cast<std::uint8_t>(1)
+};
+
+enum class COFF : std::uint8_t {
+    DISABLE = static_cast<std::uint8_t>(1),
+    OVERLAP = static_cast<std::uint8_t>(2)
 };
 
 enum class ROTARY_MODE : std::uint8_t {
@@ -36,7 +60,83 @@ enum class ROTARY_MODE : std::uint8_t {
     INTERLEAVE = static_cast<std::uint8_t>(1)
 };
 
+template <X_LAYOUT X_L, X_DTYPE X_T, COFF C, ROTARY_MODE Rotary_Mode, typename... Args>
+struct COMPType {
+    static constexpr X_LAYOUT xLayout = X_L;
+    static constexpr X_DTYPE xDtype = X_T;
+    static constexpr COFF coff = C;
+    static constexpr ROTARY_MODE rotaryMode = Rotary_Mode;
+};
 
+struct ConstInfo {
+    // 整个AICORE的任务信息, 左闭右开区间[ (bStart, s2Start), (bEnd, s2End) )
+    uint32_t bStart = 0U;
+    uint32_t sStart = 0U;
+    uint32_t bEnd = 0U;
+    uint32_t sEnd = 0U;
+
+    // 分核相关
+    uint32_t usedCoreNum = 24;
+    uint32_t dBaseSize = 64;
+    uint32_t mBaseSize = 256;
+    uint32_t tcSize = 0;
+    uint32_t tcBaseSize = 0;
+    uint32_t tcBasicBlockNum = 0;
+    uint32_t dBasicBlockNum = 0;
+    uint32_t coreGroupNum = 0;
+    uint32_t singleCoreDealTcBasicNum = 0;
+
+    // shape及参数
+    uint32_t batchSize = 0;
+    uint32_t hSize = 0;
+    uint32_t sSize = 0;
+    uint32_t headDim = 0;
+    uint32_t ropeHeadDim = 0;
+    uint32_t cmpRatio = 0;
+    float normEps = 0;
+    float reciprocalD = 0;
+
+    // pageAttention
+    uint32_t blockNum = 0;
+    uint32_t blockSize = 0;
+    uint32_t maxBlockNumPerBatch = 0;
+
+    // workSpace
+    uint32_t preMm1ResSize = 0;
+    uint32_t curMm1ResSize = 0;
+    uint32_t vec1ResSize = 0;
+
+    uint32_t aiCoreIdx = 0;
+};
+
+struct RunInfo {
+    bool isValid = false;
+
+    uint32_t bStart = 0;
+    uint32_t sStart = 0;
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
+    uint32_t dealTcNum = 0;
+};
+
+struct MSplitInfo {
+    uint32_t vecStartB = 0U;
+    uint32_t vecStartS = 0U;
+    uint32_t vecEndB = 0U;
+    uint32_t vecEndS = 0U;
+    uint32_t dealTcNum = 0U;
+};
+
+// BLOCK和REPEAT的字节数
+static constexpr uint64_t BYTE_BLOCK = 32UL;
+static constexpr uint32_t REPEAT_BLOCK_BYTE = 256U;
+// BLOCK和REPEAT的FP32元素数
+static constexpr uint32_t FP32_BLOCK_ELEMENT_NUM = BYTE_BLOCK / sizeof(float); // 8
+static constexpr uint32_t FP32_REPEAT_ELEMENT_NUM = REPEAT_BLOCK_BYTE / sizeof(float); // 64
+static constexpr uint32_t REPEAT_STRIDE_NUM = REPEAT_BLOCK_BYTE / BYTE_BLOCK; // 8
+static constexpr uint32_t REPEAT_MAX_NUM = 255;
+static constexpr uint32_t BRCB_NUM = 8;
+static constexpr uint32_t MAX_R = 256;
 
 }
 #endif

@@ -15,7 +15,10 @@
 #ifndef FLASH_UPDATE_NEW_INTERFACE_SCFA_H
 #define FLASH_UPDATE_NEW_INTERFACE_SCFA_H
 
-#include "kernel_tensor.h"
+// #include "kernel_tensor.h"
+#include "vf_basic_block_utils.h"
+#include "../util_regbase.h"
+#include "../kv_quant_sparse_attn_sharedkv_common_arch35.h"
 
 namespace SCFaVectorApi {
 constexpr uint16_t REDUCE_SIZE = 1;
@@ -28,24 +31,24 @@ __simd_vf__ inline void FlashUpdateBasicVF(__ubuf__ float * dstUb, __ubuf__ floa
 {
     constexpr uint16_t floatRepSize = 64;
     constexpr uint16_t dLoops = srcD / floatRepSize;
-    RegTensor<float> vreg_exp_max;
-    RegTensor<float> vreg_input_pre;
-    RegTensor<float> vreg_input_cur;
-    RegTensor<float> vreg_mul;
-    RegTensor<float> vreg_add;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_max;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_pre;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_cur;
+    AscendC::MicroAPI::RegTensor<float> vreg_mul;
+    AscendC::MicroAPI::RegTensor<float> vreg_add;
 
-    MaskReg preg_all = CreateMask<float, MaskPattern::ALL>();
+    AscendC::MicroAPI::MaskReg preg_all = AscendC::MicroAPI::CreateMask<float, AscendC::MicroAPI::MaskPattern::ALL>();
 
     // dstTensor = preTensor * expMaxTensor + curTensor
     for (uint16_t i = 0; i < m; ++i) {
-        LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_max, expMaxUb + i * reduceSize);  // [m,8]
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_max, expMaxUb + i * reduceSize);  // [m,8]
 
         for (uint16_t j = 0; j < dLoops; ++j) {
-            LoadAlign(vreg_input_pre, preUb + i * srcD + j * floatRepSize);
-            LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
-            Mul(vreg_mul, vreg_exp_max, vreg_input_pre, preg_all);
-            Add(vreg_add, vreg_mul, vreg_input_cur, preg_all);
-            StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+            AscendC::MicroAPI::LoadAlign(vreg_input_pre, preUb + i * srcD + j * floatRepSize);
+            AscendC::MicroAPI::LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
+            AscendC::MicroAPI::Mul(vreg_mul, vreg_exp_max, vreg_input_pre, preg_all);
+            AscendC::MicroAPI::Add(vreg_add, vreg_mul, vreg_input_cur, preg_all);
+            AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
                 (__ubuf__ T *&)dstUb + i * srcD + j * floatRepSize, vreg_add, preg_all);
         }
     }
@@ -80,27 +83,27 @@ __simd_vf__ inline void FlashUpdateLastBasicVF(__ubuf__ float * dstUb, __ubuf__ 
 {
     constexpr uint16_t floatRepSize = 64;
     constexpr uint16_t dLoops = srcD / floatRepSize;
-    RegTensor<float> vreg_exp_max;
-    RegTensor<float> vreg_input_pre;
-    RegTensor<float> vreg_input_cur;
-    RegTensor<float> vreg_mul;
-    RegTensor<float> vreg_add;
-    RegTensor<float> vreg_div;
-    RegTensor<float> vreg_exp_sum;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_max;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_pre;
+    AscendC::MicroAPI::RegTensor<float> vreg_input_cur;
+    AscendC::MicroAPI::RegTensor<float> vreg_mul;
+    AscendC::MicroAPI::RegTensor<float> vreg_add;
+    AscendC::MicroAPI::RegTensor<float> vreg_div;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_sum;
 
-    MaskReg preg_all = CreateMask<float, MaskPattern::ALL>();
+    AscendC::MicroAPI::MaskReg preg_all = AscendC::MicroAPI::CreateMask<float, AscendC::MicroAPI::MaskPattern::ALL>();
 
     for (uint16_t i = 0; i < m; ++i) {
-        LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_max, expMaxUb + i * reduceSize);
-        LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_sum, expSumUb + i * reduceSize);
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_max, expMaxUb + i * reduceSize);
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_sum, expSumUb + i * reduceSize);
 
         for (uint16_t j = 0; j < dLoops; ++j) {
-            LoadAlign(vreg_input_pre, preUb + i * srcD + j * floatRepSize);
-            LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
-            Mul(vreg_mul, vreg_exp_max, vreg_input_pre, preg_all);
-            Add(vreg_add, vreg_mul, vreg_input_cur, preg_all);
-            Div(vreg_div, vreg_add, vreg_exp_sum, preg_all);
-            StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+            AscendC::MicroAPI::LoadAlign(vreg_input_pre, preUb + i * srcD + j * floatRepSize);
+            AscendC::MicroAPI::LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
+            AscendC::MicroAPI::Mul(vreg_mul, vreg_exp_max, vreg_input_pre, preg_all);
+            AscendC::MicroAPI::Add(vreg_add, vreg_mul, vreg_input_cur, preg_all);
+            AscendC::MicroAPI::Div(vreg_div, vreg_add, vreg_exp_sum, preg_all);
+            AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
                 (__ubuf__ T *&)dstUb + i * srcD + j * floatRepSize, vreg_div, preg_all);
         }
     }
@@ -137,19 +140,19 @@ __simd_vf__ inline void LastDivNewVF(__ubuf__ float * dstUb, __ubuf__ float * cu
 {
     constexpr uint16_t floatRepSize = 64;
     const uint16_t dLoops = srcD >> 6;
-    RegTensor<float> vreg_input_cur;
-    RegTensor<float> vreg_div;
-    RegTensor<float> vreg_exp_sum;
-    MaskReg preg_all = CreateMask<float, MaskPattern::ALL>();
+    AscendC::MicroAPI::RegTensor<float> vreg_input_cur;
+    AscendC::MicroAPI::RegTensor<float> vreg_div;
+    AscendC::MicroAPI::RegTensor<float> vreg_exp_sum;
+    AscendC::MicroAPI::MaskReg preg_all = CreateMask<float, MaskPattern::ALL>();
     uint32_t sreg_init = srcD;
-    MaskReg preg_update = UpdateMask<float>(sreg_init);
+    AscendC::MicroAPI::MaskReg preg_update = UpdateMask<float>(sreg_init);
 
     for (uint16_t i = 0; i < m; ++i) {
-        LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_sum, expSumUb + i * REDUCE_SIZE);
+        AscendC::MicroAPI::LoadAlign<T, MicroAPI::LoadDist::DIST_BRC_B32>(vreg_exp_sum, expSumUb + i * REDUCE_SIZE);
         for (uint16_t j = 0; j < dLoops; ++j) {
-            LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
-            Div(vreg_div, vreg_input_cur, vreg_exp_sum, preg_all);
-            StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
+            AscendC::MicroAPI::LoadAlign(vreg_input_cur, curUb + i * srcD + j * floatRepSize);
+            AscendC::MicroAPI::Div(vreg_div, vreg_input_cur, vreg_exp_sum, preg_all);
+            AscendC::MicroAPI::StoreAlign<T, MicroAPI::StoreDist::DIST_NORM_B32>(
                 (__ubuf__ T *&)dstUb + i * srcD + j * floatRepSize, vreg_div, preg_update);
         }
     }

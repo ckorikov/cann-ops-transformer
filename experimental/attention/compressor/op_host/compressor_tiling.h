@@ -177,6 +177,7 @@ private:
     uint32_t aivNum_ = 0;
     size_t libapiSize_ = 0;
     size_t workspaceSize_ = 0;
+    uint8_t coff = 0;
 
     uint32_t mBaseSize = 0;
     uint32_t dbaseSize = 0;
