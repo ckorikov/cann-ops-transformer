@@ -246,7 +246,7 @@ template <typename SAST> __aicore__ inline void SASVectorBlock<SAST>::InitBuffer
     pipe->InitBuffer(softmaxSumDefaultBuff, ConstInfo::BUFFER_SIZE_BYTE_1K);
 
     pipe->InitBuffer(sinksBuff, MAX_N1_SIZE * sizeof(SINKS_T));
-    pipe->InitBuffer(sinksBrcbBuff, MAX_N1_SIZE * sizeof(SINKS_T) * BLOCK_ELEMENT_NUM * 3U);  // 分配256+N1大小内存，其中256是m轴VEC最大切块，
+    pipe->InitBuffer(sinksBrcbBuff, MAX_N1_SIZE * sizeof(SINKS_T) * BLOCK_ELEMENT_NUM * 3U);  // 分配256+N1大小内存，其中256是m轴VEC最大切块
 
     nValueUb = nValueBuff.Get<T>();
     cofValueUb = cofValueBuff.Get<T>();
