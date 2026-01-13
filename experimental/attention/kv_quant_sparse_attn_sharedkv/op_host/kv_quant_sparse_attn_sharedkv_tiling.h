@@ -137,6 +137,8 @@ TILING_DATA_FIELD_DEF(uint64_t, cmpMaskMode)
 TILING_DATA_FIELD_DEF(int64_t, oriWinLeft)
 TILING_DATA_FIELD_DEF(int64_t, oriWinRight)
 TILING_DATA_FIELD_DEF(int64_t, sparseBlockSize)
+TILING_DATA_FIELD_DEF(int64_t, dSize)
+TILING_DATA_FIELD_DEF(int64_t, dSizeV)
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(KvQuantSparseAttnSharedkvBaseParamsOp, KvQuantSparseAttnSharedkvBaseParams)
 
@@ -199,6 +201,8 @@ struct SASParaInfo {
     const uint32_t *oriWinRight = nullptr;
     const char *layoutQ = nullptr;
     const char *layoutKv = nullptr;
+    const uint32_t *dSize = nullptr;
+    const uint32_t *dSizeV = nullptr;
 };
 
 // -----------算子Tiling入参信息类---------------
@@ -229,6 +233,8 @@ public:
     int64_t kvQuantMode = 0;
     int64_t tileSize = 0;
     int64_t ropeHeadDim = 0;
+    uint32_t dSize = 0;
+    uint32_t dSizeV = 0;
     float softmaxScale = 0;
     int64_t cmpRatio = 0;
     uint64_t oriMaskMode = 0;
