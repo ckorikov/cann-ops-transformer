@@ -468,18 +468,19 @@ __aicore__ inline bool CompressorKernel<COMP>::IsNeedExcute(const RunInfo &info)
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
-    // printf("[COMPUTE] MM1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    // printf("[COMPUTE] MM1 bStart:%u bEnd:%u sStart:%d sEnd:%u dealTcNum:%u\n", info.bStart, info.bEnd, info.sStart, info.sEnd, info.dealTcNum);
 }
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
-    // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    // printf("[COMPUTE] VEC1 bStart:%u bEnd:%u sStart:%d sEnd:%u dealTcNum:%u\n", info.bStart, info.bEnd, info.sStart, info.sEnd, info.dealTcNum);
     vectorService.ComputeVec1(info);
 }
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec2(const RunInfo &info) {
-    // printf("[COMPUTE] VEC2 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    // printf("[COMPUTE] VEC2 bStart:%u bEnd:%u sStart:%d sEnd:%u dealTcNum:%u\n", info.bStart, info.bEnd, info.sStart, info.sEnd, info.dealTcNum);
+    vectorService.ComputeVec2(info);
 }
 
 template <typename COMP>
@@ -488,7 +489,7 @@ __aicore__ inline void CompressorKernel<COMP>::Process() {
     RunInfo extraInfo[1];
     GetCurCoreStartIdx();
 
-    
+    RunInfo vec2Info{};
     for (uint32_t i = 0; i < constInfo.singleCoreDealTcBasicNum; ++i) {
         RunInfo &extraInfo0 = extraInfo[0];
         
@@ -505,11 +506,19 @@ __aicore__ inline void CompressorKernel<COMP>::Process() {
                 CrossCoreWaitFlag(SYNC_C1_V1_FLAG);
                 ComputeVec1(extraInfo0);
             }
+            if ((i + 1) % N == 1) {
+                vec2Info.bStart = extraInfo0.bStart;
+                vec2Info.sStart = extraInfo0.sStart;
+                vec2Info.dealTcNum = 0;
+            }
+            vec2Info.dealTcNum += extraInfo0.dealTcNum;
             // 累积N个基本块/最后一次循环
             if ((i + 1) % N == 0 || (i + 1) == constInfo.singleCoreDealTcBasicNum) {
                 SyncAll();
                 if (isNeedExcute) {
-                    ComputeVec2(extraInfo0);
+                    vec2Info.bEnd = extraInfo0.bEnd;
+                    vec2Info.sEnd = extraInfo0.sEnd;
+                    ComputeVec2(vec2Info);
                 }
             }
         }

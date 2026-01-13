@@ -58,6 +58,7 @@ public:
     // =================================执行计算=================================
     __aicore__ inline void ComputeVec1(const Compressor::RunInfo &info);
     __aicore__ inline uint32_t GetBasicNum();
+    __aicore__ inline void CalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd);
     __aicore__ inline void SetMSplitInfo(const Compressor::RunInfo &info);
     __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<T> preMm1ResGm, GlobalTensor<T> curMm1ResGm, GlobalTensor<T> vec1ResGm);
     __aicore__ inline void ComputeVec2(const Compressor::RunInfo &info);
@@ -262,23 +263,44 @@ __aicore__ inline uint32_t CompressorBlockVector<COMP>::GetBasicNum() {
 }
 
 template <typename COMP>
- __aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compressor::RunInfo &info)
- {
+__aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compressor::RunInfo &info)
+{
     // TODO 处理0块需要考虑？
     // VEC0需要处理的大小
     mSplitInfo.dealTcNum = (info.dealTcNum + 1) / 2;
     mSplitInfo.vecStartB = info.bStart;
     mSplitInfo.vecStartS = info.sStart;
-    uint32_t curBEnd = 0;
-    uint32_t curSEnd = 0;
-    
-    // VEC1处理的大小
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
+
+    auto tcEndInfo = CalcTcEndIdx(mSplitInfo.vecStartB, mSplitInfo.vecStartS, mSplitInfo.dealTcNum, constInfo_.cmpRatio, bEnd, sEnd);
+    mSplitInfo.vecEndB = bEnd;
+    mSplitInfo.vecEndS = sEnd;
+    if (GetBlockIdx() % 2 == 1) {
+        mSplitInfo.vecStartB = bEnd;
+        mSplitInfo.vecStartS = sEnd;
+        mSplitInfo.dealTcNum = info.dealTcNum - mSplitInfo.dealTcNum;
+        if (sEnd == curActSeqLength_ && mSplitInfo.dealTcNum > 0) {
+             mSplitInfo.vecStartB++;
+             mSplitInfo.vecStartS = 0;
+        }
+        mSplitInfo.vecEndB = info.bEnd;
+        mSplitInfo.vecEndS = info.sEnd;
+    }
+}
+
+// 根据计算Tc开始结束索引
+template <typename COMP>
+__aicore__ inline void CompressorBlockVector<COMP>::SCalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd) {
+    TcEndInfo tcEndInfo{};
     uint32_t accBasicNum = 0;
-    for (int bIdx = mSplitInfo.vecStartB; bIdx < constInfo_.batchSize; ++bIdx) {
-        curBEnd = bIdx;
+    uint32_t bEnd = 0;
+    uint32_t sEnd = 0;
+    for (int bIdx = bStart; bIdx < constInfo_.batchSize; ++bIdx) {
+        bEnd = bIdx;
         // 计算起始batch的剩余块
-        if (bIdx == mSplitInfo.vecStartB) {
-            curActSeqLength_ = GetSeqLength(mSplitInfo.vecStartB, bIdx);
+        if (bIdx == bStart) {
+            curActSeqLength_ = GetSeqLength(bStart, bIdx);
             curStartPos_ = GetStartPos(bIdx);
             uint32_t curRemainTcNum = 0;
             // 计算起始batch的剩余seq长度 起始位置计算头块
@@ -287,73 +309,59 @@ template <typename COMP>
                 headSize = (constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio);
                 headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
             }
-            if (mSplitInfo.vecStartS == 0) {
+            if (sStart == 0) {
                 curRemainTcNum = (curActSeqLength_ - headSize + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
                 curRemainTcNum = headSize == 0 ? curRemainTcNum : curRemainTcNum + 1;
             } else {
-                curRemainTcNum = (curActSeqLength_ - mSplitInfo.vecStartS + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
+                curRemainTcNum = (curActSeqLength_ - sStart + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
             }
-            // printf("[GetEndIdx]  bIdx:%u accBasicNum:%u mSplitInfo.dealTcNum:%u curRemainTcNum:%u headSize:%u curStartPos_:%u curActSeqLength_:%u \n", bIdx, accBasicNum, mSplitInfo.dealTcNum, curRemainTcNum, headSize, curStartPos_, curActSeqLength_);
-            if (curRemainTcNum > mSplitInfo.dealTcNum) {
-                if (mSplitInfo.vecStartS == 0) {
+            // printf("[GetEndIdx]  bIdx:%u accBasicNum:%u dealTcNum:%u curRemainTcNum:%u headSize:%u curStartPos_:%u curActSeqLength_:%u \n", bIdx, accBasicNum, dealTcNum, curRemainTcNum, headSize, curStartPos_, curActSeqLength_);
+            if (curRemainTcNum > dealTcNum) {
+                if (sStart == 0) {
                     if (headSize == 0) {
-                        curSEnd = mSplitInfo.vecStartS + mSplitInfo.dealTcNum * constInfo_.cmpRatio;
+                        sEnd = sStart + dealTcNum * constInfo_.cmpRatio;
                     } else {
-                        curSEnd = mSplitInfo.vecStartS + headSize + (mSplitInfo.dealTcNum - 1) * constInfo_.cmpRatio;
+                        sEnd = sStart + headSize + (dealTcNum - 1) * constInfo_.cmpRatio;
                     }
-                    break;
+                    return;
                 } else {
-                    curSEnd = mSplitInfo.vecStartS + mSplitInfo.dealTcNum * constInfo_.cmpRatio;
-                    break;
+                    sEnd = sStart + dealTcNum * constInfo_.cmpRatio;
+                    return;
                 }
-            } else if (curRemainTcNum == mSplitInfo.dealTcNum || bIdx == constInfo_.batchSize - 1) {
-                curSEnd = curActSeqLength_;
-                break;
+            } else if (curRemainTcNum == dealTcNum || bIdx == constInfo_.batchSize - 1) {
+                sEnd = curActSeqLength_;
+                return;
             } else {
                 accBasicNum += curRemainTcNum;
             }
         } else {
-            curActSeqLength_ = GetSeqLength(mSplitInfo.vecStartB, bIdx);
+            curActSeqLength_ = GetSeqLength(bIdx);
             curStartPos_ = GetStartPos(bIdx);
             uint32_t curBasicNum = GetBasicNum();
             // printf("[GetEndIdx] accBasicNum:%u curBasicNum:%u dealTcNum:%u\n", accBasicNum, curBasicNum, dealTcNum);
-            if (accBasicNum + curBasicNum > mSplitInfo.dealTcNum) {
+            if (accBasicNum + curBasicNum > dealTcNum) {
                 uint32_t headSize = 0;
                 if (curStartPos_ % constInfo_.cmpRatio != 0) {
                     headSize = constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio;
                     // 处理seq不足head大小的情况
                     headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
                 }
-                // 在当前batch结束tc块索引
-                uint32_t curBasicNumEnd = mSplitInfo.dealTcNum - accBasicNum;
+                uint32_t curBasicNumEnd = dealTcNum - accBasicNum;
                 if (headSize == 0) {
-                    curSEnd = curBasicNumEnd * constInfo_.cmpRatio;
+                    sEnd = curBasicNumEnd * constInfo_.cmpRatio;
                 } else {
-                    curSEnd = headSize + (curBasicNumEnd - 1) * constInfo_.cmpRatio;
+                    sEnd = headSize + (curBasicNumEnd - 1) * constInfo_.cmpRatio;
                 }
-                curSEnd = curSEnd > curActSeqLength_ ? curActSeqLength_ : curSEnd;
+                sEnd = sEnd > curActSeqLength_ ? curActSeqLength_ : sEnd;
                 return;
-            } else if (accBasicNum + curBasicNum == mSplitInfo.dealTcNum) {
-                curSEnd = curActSeqLength_;
+            } else if (accBasicNum + curBasicNum == dealTcNum) {
+                sEnd = curActSeqLength_;
                 return;
             }
             accBasicNum += curBasicNum;
         }
     }
-    mSplitInfo.vecEndS = curSEnd;
-    mSplitInfo.vecEndB = curBEnd;
-    if (GetBlockIdx() % 2 == 1) {
-        mSplitInfo.vecStartB = curBEnd;
-        mSplitInfo.vecStartS = curSEnd;
-        mSplitInfo.dealTcNum = info.dealTcNum - mSplitInfo.dealTcNum;
-        if (curSEnd == curActSeqLength_ && mSplitInfo.dealTcNum > 0) {
-             mSplitInfo.vecStartB++;
-             mSplitInfo.vecStartS = 0;
-        }
-        mSplitInfo.vecEndB = info.bEnd;
-        mSplitInfo.vecEndS = info.sEnd;
-    }
- }
+}
 
 template <typename COMP>
  __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec1(const Compressor::RunInfo &info)

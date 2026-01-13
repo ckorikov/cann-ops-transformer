@@ -269,9 +269,8 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
     }
     
     context_->tilingKey = GET_TPL_TILING_KEY(
-        dtype,
         layout,
-        // TODO coff有问题
+        dtype,
         coff,
         rotaryMode
     );
