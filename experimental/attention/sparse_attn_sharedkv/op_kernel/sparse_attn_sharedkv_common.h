@@ -132,6 +132,8 @@ struct RunInfo {
     int64_t threshold;
     uint32_t curTopKIdx = 0;
     uint64_t curOffsetInSparseBlock = 0;
+    int64_t oriRight = 0;
+    int64_t oriWinLeft = 128;
 };
 
 struct ConstInfo {
