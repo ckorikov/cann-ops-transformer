@@ -92,7 +92,6 @@ private:
     uint32_t aiCoreIdx = 0;
 
     // 常量
-    static constexpr uint32_t N = 2;
     static constexpr uint64_t SYNC_MODE2 = 2;
     static constexpr uint32_t SYNC_C1_V1_FLAG = 6;
     static constexpr bool X_DTYPE = COMP::xDtype == X_DTYPE::BF16;
@@ -189,6 +188,7 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     constInfo.dBasicBlockNum = constInfo.headDim / constInfo.dBaseSize;                           // D方向的基本块
     constInfo.coreGroupNum = constInfo.usedCoreNum / constInfo.dBasicBlockNum;                        // 核分为多少组
     constInfo.singleCoreDealTcBasicNum = (constInfo.tcBasicBlockNum + constInfo.coreGroupNum - 1) / constInfo.coreGroupNum; // 处理的最大基本块数量
+    constInfo.dIdx = ((constInfo.aiCoreIdx + 1) % constInfo.dBasicBlockNum) - 1;                  // 每个核处理的d方向的索引
     // printf("[BASEINFO] tcSize:%u tcBaseSize:%u tcBasicBlockNum:%u dBasicBlockNum:%u coreGroupNum:%u singleCoreDealTcBasicNum:%u\n", constInfo.tcSize, constInfo.tcBaseSize, constInfo.tcBasicBlockNum, constInfo.dBasicBlockNum, constInfo.coreGroupNum, constInfo.singleCoreDealTcBasicNum);
     if ASCEND_IS_AIC {
 
@@ -221,7 +221,8 @@ __aicore__ inline void CompressorKernel<COMP>::InitTilingData() {
 
     constInfo.preMm1ResSize = tilingData_->workspaceParams.preMm1ResSize;
     constInfo.curMm1ResSize = tilingData_->workspaceParams.curMm1ResSize;
-    constInfo.vec1ResSize = tilingData_->workspaceParams.vec1ResSize * N;
+    constInfo.nSize =  tilingData_->baseParams.nSize;
+    constInfo.vec1ResSize = tilingData_->workspaceParams.vec1ResSize * constInfo.nSize;
     // printf("[TILINGDATA] cmpRatio:%u batchSize:%u mBaseSize:%u dBaseSize:%u\n", constInfo.cmpRatio, constInfo.batchSize, constInfo.mBaseSize, constInfo.dBaseSize);
 }
 
@@ -232,19 +233,19 @@ __aicore__ inline void CompressorKernel<COMP>::InitWorkspace(__gm__ uint8_t *wor
     // preMm1ResGm
     preMm1ResGm.SetGlobalBuffer(
         (__gm__ MM1_OUT_T *)(workspace + offset +
-                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.preMm1ResSize * sizeof(MM1_OUT_T)));
-    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.preMm1ResSize * sizeof(MM1_OUT_T);
+                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.preMm1ResSize));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.preMm1ResSize;
 
     // curMm1ResGm
     curMm1ResGm.SetGlobalBuffer(
         (__gm__ MM1_OUT_T *)(workspace + offset +
-                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.curMm1ResSize * sizeof(MM1_OUT_T)));
-    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.curMm1ResSize * sizeof(MM1_OUT_T);
+                             constInfo.aiCoreIdx * dbWorkspaceRatio * constInfo.curMm1ResSize));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.curMm1ResSize;
 
     // vec1Res
     vec1ResGm.SetGlobalBuffer(
-        (__gm__ VEC1_OUT_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.vec1ResSize * sizeof(VEC1_OUT_T)));
-    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.vec1ResSize * sizeof(VEC1_OUT_T);
+        (__gm__ VEC1_OUT_T *)(workspace + offset + aiCoreIdx * dbWorkspaceRatio * constInfo.vec1ResSize));
+    offset += GetBlockNum() * dbWorkspaceRatio * constInfo.vec1ResSize;
 }
 
 template <typename COMP>
@@ -534,7 +535,7 @@ __aicore__ inline void CompressorKernel<COMP>::Process() {
                 CrossCoreWaitFlag(SYNC_C1_V1_FLAG);
                 ComputeVec1(extraInfo0);
             }
-            if ((i + 1) % N == 1) {
+            if ((i + 1) % constInfo.nSize == 1) {
                 vec2Info.bStart = extraInfo0.bStart;
                 vec2Info.sStart = extraInfo0.sStart;
                 vec2Info.scStart = extraInfo0.scStart;
@@ -544,7 +545,7 @@ __aicore__ inline void CompressorKernel<COMP>::Process() {
             vec2Info.dealTcNum += extraInfo0.dealTcNum;
             vec2Info.dealScSize += extraInfo0.dealScSize;
             // 累积N个基本块/最后一次循环
-            if ((i + 1) % N == 0 || (i + 1) == constInfo.singleCoreDealTcBasicNum) {
+            if ((i + 1) % constInfo.nSize == 0 || (i + 1) == constInfo.singleCoreDealTcBasicNum) {
                 SyncAll();
                 if (isNeedExcute) {
                     vec2Info.bEnd = extraInfo0.bEnd;

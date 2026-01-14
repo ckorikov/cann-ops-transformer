@@ -431,7 +431,7 @@ template <typename COMP>
             }
             tmpTcNum = splitSize <= remaindTcNum ? splitSize : remaindTcNum;
             remaindTcNum -= tmpTcNum;
-            CalcTcEndIdx(bStart, sStart, tmpTcNum, sEnd, bEnd);
+            CalcTcEndIdx(bStart, sStart, tmpTcNum, bEnd, sEnd);
             printf("[CalcTcEndIdx] bStart:%u bEnd:%u sStart:%u sEnd:%u\n", bStart, bEnd, sStart, sEnd);
             for (uint32_t k = bStart; k <= bEnd; k++) {
                 // 计算当前batch的seq 开始结束索引
