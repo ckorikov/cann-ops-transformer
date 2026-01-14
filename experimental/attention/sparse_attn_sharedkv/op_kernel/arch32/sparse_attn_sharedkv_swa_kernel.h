@@ -325,7 +325,7 @@ __aicore__ inline void SparseAttnSharedkvSwa<SAST>::GetSparseActualSeqLen()
     }
     tempLoopInfo.oriS2StartIdx = tempLoopInfo.s1StartIdx + tempLoopInfo.oriMaskLeft;
     tempLoopInfo.oriS2StartIdx = Max(tempLoopInfo.oriS2StartIdx, 0);
-    tempLoopInfo.actS2SizeOri = tempLoopInfo.S1EndIdx + tempLoopInfo.oriMaskRight;
+    tempLoopInfo.actS2SizeOri = tempLoopInfo.s1EndIdx + tempLoopInfo.oriMaskRight;
     tempLoopInfo.actS2SizeOri = Max(tempLoopInfo.actS2SizeOri, 0) + 1;
 
 }
