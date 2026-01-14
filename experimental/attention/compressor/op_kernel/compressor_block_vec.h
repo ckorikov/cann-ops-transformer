@@ -52,7 +52,7 @@ public:
         __gm__ uint8_t *kvStateOut,
         __gm__ uint8_t *scoreStateOut);
     __aicore__ inline void InitBuffers(TPipe *pipe);
-    __aicore__ inline void ComputeVec1(const RunInfo &info, LocalTensor<T> &mmResLeft, LocalTensor<T> &mmResRight);
+    __aicore__ inline void ComputeVec1(const RunInfo &info);
     __aicore__ inline void ComputeVec2(RunInfo& info);
     __aicore__ inline void SplitCoreV2(RunInfo& info);
     __aicore__ inline void CopyFinalResultOut(RunInfo& info);
@@ -368,51 +368,71 @@ template <typename COMP> __aicore__ inline void CompressorBlockVector<COMP>::Pro
     }
 }
 
-template <typename COMP> __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec1(const RunInfo &info, LocalTensor<T> &mmResLeft, LocalTensor<T> &mmResRight)
+template <typename COMP>
+ __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec1(const RunInfo &info)
 {
+    // TODO 1分核
+    SetMSplitInfo(info);
     uint32_t scLoopTimes = 0;
     uint32_t dLoopTimes = 0;
-    uint32_t splitSize = BLOCK_VEC_BASE_BUFFER_SIZE / (constInfo_.cmpRatio * coff_ * sizeof(T));
-    uint32_t dealDSize = constInfo_.dBaseSize;
+    uint32_t splitSize = BLOCK_VEC_BASE_BUFFER_SIZE / (constInfo_.cmpRatio * static_cast<uint32_t>(COMP::coff) * sizeof(T));
     if (splitSize < constInfo_.headDim) {
         scLoopTimes = 1;
         dLoopTimes = (constInfo_.headDim + (splitSize - 1)) / splitSize;
-        dealDSize = constInfo_.dBaseSize / dLoopTimes;
     } else {
         dLoopTimes = 1;
-        scLoopTimes = splitSize / constInfo_.dBaseSize;
+        scLoopTimes = splitSize / constInfo_.headDim;
     }
+    uint32_t sStart = info.sStart;
+    uint32_t sEnd = 0;
+    uint32_t bStart = info.bStart;
+    uint32_t bEnd = 0;
+    uint32_t remaindTcNum = info.dealTcNum;             // 剩余需要处理的Tc块
+    uint32_t tmpTcNum = 0;
     for (uint32_t i = 0; i < scLoopTimes; i++) {
         for (uint32_t j = 0; j < dLoopTimes; j++) {
-            for (uint32_t k = info.bStart; k < info.bEnd; k++) {
+            // 计算当前需要处理的splitSize个Tc块的b、s的开始结束索引
+            if (remaindTcNum == 0) {
+                return;
+            }
+            tmpTcNum = splitSize <= remaindTcNum ? splitSize : remaindTcNum;
+            remaindTcNum -= tmpTcNum;
+            CalcTcEndIdx(bStart, sStart, tmpTcNum, bEnd, sEnd);
+            printf("[CalcTcEndIdx] bStart:%u bEnd:%u sStart:%u sEnd:%u\n", bStart, bEnd, sStart, sEnd);
+            for (uint32_t k = bStart; k <= bEnd; k++) {
+                // 计算当前batch的seq 开始结束索引
+                curActSeqLength_ = GetSeqLength(k);
+                uint32_t curSStart = 0;
+                uint32_t curSEnd = curActSeqLength_;
+                if (k == bStart) {
+                    curSStart = sStart;
+                }
+                if (k == bEnd) {
+                    curSEnd = sEnd;
+                }
+                printf("[IDX] b:%u sStart:%u sEnd:%u curSStart:%u curSEnd:%u\n", k, sStart, sEnd, curSStart, curSEnd);
                 // 从UB拷贝到32k空间
                 // 存state
                 // 从state取
                 // overlap
-                ProcessSingleBatch(k, info.bStartSeqIdx, info.bEndSeqIdx, j, dealDSize, mmResRight, mmResLeft);
-                mmResBaseOffset_ += (info.bEndSeqIdx - info.bStartSeqIdx) * constInfo_.dBaseSize;
+                
             }
-            // AddVF<T>()
-            //AddVFImpl<T>(outputAddr, inputAddr, aptAddr, regSplitNum, regLeftNum, loopCnt, loopLeft, loadAlignParam0, loadAlignParam1);
-            // add -> softmax->reducesum
+            sStart = sEnd;
+            bStart = bEnd;
+            // 处理刚好是结尾跳batch
+            if (sEnd == curActSeqLength_) {
+                sStart = 0;
+                bStart ++;
+            }
         }
     }
 
 }
 
 template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::ComputeVec2(RunInfo& info)
+__aicore__ inline void CompressorBlockVector<COMP>::ComputeVec2(const Compressor::RunInfo &info)
 {
-    // vec2核内基本块大小：D不切，S方向切多大？
-    SplitCoreV2(info);
-    for (uint32_t v2MProcessPos = v2TcStart_, dealSize = v2MBaseSize; v2MProcessPos < v2TcEnd_; v2MProcessPos += v2MBaseSize) {
-        if (v2MProcessPos == v2TcEnd_ - 1) {
-            dealSize = v2TcEnd_ - v2MProcessPos;
-        }
-        // RmsNorm
-        // rope
-        // CopyOut
-    }
+    
 }
 
 template <typename COMP> 

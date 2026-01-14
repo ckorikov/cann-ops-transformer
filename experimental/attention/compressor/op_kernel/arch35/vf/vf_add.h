@@ -21,48 +21,35 @@ using namespace AscendC;
 constexpr uint32_t FLOAT_REP_SIZE = 64;
 constexpr uint32_t BTYEALIGNSIZE = 32;
 constexpr uint32_t REGSIZE = 256;
+constexpr uint32_t FLOATSIZE = 4;
+constexpr uint32_t HALFCORED = 128;
 
-struct LoadAlignParam{
-    uint32_t dataBlockStride; //非连续对齐搬运内的首与首间的间隔，以32B为单位
-    uint32_t repeatStride; //非连续对齐搬运时，地址偏移大小，以32B为单位
-    uint32_t offset; //搬运结束后偏移的更新大小，以32B为单位
-};
-/*regSplitNum —— 单个regtesor能存的行数
-  regLeftNum —— 尾块regtensor上的元素数
-  loopCnt —— 单个r需要循环的次数
-  loopLeft —— 单个r循环后遗留的尾块
-  loadAlignParam0、loadAlignParam1
+/*apeOffset —— ape的偏移
+  loopCnt —— r行循环次数
+  count —— regtensor上的元素数
+
+
 */
 template<typename T>
-__simd_vf__ void AddVFImpl(__ubuf__ T* dstAddr, __ubuf__ T* src0Addr, __ubuf__ T* src1Addr, uint32_t regSplitNum,
-    uint32_t regLeftNum, uint32_t loopCnt, uint32_t loopLeft, LoadAlignParam loadAlignParam0, LoadAlignParam loadAlignParam1) 
+__simd_vf__ void AddVFImpl(__ubuf__ T* src0Addr, __ubuf__ T* src1Addr, __ubuf__ T* apeAddr, 
+   uint32_t d, uint32_t apeOffset,  uint32_t loopCnt, uint32_t count) 
 {
     MicroAPI::RegTensor<T> vreg0;
     MicroAPI::RegTensor<T> vreg1;
-    MicroAPI::RegTensor<T> vregAdd;
+    MicroAPI::RegTensor<T> vregape0;
+    MicroAPI::RegTensor<T> vregape1;
     MicroAPI::MaskReg mask;
-    uint32_t count = FLOAT_REP_SIZE;
     for(uint32_t loop = 0; loop < loopCnt; loop++) {
         mask = MicroAPI::UpdateMask<T>(count);
-        MicroAPI::LoadAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (vreg0, src0Addr, loadAlignParam0.dataBlockStride, loadAlignParam0.repeatStride, mask);
-        MicroAPI::LoadAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (vreg1, src0Addr, loadAlignParam1.dataBlockStride, loadAlignParam1.repeatStride, mask);
-        MicroAPI::Add(vregAdd, vreg0, vreg1, mask);
-        MicroAPI::StoreAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (dstAddr, vregAdd, loadAlignParam0.dataBlockStride, loadAlignParam0.repeatStride, mask);
-        loadAlignParam0.repeatStride += loadAlignParam0.offset;
-        loadAlignParam1.repeatStride += loadAlignParam1.offset;
-    }
-    if(loopLeft > 0){
-        mask = MicroAPI::UpdateMask<T>(regLeftNum);
-        MicroAPI::LoadAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (vreg0, src0Addr, loadAlignParam0.dataBlockStride, loadAlignParam0.repeatStride, mask);
-        MicroAPI::LoadAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (vreg1, src0Addr, loadAlignParam1.dataBlockStride, loadAlignParam1.repeatStride, mask);
-        MicroAPI::Add(vregAdd, vreg0, vreg1, mask);
-        MicroAPI::StoreAlign<T, MicroAPI::DataCopyMode::DATA_BLOCK_COPY, MicroAPI::PostLiteral::POST_MODE_NORMAL>
-                    (dstAddr, vregAdd, loadAlignParam0.dataBlockStride, loadAlignParam0.repeatStride, mask);
+        MicroAPI::LoadAlign(vreg0, src0Addr + loop*HALFCORED);
+        MicroAPI::LoadAlign(vreg1, src1Addr + loop*HALFCORED);
+        MicroAPI::LoadAlign(vregape0, apeAddr + loop*apeOffset);
+        MicroAPI::LoadAlign(vregape1, apeAddr + d/2 + loop*apeOffset);
+        MicroAPI::Add(vreg0, vreg0, vregape0, mask);
+        MicroAPI::Add(vreg1, vreg1, vregape1, mask);
+        MicroAPI::StoreAlign(src0Addr + loop*HALFCORED, vreg0, mask);
+        MicroAPI::StoreAlign(src1Addr + loop*HALFCORED, vreg1, mask);
+        
     }
 }
 
@@ -76,31 +63,28 @@ __simd_vf__ void AddVFImpl(__ubuf__ T* dstAddr, __ubuf__ T* src0Addr, __ubuf__ T
  * @param d d轴总大小
  * @param splitD 核间d轴切分大小
  * @param baseD  核内d轴切分大小
- * @param baseS 核内s轴切分大小
+ * @param splitS 核内s轴切分大小
  */
 template <typename T>
-__aicore__ inline void AddVF(const LocalTensor<T> &outputLocal, const LocalTensor<T> &inputLocal, const LocalTensor<T> &aptLocal,
-    uint32_t srcIdx0, uint32_t srcIdx1, uint32_t d, uint32_t splitD, uint32_t baseD, uint32_t baseS) 
+__aicore__ inline void AddVF(LocalTensor<T> &src0Local, LocalTensor<T> &src1Local, LocalTensor<T> &apeLocal,
+    uint32_t apeIdx, uint32_t d, uint32_t splitS) 
 {
-    uint32_t regSplitNum= FLOAT_REP_SIZE / baseD;
-    uint32_t loopCnt = baseS / regSplitNum; 
-    uint32_t loopLeft = baseS - loopCnt * regSplitNum;
-    uint32_t regLeftNum = loopLeft * baseD;
+    uint32_t count = FLOAT_REP_SIZE;
+    uint32_t srcIdx = count;
+    uint32_t apeOffset = d;
+    uint32_t loopCnt = splitS;
 
-    LoadAlignParam loadAlignParam0;
-    LoadAlignParam loadAlignParam1;
-    loadAlignParam0.dataBlockStride = (splitD / 2) * sizeof(T) / BTYEALIGNSIZE;
-    loadAlignParam0.repeatStride = srcIdx0 * sizeof(T)/BTYEALIGNSIZE;
-    loadAlignParam0.offset = regSplitNum * splitD * sizeof(T) / BTYEALIGNSIZE;
-    loadAlignParam1.dataBlockStride = (d - baseD) / 2 * sizeof(T) / BTYEALIGNSIZE;
-    loadAlignParam1.repeatStride = srcIdx1 * sizeof(T) / BTYEALIGNSIZE;
-    loadAlignParam1.offset = regSplitNum * d * sizeof(T) / BTYEALIGNSIZE;
 
-    __ubuf__ T * inputAddr = (__ubuf__ T *)inputLocal.GetPhyAddr();
-    __ubuf__ T * aptAddr = (__ubuf__ T *)aptLocal.GetPhyAddr();
-    __ubuf__ T * outputAddr = (__ubuf__ T *)outputLocal.GetPhyAddr();
+    __ubuf__ T * src0Addr = (__ubuf__ T *)src0Local.GetPhyAddr() + srcIdx;
+    __ubuf__ T * src1Addr = (__ubuf__ T *)src1Local.GetPhyAddr() + srcIdx;
+    __ubuf__ T * apeAddr = (__ubuf__ T *)apeLocal.GetPhyAddr() + apeIdx;
     
-    AddVFImpl<T>(outputAddr, inputAddr, aptAddr, regSplitNum, regLeftNum, loopCnt, loopLeft, loadAlignParam0, loadAlignParam1);
+    AddVFImpl<T>(src0Addr, src1Addr, apeAddr, d, apeOffset, loopCnt, count);
 }
 
 #endif
+
+
+
+
+

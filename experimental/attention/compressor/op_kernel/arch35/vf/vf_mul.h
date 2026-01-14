@@ -21,11 +21,11 @@ using namespace AscendC;
 // constexpr uint32_t BTYEALIGNSIZE = 32;
 // constexpr uint32_t REGSIZE = 256;
 
-// struct LoadAlignParam{
-//     uint32_t dataBlockStride; //非连续对齐搬运内的首与首间的间隔，以32B为单位
-//     uint32_t repeatStride; //非连续对齐搬运时，地址偏移大小，以32B为单位
-//     uint32_t offset; //搬运结束后偏移的更新大小，以32B为单位
-// };
+struct LoadAlignParam{
+    uint32_t dataBlockStride; //非连续对齐搬运内的首与首间的间隔，以32B为单位
+    uint32_t repeatStride; //非连续对齐搬运时，地址偏移大小，以32B为单位
+    uint32_t offset; //搬运结束后偏移的更新大小，以32B为单位
+};
 
 /*同时处理多个sc，单寄存器存多个sc某行的元素
 
