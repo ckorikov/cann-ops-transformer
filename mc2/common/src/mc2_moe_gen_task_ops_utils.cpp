@@ -91,6 +91,13 @@ static const std::unordered_set<std::string> NO_AI_CPU_SET{
     ATTENTION_TO_FFN_OP_TYPE,
     FFN_TO_ATTENTION_OP_TYPE};
 
+static const std::unordered_set<std::string> NEED_SET_BLOCK_SET{
+ 	     MOE_DISTRIBUTE_DISPATCH_OP_TYPE,
+ 	     MOE_DISTRIBUTE_COMBINE_OP_TYPE,
+ 	     MOE_DISTRIBUTE_DISPATCH_V2_OP_TYPE,
+ 	     MOE_DISTRIBUTE_COMBINE_V2_OP_TYPE
+};
+
 // 对已有结构的重复定义，只在本文件插入 aicpu desc 的时候使用
 struct HcclCommParamDescTmp {
   uint64_t version : 4;
@@ -245,6 +252,15 @@ ge::Status Mc2MoeGenTaskOpsUtils::Mc2MoeInsertTask(
     ge::KernelLaunchInfo aicpuTask = ge::KernelLaunchInfo::CreateAicpuKfcTask(
         context, soName.c_str(), kernelName.c_str());
     aicpuTask.SetStreamId(attachStreamId);
+    if (NEED_SET_BLOCK_SET.find(opTypeStr) != NEED_SET_BLOCK_SET.end()) {
+ 	      int64_t block_dim = 6;
+ 	      if (!context->GetIntAttrVal("_aicpu_blockdim", block_dim) || block_dim <= 0) {
+ 	          OPS_LOG_I(nodeName, "Can't get valid aicpu blockdim, set blockdim 6.");
+ 	          block_dim = 6;
+ 	      }
+ 	      aicpuTask.SetBlockDim(block_dim);
+ 	      OPS_LOG_I(nodeName, "Set aicpu blockdim is %ld.", block_dim);
+ 	  }
     if (CreateAicpuTaskMc2Moe(context, aicpuTask, groupCnt) !=
         ge::GRAPH_SUCCESS) {
       return ge::GRAPH_FAILED;
