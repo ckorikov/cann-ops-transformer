@@ -16,11 +16,16 @@
 #ifndef COMPRESSOR_KERNEL_H
 #define COMPRESSOR_KERNEL_H
 
-#include "compressor_comm.h"
-#include "compressor_vector_comm.h"
+#include "kernel_operator_list_tensor_intf.h"
+#include "kernel_tiling/kernel_tiling.h"
+#include "lib/matmul_intf.h"
+#include "lib/matrix/matmul/tiling.h"
 #include "compressor_template_tiling_key.h"
 #include "compressor_tiling_data.h"
-#include "compressor_block_vec.h"
+#include "compressor_comm.h"
+#include "compressor_vector_comm.h"
+#include "arch32/compressor_block_vec.h"
+#include "arch35/compressor_block_vector.h"
 
 using namespace AscendC;
 
@@ -182,6 +187,7 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
     curStartPos = startPosGm_.GetValue(0);
 
     // 计算分核基本信息
+    constInfo.nSize = N;
     constInfo.tcSize = CalcTcSize();
     constInfo.tcBaseSize = constInfo.mBaseSize / constInfo.cmpRatio;
     constInfo.tcBasicBlockNum = (constInfo.tcSize + constInfo.tcBaseSize - 1) / constInfo.tcBaseSize;       // TC方向的基本块
@@ -196,7 +202,11 @@ __aicore__ inline void CompressorKernel<COMP>::Init(
         vectorService.InitParams(constInfo);
         vectorService.Init(x, wKv, wGate, kvState, scoreState, ape, normWeight, ropeSin, ropeCos, blockTable, 
                         cuSeqlens, seqUsed, startPos, cmpKvOut, kvStateOut, scoreStateOut);
-        vectorService.InitVec1GlobalTensor(preMm1ResGm, curMm1ResGm, vec1ResGm);
+        #if __CCE_AICORE__ == 310
+            //
+        #else 
+            vectorService.InitVec1GlobalTensor(preMm1ResGm, curMm1ResGm, vec1ResGm);
+        #endif
     }
     
 }
@@ -502,8 +512,12 @@ __aicore__ inline void CompressorKernel<COMP>::ComputeMm1(const RunInfo &info) {
 
 template <typename COMP>
 __aicore__ inline void CompressorKernel<COMP>::ComputeVec1(const RunInfo &info) {
-    // printf("[COMPUTE] VEC1 bStart:%u bEnd:%u sStart:%d sEnd:%u dealTcNum:%u\n", info.bStart, info.bEnd, info.sStart, info.sEnd, info.dealTcNum);
-    vectorService.ComputeVec1(info);
+    // printf("[COMPUTE] VEC1 curBStart:%d curBEnd:%d curSStart:%d curSEnd:%d\n", curBStart, curBEnd, curSStart, curSEnd);
+    #if __CCE_AICORE__ == 310
+        //
+    #else 
+        vectorService.ComputeVec1(info);
+    #endif
 }
 
 template <typename COMP>

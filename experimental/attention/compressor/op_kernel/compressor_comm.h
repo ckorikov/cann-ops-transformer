@@ -119,6 +119,8 @@ struct RunInfo {
     uint32_t sStart = 0;
     uint32_t bEnd = 0;
     uint32_t sEnd = 0;
+    uint32_t bStartSeqIdx = 0;
+    uint32_t bEndSeqIdx = 0;
     uint32_t dealTcNum = 0;
 
     // v2分核信息 sc是左闭右开

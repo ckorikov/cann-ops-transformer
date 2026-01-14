@@ -1,40 +1,38 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
- * CANN Open Software License Agreement Version 2.0 (the "License").
- * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
- * See LICENSE in the root of the software repository for the full text of the License.
- */
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
- * \file fia_block_vec_nonquant.h
+ * \file compressor_kernel.h
  * \brief
  */
-#ifndef COMPRESSOR_BLOCK_VEC_H
-#define FIA_BLOCK_VEC_NONQUANT_H
+
+#ifndef COMPRESSOR_BLOCK_VECTOR_H
+#define COMPRESSOR_BLOCK_VECTOR_H
 
 #include "kernel_operator.h"
 #include "kernel_operator_list_tensor_intf.h"
 #include "kernel_tiling/kernel_tiling.h"
-#include "lib/matmul_intf.h"
-#include "lib/matrix/matmul/tiling.h"
-#include "compressor_comm.h"
+#include "../compressor_comm.h"
+#include "vf/vf_softmax.h"
 
-using namespace Compressor;
-using AscendC::CrossCoreSetFlag;
-using AscendC::CrossCoreWaitFlag;
+using namespace AscendC;
 
-template <typename COMP> class CompressorBlockVector{
+namespace Compressor 
+{
+constexpr uint64_t BLOCK_VEC_BASE_BUFFER_SIZE = 32 * 1024; // 32k
+
+template<typename COMP> class CompressorBlockVector {
 public:
-    // =================================类型定义区=================================
-    // 中间计算数据类型为float，高精度模式
     using T = float;
-    static constexpr uint64_t BLOCK_VEC_BASE_BUFFER_SIZE = 32 * 1024; // 32k
 
     __aicore__ inline CompressorBlockVector(){};
-    // =================================设置参数=================================
     __aicore__ inline void InitParams(const ConstInfo &constInfo);
     __aicore__ inline void Init( 
         __gm__ uint8_t *x,
@@ -53,41 +51,52 @@ public:
         __gm__ uint8_t *cmpKvOut,
         __gm__ uint8_t *kvStateOut,
         __gm__ uint8_t *scoreStateOut);
-    // =================================资源管理=================================
     __aicore__ inline void InitBuffers(TPipe *pipe);
-    // =================================执行计算=================================
-    __aicore__ inline void ComputeVec1(const Compressor::RunInfo &info);
-    __aicore__ inline uint32_t GetBasicNum();
-    __aicore__ inline uint32_t GetScSize();
-    __aicore__ inline void GetScIdxInfo(uint32_t bStart, uint32_t scStart, uint32_t dealScSize, uint32_t v2TcStart, uint32_t v2TcEnd, 
-                                                            uint32_t &outputBStart, uint32_t &outputSStart, uint32_t &outputScSize);
-    __aicore__ inline void CalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd);
-    __aicore__ inline void CalcScEndIdx(uint32_t bStart, uint32_t scStart, uint32_t dealScSize, uint32_t &bEnd, uint32_t &scEnd);
-    __aicore__ inline void SetMSplitInfo(const Compressor::RunInfo &info);
-    __aicore__ inline void InitVec1GlobalTensor(GlobalTensor<T> preMm1ResGm, GlobalTensor<T> curMm1ResGm, GlobalTensor<T> vec1ResGm);
-    __aicore__ inline void ComputeVec2(const Compressor::RunInfo &info);
-    __aicore__ inline void WriteToCacheState(GlobalTensor<T> &state, LocalTensor<T> &input, uint32_t batchIdx, uint32_t startSeqIdx, uint32_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
-    __aicore__ inline void ReadFromCacheState(LocalTensor<T> &output, GlobalTensor<T> &state, uint32_t batchIdx, uint64_t startSeqIdx, uint64_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
-    __aicore__ inline void ProcessSingleBatch(uint32_t batchIdx);
+    __aicore__ inline void ComputeVec1(const RunInfo &info);
+    __aicore__ inline void ComputeVec2(RunInfo& info);
+    __aicore__ inline void SplitCoreV2(RunInfo& info);
+    __aicore__ inline void CopyFinalResultOut(RunInfo& info);
+
 
 protected:
     GlobalTensor<T> vec1ResGm_;
-    GlobalTensor<T> preMm1ResGm_;
-    GlobalTensor<T> curMm1ResGm_;
-    TBuf<TPosition::VECCALC> shareBuffer_;
+    TBuf<TPosition::VECCALC> kvBuff_;
+    TBuf<TPosition::VECCALC> scoreBuff_;
 
 private:
-    __aicore__ inline uint32_t GetStartPos(uint32_t bIdx);
-    __aicore__ inline uint32_t GetSeqLength(uint32_t bIdx);
+    __aicore__ inline uint32_t GetStartPos(uint32_t index);
+    __aicore__ inline uint32_t GetSeqLength(uint32_t index);
+    __aicore__ inline uint32_t GetBsLength(uint32_t index);
+    __aicore__ inline void WriteToCacheState(GlobalTensor<T> &state, LocalTensor<T> &input, uint32_t batchIdx,
+    uint64_t startSeqIdx, uint64_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
+    __aicore__ inline void ReadFromCacheState(LocalTensor<T> &output, GlobalTensor<T> &state, uint32_t batchIdx,
+    uint64_t startSeqIdx, uint64_t endSeqIdx, uint32_t dStart, uint32_t dEnd);
+    __aicore__ inline void ProcessSingleBatch(uint32_t batchIdx, uint64_t batchStartSeqIdx, uint64_t batchEndSeqIdx,
+    uint32_t dLoop, uint32_t dealDSize, LocalTensor<T> &mmResRight, LocalTensor<T> &mmResLeft);
+    
+
+    static constexpr uint32_t v2MBaseSize = 16; // Tc块数量：32 * 1024 / (512 * 4)
     uint32_t cmpRatio_ = 0U;
     uint32_t coff_ = 0U;
     uint32_t curStartPos_ = 0;
+    uint32_t preStartPosIdx_ = 0;
+    uint32_t accSeqLength_ = 0;
     uint32_t curActSeqLength_ = 0;
+    uint32_t preActSeqIdx_ = 0;
+    uint32_t mmResColSize_ = 128;
+    uint32_t v2TcStart_ = 0;
+    uint32_t v2TcEnd_ = 0;
+    uint32_t mmResBaseOffset_ = 0;
     ConstInfo constInfo_ = {};
-    MSplitInfo mSplitInfo = {};
     GlobalTensor<int32_t> startPosGm_;
     GlobalTensor<int32_t> cuSeqlensGm_;
     GlobalTensor<int32_t> blockTableGm_;
+    GlobalTensor<T> kvStateGm_;
+    GlobalTensor<T> scoreStateGm_;
+    GlobalTensor<T> apeGm_;
+
+
+    
 };
 
 template <typename COMP>
@@ -96,8 +105,7 @@ __aicore__ inline void CompressorBlockVector<COMP>::InitParams(const ConstInfo &
     this->constInfo_ = constInfo;
 }
 
-template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::Init(
+template <typename COMP> __aicore__ inline void CompressorBlockVector<COMP>::Init(
         __gm__ uint8_t *x,
         __gm__ uint8_t *wKv,
         __gm__ uint8_t *wGate,
@@ -118,40 +126,63 @@ __aicore__ inline void CompressorBlockVector<COMP>::Init(
     startPosGm_.SetGlobalBuffer((__gm__ int32_t *)startPos);
     cuSeqlensGm_.SetGlobalBuffer((__gm__ int32_t *)cuSeqlens);
     blockTableGm_.SetGlobalBuffer((__gm__ int32_t *)blockTable);
+    kvStateGm_.SetGlobalBuffer((__gm__ T *)kvStateOut);
+    scoreStateGm_.SetGlobalBuffer((__gm__ T *)scoreStateOut);
+    apeGm_.SetGlobalBuffer((__gm__ T *)ape);
 }
 
-template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::InitBuffers(TPipe *pipe)
+template <typename COMP> __aicore__ inline void CompressorBlockVector<COMP>::InitBuffers(TPipe *pipe)
 {
-    pipe->InitBuffer(shareBuffer_, BLOCK_VEC_BASE_BUFFER_SIZE);
-}
-
-template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::InitVec1GlobalTensor(GlobalTensor<T> preMm1ResGm, GlobalTensor<T> curMm1ResGm, GlobalTensor<T> vec1ResGm) {
-    this->preMm1ResGm_ = preMm1ResGm;
-    this->curMm1ResGm_ = curMm1ResGm;
-    this->vec1ResGm_ = vec1ResGm;
+    pipe->InitBuffer(kvBuff_, BLOCK_VEC_BASE_BUFFER_SIZE);
+    pipe->InitBuffer(scoreBuff_, BLOCK_VEC_BASE_BUFFER_SIZE);
 }
 
 template <typename COMP>
-__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetStartPos(uint32_t bIdx)
+__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetStartPos(uint32_t index)
 {
-    return startPosGm_.GetValue(bIdx);
+    if (preStartPosIdx_ != index) {
+        curStartPos_ = startPosGm_.GetValue(index);
+        preStartPosIdx_ = index;
+        return curStartPos_;
+    } else {
+        return curStartPos_;
+    }
 }
 
-// TODO 使用这种方式获取seq的约束为顺序访问，随机访问不可用
 template <typename COMP>
-__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetSeqLength(uint32_t bIdx)
+__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetSeqLength(uint32_t index)
 {
     if (COMP::xLayout == X_LAYOUT::TH) {
-        return cuSeqlensGm_.GetValue(bIdx + 1) - cuSeqlensGm_.GetValue(bIdx);
+        if (preActSeqIdx_ != index) {
+            preActSeqIdx_ = index;
+            if (index == 0) {
+                accSeqLength_ = cuSeqlensGm_.GetValue(index + 1);
+                return accSeqLength_;
+            } else {
+                uint32_t tmpSeqLength = accSeqLength_;
+                accSeqLength_ = cuSeqlensGm_.GetValue(index + 1);
+                return accSeqLength_ - tmpSeqLength;
+            }
+        } else {
+            return curActSeqLength_;
+        }
     } else {
         return constInfo_.sSize;
     }
 }
 
 template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::WriteToCacheState(GlobalTensor<T> &state, LocalTensor<T> &input, uint32_t batchIdx, uint32_t startSeqIdx, uint32_t endSeqIdx, uint32_t dStart, uint32_t dEnd)
+__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetBsLength(uint32_t index)
+{
+    if (COMP::xLayout == X_LAYOUT::TH) {
+        return cuSeqlensGm_.GetValue(index);
+    } else {
+        return index * constInfo_.sSize;
+    }
+}
+
+template <typename COMP>
+__aicore__ inline void CompressorBlockVector<COMP>::WriteToCacheState(GlobalTensor<T> &state, LocalTensor<T> &input, uint32_t batchIdx, uint64_t startSeqIdx, uint64_t endSeqIdx, uint32_t dStart, uint32_t dEnd)
 {
     uint64_t blockTablebaseOffset = batchIdx * constInfo_.maxBlockNumPerBatch;
     uint32_t curSeqIdx = 0;
@@ -168,6 +199,8 @@ __aicore__ inline void CompressorBlockVector<COMP>::WriteToCacheState(GlobalTens
         }
         uint64_t stateOffset = idInBlockTable * constInfo_.blockSize * (dEnd - dStart) + remainRowCnt * (dEnd - dStart) + dStart;
         if (idInBlockTable == 0) {
+            // 拷贝参数还需要调整
+            DataCopyParams copyParams {static_cast<uint16_t>(copyRowCnt), static_cast<uint16_t>(dEnd - dStart), constInfo_.dBaseSize, static_cast<uint16_t>(2 * (dEnd - dStart))};
             DataCopy(state[stateOffset], input, copyRowCnt);
         }
         copyFinishRowCnt += copyRowCnt;
@@ -192,213 +225,146 @@ __aicore__ inline void CompressorBlockVector<COMP>::ReadFromCacheState(LocalTens
             copyRowCnt = seqCnt - copyFinishRowCnt;
         }
         if (idInBlockTable == 0) {
-            // error log
+            // print error log
         }
         uint64_t stateOffset = idInBlockTable * constInfo_.blockSize * (dEnd - dStart) + remainRowCnt * (dEnd - dStart) + dStart;
+        // 拷贝参数还需要调整
+        DataCopyParams copyParams {static_cast<uint16_t>(copyRowCnt), static_cast<uint16_t>(dEnd - dStart),
+            static_cast<uint16_t>(2 * (dEnd - dStart)), static_cast<uint16_t>(2 * (dEnd - dStart))};
         DataCopy(output, state[stateOffset], copyRowCnt);
         copyFinishRowCnt += copyRowCnt;
         curSeqIdx += copyRowCnt;
     }
 }
 
-template <typename COMP> 
-__aicore__ inline void CompressorBlockVector<COMP>::ProcessSingleBatch(uint32_t batchIdx)
+template <typename COMP> __aicore__ inline void CompressorBlockVector<COMP>::ProcessSingleBatch(uint32_t batchIdx, uint64_t batchStartSeqIdx, uint64_t batchEndSeqIdx,
+    uint32_t dLoop, uint32_t dealDSize, LocalTensor<T> &mmResRight, LocalTensor<T> &mmResLeft)
 {
-    uint32_t seqIdx = 0;
-    uint64_t seqUsed = GetSeqLength(batchIdx);
+    uint32_t seqIdx = batchStartSeqIdx;
+    uint64_t seqUsed = GetSeqLength(batchIdx); // seqused有效的话还需要调整
     uint64_t startPos = GetStartPos(batchIdx);
     uint64_t startSeqIdx = 0;
     uint64_t endSeqIdx = 0;
-    while (seqIdx < seqUsed) {
+    uint32_t dStartIdx = 0;
+    uint32_t dEndIdx = 0;
+    uint64_t baseOffset = GetBsLength(batchIdx);
+    uint64_t compressSeqId = (startPos + seqUsed) / constInfo_.cmpRatio * constInfo_.cmpRatio;
+    uint32_t copyUbBaseOffset = 0;
+    LocalTensor<T> kvLocal = kvBuff_.Get<T>();
+    LocalTensor<T> scoreLocal = scoreBuff_.Get<T>();
+    while (seqIdx < batchEndSeqIdx) {
+        // 首次处理半个r，中间处理完整r，结尾半个r
         startSeqIdx = startPos + seqIdx;
         endSeqIdx = startSeqIdx / constInfo_.cmpRatio * constInfo_.cmpRatio + constInfo_.cmpRatio;
-        if (endSeqIdx > (startPos + seqUsed)) {
-            endSeqIdx = startPos + seqUsed;
-        }
-        uint64_t baseOffset = batchIdx * constInfo_.sSize;
-        uint64_t startOffset = baseOffset + (startSeqIdx - startPos);
+        // seqIdx和batchStartSeqIdx为局部索引
+        uint64_t startOffset = mmResBaseOffset_ + (seqIdx - batchStartSeqIdx) * constInfo_.dBaseSize; //(baseOffset + (startSeqIdx - startPos)) * constInfo_.dBaseSize;
+        // uint64_t endOffset = baseOffset + (endSeqIdx - startPos);
         uint64_t endOffset = baseOffset + (endSeqIdx - startPos);
-    }
-}
-
-template <typename COMP>
-__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetBasicNum() {
-    // 获取 m方向上对应基本单元Tc的个数
-    uint32_t curBasicNum = 0;
-    uint32_t headSize = 0;
-    if (curStartPos_ % constInfo_.cmpRatio != 0) {
-        headSize = constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio;
-        headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
-        curBasicNum++;
-    }
-    // 加上中间整块及尾块
-    curBasicNum += (curActSeqLength_ - headSize + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
-    return curBasicNum;
-}
-
-template <typename COMP>
-__aicore__ inline uint32_t CompressorBlockVector<COMP>::GetScSize() {
-    // 获取 m方向上对应基本单元Tc的个数
-    uint32_t curBasicNum = 0;
-    uint32_t headSize = 0;
-    if (curStartPos_ % constInfo_.cmpRatio != 0) {
-        headSize = constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio;
-        headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
-        curBasicNum++;
-    }
-    // 加上中间整块及尾块
-    curBasicNum += (curActSeqLength_ - headSize) / constInfo_.cmpRatio;
-    return curBasicNum;
-}
-
-template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::SetMSplitInfo(const Compressor::RunInfo &info)
-{
-    // TODO 处理0块需要考虑？
-    // VEC0需要处理的大小
-    mSplitInfo.dealTcNum = (info.dealTcNum + 1) / 2;
-    mSplitInfo.vecStartB = info.bStart;
-    mSplitInfo.vecStartS = info.sStart;
-    uint32_t bEnd = 0;
-    uint32_t sEnd = 0;
-
-    CalcTcEndIdx(mSplitInfo.vecStartB, mSplitInfo.vecStartS, mSplitInfo.dealTcNum, bEnd, sEnd);
-    mSplitInfo.vecEndB = bEnd;
-    mSplitInfo.vecEndS = sEnd;
-    if (GetBlockIdx() % 2 == 1) {
-        mSplitInfo.vecStartB = bEnd;
-        mSplitInfo.vecStartS = sEnd;
-        mSplitInfo.dealTcNum = info.dealTcNum - mSplitInfo.dealTcNum;
-        if (sEnd == curActSeqLength_ && mSplitInfo.dealTcNum > 0) {
-             mSplitInfo.vecStartB++;
-             mSplitInfo.vecStartS = 0;
+        bool isSaveState = false;
+        bool isCompress = false;
+        bool isCopy = true;
+        if (endSeqIdx > (startPos + seqUsed) && (batchEndSeqIdx == seqUsed)) {
+            // 1.说明当前batch尾部在处理的基本块中，且结尾非完整r块，本次不需要压缩，不需要拷贝到UB,其他场景都需要拷贝
+            endSeqIdx = startPos + seqUsed;
+            isCopy = false;
         }
-        mSplitInfo.vecEndB = info.bEnd;
-        mSplitInfo.vecEndS = info.sEnd;
-    }
-}
-
-// 根据计算Tc开始结束索引
-template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::CalcTcEndIdx(uint32_t bStart, uint32_t sStart, uint32_t dealTcNum, uint32_t &bEnd, uint32_t &sEnd) {
-    uint32_t accBasicNum = 0;
-    for (int bIdx = bStart; bIdx < constInfo_.batchSize; ++bIdx) {
-        bEnd = bIdx;
-        // 计算起始batch的剩余块
-        if (bIdx == bStart) {
-            curActSeqLength_ = GetSeqLength(bIdx);
-            curStartPos_ = GetStartPos(bIdx);
-            uint32_t curRemainTcNum = 0;
-            // 计算起始batch的剩余seq长度 起始位置计算头块
-            uint32_t headSize = 0;
-            if (curStartPos_ % constInfo_.cmpRatio != 0) {
-                headSize = (constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio);
-                headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
+        if (startPos == startSeqIdx && (endSeqIdx - startSeqIdx) < constInfo_.cmpRatio) {
+            // batch的头小于r,用来和上个的尾结合为一个r，需要将上面补充的数据拷贝过来
+            DataCopyParams copyParams {(startPos % constInfo_.cmpRatio), static_cast<uint16_t>(dealDSize), mmResColSize_, static_cast<uint16_t>(2 * dealDSize)};
+            DataCopy(kvLocal[mmResBaseOffset_ + copyUbBaseOffset + dealDSize], mmResRight[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], copyParams); // 将kv的右侧从mm中拷贝过来，源数据d从0或者32
+            DataCopy(scoreLocal[mmResBaseOffset_ + copyUbBaseOffset + dealDSize], mmResRight[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], copyParams); // 将score的右侧从mm中拷贝过来,源数据d从64或者96
+            DataCopy(kvLocal[mmResBaseOffset_ + copyUbBaseOffset], mmResLeft[startOffset + dealDSize * dLoop], copyParams); // 将kv的左侧从mm中拷贝过来,源数据d从0或者32
+            DataCopy(scoreLocal[mmResBaseOffset_ + copyUbBaseOffset], mmResLeft[startOffset + dealDSize * dLoop ], copyParams); // 将score的左侧从mm中拷贝过来,源数据d从64或者96
+            copyUbBaseOffset += (startPos % constInfo_.cmpRatio) * dealDSize;        }
+        if (isCopy) {
+            // 除尾块之外的用于本次压缩的存到UB中, 以右侧索引为准，左侧拷贝同样的seqidx
+            DataCopyParams copyParams {static_cast<uint16_t>(endSeqIdx - startSeqIdx), static_cast<uint16_t>(dealDSize), mmResColSize_, static_cast<uint16_t>(2 * dealDSize)};
+            DataCopy(kvLocal[mmResBaseOffset_ + copyUbBaseOffset], mmResRight[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], copyParams); // 将kv的右侧从mm中拷贝过来，源数据d从0或者32
+            DataCopy(scoreLocal[mmResBaseOffset_ + copyUbBaseOffset], mmResRight[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], copyParams); // 将score的右侧从mm中拷贝过来,源数据d从64或者96
+            DataCopy(kvLocal[mmResBaseOffset_ + copyUbBaseOffset + dealDSize], mmResLeft[startOffset + dealDSize * dLoop], copyParams); // 将kv的左侧从mm中拷贝过来,源数据d从0或者32
+            DataCopy(scoreLocal[mmResBaseOffset_ + copyUbBaseOffset + dealDSize], mmResLeft[startOffset + dealDSize * dLoop], copyParams); // 将score的左侧从mm中拷贝过来,源数据d从64或者96
+            copyUbBaseOffset += (endSeqIdx - startSeqIdx) * dealDSize; 
+        }
+        dStartIdx = dealDSize * dLoop;
+        dEndIdx = dStartIdx + dealDSize;
+        if (startSeqIdx >= (compressSeqId - constInfo_.cmpRatio) && endSeqIdx <= (batchEndSeqIdx + startPos) && (batchEndSeqIdx <= seqUsed)) {
+            // 第1种场景：尾块在当前处理的基本块中，最后一个尾块和上一个r块需要存入state, 
+            isSaveState = true;
+        }
+        if ((batchEndSeqIdx + startPos) == endSeqIdx && startSeqIdx < (batchEndSeqIdx + startPos) && (seqUsed - batchEndSeqIdx) <  constInfo_.cmpRatio) {
+            // 第2种场景：最后一个完整的r在本次处理的基本块中
+            isSaveState = true;
+        }
+        if (batchEndSeqIdx - batchStartSeqIdx == constInfo_.cmpRatio && ((seqUsed - batchEndSeqIdx < constInfo_.cmpRatio) || (seqUsed == batchEndSeqIdx))) {
+            // 第3种场景：本次处理的首尾只有一个r
+            isSaveState = true;
+            endSeqIdx = (batchEndSeqIdx + startPos);
+        }
+        // todo:第四种场景，最后一个batch的尾块在第一个batch的首位的左边
+        if (startSeqIdx < compressSeqId) {
+            isCompress = true;
+        }
+        if (isSaveState) {
+            // 左和右都需要考虑
+            // 1.存右边
+            WriteToCacheState(kvStateGm_, mmResRight[startOffset + dealDSize * dLoop], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);
+            WriteToCacheState(scoreStateGm_, mmResRight[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);
+            // 2.存左边
+            WriteToCacheState(kvStateGm_, mmResLeft[startOffset + dealDSize * dLoop - constInfo_.cmpRatio * constInfo_.dBaseSize], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);
+            WriteToCacheState(scoreStateGm_, mmResLeft[startOffset + dealDSize * dLoop + constInfo_.dBaseSize], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);
+            // 2. 右边存最后一个尾块
+            if ((batchStartSeqIdx + startPos) == startPos) {
+                // 第4种情况，左上角有个r块需要存
+                WriteToCacheState(kvStateGm_, mmResLeft[startOffset], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);
+                WriteToCacheState(scoreStateGm_, mmResLeft[startOffset + constInfo_.dBaseSize], batchIdx, startSeqIdx, endSeqIdx, dStartIdx, dEndIdx);  
             }
-            if (sStart == 0) {
-                curRemainTcNum = (curActSeqLength_ - headSize + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
-                curRemainTcNum = headSize == 0 ? curRemainTcNum : curRemainTcNum + 1;
-            } else {
-                curRemainTcNum = (curActSeqLength_ - sStart + constInfo_.cmpRatio - 1) / constInfo_.cmpRatio;
+        }
+        if (isCompress) {
+            uint32_t copyStartSeqId = 0;
+            uint32_t copyEndSeqId = 0;
+            uint32_t coffId = coff_ - 1;
+            uint32_t dStart = coffId * constInfo_.dBaseSize + dLoop * dealDSize;
+            uint32_t dEnd = (coffId + 1) * constInfo_.dBaseSize + dLoop * dealDSize;
+            uint32_t cntFromState = 0;
+            // 拷贝右边数据
+            if (startPos == startSeqIdx) {
+                // batch从起始位置开始
+                cntFromState = startPos % constInfo_.cmpRatio;
+                if (cntFromState > 0) {
+                    copyStartSeqId = startPos - cntFromState;
+                    copyEndSeqId = startPos;
+                    // 第一块拷贝
+                    ReadFromCacheState(kvLocal[mmResBaseOffset_ + dealDSize], kvStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd); // 拷贝的右边
+                    ReadFromCacheState(scoreLocal[mmResBaseOffset_ + dealDSize], scoreStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd); // 拷贝的右边
+                }
             }
-            // printf("[GetEndIdx]  bIdx:%u accBasicNum:%u dealTcNum:%u curRemainTcNum:%u headSize:%u curStartPos_:%u curActSeqLength_:%u \n", bIdx, accBasicNum, dealTcNum, curRemainTcNum, headSize, curStartPos_, curActSeqLength_);
-            if (curRemainTcNum > dealTcNum) {
-                if (sStart == 0) {
-                    if (headSize == 0) {
-                        sEnd = sStart + dealTcNum * constInfo_.cmpRatio;
-                    } else {
-                        sEnd = sStart + headSize + (dealTcNum - 1) * constInfo_.cmpRatio;
+            if (coff_ == 2) {  // 拷贝左边数据
+                coffId = 0;
+                dStart = coffId * constInfo_.dBaseSize  + dLoop * dealDSize ;
+                dEnd = (coffId + 1) * constInfo_.dBaseSize  + dLoop * dealDSize;
+                cntFromState = 0;
+                if (startPos == startSeqIdx) {
+                    // 拷贝左边第一块完整块
+                    cntFromState = constInfo_.cmpRatio;
+                    if (startPos >= constInfo_.cmpRatio) {
+                        copyStartSeqId = startPos - startPos % constInfo_.cmpRatio;
+                        copyEndSeqId = copyStartSeqId + cntFromState;
+                        ReadFromCacheState(kvLocal[mmResBaseOffset_], kvStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd);
+                        ReadFromCacheState(scoreLocal[mmResBaseOffset_], scoreStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd);
                     }
-                    return;
-                } else {
-                    sEnd = sStart + dealTcNum * constInfo_.cmpRatio;
-                    return;
-                }
-            } else if (curRemainTcNum == dealTcNum || bIdx == constInfo_.batchSize - 1) {
-                sEnd = curActSeqLength_;
-                return;
-            } else {
-                accBasicNum += curRemainTcNum;
+                } else if (startSeqIdx - constInfo_.cmpRatio < startPos) {
+                        // 左边数据需要拷贝一个尾块和一个完整r块
+                        cntFromState = startPos % constInfo_.cmpRatio;
+                        if (cntFromState > 0) {
+                            copyStartSeqId = startPos - startPos % constInfo_.cmpRatio;
+                            copyEndSeqId = startPos + constInfo_.cmpRatio;
+                            ReadFromCacheState(kvLocal[(copyEndSeqId - copyStartSeqId) * dealDSize], kvStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd);
+                            ReadFromCacheState(scoreLocal[(copyEndSeqId - copyStartSeqId) * dealDSize], scoreStateGm_, batchIdx, copyStartSeqId, copyEndSeqId, dStart, dEnd);
+                        }
+                    }
             }
-        } else {
-            curActSeqLength_ = GetSeqLength(bIdx);
-            curStartPos_ = GetStartPos(bIdx);
-            uint32_t curBasicNum = GetBasicNum();
-            // printf("[GetEndIdx] accBasicNum:%u curBasicNum:%u dealTcNum:%u\n", accBasicNum, curBasicNum, dealTcNum);
-            if (accBasicNum + curBasicNum > dealTcNum) {
-                uint32_t headSize = 0;
-                if (curStartPos_ % constInfo_.cmpRatio != 0) {
-                    headSize = constInfo_.cmpRatio - curStartPos_ % constInfo_.cmpRatio;
-                    // 处理seq不足head大小的情况
-                    headSize = headSize > curActSeqLength_ ? curActSeqLength_ : headSize;
-                }
-                uint32_t curBasicNumEnd = dealTcNum - accBasicNum;
-                if (headSize == 0) {
-                    sEnd = curBasicNumEnd * constInfo_.cmpRatio;
-                } else {
-                    sEnd = headSize + (curBasicNumEnd - 1) * constInfo_.cmpRatio;
-                }
-                sEnd = sEnd > curActSeqLength_ ? curActSeqLength_ : sEnd;
-                return;
-            } else if (accBasicNum + curBasicNum == dealTcNum) {
-                sEnd = curActSeqLength_;
-                return;
-            }
-            accBasicNum += curBasicNum;
         }
-    }
-}
-
-// 根据计算Tc开始结束索引
-template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::CalcScEndIdx(uint32_t bStart, uint32_t scStart, uint32_t dealScSize, uint32_t &bEnd, uint32_t &scEnd) {
-    uint32_t accScSize = 0;
-    for (int bIdx = bStart; bIdx < constInfo_.batchSize; ++bIdx) {
-        bEnd = bIdx;
-        // 计算起始batch的剩余块
-        if (bIdx == bStart) {
-            curActSeqLength_ = GetSeqLength(bIdx);
-            curStartPos_ = GetStartPos(bIdx);
-            accScSize += GetScSize();
-            // printf("[GetEndIdx]  bIdx:%u accScSize:%u dealScSize:%u headSize:%u curStartPos_:%u curActSeqLength_:%u \n", bIdx, accScSize, dealScSize, headSize, curStartPos_, curActSeqLength_);
-            if (accScSize >= dealScSize) {
-                scEnd = scStart + dealScSize;
-                return;
-            }
-        } else {
-            curActSeqLength_ = GetSeqLength(bIdx);
-            curStartPos_ = GetStartPos(bIdx);
-            uint32_t curBasicNum = GetScSize();
-            uint32_t curBasicNumEnd = dealScSize - accScSize;
-            
-            // printf("[GetEndIdx] accScSize:%u curBasicNum:%u dealScSize:%u\n", accScSize, curBasicNum, dealScSize);
-            if (accScSize + curBasicNum >= dealScSize) {
-                scEnd = curBasicNumEnd;
-                return;
-            }
-            accScSize += curBasicNum;
-        }
-    }
-}
-
-// 根据sc的开始索引计算vec输出时的b、sc的索引
-template <typename COMP>
-__aicore__ inline void CompressorBlockVector<COMP>::GetScIdxInfo(uint32_t bStart, uint32_t scStart, uint32_t dealScSize, uint32_t v2TcStart, uint32_t v2TcEnd, 
-                                                            uint32_t &outputBStart, uint32_t &outputSStart, uint32_t &outputScSize)
-{
-    outputScSize = v2TcEnd - v2TcStart;
-    uint32_t scEnd = 0;
-    uint32_t bEnd = 0;
-    CalcScEndIdx(bStart, scStart, dealScSize, bEnd, scEnd);
-    outputSStart = scEnd;
-    outputBStart = bEnd;
-    // 处理跳batch
-    curActSeqLength_ = GetSeqLength(bEnd);
-    curStartPos_ = GetStartPos(bEnd);
-    uint32_t curScSize = GetScSize();
-    if (curScSize == scEnd) {
-        outputSStart = 0;
-        outputBStart++;
+        seqIdx = endSeqIdx - startSeqIdx;
     }
 }
 
@@ -468,5 +434,44 @@ __aicore__ inline void CompressorBlockVector<COMP>::ComputeVec2(const Compressor
 {
     
 }
+
+template <typename COMP> 
+__aicore__ inline void CompressorBlockVector<COMP>::SplitCoreV2(RunInfo& info)
+{
+    // BS分64vec核；累积N个基本块数据后做vec2，N=2；
+    // syncAll前各个vec核写入workspace是按照实际大小（Tc = N * m/r,D=512）
+    // 每次进行v2计算都会根据当前情况将workspace中的数据重新分核
+    // Input: syncAll前各个vec核写入workspace是按照实际大小(m方向)
+    // Output: 每个vec核的起止位置
+
+    uint32_t coreNum = GetBlockNum();
+    uint32_t currCoreIdx = GetBlockIdx();
+    uint32_t usedCoreNum = 0;
+    // 1.计算总vec2基本块数量
+    uint64_t totalBaseNum = (constInfo_.coreGroupNum * constInfo_.nSize * constInfo_.tcBaseSize) / v2MBaseSize; // TODO:不是按照实际数据量计算，暂时按照m方向完整基本块计算数据量 
+    // 2.每个vec核上分到的数据量
+    uint32_t avgBaseNum = 1;
+    if (totalBaseNum > coreNum) {
+        avgBaseNum = (totalBaseNum + coreNum - 1) / coreNum;
+    }else {
+        usedCoreNum = totalBaseNum;
+    }
+    if(currCoreIdx >= usedCoreNum) {
+        return;
+    }
+    // 3.计算每个vec核的起始结束位置
+    v2TcStart_ = currCoreIdx == 0 ? 0 : currCoreIdx * avgBaseNum * v2MBaseSize;
+    v2TcEnd_ = v2TcStart_ + avgBaseNum * v2MBaseSize;
+}
+
+template <typename COMP> 
+__aicore__ inline void CompressorBlockVector<COMP>::CopyFinalResultOut(RunInfo& info)
+{
+
+}
+
+
+
+} // namespace Compressor
 
 #endif // COMPRESSOR_BLOCK_VECTOR_H
