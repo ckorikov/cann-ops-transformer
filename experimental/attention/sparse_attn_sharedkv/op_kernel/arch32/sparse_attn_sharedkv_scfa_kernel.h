@@ -337,10 +337,8 @@ template <typename SAST>
 __aicore__ inline uint32_t SparseAttnSharedkvScfa<SAST>::GetActualSeqLenKV(uint32_t bIdx)
 {
     if constexpr (KV_LAYOUT_T == SAS_LAYOUT::TND) {
-        if (bIdx > 0) {
-            return actualSeqLengthsKVGm.GetValue(bIdx) - actualSeqLengthsKVGm.GetValue(bIdx - 1);
-        } else if (bIdx == 0) {
-            return actualSeqLengthsKVGm.GetValue(0);
+        if (bIdx >= 0) {
+            return actualSeqLengthsKVGm.GetValue(bIdx + 1) - actualSeqLengthsKVGm.GetValue(bIdx);
         } else {
             return 0;
         }
@@ -876,10 +874,8 @@ __aicore__ inline uint64_t
 SparseAttnSharedkvScfa<SAST>::GetBalanceActualSeqLengths(GlobalTensor<int32_t> &actualSeqLengths, uint32_t bIdx)
 {
     if constexpr (LAYOUT_T == SAS_LAYOUT::TND) {
-        if (bIdx > 0) {
-            return actualSeqLengths.GetValue(bIdx) - actualSeqLengths.GetValue(bIdx - 1);
-        } else if (bIdx == 0) {
-            return actualSeqLengths.GetValue(0);
+        if (bIdx >= 0) {
+            return actualSeqLengths.GetValue(bIdx + 1) - actualSeqLengths.GetValue(bIdx);
         } else {
             return 0;
         }
