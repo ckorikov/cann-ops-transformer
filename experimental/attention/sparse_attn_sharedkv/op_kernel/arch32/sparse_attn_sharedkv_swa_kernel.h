@@ -202,9 +202,9 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvSwa<SAST>::Ini
     // singleCoreParams
     usedCoreNum = tilingData->baseParams.usedCoreNum;
     // singleCoreTensorSize
-    constInfo.mmResUbSize = 64 * 512;
-    constInfo.bmm2ResUbSize = 64 * 512;
-    constInfo.vec1ResUbSize = 64 * 512;
+    constInfo.mmResUbSize = tilingData->baseParams.mmResUbSize;
+    constInfo.bmm2ResUbSize = tilingData->baseParams.mmResUbSize;
+    constInfo.vec1ResUbSize = constInfo.mmResUbSize * msdIterNum;
     // baseParams
     constInfo.batchSize = tilingData->baseParams.batchSize;
     constInfo.qHeadNum = constInfo.gSize = tilingData->baseParams.nNumOfQInOneGroup;
@@ -212,6 +212,8 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvSwa<SAST>::Ini
     constInfo.qSeqSize = tilingData->baseParams.qSeqSize;
     constInfo.oriMaxBlockNumPerBatch = tilingData->baseParams.oriMaxBlockNumPerBatch;
     constInfo.kvCacheBlockSize = tilingData->baseParams.paBlockSize;
+    constInfo.orikvCacheBlockSize = tilingData->baseParams.oriBlockSize;
+    constInfo.cmpkvCacheBlockSize = tilingData->baseParams.cmpBlockSize;
     constInfo.outputLayout = static_cast<SAS_LAYOUT>(tilingData->baseParams.outputLayout);
     constInfo.kvHeadNum = kvHeadNum;
     constInfo.headDim = headDim;
@@ -222,9 +224,10 @@ template <typename SAST> __aicore__ inline void SparseAttnSharedkvSwa<SAST>::Ini
 
     constInfo.actualLenDimsQ = tilingData->baseParams.actualLenDimsQ;
     constInfo.actualLenDimsKV = tilingData->baseParams.actualLenDimsKV;
+
     // innerSplitParams
-    constInfo.mBaseSize = 64;
-    constInfo.s2BaseSize = 512;
+    constInfo.mBaseSize = tilingData->baseParams.mBaseSize;
+    constInfo.s2BaseSize = tilingData->baseParams.s2BaseSize;
 
     constInfo.attentionMode = ATTENTION_MODE::MLA_ABSORB;
     constInfo.combineHeadDim = headDim;

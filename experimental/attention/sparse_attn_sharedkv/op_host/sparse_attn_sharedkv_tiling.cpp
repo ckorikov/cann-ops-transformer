@@ -413,7 +413,8 @@ ge::graphStatus SASInfoParser::GetMaxBlockNumPerBatch()
 
 ge::graphStatus SASInfoParser::GetBlockSize()
 {
-    blockSize_ = GetAxisNum(oriKvShape_, SASAxis::Bs, kvLayout_);
+    oriBlockSize_ = GetAxisNum(oriKvShape_, SASAxis::Bs, kvLayout_);
+    cmpBlockSize_ = GetAxisNum(cmpKvShape_, SASAxis::Bs, kvLayout_);
     return ge::GRAPH_SUCCESS;
 }
 
@@ -422,7 +423,7 @@ ge::graphStatus SASInfoParser::GetS2SizeForPageAttention()
     if (GetMaxBlockNumPerBatch() != ge::GRAPH_SUCCESS || GetBlockSize() != ge::GRAPH_SUCCESS) {
         return ge::GRAPH_FAILED;
     }
-    s2Size_ = oriMaxBlockNumPerBatch_ * blockSize_;
+    s2Size_ = oriMaxBlockNumPerBatch_ * oriBlockSize_;
     return ge::GRAPH_SUCCESS;
 }
 
@@ -517,7 +518,10 @@ void SASInfoParser::GenerateInfo(SASTilingInfo &sasInfo)
     sasInfo.totalBlockNum = (opParamInfo_.oriKv.tensor != nullptr) ?
         opParamInfo_.oriKv.tensor->GetStorageShape().GetDim(0) : 0;
     // sasInfo.pageAttentionFlag = (kvStorageMode_ == KvStorageMode::PAGE_ATTENTION);
-    sasInfo.sparseBlockSize = blockSize_;
+    sasInfo.sparseBlockSize = 1;
+    sasInfo.blockSize = oriBlockSize_;
+    sasInfo.oriBlockSize = oriBlockSize_;
+    sasInfo.cmpBlockSize = cmpBlockSize_;
     sasInfo.blockTypeSize = sizeof(float);
     sasInfo.oriMaxBlockNumPerBatch = oriMaxBlockNumPerBatch_;
     sasInfo.cmpMaxBlockNumPerBatch = cmpMaxBlockNumPerBatch_;
@@ -683,6 +687,8 @@ ge::graphStatus SparseAttnSharedkvTiling::DoOpTiling(SASTilingInfo *tilingInfo)
     tilingData_.baseParams.set_qSeqSize(tilingInfo->s1Size);
     tilingData_.baseParams.set_nNumOfQInOneGroup(tilingInfo->gSize);
     tilingData_.baseParams.set_paBlockSize(tilingInfo->blockSize);
+    tilingData_.baseParams.set_oriBlockSize(tilingInfo->oriBlockSize);
+    tilingData_.baseParams.set_cmpBlockSize(tilingInfo->cmpBlockSize);
     tilingData_.baseParams.set_oriMaxBlockNumPerBatch(tilingInfo->oriMaxBlockNumPerBatch);
     tilingData_.baseParams.set_actualLenDimsQ(tilingInfo->actualLenDimsQ);
     tilingData_.baseParams.set_actualLenDimsKV(tilingInfo->actualLenDimsKV);
