@@ -1427,6 +1427,10 @@ bool PromptFlashAttentionTilingV2::CheckPFAMerge(ContextParamsForPFATiling& cont
         return false;
     }
 
+    if ((nKV == 0) && (queryShapeInfo.s > pfaMergeGSLimit)) {
+ 	    return false;
+ 	}
+
     // 隔离高阶特性
     std::string layoutStr(contextKeyParams.layout);
     bool hasCrossoverAttr = enableMask || enablePseShift || enablePA || enableAlibiPse || enablePFARope ||
