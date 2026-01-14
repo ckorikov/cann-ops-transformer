@@ -346,3 +346,5 @@ TEST_F(GroupedMatmulSwigluQuantV2, test_infershape_91095_mxfp4_illegal_1) {
     std::vector<std::vector<int64_t>> expectOuputShape = {{m, n / 2}, {m, n /64 / 2 , 2}}; // 预期输出shape
     ExecuteTestCase(infershapeContextPara, ge::GRAPH_SUCCESS, expectOuputShape);
  }
+
+ 
