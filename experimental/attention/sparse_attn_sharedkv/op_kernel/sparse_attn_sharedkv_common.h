@@ -132,6 +132,7 @@ struct RunInfo {
     int64_t threshold;
     uint32_t curTopKIdx = 0;
     uint64_t curOffsetInSparseBlock = 0;
+    bool isOri = true;  // 判断当前块是在Ori部分还是Cmp部分
 };
 
 struct ConstInfo {

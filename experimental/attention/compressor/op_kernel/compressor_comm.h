@@ -85,7 +85,7 @@ struct ConstInfo {
     uint32_t dBasicBlockNum = 0;
     uint32_t coreGroupNum = 0;
     uint32_t singleCoreDealTcBasicNum = 0;
-    uint32_t nSize = 0;
+    uint32_t dIdx = 0;
 
     // shape及参数
     uint32_t batchSize = 0;
@@ -108,11 +108,13 @@ struct ConstInfo {
     uint32_t vec1ResSize = 0;
 
     uint32_t aiCoreIdx = 0;
+    uint32_t nSize = 0;
 };
 
 struct RunInfo {
     bool isValid = false;
 
+    // c1v1分核信息 b是左闭右闭，s是左闭右开
     uint32_t bStart = 0;
     uint32_t sStart = 0;
     uint32_t bEnd = 0;
@@ -120,6 +122,11 @@ struct RunInfo {
     uint32_t bStartSeqIdx = 0;
     uint32_t bEndSeqIdx = 0;
     uint32_t dealTcNum = 0;
+
+    // v2分核信息 sc是左闭右开
+    uint32_t scStart = 0;
+    uint32_t scEnd = 0;
+    uint32_t dealScSize = 0;
 };
 
 struct MSplitInfo {

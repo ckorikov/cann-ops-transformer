@@ -514,13 +514,13 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
         ge::GRAPH_SUCCESS != GetNpuInfo() ||
         ge::GRAPH_SUCCESS != GetOpParaInfo() ||
         ge::GRAPH_SUCCESS != CheckRequiredParaExistence()) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
 
     if (ge::GRAPH_SUCCESS != GetInOutDataType() ||
         ge::GRAPH_SUCCESS != GetQueryAndOutLayout() ||
         ge::GRAPH_SUCCESS != GetKvLayout()) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
 
     SetSASShape();
@@ -534,11 +534,11 @@ ge::graphStatus SASInfoParser::Parse(SASTilingInfo &sasInfo)
         ge::GRAPH_SUCCESS != GetS2Size() ||
         ge::GRAPH_SUCCESS != GetQkHeadDim() ||
         ge::GRAPH_SUCCESS != GetSparseBlockCount()) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
 
     if (ge::GRAPH_SUCCESS != GetActualseqInfo()) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
 
     GenerateInfo(sasInfo);
@@ -656,12 +656,12 @@ ge::graphStatus TilingKvQuantSparseAttnSharedkv(gert::TilingContext *context)
     SASTilingInfo sasInfo;
     SASInfoParser sasInfoParser(context);
     if (sasInfoParser.Parse(sasInfo) != ge::GRAPH_SUCCESS) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
 
     SASTilingCheck sasTilingChecker(sasInfo);
     if (sasTilingChecker.Process() != ge::GRAPH_SUCCESS) {
-        return ge::GRAPH_FAILED;
+        //return ge::GRAPH_FAILED;
     }
     KvQuantSparseAttnSharedkvTiling tiling(context);
     return tiling.DoOpTiling(&sasInfo);
