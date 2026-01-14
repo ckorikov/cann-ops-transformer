@@ -77,6 +77,11 @@ template <typename T1, typename T2> __aicore__ inline T1 Min(T1 a, T2 b)
     return (a > b) ? (b) : (a);
 }
 
+template <typename T1, typename T2> __aicore__ inline T1 Max(T1 a, T2 b)
+{
+    return (a > b) ? (a) : (b);
+}
+
 template <typename T> __aicore__ inline size_t BlockAlign(size_t s)
 {
     if constexpr (IsSameType<T, int4b_t>::value) {
@@ -218,8 +223,8 @@ struct ConstInfo {
     int64_t cmpRatio = 0;
 
     // win
-    int64_t oriWinRight = 0;
-    int64_t oriWinLeft = 128;
+    int32_t oriWinRight = 0;
+    int32_t oriWinLeft = 128;
 
     // attention模式与量化模式
     ATTENTION_MODE attentionMode = ATTENTION_MODE::MLA_ABSORB;
