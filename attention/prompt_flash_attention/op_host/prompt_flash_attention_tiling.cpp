@@ -4200,9 +4200,6 @@ ge::graphStatus PromptFlashAttentionTiling::RunBigKernelTilingWithParams(Context
         OP_CHECK_IF((s > 65536) || (seqInnerSize > 65536),
                         OPS_REPORT_VECTOR_INNER_ERR("GetBasicShape310P", "310P not support Qs or KVs lager than 65536,Qs = %u, Kvs = %u", s, seqInnerSize),
                         return ge::GRAPH_FAILED);
-        OP_CHECK_IF(((*preTokens < static_cast<int32_t>(s)) || (*nextTokens < static_cast<int32_t>(seqInnerSize) && *nextTokens != 0)),
-                        OPS_REPORT_VECTOR_INNER_ERR("GetBasicShape310P", "pretokens should lager than Qs, nexttokens should be 0 or larger than Kvs, Qs = %u, Kvs = %u, preTokens = %ld, nextTokens = %ld", s, seqInnerSize, *preTokens, *nextTokens),
-                        return ge::GRAPH_FAILED);
     } else {
         if (inputLayout == InputLayout::BNSD || inputLayout == InputLayout::NSD) {
             if (queryShape->GetStorageShape().GetDimNum() == 3) { // dim num: 3
