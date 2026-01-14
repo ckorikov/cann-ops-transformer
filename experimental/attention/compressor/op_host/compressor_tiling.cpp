@@ -139,6 +139,7 @@ ge::graphStatus CompressorTiling::SetBaseInfo()
     baseParams_->normEps = static_cast<float>(*context_->normEps);
     baseParams_->reciprocalD = 1.0 / baseParams_->headDim;
     coff = static_cast<uint8_t>(*context_->coff);
+    baseParams_->nSize = 2;
 
     OP_LOGI(context_->opName, "[TILING] bSize:%u  tSize:%u cmpRatio:%u coff:%u", baseParams_->batchSize, baseParams_->tokenSize, baseParams_->cmpRatio, coff);
     
@@ -161,7 +162,7 @@ ge::graphStatus CompressorTiling::SetWorkSpaceInfo()
         workspaceParams_->preMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
     }
     workspaceParams_->curMm1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
-    workspaceParams_->vec1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize;
+    workspaceParams_->vec1ResSize = innerSplitParams_->mBaseSize * innerSplitParams_->dBaseSize * baseParams_->nSize;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -176,7 +177,7 @@ ge::graphStatus CompressorTiling::SetScenarioInfo()
 ge::graphStatus CompressorTiling::SetInnerSplitInfo()
 {
     innerSplitParams_->mBaseSize = 256;
-    innerSplitParams_->dBaseSize = 64 * coff;
+    innerSplitParams_->dBaseSize = 128 / coff;
 
     return ge::GRAPH_SUCCESS;
 }
@@ -269,9 +270,8 @@ ge::graphStatus CompressorTiling::GenTilingKey() const
     }
     
     context_->tilingKey = GET_TPL_TILING_KEY(
-        dtype,
         layout,
-        // TODO coff有问题
+        dtype,
         coff,
         rotaryMode
     );
