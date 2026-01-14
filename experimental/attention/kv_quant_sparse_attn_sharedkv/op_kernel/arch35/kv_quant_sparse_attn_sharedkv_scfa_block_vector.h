@@ -668,7 +668,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::ProcessMergeKv(const RunInfo
 
     // if constexpr (LAYOUT_T == QSFA_LAYOUT::TND) { // zhj
     if (constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND)) {
-        uint64_t actualSeqQPrefixSum = (runInfo.boIdx <= 0) ? 0 : actualSeqLengthsQGm.GetValue(runInfo.boIdx - 1);
+        uint64_t actualSeqQPrefixSum = actualSeqLengthsQGm.GetValue(runInfo.boIdx);
         // topkGmBaseOffset += (actualSeqQPrefixSum + runInfo.gS1Idx / constInfo.gSize) * constInfo.n2Size *
         topkGmBaseOffset += (actualSeqQPrefixSum + runInfo.s1oIdx) * constInfo.n2Size *
                             constInfo.sparseBlockCount + runInfo.n2oIdx * constInfo.sparseBlockCount; // T, N2, K
@@ -939,7 +939,7 @@ __aicore__ inline void SCFABlockVec<TEMPLATE_ARGS>::InitOutputSingleCore(ConstIn
     if(constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::BSND)) {
         totalOutputSize = constInfo.bSize * constInfo.gSize * constInfo.s1Size * constInfo.dSizeV;
     }else if(constInfo.layoutType == static_cast<uint8_t>(SAS_LAYOUT::TND)) {
-        totalOutputSize = actualSeqQLenGM.GetValue(constInfo.actualSeqLenSize - 1) * constInfo.gSize * constInfo.dSizeV;
+        totalOutputSize = actualSeqQLenGM.GetValue(constInfo.actualSeqLenSize) * constInfo.gSize * constInfo.dSizeV;
     }
 
     if (coreNum != 0) {
