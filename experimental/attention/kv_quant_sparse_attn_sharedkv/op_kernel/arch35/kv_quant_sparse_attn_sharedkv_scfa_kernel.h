@@ -125,6 +125,11 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
     if (metadata != nullptr) {
         // metadataLocal = *(__gm__ SasMetaData *)metadata;
     }
+    // metadataLocal.usedCoreNum = 1;
+    // metadataLocal.mBaseSize = 64;
+    // metadataLocal.s2BaseSize = 128;
+    // metadataLocal.bN2End[0] = 1;
+    // metadataLocal.mEnd[0] = 1;
     constInfo.s1BaseSize = metadataLocal.mBaseSize;
     constInfo.s2BaseSize = metadataLocal.s2BaseSize;
     this->pipe = tPipe;
@@ -192,6 +197,13 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
     // 保存p结果的L1内存必须放在第一个L1 policy上，保证和vec申请的地址相同
     l1PBuffers.Init(l1BufferManager, mm2LeftSize);
     l1RightBuffers.Init(l1BufferManager, mm1RightSize);
+    if ASCEND_IS_AIC {
+        l1PBuffers.Get().SetCrossCore();
+        l1PBuffers.Get().SetCrossCore();
+        l1RightBuffers.Get().SetCrossCore();
+        l1RightBuffers.Get().SetCrossCore();
+        l1RightBuffers.Get().SetCrossCore();
+    }
     ubBufferManager.Init(pipe, mm1ResultSize * 2 + mm2ResultSize);
     bmm2Buffers.Init(ubBufferManager, mm2ResultSize);
     if ASCEND_IS_AIV {
@@ -336,6 +348,7 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
 
         int64_t gS1LoopEnd = lastBN ? (runParam.s1LoopTimes + PRELOAD_NUM) : runParam.s1LoopTimes;
         for (int64_t gS1Index = gS1StartIdx; gS1Index < gS1LoopEnd; gS1Index++) {
+            // PRINTF("AAA gS1Index = %d, gS1StartIdx = %d, gS1LoopEnd = %d\n", gS1Index, gS1StartIdx, gS1LoopEnd);
             bool notLastTwoLoop = true;
             if (lastBN) {
                 int32_t extraGS1 = gS1Index - runParam.s1LoopTimes;
@@ -366,15 +379,16 @@ __aicore__ inline void KvQuantSparseAttnSharedkvScfa<CubeBlockType, VecBlockType
                 s2LoopLimit = 0;
             }
             for (int64_t s2LoopCount = 0; s2LoopCount <= s2LoopLimit; ++s2LoopCount) {
+                // PRINTF("AAA s2LoopCount = %d, s2LoopLimit = %d\n", s2LoopCount, s2LoopLimit);
                 if (notLastTwoLoop) {
                     RunInfo &runInfo1 = runInfo[taskId % 3];
+                    // TODO cmp_kv更新start end line2
                     this->SetRunInfo(runInfo1, runParam, taskId, s2LoopCount, s2LoopLimit, multiCoreInnerIdx);
                     if ASCEND_IS_AIC {
                         this->cubeBlock.IterateBmm1(this->bmm1Buffers.Get(), this->l1RightBuffers.Get(), runInfo1,
                             this->constInfo);
                     } else {
-                        // this->vecBlock.ProcessVec0(this->l1RightBuffers.Get(), this->bmm1Buffers.Get(), runInfo1,
-                        //     this->constInfo);
+                        this->vecBlock.ProcessVec0(this->l1RightBuffers.Get(), runInfo1);
                     }
                 }
                 if (taskId > 0 && notLast) {
